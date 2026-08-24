@@ -325,8 +325,8 @@ def test_cells_splits_only_on_unescaped_pipes() -> None:
     """Negativkontrolle für den Splitter selbst.
 
     Der Doku-Wächter in ``tests/test_recommendations_docs.py`` vergleicht
-    Kopf- und Datenzeile mit **derselben** Funktion und nur relativ. Träfe
-    die Zerlegung eines Tages nicht mehr trennte, lieferte sie für beide genau
+    Kopf- und Datenzeile mit **derselben** Funktion und nur relativ. Trennte
+    die Zerlegung eines Tages gar nicht mehr, lieferte sie für beide genau
     eine Zelle — ``1 == 1``, Wächter grün, Zeile trotzdem abgeschnitten.
     """
     assert len(lc.cells("| a | b | c |")) == 3
@@ -344,14 +344,20 @@ def test_render_triage_row_escapes_backslashes_before_pipes() -> None:
 
     Ein API-Titel, der bereits ``\|`` enthaelt - etwa weil er die in TESTING.md
     dokumentierte Schreibweise zitiert -, wurde mit reiner Pipe-Maskierung zu
-    ``\|``. GFM liest das als maskierten Backslash plus **echten** Trenner:
+    ``\\|`` (der Backslash blieb stehen, nur das Pipe bekam einen davor).
+    GFM liest das als maskierten Backslash plus **echten** Trenner:
     Die Zeile bekommt eine Zelle zu viel und rendert abgeschnitten. Der
     Doku-Waechter sah das nicht, weil sein Splitter dieselbe Fehleinschaetzung
     machte - beide zaehlten gleich, also blieb er gruen.
     """
     row = lc.render_triage_row(lc.OpenIssue(900, r"Regel: als a \| b schreiben"), 6)
     assert len(lc.cells(row)) == 6, f"Zeile zerfaellt: {row}"
-    assert r"\\|" in row, "Backslash muss vor dem Pipe maskiert sein"
+    # Voller Zellvergleich statt Teilkette (#852-Review): ``\\|`` ist auch in
+    # der fehlerhaft nur pipe-maskierten Fassung enthalten (``a \\| b``) -
+    # erst die volle Titelzelle unterscheidet sie von korrektem ``a \\\| b``.
+    assert lc.cells(row)[1] == r"Regel: als a \\\| b schreiben", (
+        f"Backslash muss vor dem Pipe maskiert sein: {row}"
+    )
 
 
 def test_unrated_issue_numbers_ignores_todo_after_an_escaped_pipe() -> None:

@@ -21,7 +21,10 @@ name: Claude Code
 # `claude setup-token`, Ergebnis als Repo-Secret CLAUDE_CODE_OAUTH_TOKEN.
 #
 # Kosten und Nutzungslimit (#828): Beide Workflows sind auf Opus gepinnt und
-# rechnen über das persönliche Abo des Token-Inhabers. Ist das Limit
+# rechnen – bei Authentifizierung über `CLAUDE_CODE_OAUTH_TOKEN`, dem
+# Regelfall beider Workflows – über das persönliche Abo des Token-Inhabers;
+# unter der `ANTHROPIC_API_KEY`-Alternative gälte stattdessen die
+# API-Abrechnung. Ist das Limit
 # erschöpft, wird der Lauf **rot**, nicht übersprungen; das beobachtete
 # Fehlerbild ist ein früher Abbruch ohne Modellnutzung (`subtype: success`
 # zusammen mit `is_error: true`, 0–1 Turns, 0 Ablehnungen – siehe Lauf
@@ -160,7 +163,11 @@ jobs:
           # `reason` zusätzlich im Klartext ausgegeben (`[Grund: …]`), nicht
           # mehr nur sein Feldname: Ohne den Wert ließ sich die Klasse einer
           # Ablehnung aus dem Joblog nicht bestimmen, obwohl sie im Protokoll
-          # stand. Der Wert ist Fremdinhalt und deshalb dreifach eingehegt –
+          # stand. Geprüft wird `.reason != null` statt `has("reason")`: Ein
+          # explizites `null` trägt keinen Grund und stünde sonst als
+          # `[Grund: null]` in der Zeile – dass das Feld existiert, zeigt
+          # weiterhin die Feldliste (#853-Review).
+          # Der Wert ist Fremdinhalt und deshalb dreifach eingehegt –
           # `tojson` (keine rohen Steuerzeichen), 200 Zeichen Deckel und das
           # abschließende `gsub`, das die Zusicherung „genau eine Zeile je
           # Ablehnung" auch über den neuen Teilausdruck hält. Die Klassenmarke
@@ -180,11 +187,11 @@ jobs:
           # 0" — der stille Durchlauf, den dieser Schritt gerade ausschließen
           # soll. Nachgestellt mit beiden Formen. Jetzt steht dort eine
           # eigene Zeile, die den Typ nennt; count wird 1 statt 0.
-          # Das abschliessende `gsub` macht „genau eine Ausgabezeile je
+          # Das abschließende `gsub` macht „genau eine Ausgabezeile je
           # Ablehnung" strukturell wahr, statt pro Feld: `tool_name` und die
           # Feldnamen gehen roh in die Interpolation, und ein Zeilenumbruch
-          # darin ist in JSON zulaessig – nachgestellt, `count` sprang auf 2.
-          # So haengt die Zusicherung nicht daran, dass jeder kuenftige
+          # darin ist in JSON zulässig – nachgestellt, `count` sprang auf 2.
+          # So hängt die Zusicherung nicht daran, dass jeder künftige
           # Feldzugriff daran denkt.
           # `tojson` statt `tostring`: Auf einem String ist `tostring` die
           # Identität, ein mehrzeiliger Datensatz erzeugte also mehrere
@@ -198,7 +205,7 @@ jobs:
                                   then .permission_denials[]
                                        | if type == "object"
                                          then "[ABLEHNUNG] \(.tool_name // "?") [Felder: \(keys | join(","))]"
-                                              + (if has("reason") then " [Grund: \(.reason | tojson | .[0:200])]" else "" end)
+                                              + (if .reason != null then " [Grund: \(.reason | tojson | .[0:200])]" else "" end)
                                               + ": \(.tool_input | tojson | .[0:300])"
                                          else "[ANOMALIE] Nicht-Objekt: \(type): \(tojson | .[0:300])"
                                          end
@@ -245,6 +252,11 @@ jobs:
             # eine Ebene tiefer gerade ablegen.
             anomalien=$(( gesamt - count ))
           fi
+          # Der `if !`-Zweig hier ist Defense-in-depth und praktisch
+          # unerreichbar: Ein nicht parsebares Protokoll endet oben schon am
+          # ersten `jq` (Warnung + exit 0). Er fängt nur Fehler dieses Filters
+          # selbst und hält die Zusage „nie still" auch bei Umbauten
+          # (#853-Review).
           if ! abschluss=$(jq -r '.. | objects | select(has("num_turns"))
                  | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
             "$EXECUTION_FILE"); then

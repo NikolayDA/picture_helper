@@ -50,7 +50,10 @@ _MODULE_WIDE_RE = re.compile(r"modulweit nur in\s*`(?:tests/)?(test_\w+\.py)`")
 
 # Die beiden UI-Aufzählungen (#847). Beide Captures enden an einem Satz, der
 # nicht mehr zur Liste gehört - sie können dadurch nicht in den Folgeabsatz
-# rutschen und dort eine Datei aufsammeln.
+# rutschen und dort eine Datei aufsammeln. Innerhalb der Spanne zählt JEDE in
+# Backticks genannte test_*.py-Datei als dokumentiert - eine beiläufige
+# Nennung in der Absatzprosa macht den Test also falsch-rot (fail-loud);
+# der Maschinenformat-Kommentar in TESTING.md warnt davor (#852-Review).
 _UI_LIST_RE = re.compile(r"## Die UI-Tests\n(.*?)Nur diese `ui`-markierten Tests", re.DOTALL)
 _UI_SMOKE_LIST_RE = re.compile(
     r"Marker `ui_smoke`\s*[–-]\s*(.*?)Die meisten dieser Module", re.DOTALL
@@ -58,7 +61,11 @@ _UI_SMOKE_LIST_RE = re.compile(
 # Zwischen allen Tokens ``\s+`` statt fester Leerzeichen: TESTING.md ist auf
 # ~76 Zeichen umbrochen, ein Zeilenumbruch kann redaktionell an jeder Stelle
 # des Satzes landen. Ein Muster mit festen Leerzeichen scheitert dann laut,
-# aber grundlos.
+# aber grundlos. Die Arität ist bewusst auf GENAU zwei Dateien fixiert: Der
+# TESTING.md-Satz zählt die doppelt markierten Module abschließend auf.
+# Nennt die Doku künftig eine dritte, findet das Muster den Satz nicht mehr
+# und ``_documented_ui_smoke`` scheitert laut mit Verweis hierher - dann
+# Muster UND Satz gemeinsam erweitern (#852-Review).
 _BOTH_MARKERS_RE = re.compile(
     r"nur\s+`(?:tests/)?(test_\w+\.py)`\s+und\s+`(?:tests/)?(test_\w+\.py)`"
     r"\s+tragen\s+beide\s+Marker"
@@ -424,7 +431,10 @@ def test_ui_doc_parsers_detect_synthetic_drift() -> None:
         _documented_ui_modules("Kein UI-Abschnitt hier.")
     with pytest.raises(AssertionError, match="_UI_SMOKE_LIST_RE"):
         _documented_ui_smoke("Kein ui_smoke-Absatz hier.")
-    with pytest.raises(AssertionError, match="in sich\ninkonsistent|in sich inkonsistent"):
+    # Nur die zusammenhängende Form: Die Meldung entsteht aus impliziter
+    # String-Konkatenation und enthält nie einen Zeilenumbruch - der frühere
+    # ``\n``-Alternativzweig war toter Code (#852-Review).
+    with pytest.raises(AssertionError, match="in sich inkonsistent"):
         _documented_ui_smoke(
             "Marker `ui_smoke` – in `tests/test_a.py`. Die meisten dieser Module "
             "tragen nur das – nur `test_a.py` und `test_c.py` tragen beide Marker."
