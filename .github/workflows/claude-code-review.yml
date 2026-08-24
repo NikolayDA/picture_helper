@@ -114,8 +114,17 @@ jobs:
             schreiben), KEINE Zeile des Bodys darf mit `#` beginnen (statt
             `## Überschrift` also `**Überschrift**`; belegt abgelehnter
             Fall), und bleibe deutlich unter 10 000 Zeichen — im Zweifel
-            kürzen statt anhängen. Poste rechtzeitig, bevor das Turn-Budget
-            endet.
+            kürzen statt anhängen.
+
+            Budget-Disziplin: Dein Turn-Budget ist knapp bemessen.
+            Verschaffe dir bei großen Diffs zuerst mit
+            `gh pr diff <nr> --name-only` den Überblick und lies dann
+            gezielt; ein zu großer Voll-Diff wird als Datei abgelegt und ist
+            mit Read abschnittsweise lesbar (das bleibt der Diff — weiche
+            nicht auf den Nachher-Zustand der Dateien aus). Poste die
+            Zusammenfassung spätestens nach zwei Dritteln des Budgets und
+            setze Inline-Befunde, solange Turns bleiben — ein Lauf, der
+            endet, ohne etwas gepostet zu haben, ist wertlos.
 
             Werkzeuggrenze (vollständige Begründung im ADR
             docs/history/ADR-2026-review-workflow-verschlankung.md).

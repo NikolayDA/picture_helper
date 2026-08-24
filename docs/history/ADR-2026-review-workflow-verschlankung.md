@@ -44,10 +44,16 @@ Verschlankung von Prompt, Prosa und Tests, **E5** die Kostenbremse
    `tests/test_process_documentation.py`.
 4. **Turn-Budget 30 → 20 und Timeout 30 → 15 Minuten (E5).** Mit dem
    schlanken Prompt entfallen die Turns für Formregel-Navigation; echte
-   Reviews liefen median ~5, maximal ~9 Minuten. Rückdrehpfad: Endet eine
-   Serie realer Läufe in `error_max_turns` **mit** geposteter Ausgabe
-   davor, ist das Budget zu knapp – dann zuerst hier erhöhen, nicht den
-   Prompt wieder aufblähen.
+   Reviews liefen median ~5, maximal ~9 Minuten. Erster Kalibrierpunkt:
+   Der allererste Lauf unter dem neuen Budget (PR #858, Job 97538305150,
+   ein ~3.300-Zeilen-Diff) endete mit `error_max_turns` nach 21 Turns,
+   0 Ablehnungen und **ohne gepostete Ausgabe** — der teuerste Fall.
+   Antwort: Budget-Disziplin im Prompt (Überblick per `--name-only`
+   zuerst, Zusammenfassung spätestens nach zwei Dritteln des Budgets)
+   statt Erhöhung. Rückdrehpfad: Erst wenn ein Lauf **trotz** dieser
+   Disziplin leer endet oder eine Serie realer Läufe mit geposteter
+   Ausgabe in `error_max_turns` läuft, wird hier erhöht (nächste Stufe
+   25) — nicht der Prompt wieder aufgebläht.
 5. **Bewusst unverändert:** die Allowlist (wortgleich übernommen), das
    Verhalten des Diagnose-Skripts, das Opus-Pinning (ein Review je PR ist
    die Kostenbremse; das stärkere Modell je Lauf ist gewollt) und die

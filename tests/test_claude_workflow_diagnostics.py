@@ -217,10 +217,18 @@ def test_review_checkout_provides_history_before_git_inspection() -> None:
 
 
 def test_review_job_carries_the_cost_bounds() -> None:
-    """E5: ein begrenzter Lauf je PR — Timeout und Turn-Budget gesetzt."""
+    """E5: ein begrenzter Lauf je PR — Timeout und Turn-Budget exakt gepinnt.
+
+    Der Deckel ist die Kostenbremse selbst; ein bewusstes Anheben gehört
+    laut ADR zuerst dorthin und dann synchron hierher (Codex-P2 auf #858:
+    ein bloßes „irgendein --max-turns existiert" ließe 30, 200 oder ein
+    Duplikat grün durchlaufen)."""
     assert re.search(r"(?m)^    timeout-minutes: 15$", _text(_REVIEW_WORKFLOW))
     args = _claude_args(_REVIEW_WORKFLOW)
-    assert any(a.startswith("--max-turns ") for a in args), "Turn-Budget fehlt"
+    turn_args = [a for a in args if a.startswith("--max-turns")]
+    assert turn_args == ["--max-turns 20"], (
+        f"Turn-Budget weicht vom E5-Deckel ab: {turn_args!r}"
+    )
     assert "--model claude-opus-5" in args, "Modell-Pin fehlt (Kosten-/Auth-Anker)"
 
 
