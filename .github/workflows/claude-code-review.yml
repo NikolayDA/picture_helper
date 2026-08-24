@@ -74,8 +74,17 @@ jobs:
   review:
     # Drafts erst beim Verlassen des Draft-Status reviewen; vom
     # `labeled`-Ereignis zählt nur das Anforderungs-Label `re-review` –
-    # jedes andere Label wird ignoriert, der Lauf überspringt sich.
+    # jedes andere Label wird ignoriert, der Lauf überspringt sich. Die
+    # `state`-Bedingung fängt Labels auf bereits geschlossenen/gemergten
+    # PRs ab (ob `labeled` dort feuert, ist unbelegt – die Absicherung
+    # kostet nichts, ein 30-Turn-Lauf gegen einen toten Merge-Ref schon;
+    # Review-Befund auf PR #857). Bewusst STILL ist das Label auf Drafts
+    # und – über `paths-ignore` eine Ebene höher – auf Doku-only-PRs: Dort
+    # startet kein Job und erscheint kein übersprungener Check; der Weg zu
+    # einem Review ist dann die `@claude`-Erwähnung (steht auch in
+    # CONTRIBUTING.md beim Label).
     if: >-
+      github.event.pull_request.state == 'open' &&
       github.event.pull_request.draft == false &&
       (github.event.action != 'labeled' || github.event.label.name == 're-review')
     # Concurrency bewusst auf JOB-Ebene (Codex-P1 auf PR #857): Auf
