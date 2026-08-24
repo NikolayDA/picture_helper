@@ -7,10 +7,13 @@ description: |
   - Sicherheit und Performance
 
 triggers:
+  # Reviewschleifen-Entschärfung: ein Review je PR statt eines je Push;
+  # Wiederholung nur auf ausdrückliche Anforderung (Label re-review).
   - type: pull_request
     actions:
       - opened
-      - synchronize
+      - ready_for_review
+      - labeled  # nur Label re-review, siehe Job-if im Workflow
 
 configuration:
   # Validierungsschritte

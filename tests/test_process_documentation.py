@@ -50,22 +50,29 @@ def test_branch_protection_snapshot_covers_all_live_merge_gates() -> None:
     """Der manuelle Live-Snapshot darf nicht nur den Status-Check kopieren.
 
     Der authentifizierte Abgleich vom 23.08.2026 ergab zusätzlich
-    ``required_status_checks.strict == true``, aufzulösende Konversationen
-    und null erforderliche Approvals. Diese Regeln ändern den tatsächlichen
-    Mergepfad und müssen deshalb in Tabelle und Diagramm sichtbar bleiben.
+    ``required_status_checks.strict == true`` und null erforderliche
+    Approvals. Die Konversationsauflösungs-Pflicht ist mit der
+    Reviewschleifen-Entschärfung (ADR-2026-reviewschleifen-entschaerfung)
+    aus der Branch Protection entfernt; der Snapshot muss diesen Soll-Stand
+    ausdrücklich benennen, statt die alte Sperre weiter zu behaupten – und
+    Tabelle wie Diagramm dürfen den `strict`-Mergepfad nicht verlieren.
     """
     snapshot = _process_documentation()
     row = _branch_protection_row(snapshot)
     required_row_phrases = (
         "Branch muss aktuell zu `main` sein (`strict`)",
-        "alle Review-Konversationen müssen aufgelöst sein",
+        "Review-Konversationen sind keine Merge-Sperre",
         "kein formales Approval erforderlich",
         "für Admins nicht erzwungen",
     )
     missing = [phrase for phrase in required_row_phrases if phrase not in row]
     assert not missing, f"Branch-Protection-Snapshot unvollständig: {missing}"
+    assert "müssen aufgelöst sein" not in row, (
+        "Die entfernte Konversationsauflösungs-Pflicht steht wieder als "
+        "Merge-Sperre im Snapshot"
+    )
 
-    assert "Branch aktuell zu main<br/>und alle Review-Konversationen aufgelöst?" in snapshot
+    assert 'RQ3{"Branch aktuell zu main?"}' in snapshot
     assert "RQ3 -->|\"nein\"| F4 --> R1" in snapshot
 
 

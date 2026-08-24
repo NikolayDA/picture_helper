@@ -25,11 +25,19 @@ Die folgenden Repository-Einstellungen sind **Live-Konfiguration**, nicht Teil
 des versionierten Codes (manuell und authentifiziert geprüft am 22. August
 2026; vollständig nachgeprüft am 23. August 2026). Dieser Snapshot hat noch
 keinen automatischen Drift-Test und muss bei Änderungen in den
-GitHub-Einstellungen erneut abgeglichen werden:
+GitHub-Einstellungen erneut abgeglichen werden.
+
+**Soll-Stand seit dem 24. August 2026** (Reviewschleifen-Entschärfung,
+[ADR](history/ADR-2026-reviewschleifen-entschaerfung.md)): Die
+Konversationsauflösungs-Pflicht („Require conversation resolution before
+merging") wird aus der Branch Protection entfernt. Der Repository-Owner
+stellt das beim Übernehmen dieser Änderung unter *Settings → Branches* um;
+bis dahin weicht die Live-Konfiguration in genau diesem Punkt von der
+folgenden Tabelle ab:
 
 | Einstellung | Aktueller Stand | Bedeutung für die Diagramme |
 |---|---|---|
-| Branch Protection für `main` | einziger erforderlicher Status: `Lightweight PR checks`; Branch muss aktuell zu `main` sein (`strict`); alle Review-Konversationen müssen aufgelöst sein; kein formales Approval erforderlich; für Admins nicht erzwungen | Weitere Checks und ein `APPROVED`-Review sind keine technischen Merge-Sperren, ein veralteter Branch oder eine offene Review-Konversation dagegen schon |
+| Branch Protection für `main` | einziger erforderlicher Status: `Lightweight PR checks`; Branch muss aktuell zu `main` sein (`strict`); Review-Konversationen sind keine Merge-Sperre (Konversationsauflösungs-Pflicht mit der Reviewschleifen-Entschärfung entfernt); kein formales Approval erforderlich; für Admins nicht erzwungen | Weitere Checks, Review-Kommentare und ein `APPROVED`-Review sind keine technischen Merge-Sperren, ein veralteter Branch oder ein roter Pflichtstatus dagegen schon |
 | Merge-Methoden | Merge-Commit, Squash und Rebase sind erlaubt | Squash ist die gelebte Projektkonvention, nicht die einzige von GitHub erlaubte Methode |
 | Auto-Merge | deaktiviert | Die Merge-Entscheidung erfolgt manuell |
 | Branch nach Merge automatisch löschen | deaktiviert | Das Löschen eines Feature-Branches ist ein optionaler manueller Schritt |
@@ -202,7 +210,7 @@ flowchart TD
     C3["dependency-audit.yml<br/>Abhängigkeits-Audit, läuft auch bei Docs-only-PRs"]
     C4["license-check.yml<br/>Lizenzreport mit Python-, AI- und Test-Abhängigkeiten einschließlich PyQt6,<br/>aber ohne Linux-Qt-Systempakete"]
     CQ{"Secret CLAUDE_CODE_OAUTH_TOKEN verfügbar?"}
-    C5["claude-code-review.yml<br/>Review als Inline-Kommentare plus Zusammenfassung"]
+    C5["claude-code-review.yml<br/>einmal je PR: opened bzw. ready_for_review, Wiederholung nur per Label re-review;<br/>Doku-only-Pfade ausgenommen · Review als Inline-Kommentare plus Zusammenfassung"]
     C6["Review sichtbar übersprungen<br/>Warnung statt rotem Lauf; bei Fork-PRs immer der Fall"]
   end
 
@@ -233,14 +241,21 @@ flowchart TD
   wertet GitHub nicht aus. Bei PR 812 blieben dadurch sieben umgesetzte Issues
   nach dem Merge offen und mussten von Hand nachgezogen werden.
 - Das Öffnen des PR startet die gezeichneten PR-Workflows sofort; ein weiterer
-  Commit löst `synchronize` aus. Keiner dieser Workflows hört auf
-  `ready_for_review`, daher ist das Markieren eines Drafts nicht der Startpunkt
-  der Prüfungen.
+  Commit löst `synchronize` aus und wiederholt die Checks. Das Claude-Review
+  ist seit der Reviewschleifen-Entschärfung die Ausnahme: Es hört nicht auf
+  `synchronize`, sondern läuft einmal je PR – bei `opened` für normal
+  geöffnete PRs, bei `ready_for_review` beim Verlassen des Draft-Status
+  (Drafts überspringt das Job-`if`) – und danach nur noch auf ausdrückliche
+  Anforderung über das Label `re-review`. Reine Doku-PRs (Markdown, `docs/`)
+  sind per `paths-ignore` ausgenommen.
 - `dependency-audit.yml` läuft ohne Pfadfilter auch bei reinen Doku-PRs. Der
   Audit ist laut dem aktuellen [GitHub-Rahmen](#aktueller-github-rahmen) kein
   erforderlicher Branch-Protection-Status.
 - Das Review kommentiert nur; es hat weder Schreibrechte auf den Code noch
-  blockiert es den Merge. Das erledigen die Pflicht-Checks.
+  blockiert es den Merge. Das erledigen die Pflicht-Checks. Auch seine
+  Inline-Konversationen sperren den Merge nicht mehr (siehe
+  [GitHub-Rahmen](#aktueller-github-rahmen)); für den Umgang mit Befunden
+  gilt die Konvergenzregel aus Abschnitt 3.
 - Die Raute prüft nur, ob das Secret vorhanden ist. Der andere Fehlerweg ist
   seit #828 (PR #853) im Workflow-Kopf festgehalten: Ein vorhandenes, aber
   abgelaufenes Token (`claude setup-token` erzeugt ein Jahr Gültigkeit; der
@@ -250,7 +265,8 @@ flowchart TD
   Abbruch ohne Modellnutzung); der Ablauffall wäre ein
   Authentifizierungsfehler. Endet ein roter Lauf ohne Review-Ausgabe, ist
   der PR weder blockiert noch geprüft — auch der indirekte Sperrweg über
-  aufzulösende Inline-Konversationen entfällt dann.
+  aufzulösende Inline-Konversationen existiert seit der
+  Reviewschleifen-Entschärfung ohnehin nicht mehr.
 - `claude.yml` ist ein eigener, hier nicht gezeichneter Pfad: Er reagiert auf
   `@claude`-Erwähnungen in Issues, PRs und Reviews und darf im Gegensatz zum
   Review-Workflow schreiben. Seine mit dem Standard-`GITHUB_TOKEN` erzeugten
@@ -293,17 +309,17 @@ flowchart TD
   subgraph DEV["Partition: Entwickler:in"]
     direction TB
     F1["Ursache lokal reproduzieren und beheben<br/>make check erneut grün bekommen"]
-    F2["git push in denselben Branch<br/>Ereignis synchronize: Checks neu, laufendes Review wird abgebrochen"]
+    F2["git push in denselben Branch<br/>Ereignis synchronize: Pflicht-Checks laufen neu, das Auto-Review startet nicht erneut"]
     FQ{"Behebung lokal?"}
     F3["Optional @claude im PR-Kommentar für Fixes<br/>Bot-Fix prüfen und wegen GITHUB_TOKEN-Limit<br/>ein menschlich authentifiziertes Folge-Update vorbereiten"]
-    F4["Technische Merge-Sperre auflösen<br/>Branch auf main aktualisieren oder offene Review-Konversationen abschließen"]
+    F4["Technische Merge-Sperre auflösen<br/>Branch auf main aktualisieren"]
   end
 
   subgraph REV["Partition: Reviewer bzw. Maintainer"]
     direction TB
     RQ2{"Änderungswünsche offen?"}
     A1["Merge-Entscheidung treffen<br/>formales Approval ist möglich, aber aktuell nicht technisch vorgeschrieben"]
-    RQ3{"Branch aktuell zu main<br/>und alle Review-Konversationen aufgelöst?"}
+    RQ3{"Branch aktuell zu main?"}
     M1["Üblicher Squash-Merge nach main<br/>GitHub erlaubt daneben Merge-Commit und Rebase"]
     MQ{"Feature-Branch manuell löschen?"}
     M2["Feature-Branch löschen<br/>automatische Löschung ist deaktiviert"]
@@ -348,16 +364,23 @@ flowchart TD
 
 **Anmerkungen**
 
-- Die Rückkante `synchronize` ist der eigentliche Takt dieses Prozesses: Jeder
-  neue Commit startet `pr-ci.yml` neu und bricht ein laufendes Claude-Review ab
-  (`concurrency: cancel-in-progress`).
+- Die Rückkante `synchronize` taktet nur noch die Pflicht-Checks: Jeder neue
+  Commit startet `pr-ci.yml` neu. Das Claude-Review läuft dabei nicht erneut
+  mit – eine Wiederholung gibt es nur über das Label `re-review`; dort bricht
+  `concurrency: cancel-in-progress` einen noch laufenden älteren Lauf ab.
+- **Konvergenzregel für Bot-Reviews:** Höchstens zwei Bot-Review-Runden je PR.
+  Danach entscheidet ein Mensch gesammelt (ein Kommentar), welche Befunde
+  umgesetzt werden; die übrigen werden mit einem Satz Begründung geschlossen.
+  Bot-Befunde sind Input der Merge-Entscheidung, keine Merge-Bedingung –
+  konvergieren Befunde nicht mehr (jeder Fix zieht neue oder umformulierte
+  nach), ist Aufhören die richtige Auflösung, nicht der nächste Fix-Push.
 - Squash-Merge ist die aus der `main`-Historie belegte Projektpraxis. GitHub
   erzwingt sie nicht: Auch Merge-Commit und Rebase sind freigeschaltet.
 - Ein formales `APPROVED`-Review ist derzeit keine Branch-Protection-Pflicht.
-  GitHub erzwingt für Nicht-Admins aber einen gegenüber `main` aktuellen
-  Branch (`strict`) und die Auflösung aller Review-Konversationen. Maintainer
-  müssen weitere Befunde bewusst bewerten; die technische Durchsetzung ist im
-  [GitHub-Rahmen](#aktueller-github-rahmen) festgehalten.
+  GitHub erzwingt für Nicht-Admins nur einen gegenüber `main` aktuellen
+  Branch (`strict`); Review-Konversationen sperren den Merge nicht mehr.
+  Maintainer müssen Befunde deshalb bewusst bewerten; die technische
+  Durchsetzung ist im [GitHub-Rahmen](#aktueller-github-rahmen) festgehalten.
 - Nicht gezeichnet sind reine Zeitplan-Einstiege beziehungsweise zusätzliche
   Zeitplan-Läufe neben den gezeichneten Ereignispfaden:
   `ui-nightly.yml` (täglich 03:00 UTC), `ci.yml` (sonntags, volle Matrix),

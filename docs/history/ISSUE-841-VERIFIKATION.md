@@ -25,9 +25,17 @@ die Regel sowohl `--write` als auch das Schließen des Issues.
 
 ## Woran ein Lauf gemessen wird
 
-1. **Zählbarkeit.** Läufe auf PR #850 selbst zählen nicht — jeder von ihnen hat
-   die Konfiguration verändert, gegen die gemessen wird. Die Zählung beginnt mit
-   dem ersten Reviewlauf nach dem Merge von #850.
+1. **Zählbarkeit (ersetzt am 2026-08-24, Reviewschleifen-Entschärfung).**
+   Gemessen wird **passiv** über die nächsten **zehn realen Review-Läufe** auf
+   gewöhnlichen PRs — es werden keine PRs oder Pushes als Messvehikel erzeugt.
+   Zwischenzeitliche Konfigurationsänderungen setzen die Zählung **nicht**
+   zurück: Jeder Lauf wird gegen die zu seinem Zeitpunkt aktive Konfiguration
+   gelesen und mit deren Commit-SHA notiert. Die frühere Regel („drei
+   aufeinanderfolgende grüne Läufe; Läufe auf dem Fix-PR zählen nicht") hatte
+   sich als selbstblockierend erwiesen: Jeder Konfig-Fix disqualifizierte die
+   eigene Messreihe und erzeugte Folge-PRs als Messvehikel — Belege und
+   Entscheidung in
+   [ADR-2026-reviewschleifen-entschaerfung.md](ADR-2026-reviewschleifen-entschaerfung.md).
 2. **Abschlussgrund.** Der Diagnoseschritt muss `Lauf: success,` melden. Ein
    `error_max_turns` ist kein bestandener Lauf, auch nicht mit null Ablehnungen.
 3. **Ablehnungszähler.** Der Diagnosezähler muss **0** sein. Geprüft wird
@@ -81,8 +89,11 @@ Nachdrücklichkeit, und Regeln optimieren zuverlässig auf die Messgröße.
 Die Go-/No-Go-Entscheidung ist ohnehin ein menschlicher Schritt; diese Bedingung
 verhindert nur, dass die Zahl allein den Ausschlag gibt.
 
-**#828 bleibt offen.** Sein Akzeptanzkriterium verlangt einen Folgelauf mit
-*weniger Ablehnungen* als der jeweilige Referenzlauf. Diese Messreihe hat nie
-stattgefunden: #841 wurde vor ihrem Beginn geschlossen. Die Kriterien stehen
-deshalb hier, das Issue bleibt bis zu einer echten Messung offen — ein Haken
-ohne Messwert wäre genau die Lücke, gegen die dieses Dokument geschrieben ist.
+**#828 bleibt offen, ist aber eingefroren.** Sein Akzeptanzkriterium ist die
+passive Zehn-Läufe-Messung aus Punkt 1; ein Haken ohne Messwert wäre genau die
+Lücke, gegen die dieses Dokument geschrieben ist. Bis die Messreihe steht und
+der Review-Prompt verschlankt ist, werden **keine weiteren Umbauten an der
+Review-Mechanik** vorgenommen (Meta-Freeze, Begründung im
+[ADR-2026-reviewschleifen-entschaerfung.md](ADR-2026-reviewschleifen-entschaerfung.md)):
+Vom 22.–24.08.2026 waren acht von zehn gemergten PRs Änderungen am
+Review-System selbst — unter Aufsicht ebendieses Review-Systems.

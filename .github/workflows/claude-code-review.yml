@@ -1,11 +1,17 @@
 name: Claude Code Review
 
-# Automatisches Code-Review durch Claude bei jedem geöffneten/aktualisierten
-# Pull Request. Realisiert den "Code Review Agent" aus .github/agents/
-# code-review.yml. Bewertet nur (Kommentare/Review) und schreibt keinen Code.
-# Der Job selbst ist kein Required Check; ein Inline-Befund kann den Merge aber
-# bis zur Auflösung der Review-Konversation sperren. Das CI-Gate kommt aus
-# pr-ci.yml.
+# Automatisches Code-Review durch Claude: genau einmal je Pull Request (beim
+# Öffnen bzw. beim Verlassen des Draft-Status), eine Wiederholung nur auf
+# ausdrückliche Anforderung über das Label `re-review`; reine Doku-Pfade sind
+# ausgenommen (Reviewschleifen-Entschärfung, siehe
+# docs/history/ADR-2026-reviewschleifen-entschaerfung.md). Realisiert den
+# "Code Review Agent" aus .github/agents/code-review.yml. Bewertet nur
+# (Kommentare/Review) und schreibt keinen Code. Der Job selbst ist kein
+# Required Check, und die Auflösung von Review-Konversationen ist keine
+# Branch-Protection-Pflicht mehr: Befunde sind Input der menschlichen
+# Merge-Entscheidung (Konvergenzregel: höchstens zwei Bot-Runden je PR, dann
+# entscheidet ein Mensch gesammelt, was umgesetzt wird). Das CI-Gate kommt
+# aus pr-ci.yml.
 #
 # Voraussetzung: Repo-Secret CLAUDE_CODE_OAUTH_TOKEN (lokal erzeugt mit
 # `claude setup-token`; rechnet über das Claude-Abo statt über eine
@@ -31,14 +37,33 @@ name: Claude Code Review
 # Review, die Zahl spricht also dagegen. Tragend ist, was ein Turn kostet und
 # wie oft er anfällt: Der interaktive Agent schreibt Code (lange Werkzeug-
 # ausgaben, ganze Dateien im Kontext), das Review bewertet nur einen Diff.
-# Dafür läuft das Review bei jedem `opened`/`synchronize` automatisch,
+# Dafür lief das Review bis zur Reviewschleifen-Entschärfung bei jedem
+# `opened`/`synchronize`; seither startet es je PR genau einmal (`opened`/
+# `ready_for_review`, Wiederholung nur über das Label `re-review`),
 # `claude.yml` nur auf ausdrückliche `@claude`-Erwähnung – die Häufigkeit
-# spricht wiederum für das Review. Vor dem Zurückdrehen also erst nachsehen,
+# beider ist damit ähnlich niedrig. Vor dem Zurückdrehen also erst nachsehen,
 # welcher der beiden im fraglichen Zeitraum tatsächlich verbraucht hat.
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    # Reviewschleifen-Entschärfung: bewusst KEIN `synchronize` – jeder
+    # Fix-Push startete sonst ein neues Voll-Review, dessen frische
+    # Inline-Threads bei aktiver Konversationspflicht den Merge sperrten
+    # (18.–24.08.2026: Ø 28 Inline-Kommentare und 5 Nacharbeits-Pushes je PR
+    # statt Ø 3 und 0,7 in der Baseline; Zahlen im ADR). `opened` deckt
+    # normal geöffnete PRs, `ready_for_review` den Übergang aus dem Draft;
+    # `labeled` trägt die ausdrückliche Wiederholung – das Job-`if` unten
+    # lässt davon nur das Label `re-review` durch (Label entfernen und neu
+    # setzen wiederholt das Review erneut).
+    types: [opened, ready_for_review, labeled]
+    # Doku-only-PRs (Markdown inkl. der sechs Sprachspiegel, docs/-Assets)
+    # bekommen kein Opus-Review; `paths-ignore` überspringt den Lauf nur,
+    # wenn ALLE geänderten Dateien darunter fallen – gemischte PRs werden
+    # weiter reviewt. Auch das Label startet dann keinen Lauf; bei Bedarf
+    # bleibt die `@claude`-Erwähnung (claude.yml).
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
 
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
@@ -46,6 +71,12 @@ concurrency:
 
 jobs:
   review:
+    # Drafts erst beim Verlassen des Draft-Status reviewen; vom
+    # `labeled`-Ereignis zählt nur das Anforderungs-Label `re-review` –
+    # jedes andere Label wird ignoriert, der Lauf überspringt sich.
+    if: >-
+      github.event.pull_request.draft == false &&
+      (github.event.action != 'labeled' || github.event.label.name == 're-review')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -99,11 +130,12 @@ jobs:
           # `gh pr comment` – auf diesen Aufruf kann eine Sticky-Logik der
           # Action nicht wirken, und jeder beobachtete Lauf hinterließ
           # entsprechend einen neuen statt eines aktualisierten Kommentars.
-          # Das Input versprach damit eine Wirkung, die es nicht hatte, und
-          # der Prompt gab dieses Versprechen weiter. Offen bleibt der Effekt
-          # selbst (ein Kommentar je `synchronize`); er wird in #828
-          # entschieden, sobald belegt ist, welche `gh pr comment`-Flags die
-          # `gh`-Version auf `ubuntu-latest` kennt.
+          # Der Stapel-Effekt selbst ist seit der Reviewschleifen-Entschärfung
+          # an der Wurzel gelöst: Ohne `synchronize`-Trigger gibt es je PR
+          # genau eine Zusammenfassung, eine weitere nur bei ausdrücklich
+          # angefordertem Re-Review – dort ist der zweite, getrennte Kommentar
+          # gewollt (der ältere bleibt als Historie lesbar). Der in #828
+          # offene Sticky-Nachzug ist damit gegenstandslos.
           # Automation-/Prompt-Modus (kein track_progress → kein Tag-Modus mit
           # Schreib-/Git-Fähigkeiten). Die Allowlist erlaubt ausschließlich
           # Lesen und Kommentieren – Edit/Write sowie schreibende Git-Kommandos
@@ -349,12 +381,13 @@ jobs:
           # Die LESE-Richtung ist nicht die einzige offene: `gh pr comment`
           # kennt je nach Version auch Flags, die BESTEHENDE Kommentare
           # ändern oder entfernen (`--edit-last`, `--create-if-none`,
-          # `--delete-last`). ACHTUNG BEIM STICKY-NACHZUG (#828): `--edit-last`
-          # und `--create-if-none` sind zugleich die Kandidaten für den
-          # offenen Sticky-Rest. Wer sie einführt, muss Prompt, diesen Block
-          # und `test_prompt_bars_the_flags_that_remove_findings` gemeinsam
-          # anfassen – die Verengung hier ist heute richtig, aber sie ist
-          # dann keine reine Streichung mehr.
+          # `--delete-last`). Ein Sticky-Nachzug über `--edit-last`/
+          # `--create-if-none` stand als #828-Rest im Raum; er ist mit der
+          # Reviewschleifen-Entschärfung gegenstandslos (ein Review je PR
+          # kann keinen Kommentarstapel bilden), die Verengung bleibt damit
+          # eine reine Streichung. Wer sie dennoch je aufweicht, muss Prompt,
+          # diesen Block und `test_prompt_bars_the_flags_that_remove_findings`
+          # gemeinsam anfassen.
           # Welche dieser Flags die `gh`-Version des Runners
           # tatsächlich führt, ist hier UNBELEGT – aus dieser Sitzung sind die
           # `gh`-Referenzdomains nicht erreichbar. Die Prompt-Verengung ist

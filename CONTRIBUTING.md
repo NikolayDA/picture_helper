@@ -85,6 +85,14 @@ make doctor
 
 Pull Requests, die `make check` nicht bestehen, werden nicht gemergt.
 
+Das automatische Claude-Review läuft genau einmal je PR (beim Öffnen bzw.
+beim Verlassen des Draft-Status); eine Wiederholung gibt es nur über das
+Label `re-review`. Für Bot-Befunde gilt die **Konvergenzregel**: höchstens
+zwei Bot-Review-Runden je PR, danach entscheidet ein Mensch gesammelt, was
+umgesetzt wird, und schließt den Rest mit einem Satz Begründung — Bot-Befunde
+sind Input der Merge-Entscheidung, keine Merge-Bedingung
+([Prozessdiagramme, Abschnitt 3](docs/PROZESSE_UML.md)).
+
 Als Überblick sind Commit, PR-Erstellung, PR-Durchführung und Release als
 UML-Aktivitätsdiagramme gezeichnet: [Prozessdiagramme](docs/PROZESSE_UML.md).
 Sie bilden ab, sie bestimmen nicht — verbindlich bleiben diese Datei, das

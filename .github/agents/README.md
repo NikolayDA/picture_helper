@@ -62,7 +62,7 @@ offiziellen [`anthropics/claude-code-action`](https://github.com/anthropics/clau
 
 | Workflow | Trigger | Rolle | Deckt Spec ab |
 |----------|---------|-------|---------------|
-| [`.github/workflows/claude-code-review.yml`](../workflows/claude-code-review.yml) | PR `opened`/`synchronize` | Automatisches Review (nur Kommentare) | `code-review.yml` |
+| [`.github/workflows/claude-code-review.yml`](../workflows/claude-code-review.yml) | einmal je PR: `opened`/`ready_for_review`; Wiederholung nur per Label `re-review`; Doku-Pfade ausgenommen | Automatisches Review (nur Kommentare) | `code-review.yml` |
 | [`.github/workflows/claude.yml`](../workflows/claude.yml) | `@claude`-Erwähnung in Issue/PR/Review | On-Demand-Agent: fixt Bugs, schreibt Tests, aktualisiert Doku, analysiert Performance | `bug-fix.yml`, `test.yml`, `documentation.yml`, `performance.yml` |
 
 Für die On-Demand-Aufgaben beschreibt man die Aufgabe direkt in der Erwähnung,
@@ -172,8 +172,9 @@ Drei Eigenheiten dieses Wegs:
 1. **Das Token hängt am Abo der Person**, die `claude setup-token` ausgeführt
    hat – für ein org-weit geteiltes Secret ist ein API-Key aus der
    [Claude Console](https://console.anthropic.com) der bessere Weg.
-2. **Die Läufe zehren am Nutzungslimit dieses Kontos.** Das Review startet bei
-   jedem `opened`/`synchronize`, der On-Demand-Agent bei jeder
+2. **Die Läufe zehren am Nutzungslimit dieses Kontos.** Das Review startet
+   einmal je PR (`opened`/`ready_for_review`, Wiederholung nur per Label
+   `re-review`), der On-Demand-Agent bei jeder
    `@claude`-Erwähnung. Ist das Limit erschöpft, wird der Lauf **rot** – das
    saubere Überspringen oben gilt ausdrücklich nur für ein *fehlendes* Secret.
    Dasselbe gilt für ein Modell, das die Abo-Stufe nicht hergibt – beide
