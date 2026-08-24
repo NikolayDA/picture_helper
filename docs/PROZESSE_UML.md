@@ -248,7 +248,9 @@ flowchart TD
   erschöpftes Nutzungslimit des Abos macht den Lauf rot, statt ihn zu
   überspringen. Belegt ist das Fehlerbild nur für den Limitfall (früher
   Abbruch ohne Modellnutzung); der Ablauffall wäre ein
-  Authentifizierungsfehler.
+  Authentifizierungsfehler. Endet ein roter Lauf ohne Review-Ausgabe, ist
+  der PR weder blockiert noch geprüft — auch der indirekte Sperrweg über
+  aufzulösende Inline-Konversationen entfällt dann.
 - `claude.yml` ist ein eigener, hier nicht gezeichneter Pfad: Er reagiert auf
   `@claude`-Erwähnungen in Issues, PRs und Reviews und darf im Gegensatz zum
   Review-Workflow schreiben. Seine mit dem Standard-`GITHUB_TOKEN` erzeugten

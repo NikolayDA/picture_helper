@@ -299,8 +299,8 @@ GitHub-Stand widerspiegeln.
   (06:30 UTC), zusätzlich bei jedem `issues`-Ereignis (opened/closed/
   reopened), nach jedem Abschluss von `codex-security-scan.yml` und
   `benchmark.yml` (`workflow_run`; deren mit dem Standard-`GITHUB_TOKEN`
-  eröffnete Issues lösen selbst kein `issues`-Ereignis aus) und manuell per
-  `workflow_dispatch`. Der Job schlägt sichtbar fehl, sobald
+  eröffnete Issues lösen selbst kein `issues`-Ereignis für Folge-Workflows
+  aus) und manuell per `workflow_dispatch`. Der Job schlägt sichtbar fehl, sobald
   `RECOMMENDATIONS.md` vom echten GitHub-Stand abweicht. Das
   manuelle Nachziehen allein hatte den Drift in #669/#728/#752 mehrfach und
   in #777 sogar zweimal am selben Tag reproduziert; die wiederkehrende
