@@ -289,6 +289,53 @@ mkdir -p "$APP_PATH/Contents/Resources"
 # Paket in der venv unter Application Support. icons/ ist Paket-Daten und liegt
 # in site-packages der venv – das Bundle braucht also keine eigene Kopie.
 
+# ── Interpreter ins Bundle einbetten (Prozess-Zuordnung, #864) ─
+# macOS ordnet einen laufenden Prozess ueber den Pfad seines Executables
+# dem umgebenden .app-Bundle zu. Der venv-Stub re-exec't auf Framework-
+# Builds aber das echte Interpreter-Binary in Python.framework/…/
+# Resources/Python.app – App-Umschalter und Stage-Manager-Seitenleiste
+# zeigen deshalb dessen Raketen-Icon (und die Menueleiste „Python"),
+# egal was QApplication.setWindowIcon zur Laufzeit setzt. Eine KOPIE des
+# echten Binaries im Bundle, gestartet mit __PYVENV_LAUNCHER__ auf den
+# venv-Stub (exakt der Mechanismus, den der Stub selbst nutzt; CPython
+# entfernt die Variable beim Start wieder aus der Umgebung), behaelt den
+# venv-Kontext bitgenau und laeuft unter der Identitaet von
+# BgRemover.app. Besteht der Selbsttest nicht, bleibt es beim bisherigen
+# venv-Start (App laeuft, nur das Prozess-Icon bleibt die Rakete).
+EMBEDDED_PY="$APP_PATH/Contents/MacOS/${APP_NAME}Python"
+LAUNCH_PY="$PYTHON"
+PYVENV_LAUNCHER_VALUE=""
+if [ "$PYTHON" = "$VENV_PY" ]; then
+    BASE_PREFIX=$( ( cd "$HOME" && arch_run "$VENV_PY" -c 'import sys; print(sys.base_prefix)' ) 2>/dev/null || true)
+    REAL_BIN=""
+    if [ -n "$BASE_PREFIX" ] && [ -x "$BASE_PREFIX/Resources/Python.app/Contents/MacOS/Python" ]; then
+        # Framework-Build (python.org/Homebrew): das Binary, auf das der
+        # venv-Stub ohnehin re-exec't.
+        REAL_BIN="$BASE_PREFIX/Resources/Python.app/Contents/MacOS/Python"
+    else
+        # Nicht-Framework-Build (z. B. pyenv): der Stub IST das echte Binary.
+        REAL_BIN=$( ( cd "$HOME" && arch_run "$VENV_PY" -c 'import os, sys; print(os.path.realpath(sys._base_executable))' ) 2>/dev/null || true)
+    fi
+    if [ -n "$REAL_BIN" ] && [ -x "$REAL_BIN" ] && cp "$REAL_BIN" "$EMBEDDED_PY" 2>/dev/null; then
+        chmod +x "$EMBEDDED_PY"
+        # Selbsttest wie der spaetere Launcher: venv aktiv (prefix !=
+        # base_prefix) und alle Kernimporte aus neutralem cwd.
+        if ( cd "$HOME" && export __PYVENV_LAUNCHER__="$VENV_PY" \
+             && arch_run "$EMBEDDED_PY" -c 'import sys; assert sys.prefix != sys.base_prefix; import PyQt6.QtWidgets, PIL, numpy, bgremover' >/dev/null 2>&1 ); then
+            LAUNCH_PY="$EMBEDDED_PY"
+            PYVENV_LAUNCHER_VALUE="$VENV_PY"
+            echo -e "${GREEN}🪪  Interpreter ins Bundle eingebettet – Prozess-Icon/-Name = BgRemover${NC}"
+        else
+            rm -f "$EMBEDDED_PY"
+            echo -e "${YELLOW}⚠️  Eingebetteter Interpreter besteht den Selbsttest nicht –${NC}"
+            echo "    Start weiter ueber die venv (App-Umschalter/Stage Manager"
+            echo "    zeigen dann weiterhin das Python-Icon)."
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Interpreter-Binary nicht gefunden – Start weiter ueber die venv.${NC}"
+    fi
+fi
+
 # ── Launcher ──────────────────────────────────────────────────
 LAUNCHER="$APP_PATH/Contents/MacOS/$APP_NAME"
 cat > "$LAUNCHER" << LAUNCHER_EOF
@@ -307,7 +354,11 @@ export PYTHONNOUSERSITE=1
 # Finder-/launchd-Kontext hängen oder mit Fehlern abbrechen).
 [ -f "\$HOME/.zprofile" ] && source "\$HOME/.zprofile" 2>/dev/null || true
 
-PYTHON="$PYTHON"
+PYTHON="$LAUNCH_PY"
+# Leer = Start direkt ueber die venv; gesetzt = Pfad des venv-Stubs, den
+# der eingebettete Interpreter via __PYVENV_LAUNCHER__ als venv-Kontext
+# nutzt (#864, Prozess-Zuordnung zu BgRemover.app fuer Icon/Name).
+PYVENV_LAUNCHER="$PYVENV_LAUNCHER_VALUE"
 LOG="\$HOME/Library/Application Support/BgRemover/bgremover.log"
 LOG_DIR="\${LOG%/*}"
 mkdir -p "\$LOG_DIR" 2>/dev/null || true
@@ -321,6 +372,18 @@ fail() {
       "\$1" "\$LOG" >/dev/null 2>&1
     exit 1
 }
+
+# Eingebetteter Interpreter: laeuft er nicht mehr (z. B. venv neu gebaut,
+# Binary veraltet), uebergangsweise auf den venv-Stub zurueckfallen – die
+# App startet dann, nur das Prozess-Icon ist wieder das Python-Icon, bis
+# create_BgRemover_app.sh erneut gelaufen ist.
+if [ -n "\$PYVENV_LAUNCHER" ]; then
+    if [ -x "\$PYTHON" ] && env __PYVENV_LAUNCHER__="\$PYVENV_LAUNCHER" "\$PYTHON" -c 'import bgremover' >/dev/null 2>&1; then
+        export __PYVENV_LAUNCHER__="\$PYVENV_LAUNCHER"
+    else
+        PYTHON="\$PYVENV_LAUNCHER"
+    fi
+fi
 
 if [ ! -x "\$PYTHON" ]; then
     fail "Python wurde nicht gefunden:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."

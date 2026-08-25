@@ -33,6 +33,19 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   now ships as package data and is set on startup via
   `QApplication.setWindowIcon` — this also helps Linux taskbars without a
   `.desktop` association.
+- **App switcher/Stage Manager still showed the Python rocket despite the
+  runtime icon (macOS app bundle).** Follow-up to #864: on framework
+  Python the venv stub re-execs the real interpreter binary inside
+  `Python.framework/…/Python.app` — macOS therefore attributes the GUI
+  process to `Python.app`, and these surfaces show that bundle's icon
+  instead of the one set via `setWindowIcon`. `create_BgRemover_app.sh`
+  now embeds a copy of the real binary as
+  `Contents/MacOS/BgRemoverPython` into the bundle and starts it with
+  `__PYVENV_LAUNCHER__` pointing at the venv stub (the same mechanism the
+  stub itself uses): the process runs under the identity of
+  `BgRemover.app` (icon and menu-bar name) with an identical venv
+  context. A build-time self-test and a runtime fallback to the venv
+  start preserve the status quo when embedding is not possible.
 
 ## [2.8.0] – 2026-08-16
 
