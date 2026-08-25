@@ -65,7 +65,7 @@
       "path": "INSTALL_LINUX.md",
       "sample_path": "INSTALL_LINUX.md",
       "reason": "Die Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
-      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert INSTALL_LINUX.md", "bgremover/ai_install_dialog.py nennt die Datei nur im Docstring, kein open()/read_text()"]
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert INSTALL_LINUX.md", "bgremover/ai_install_dialog.py nennt die Datei nur im Docstring, kein open()/read_text()", "tests/test_i18n_docs.py prüft die Doku gegen packaging/linux/build_deb.sh und packaging/linux/README.md – Prüfgegenstand, nicht Drift-Guard-Quelle für Code (Abgrenzung zu docs/REDESIGN_SPEC.md)"]
     },
     {
       "id": "install-linux-en",
@@ -113,7 +113,7 @@
       "path": "INSTALL_MAC.md",
       "sample_path": "INSTALL_MAC.md",
       "reason": "Die Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
-      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert INSTALL_MAC.md", "bgremover/ai_install_dialog.py nennt die Datei nur im Docstring, kein open()/read_text()"]
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert INSTALL_MAC.md", "bgremover/ai_install_dialog.py nennt die Datei nur im Docstring, kein open()/read_text()", "tests/test_i18n_docs.py prüft die Doku gegen packaging/mac/README.md – Prüfgegenstand, nicht Drift-Guard-Quelle für Code (Abgrenzung zu docs/REDESIGN_SPEC.md)"]
     },
     {
       "id": "install-mac-en",
