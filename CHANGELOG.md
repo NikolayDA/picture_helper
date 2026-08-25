@@ -27,6 +27,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   mehr erreichbar waren – Speichern/EufyMake-Export hätten dann vom
   unveränderten Modell exportiert. Beide Wege verwerfen die Vorschau jetzt
   zuverlässig, wie es das manuelle Einklappen bereits tut.
+- **Falsches Prozess-Icon in App-Umschalter und Stage-Manager-Seitenleiste
+  (macOS).** Das Dock zeigte zwar das korrekte Bundle-Icon der `.app`,
+  Flächen, die das Icon des laufenden Prozesses anzeigen (App-Umschalter,
+  Stage-Manager-Seitenleiste), zeigten aber das Python-Raketen-Icon des
+  venv-Interpreters, weil die App zur Laufzeit kein Anwendungs-Icon setzte.
+  Das App-Icon liegt jetzt als Paketdaten bei und wird beim Start über
+  `QApplication.setWindowIcon` gesetzt – das hilft auch Linux-Taskleisten
+  ohne `.desktop`-Zuordnung.
 
 ## [2.8.0] – 2026-08-16
 

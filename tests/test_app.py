@@ -51,6 +51,9 @@ class _FakeApp:
     def setDesktopFileName(self, name) -> None:
         self.calls["desktop"] = name
 
+    def setWindowIcon(self, icon) -> None:
+        self.calls["window_icon"] = icon
+
     def setStyle(self, style) -> None:
         self.calls["style"] = style
 
@@ -132,6 +135,9 @@ def test_main_configures_application(patched_app):
     assert app.calls["org_name"] == "BgRemover"
     assert app.calls["desktop"] == "de.bgremover.app"
     assert app.calls["style"] == "Fusion"
+    # Prozess-Icon (App-Umschalter/Stage-Manager zeigen sonst das
+    # Python-Raketen-Icon des venv-Interpreters statt des App-Icons).
+    assert not app.calls["window_icon"].isNull()
     assert "palette" in app.calls
     assert patched_app["window"].shown is True
     # Reihenfolge-Verträge: Runtime-Init und Logging laufen beide an.

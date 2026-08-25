@@ -28,6 +28,29 @@ from PyQt6.QtGui import (
 from bgremover.constants import logger
 
 
+def make_app_icon() -> QIcon:
+    """Anwendungs-Icon aus den Paket-Daten (``bgremover/icons/app_icon.png``).
+
+    Für ``QApplication.setWindowIcon``: setzt das Icon des LAUFENDEN
+    Prozesses. Ohne diesen Aufruf zeigen macOS-Flächen, die das Icon des
+    laufenden Prozesses statt des ``.app``-Bundles anzeigen (App-Umschalter,
+    Stage-Manager-Seitenleiste), das Python-Raketen-Icon des
+    venv-Interpreters – das Dock-Bundle-Icon (``AppIcon.icns``) deckt sie
+    nicht ab. Bewusst lazy über den Dateipfad (``QIcon(str(path))``): so
+    braucht die Konstruktion keine ``QGuiApplication`` und Qt rendert die
+    Größen erst bei Bedarf. Fehlendes Asset ⇒ leeres ``QIcon`` (Qt-Default),
+    nie eine Exception.
+    """
+    try:
+        res = importlib.resources.files("bgremover") / "icons" / "app_icon.png"
+        with importlib.resources.as_file(res) as png_path:
+            if png_path.is_file():
+                return QIcon(str(png_path))
+    except Exception:
+        logger.debug("App-Icon konnte nicht geladen werden", exc_info=True)
+    return QIcon()
+
+
 def make_wand_cursor() -> QCursor:
     """Fadenkreuz-Cursor mit goldenem Mittelpunkt für den Zauberstab."""
     sz = 32
