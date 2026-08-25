@@ -80,7 +80,6 @@ from bgremover.theme import (
     Palette,
     _Theme,
     active_palette,
-    expert_mode_hint_style,
     expert_mode_label_style,
     nav_back_style,
     nav_bar_style,
@@ -563,7 +562,6 @@ class _RightPanelBuilder:
         toggle_col.setSpacing(4)
         expert_toggle = ExpertModeToggle()
         expert_toggle.setChecked(self._expert_mode)
-        expert_toggle.setToolTip(tr("workflow.expert_mode.toggle.tooltip"))
         expert_toggle.setAccessibleName(tr("workflow.expert_mode.toggle.tooltip"))
         expert_label = QLabel(tr("workflow.expert_mode.toggle_label"))
         expert_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
@@ -571,11 +569,6 @@ class _RightPanelBuilder:
         toggle_col.addWidget(expert_label, 0, Qt.AlignmentFlag.AlignHCenter)
         top_row.addLayout(toggle_col, 0)
         head_lay.addLayout(top_row)
-
-        hint = QLabel()
-        hint.setObjectName("expertModeHint")
-        hint.setWordWrap(True)
-        head_lay.addWidget(hint)
 
         # Karten/Zeilen, die einzelne Tabs als ``expertOnly``/``standardOnly``
         # markiert haben (#807ff.): zentral eingesammelt, damit kein Tab den
@@ -595,11 +588,15 @@ class _RightPanelBuilder:
 
         def _sync_expert_visuals(checked: bool) -> None:
             expert_label.setStyleSheet(expert_mode_label_style(p, active=checked))
+            # Kein permanenter Hinweistext mehr im Kopf: Der aktive Modus wird
+            # als Tooltip am Umschalter erklärt (Aktion + Ein-Satz-Erklärung).
             if checked:
-                hint.setText(tr("workflow.expert_mode.hint.expert"))
+                hint_text = tr("workflow.expert_mode.hint.expert")
             else:
-                hint.setText(tr("workflow.expert_mode.hint.standard"))
-            hint.setStyleSheet(expert_mode_hint_style(p))
+                hint_text = tr("workflow.expert_mode.hint.standard")
+            expert_toggle.setToolTip(
+                tr("workflow.expert_mode.toggle.tooltip") + "\n" + hint_text)
+            expert_toggle.setAccessibleDescription(hint_text)
             for w in expert_only_widgets:
                 w.setVisible(checked)
             for w in standard_only_widgets:

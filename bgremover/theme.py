@@ -206,12 +206,6 @@ def expert_mode_label_style(p: Palette, *, active: bool) -> str:
             " letter-spacing: .03em; background: transparent;")
 
 
-def expert_mode_hint_style(p: Palette) -> str:
-    """Hinweiszeile unter dem Inspector-Kopf, erklärt den aktiven Modus (#806)."""
-    return (f"background: {p.inset}; color: {p.text3}; font-size: 11.5px;"
-            " border-radius: 8px; padding: 6px 10px;")
-
-
 def primary_btn_style(p: Palette) -> str:
     return f"""
     QPushButton {{

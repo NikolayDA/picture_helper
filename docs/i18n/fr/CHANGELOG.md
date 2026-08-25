@@ -16,6 +16,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   pilote le zoom de la caméra (100 % = vue ajustée, mêmes pas de ±10 % ; le
   verrou fige aussi le zoom à la molette et au clavier).
 
+### Modifié
+
+- **En-tête de l'inspecteur plus compact : l'indication du mode en
+  infobulle plutôt qu'en texte permanent.** La ligne d'indication affichée
+  en permanence sous l'en-tête de l'inspecteur, qui expliquait le mode
+  Standard/Expert actif, disparaît. L'explication apparaît désormais en
+  infobulle lorsque le pointeur de la souris survole le commutateur
+  Standard/Expert (et reste disponible pour les lecteurs d'écran comme
+  description accessible) — la barre latérale droite gagne de la place pour
+  les outils proprement dits.
+
 ### Corrigé
 
 - **Le mode Standard et la navigation entre étapes n'annulaient pas un
