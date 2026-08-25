@@ -51,6 +51,9 @@ class _FakeApp:
     def setDesktopFileName(self, name) -> None:
         self.calls["desktop"] = name
 
+    def setWindowIcon(self, icon) -> None:
+        self.calls["window_icon"] = icon
+
     def setStyle(self, style) -> None:
         self.calls["style"] = style
 
@@ -122,8 +125,14 @@ def patched_app(monkeypatch):
     return created
 
 
-def test_main_configures_application(patched_app):
-    """``main()`` setzt App-Identität, Style, Palette und zeigt das Fenster."""
+def test_main_configures_application(patched_app, qapp):
+    """``main()`` setzt App-Identität, Style, Palette, Icon und zeigt das Fenster.
+
+    ``qapp`` ist hier gefahrlos UND nötig: ``app_module.QApplication`` ist
+    durch den Fake ersetzt (``main()`` konstruiert also kein zweites echtes
+    ``QApplication``), aber ``make_app_icon`` liefert nur mit laufender
+    ``QGuiApplication`` echte Pixel (harter QPixmap-Kontrakt).
+    """
     rc = app_module.main()
     app = patched_app["app"]
 
@@ -132,6 +141,9 @@ def test_main_configures_application(patched_app):
     assert app.calls["org_name"] == "BgRemover"
     assert app.calls["desktop"] == "de.bgremover.app"
     assert app.calls["style"] == "Fusion"
+    # Prozess-Icon (App-Umschalter/Stage-Manager zeigen sonst das
+    # Python-Raketen-Icon des venv-Interpreters statt des App-Icons).
+    assert not app.calls["window_icon"].isNull()
     assert "palette" in app.calls
     assert patched_app["window"].shown is True
     # Reihenfolge-Verträge: Runtime-Init und Logging laufen beide an.

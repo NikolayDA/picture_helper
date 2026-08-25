@@ -25,6 +25,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   EufyMake export would then have exported the unchanged model. Both
   paths now reliably discard the preview, just like collapsing it
   manually already did.
+- **Wrong process icon in the app switcher and Stage Manager sidebar
+  (macOS).** The Dock showed the correct `.app` bundle icon, but surfaces
+  that display the icon of the running process (app switcher, Stage
+  Manager sidebar) showed the Python rocket icon of the venv interpreter,
+  because the app never set an application icon at runtime. The app icon
+  now ships as package data and is set on startup via
+  `QApplication.setWindowIcon` — this also helps Linux taskbars without a
+  `.desktop` association.
 
 ## [2.8.0] – 2026-08-16
 

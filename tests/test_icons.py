@@ -7,13 +7,21 @@ fest kodierten ``QColor``-Werten, (3) die fünf einst mehrfarbigen
 Glanz-Clipart-PNGs bleiben entfernt.
 """
 import importlib.resources
+import os
+import subprocess
+import sys
 
 import pytest
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QColor, QIcon
 
 import bgremover.icons as icons
-from bgremover.icons import _ICON_DRAW, make_stateful_tool_icon, make_tool_icon
+from bgremover.icons import (
+    _ICON_DRAW,
+    make_app_icon,
+    make_stateful_tool_icon,
+    make_tool_icon,
+)
 from bgremover.main_toolbar import ToolbarActions, build_toolbar
 
 _RAIL_ICON_NAMES = {
@@ -28,6 +36,56 @@ def _build_toolbar():
         toggle_theme=lambda: None,
     )
     return build_toolbar(actions)
+
+
+def test_app_icon_asset_exists_and_is_square():
+    """Das Anwendungs-Icon liegt als Paketdaten-PNG bei – Voraussetzung dafür,
+    dass der laufende Prozess (App-Umschalter/Stage-Manager-Seitenleiste auf
+    macOS) das App-Icon statt des Python-Raketen-Icons zeigt."""
+    from PIL import Image
+
+    res = importlib.resources.files("bgremover") / "icons" / "app_icon.png"
+    with importlib.resources.as_file(res) as png_path:
+        assert png_path.is_file(), "app_icon.png fehlt in den Paketdaten"
+        with Image.open(png_path) as img:
+            width, height = img.size
+    assert width == height, "App-Icon muss quadratisch sein"
+    assert width >= 256, "App-Icon braucht genug Auflösung für Dock/Umschalter"
+
+
+def test_make_app_icon_renders_visible_pixmap(qapp):
+    """``make_app_icon`` liefert ein nicht-leeres, renderbares Icon –
+    ``QApplication.setWindowIcon`` bekommt damit echte Pixel statt eines
+    stillen Blank-Icons."""
+    icon = make_app_icon()
+    assert not icon.isNull()
+    pm = icon.pixmap(64, 64)
+    assert not pm.isNull()
+    img = pm.toImage()
+    assert any(
+        img.pixelColor(x, y).alpha() > 0
+        for x in range(0, 64, 8) for y in range(0, 64, 8)
+    ), "App-Icon-Pixmap ist vollständig transparent"
+
+
+def test_make_app_icon_without_gui_application_returns_empty_icon():
+    """Ohne laufende ``QGuiApplication`` liefert ``make_app_icon`` ein leeres
+    Icon statt des harten QPixmap-Aborts – der Eager-Pixel-Pfad (Review-Fund
+    PR #864: lazy ``QIcon(pfad)`` wäre bei zip-Import ein stilles Blank-Icon)
+    ist entsprechend geguardet. Eigener Subprozess, weil die Test-Session
+    selbst eine ``QApplication`` hält."""
+    code = (
+        "from bgremover.icons import make_app_icon; "
+        "icon = make_app_icon(); "
+        "assert icon.isNull(), 'ohne QGuiApplication muss das Icon leer sein'; "
+        "print('ok')"
+    )
+    env = dict(os.environ, QT_QPA_PLATFORM="offscreen")
+    r = subprocess.run([sys.executable, "-c", code],
+                       capture_output=True, text=True, timeout=60, env=env)
+    assert r.returncode == 0 and "ok" in r.stdout, (
+        f"--- stdout ---\n{r.stdout}\n--- stderr ---\n{r.stderr}"
+    )
 
 
 def test_rail_icon_names_have_vector_fallback(qapp):

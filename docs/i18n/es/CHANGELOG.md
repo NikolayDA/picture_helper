@@ -28,6 +28,16 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   habrían exportado entonces el modelo sin cambios. Ambas rutas descartan
   ahora la vista previa de forma fiable, igual que ya hacía el plegado
   manual.
+- **Icono de proceso incorrecto en el conmutador de aplicaciones y en la
+  barra lateral de Stage Manager (macOS).** El Dock mostraba el icono
+  correcto del paquete `.app`, pero las superficies que muestran el icono
+  del proceso en ejecución (conmutador de aplicaciones, barra lateral de
+  Stage Manager) mostraban el icono del cohete de Python del intérprete de
+  la venv, porque la aplicación no establecía ningún icono en tiempo de
+  ejecución. El icono de la aplicación se incluye ahora como datos del
+  paquete y se establece al iniciar mediante `QApplication.setWindowIcon`
+  — esto también ayuda a las barras de tareas de Linux sin asociación
+  `.desktop`.
 
 ## [2.8.0] – 2026-08-16
 

@@ -27,6 +27,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   auraient alors exporté le modèle inchangé. Les deux chemins annulent
   désormais l'aperçu de façon fiable, comme le repliage manuel le faisait
   déjà.
+- **Mauvaise icône de processus dans le sélecteur d'applications et la
+  barre latérale de Stage Manager (macOS).** Le Dock affichait la bonne
+  icône du paquet `.app`, mais les surfaces qui montrent l'icône du
+  processus en cours (sélecteur d'applications, barre latérale de Stage
+  Manager) affichaient l'icône de fusée Python de l'interpréteur de la
+  venv, car l'application ne définissait aucune icône à l'exécution.
+  L'icône de l'application est désormais livrée comme donnée du paquet et
+  définie au démarrage via `QApplication.setWindowIcon` — cela aide aussi
+  les barres des tâches Linux sans association `.desktop`.
 
 ## [2.8.0] – 2026-08-16
 

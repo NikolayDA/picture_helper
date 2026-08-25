@@ -137,7 +137,11 @@ Obra propia del proyecto, cubierta por la licencia del proyecto
   `wand`, `brush`, `eraser`, `lasso`, `height_lighten`, `height_darken`,
   `undo`, `redo`, `theme`) se renderizan programáticamente con `QPainter`;
   otras funciones `_draw_*_icon` sirven como fallback — sin recurso externo.
-- **Icono de la app**: `BgRemover_icon.png` (fuente para el `.icns` de macOS).
+- **Icono de la app**: `BgRemover_icon.png` (fuente para el `.icns` de macOS);
+  derivado de él, el recurso de datos del paquete
+  `bgremover/icons/app_icon.png` (512 px), que `make_app_icon()` carga al
+  iniciar como icono del proceso en ejecución
+  (`QApplication.setWindowIcon`).
 - **Cursores**: dibujados en tiempo de ejecución (`make_wand_cursor`,
   `make_brush_cursor`, `make_eraser_cursor`) — sin archivos externos.
 

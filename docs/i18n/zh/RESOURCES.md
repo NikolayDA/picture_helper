@@ -125,7 +125,7 @@ Ubuntu + macOS、Python 3.10–3.13；`ui-nightly.yml` 每晚运行 UI 交互测
   `eraser`、`lasso`、`height_lighten`、`height_darken`、`undo`、`redo`、
   `theme`）由 `QPainter` 以编程方式渲染；其他 `_draw_*_icon` 函数作为
   fallback —— 无外部资源。
-- **应用图标**：`BgRemover_icon.png`（macOS `.icns` 的来源）。
+- **应用图标**：`BgRemover_icon.png`（macOS `.icns` 的来源）；由其派生的包数据资源 `bgremover/icons/app_icon.png`（512 px），由 `make_app_icon()` 在启动时加载为正在运行进程的图标（`QApplication.setWindowIcon`）。
 - **光标**：在运行时绘制（`make_wand_cursor`、`make_brush_cursor`、
   `make_eraser_cursor`）—— 无外部文件。
 
