@@ -302,7 +302,15 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         ):
             return
         target = max(_ZOOM_CTRL_MIN_PCT, min(_ZOOM_CTRL_MAX_PCT, current + delta_pct))
+        if target == current:
+            return
         self._camera.set_zoom_percent(target)
+        if self._camera.zoom_percent == current:
+            # Die Kameraklemme hat den Schritt neutralisiert (z. B. Nahklemme
+            # 1000 % unterhalb von ``_ZOOM_CTRL_MAX_PCT``): ohne Zustands-
+            # änderung weder Signal noch Repaint. In 2D fallen Kontroll- und
+            # Viewport-Grenze zusammen, hier nicht.
+            return
         self._notify_zoom()
 
     def set_zoom_locked(self, locked: bool) -> None:
@@ -831,7 +839,7 @@ class Relief3DView(QStackedWidget):
             viewer.set_palette(self._palette)
             viewer.initFailed.connect(lambda _msg: self.show_error())
             viewer.resetRequested.connect(self.resetRequested.emit)
-            viewer.zoomChanged.connect(self._zoom_ctrl.set_percent)
+            viewer.zoomChanged.connect(self._on_viewer_zoom_changed)
             viewer.set_zoom_locked(self._zoom_locked)
             layout = self._ready_page.layout()
             assert isinstance(layout, QVBoxLayout)
@@ -857,6 +865,17 @@ class Relief3DView(QStackedWidget):
             layout.removeWidget(viewer)
         viewer.setParent(None)
         viewer.deleteLater()
+
+    def _on_viewer_zoom_changed(self, percent: float) -> None:
+        """Hält Anzeige **und** Verankerung synchron (2D-Parität, `_notify_zoom`).
+
+        ``set_percent`` passt die Pillenbreite an (``adjustSize``); ohne
+        anschließendes ``reposition`` wüchse die unten-rechts verankerte
+        Pille nach rechts aus der 14-px-Verankerung heraus (z. B. „1000%"
+        an der Nahklemme sprengt die Label-Mindestbreite).
+        """
+        self._zoom_ctrl.set_percent(percent)
+        self._zoom_ctrl.reposition()
 
     def _sync_zoom_overlay(self) -> None:
         """Zeigt die Zoom-Pille nur im Ready-Zustand; Anzeige/Position aktuell."""

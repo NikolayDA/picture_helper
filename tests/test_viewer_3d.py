@@ -519,3 +519,35 @@ def test_explicit_fit_view_overrides_lock_like_2d(qapp) -> None:
     viewer.set_zoom_locked(True)
     viewer.fit_view()  # explizites Kommando – wie Fit-to-View in 2D
     assert viewer.zoom_percent == pytest.approx(100.0)
+
+
+def test_step_zoom_at_camera_clamp_emits_no_signal(qapp) -> None:
+    """Review-Befund PR #863: an der Kameraklemme darf ein wirkungsloser
+    Pillen-Klick weder Signal noch Repaint auslösen (2D-Kurzschluss-Parität)."""
+    viewer = GLReliefViewer()
+    viewer.set_mesh(_mesh())
+    viewer.camera.set_zoom_percent(1000.0)  # Nahklemme
+    fired: list[float] = []
+    viewer.zoomChanged.connect(fired.append)
+    viewer.step_zoom(10)   # Klemme neutralisiert den Schritt → still
+    assert fired == []
+    assert viewer.zoom_percent == pytest.approx(1000.0)
+    viewer.step_zoom(-10)  # echter Schritt → genau ein Signal
+    assert len(fired) == 1
+
+
+def test_zoom_pill_stays_anchored_after_zoom_changes_width(qapp) -> None:
+    """Review-Befund PR #863: ``set_percent`` ändert die Pillenbreite
+    (``adjustSize``); jede Zoomänderung muss deshalb auch neu verankern."""
+    view, viewer = _ready_view()
+    view.resize(400, 300)
+    view.show()
+    qapp.processEvents()
+    ctrl = view._zoom_ctrl
+    # An die Nahklemme zoomen: „1000%" sprengt die 40-px-Mindestbreite
+    # des Labels, die Pille wird breiter.
+    viewer.camera.set_zoom_percent(1000.0)
+    viewer._notify_zoom()
+    assert ctrl.label.text() == "1000%"
+    assert ctrl.x() + ctrl.width() == view.width() - 14
+    assert ctrl.y() + ctrl.height() == view.height() - 14
