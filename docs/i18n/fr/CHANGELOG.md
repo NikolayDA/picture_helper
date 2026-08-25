@@ -36,6 +36,20 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   L'icône de l'application est désormais livrée comme donnée du paquet et
   définie au démarrage via `QApplication.setWindowIcon` — cela aide aussi
   les barres des tâches Linux sans association `.desktop`.
+- **Le sélecteur d'applications/Stage Manager affichait toujours la fusée
+  Python malgré l'icône à l'exécution (bundle d'app macOS).** Suite de
+  #864 : avec un Python framework, le stub de la venv ré-exécute le vrai
+  binaire de l'interpréteur dans `Python.framework/…/Python.app` — macOS
+  attribue donc le processus GUI à `Python.app`, et ces surfaces
+  affichent l'icône de ce bundle au lieu de celle définie via
+  `setWindowIcon`. `create_BgRemover_app.sh` embarque désormais une copie
+  du vrai binaire sous `Contents/MacOS/BgRemoverPython` dans le bundle et
+  la démarre avec `__PYVENV_LAUNCHER__` pointant vers le stub de la venv
+  (le mécanisme même qu'utilise le stub) : le processus tourne sous
+  l'identité de `BgRemover.app` (icône et nom dans la barre de menus)
+  avec un contexte de venv identique. Un auto-test à la construction et
+  un repli à l'exécution vers le démarrage par la venv préservent le
+  statu quo si l'embarquement est impossible.
 
 ## [2.8.0] – 2026-08-16
 

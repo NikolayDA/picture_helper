@@ -38,6 +38,21 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   paquete y se establece al iniciar mediante `QApplication.setWindowIcon`
   — esto también ayuda a las barras de tareas de Linux sin asociación
   `.desktop`.
+- **El conmutador de aplicaciones/Stage Manager seguía mostrando el
+  cohete de Python pese al icono en tiempo de ejecución (paquete de app
+  de macOS).** Continuación de #864: con Python framework, el stub de la
+  venv re-ejecuta el binario real del intérprete dentro de
+  `Python.framework/…/Python.app` — macOS atribuye por tanto el proceso
+  de la GUI a `Python.app`, y esas superficies muestran el icono de ese
+  paquete en lugar del establecido con `setWindowIcon`.
+  `create_BgRemover_app.sh` ahora incrusta una copia del binario real
+  como `Contents/MacOS/BgRemoverPython` en el paquete y la inicia con
+  `__PYVENV_LAUNCHER__` apuntando al stub de la venv (el mismo mecanismo
+  que usa el propio stub): el proceso corre bajo la identidad de
+  `BgRemover.app` (icono y nombre en la barra de menús) con un contexto
+  de venv idéntico. Una autocomprobación al construir y un fallback en
+  tiempo de ejecución al arranque por venv conservan el statu quo si la
+  incrustación no es posible.
 
 ## [2.8.0] – 2026-08-16
 
