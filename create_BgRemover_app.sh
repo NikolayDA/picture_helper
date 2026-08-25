@@ -289,6 +289,60 @@ mkdir -p "$APP_PATH/Contents/Resources"
 # Paket in der venv unter Application Support. icons/ ist Paket-Daten und liegt
 # in site-packages der venv – das Bundle braucht also keine eigene Kopie.
 
+# ── Interpreter ins Bundle einbetten (Prozess-Zuordnung, #864) ─
+# macOS ordnet einen laufenden Prozess ueber den Pfad seines Executables
+# dem umgebenden .app-Bundle zu. Der venv-Stub re-exec't auf Framework-
+# Builds aber das echte Interpreter-Binary in Python.framework/…/
+# Resources/Python.app – App-Umschalter und Stage-Manager-Seitenleiste
+# zeigen deshalb dessen Raketen-Icon (und die Menueleiste „Python"),
+# egal was QApplication.setWindowIcon zur Laufzeit setzt. Eine KOPIE des
+# echten Binaries im Bundle, gestartet mit __PYVENV_LAUNCHER__ auf den
+# venv-Stub (exakt der Mechanismus, den der Stub selbst nutzt; CPython
+# entfernt die Variable beim Start wieder aus der Umgebung), behaelt den
+# venv-Kontext bitgenau und laeuft unter der Identitaet von
+# BgRemover.app. Besteht der Selbsttest nicht, bleibt es beim bisherigen
+# venv-Start (App laeuft, nur das Prozess-Icon bleibt die Rakete).
+EMBEDDED_PY="$APP_PATH/Contents/MacOS/${APP_NAME}Python"
+LAUNCH_PY="$PYTHON"
+PYVENV_LAUNCHER_VALUE=""
+if [ "$PYTHON" = "$VENV_PY" ]; then
+    BASE_PREFIX=$( ( cd "$HOME" && arch_run "$VENV_PY" -c 'import sys; print(sys.base_prefix)' ) 2>/dev/null || true)
+    REAL_BIN=""
+    if [ -n "$BASE_PREFIX" ] && [ -x "$BASE_PREFIX/Resources/Python.app/Contents/MacOS/Python" ]; then
+        # Framework-Build (python.org/Homebrew): das Binary, auf das der
+        # venv-Stub ohnehin re-exec't.
+        REAL_BIN="$BASE_PREFIX/Resources/Python.app/Contents/MacOS/Python"
+    else
+        # Nicht-Framework-Build (z. B. pyenv): der Stub IST das echte Binary.
+        REAL_BIN=$( ( cd "$HOME" && arch_run "$VENV_PY" -c 'import os, sys; print(os.path.realpath(sys._base_executable))' ) 2>/dev/null || true)
+    fi
+    if [ -z "$REAL_BIN" ] || [ ! -x "$REAL_BIN" ]; then
+        echo -e "${YELLOW}⚠️  Interpreter-Binary nicht gefunden – Start weiter ueber die venv.${NC}"
+    elif ! cp "$REAL_BIN" "$EMBEDDED_PY"; then
+        # cp-Fehler (volle Platte, Rechte, ETXTBSY) ist ein eigener Fall –
+        # die echte Ursache steht sichtbar in der cp-Meldung darueber.
+        echo -e "${YELLOW}⚠️  Interpreter-Binary konnte nicht ins Bundle kopiert werden${NC}"
+        echo "    (cp-Meldung oben) – Start weiter ueber die venv."
+    else
+        chmod +x "$EMBEDDED_PY"
+        # Selbsttest wie der spaetere Launcher: venv aktiv und alle
+        # Kernimporte aus neutralem cwd. Bewusst ohne assert – das waere
+        # unter PYTHONOPTIMIZE ersatzlos wegoptimiert und das Gate soll
+        # fail-closed bleiben.
+        if ( cd "$HOME" && export __PYVENV_LAUNCHER__="$VENV_PY" \
+             && arch_run "$EMBEDDED_PY" -c 'import sys; sys.exit(1) if sys.prefix == sys.base_prefix else None; import PyQt6.QtWidgets, PIL, numpy, bgremover' >/dev/null 2>&1 ); then
+            LAUNCH_PY="$EMBEDDED_PY"
+            PYVENV_LAUNCHER_VALUE="$VENV_PY"
+            echo -e "${GREEN}🪪  Interpreter ins Bundle eingebettet – Prozess-Icon/-Name = BgRemover${NC}"
+        else
+            rm -f "$EMBEDDED_PY"
+            echo -e "${YELLOW}⚠️  Eingebetteter Interpreter besteht den Selbsttest nicht –${NC}"
+            echo "    Start weiter ueber die venv (App-Umschalter/Stage Manager"
+            echo "    zeigen dann weiterhin das Python-Icon)."
+        fi
+    fi
+fi
+
 # ── Launcher ──────────────────────────────────────────────────
 LAUNCHER="$APP_PATH/Contents/MacOS/$APP_NAME"
 cat > "$LAUNCHER" << LAUNCHER_EOF
@@ -307,7 +361,11 @@ export PYTHONNOUSERSITE=1
 # Finder-/launchd-Kontext hängen oder mit Fehlern abbrechen).
 [ -f "\$HOME/.zprofile" ] && source "\$HOME/.zprofile" 2>/dev/null || true
 
-PYTHON="$PYTHON"
+PYTHON="$LAUNCH_PY"
+# Leer = Start direkt ueber die venv; gesetzt = Pfad des venv-Stubs, den
+# der eingebettete Interpreter via __PYVENV_LAUNCHER__ als venv-Kontext
+# nutzt (#864, Prozess-Zuordnung zu BgRemover.app fuer Icon/Name).
+PYVENV_LAUNCHER="$PYVENV_LAUNCHER_VALUE"
 LOG="\$HOME/Library/Application Support/BgRemover/bgremover.log"
 LOG_DIR="\${LOG%/*}"
 mkdir -p "\$LOG_DIR" 2>/dev/null || true
@@ -322,6 +380,39 @@ fail() {
     exit 1
 }
 
+# Native CPU-Architektur frueh bestimmen: Probe und echter Start muessen
+# dieselbe Arch nutzen – sonst wuerde die Probe des eingebetteten
+# Interpreters unter Rosetta systematisch scheitern, waehrend der echte
+# Start nativ liefe.
+NATIVE_ARCH="\$(/usr/bin/uname -m 2>/dev/null)"
+py_check() {
+    if [ -n "\$NATIVE_ARCH" ] && /usr/bin/arch -"\$NATIVE_ARCH" "\$1" -c 'pass' >/dev/null 2>&1; then
+        /usr/bin/arch -"\$NATIVE_ARCH" "\$1" -c 'import bgremover' >/dev/null 2>&1
+    else
+        "\$1" -c 'import bgremover' >/dev/null 2>&1
+    fi
+}
+
+# Eingebetteter Interpreter: __PYVENV_LAUNCHER__ zeigt auf denselben
+# venv-Stub, den auch der Fallback startet – der Export vor der Probe ist
+# in beiden Faellen unschaedlich. Laeuft der eingebettete Interpreter
+# nicht mehr (z. B. venv neu gebaut), faellt der Start uebergangsweise
+# auf den venv-Stub zurueck; das wird GELOGGT, denn genau dieses Symptom
+# (Python-Raketen-Icon) war der Anlass des Umbaus und darf nicht lautlos
+# zurueckkehren. EMBEDDED_OK spart im Regelfall den zweiten
+# Interpreter-Start der Import-Pruefung unten.
+EMBEDDED_OK=""
+if [ -n "\$PYVENV_LAUNCHER" ]; then
+    export __PYVENV_LAUNCHER__="\$PYVENV_LAUNCHER"
+    if [ -x "\$PYTHON" ] && py_check "\$PYTHON"; then
+        EMBEDDED_OK=1
+    else
+        echo "Eingebetteter Interpreter nicht lauffaehig – Start ueber venv (Prozess-Icon = Python). Fix: create_BgRemover_app.sh erneut ausfuehren." >> "\$LOG" 2>&1
+        PYTHON="\$PYVENV_LAUNCHER"
+        unset __PYVENV_LAUNCHER__
+    fi
+fi
+
 if [ ! -x "\$PYTHON" ]; then
     fail "Python wurde nicht gefunden:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
 fi
@@ -329,8 +420,9 @@ fi
 # der Import wirklich scheitert, den echten Fehlertext fuer den Dialog
 # einholen. Sonst wuerde z.B. ein numpy/onnxruntime-Deprecation-Warning
 # beim Start zum falschen "fehlt"-Dialog fuehren, obwohl das Paket
-# einwandfrei importierbar ist.
-if ! "\$PYTHON" -c 'import bgremover' >/dev/null 2>&1; then
+# einwandfrei importierbar ist. Bei erfolgreicher Embedded-Probe oben
+# (EMBEDDED_OK) ist der Import bereits belegt – kein zweiter Start.
+if [ -z "\$EMBEDDED_OK" ] && ! "\$PYTHON" -c 'import bgremover' >/dev/null 2>&1; then
     IMPORT_ERR="\$("\$PYTHON" -c 'import bgremover' 2>&1)"
     if printf '%s' "\$IMPORT_ERR" | grep -qE "No module named '?bgremover'?"; then
         fail "Das bgremover-Paket fehlt in der venv:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
@@ -339,11 +431,10 @@ if ! "\$PYTHON" -c 'import bgremover' >/dev/null 2>&1; then
     fail "bgremover laesst sich nicht importieren in:"\$'\\n'"\$PYTHON"\$'\\n\\n'"\$LASTLINE"\$'\\n\\n'"Fix: bash diagnose_mac.sh fuer Details ausfuehren, ggf. venv neu bauen."
 fi
 
-# Native CPU-Architektur erzwingen: wird die .app via Rosetta
-# gestartet, läuft Python sonst als x86_64 und kann arm64-Pakete
-# nicht laden. Nur anwenden, wenn dieses Python die native Arch
-# wirklich unterstützt, sonst normal starten.
-NATIVE_ARCH="\$(/usr/bin/uname -m 2>/dev/null)"
+# Native CPU-Architektur erzwingen (NATIVE_ARCH oben bestimmt): wird die
+# .app via Rosetta gestartet, läuft Python sonst als x86_64 und kann
+# arm64-Pakete nicht laden. Nur anwenden, wenn dieses Python die native
+# Arch wirklich unterstützt, sonst normal starten.
 RUN=("\$PYTHON")
 if [ -n "\$NATIVE_ARCH" ] && /usr/bin/arch -"\$NATIVE_ARCH" "\$PYTHON" -c 'pass' >/dev/null 2>&1; then
     RUN=(/usr/bin/arch -"\$NATIVE_ARCH" "\$PYTHON")

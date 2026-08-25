@@ -45,6 +45,19 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Das App-Icon liegt jetzt als Paketdaten bei und wird beim Start über
   `QApplication.setWindowIcon` gesetzt – das hilft auch Linux-Taskleisten
   ohne `.desktop`-Zuordnung.
+- **App-Umschalter/Stage-Manager zeigten trotz Laufzeit-Icon weiter die
+  Python-Rakete (macOS-App-Bundle).** Folge-Fix zu #864: Der venv-Stub
+  re-exec't bei Framework-Python das echte Interpreter-Binary in
+  `Python.framework/…/Python.app` – macOS ordnet den GUI-Prozess deshalb
+  `Python.app` zu, und diese Flächen zeigen dessen Bundle-Icon statt des
+  per `setWindowIcon` gesetzten. `create_BgRemover_app.sh` bettet jetzt
+  eine Kopie des echten Binaries als `Contents/MacOS/BgRemoverPython` ins
+  Bundle ein und startet sie mit `__PYVENV_LAUNCHER__` auf den venv-Stub
+  (derselbe Mechanismus wie der Stub selbst): der Prozess läuft unter der
+  Identität von `BgRemover.app` (Icon und Menüleisten-Name), der
+  venv-Kontext bleibt identisch. Selbsttest beim Bauen und
+  Laufzeit-Fallback auf den venv-Start sichern den Status quo ab, falls
+  die Einbettung nicht möglich ist.
 
 ## [2.8.0] – 2026-08-16
 

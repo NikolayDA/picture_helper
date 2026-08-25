@@ -239,6 +239,36 @@ def test_mac_bundle_cleans_build_artifacts_before_packaging():
     )
 
 
+def test_mac_bundle_embeds_interpreter_for_process_attribution():
+    """macOS ordnet den GUI-Prozess über den Pfad seines Executables dem
+    umgebenden Bundle zu (#864): der venv-Stub re-exec't auf Framework-Builds
+    das echte Binary in ``Python.framework/…/Python.app`` – App-Umschalter und
+    Stage-Manager-Seitenleiste zeigten deshalb dessen Raketen-Icon, egal was
+    ``QApplication.setWindowIcon`` setzt. Das Setup bettet eine Kopie des
+    echten Binaries ins Bundle ein und startet sie mit ``__PYVENV_LAUNCHER__``
+    auf den venv-Stub; der Launcher fällt ohne funktionierenden eingebetteten
+    Interpreter zur Laufzeit auf den venv-Start zurück."""
+    text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
+
+    assert 'EMBEDDED_PY="$APP_PATH/Contents/MacOS/${APP_NAME}Python"' in text
+    assert "Resources/Python.app/Contents/MacOS/Python" in text
+    assert 'PYVENV_LAUNCHER_VALUE="$VENV_PY"' in text
+    # Der Launcher startet den beim Bau verifizierten Interpreter …
+    assert 'PYTHON="$LAUNCH_PY"' in text
+    assert 'PYVENV_LAUNCHER="$PYVENV_LAUNCHER_VALUE"' in text
+    # … und hat den Laufzeit-Fallback auf den venv-Stub (Heredoc-escaped).
+    assert 'export __PYVENV_LAUNCHER__="\\$PYVENV_LAUNCHER"' in text
+    assert 'PYTHON="\\$PYVENV_LAUNCHER"' in text
+    # Der Selbsttest beim Bauen prüft den venv-Kontext optimierungsfest
+    # (kein assert – das wäre unter PYTHONOPTIMIZE wegoptimiert) und räumt
+    # ein durchgefallenes Binary wieder auf.
+    assert "sys.exit(1) if sys.prefix == sys.base_prefix else None" in text
+    assert 'rm -f "$EMBEDDED_PY"' in text
+    # Greift der Laufzeit-Fallback, degradiert die App nicht still: die
+    # Rückkehr des Python-Icons steht belegbar im Log.
+    assert "Eingebetteter Interpreter nicht lauffaehig" in text
+
+
 def test_mac_bundle_document_types_cover_supported_formats():
     """Die macOS-``CFBundleTypeExtensions`` entsprechen genau den tatsächlich
     unterstützten Formaten (Befund #249, AC #10) – die Finder-Dateizuordnung
