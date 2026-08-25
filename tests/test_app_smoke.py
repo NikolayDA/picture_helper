@@ -259,6 +259,14 @@ def test_mac_bundle_embeds_interpreter_for_process_attribution():
     # … und hat den Laufzeit-Fallback auf den venv-Stub (Heredoc-escaped).
     assert 'export __PYVENV_LAUNCHER__="\\$PYVENV_LAUNCHER"' in text
     assert 'PYTHON="\\$PYVENV_LAUNCHER"' in text
+    # Der Selbsttest beim Bauen prüft den venv-Kontext optimierungsfest
+    # (kein assert – das wäre unter PYTHONOPTIMIZE wegoptimiert) und räumt
+    # ein durchgefallenes Binary wieder auf.
+    assert "sys.exit(1) if sys.prefix == sys.base_prefix else None" in text
+    assert 'rm -f "$EMBEDDED_PY"' in text
+    # Greift der Laufzeit-Fallback, degradiert die App nicht still: die
+    # Rückkehr des Python-Icons steht belegbar im Log.
+    assert "Eingebetteter Interpreter nicht lauffaehig" in text
 
 
 def test_mac_bundle_document_types_cover_supported_formats():
