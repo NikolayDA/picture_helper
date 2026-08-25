@@ -101,3 +101,34 @@ def test_eye_is_finite_and_distanced_from_focus() -> None:
 def test_perspective_handles_degenerate_aspect() -> None:
     proj = perspective(45.0, 0.0, 0.1, 10.0)  # aspect 0 wird geklemmt
     assert np.all(np.isfinite(proj))
+
+
+def test_zoom_percent_is_100_after_fit() -> None:
+    cam = _fit_camera()
+    assert cam.zoom_percent == pytest.approx(100.0)
+
+
+def test_set_zoom_percent_round_trips_within_clamps() -> None:
+    cam = _fit_camera()
+    cam.set_zoom_percent(200.0)
+    assert cam.zoom_percent == pytest.approx(200.0)
+    cam.set_zoom_percent(50.0)
+    assert cam.zoom_percent == pytest.approx(50.0)
+
+
+def test_set_zoom_percent_clamps_to_distance_limits() -> None:
+    cam = _fit_camera()
+    cam.set_zoom_percent(5.0)      # jenseits der Fernklemme (8× Fit ⇒ 12,5 %)
+    assert cam.zoom_percent == pytest.approx(100.0 / 8.0)
+    cam.set_zoom_percent(5000.0)   # jenseits der Nahklemme (0,1× Fit ⇒ 1000 %)
+    assert cam.zoom_percent == pytest.approx(1000.0)
+
+
+def test_set_zoom_percent_rejects_invalid_values() -> None:
+    cam = _fit_camera()
+    cam.set_zoom_percent(200.0)
+    cam.set_zoom_percent(0.0)              # ungültig → verworfen, nicht geklemmt
+    cam.set_zoom_percent(-10.0)
+    cam.set_zoom_percent(float("nan"))
+    cam.set_zoom_percent(float("inf"))
+    assert cam.zoom_percent == pytest.approx(200.0)

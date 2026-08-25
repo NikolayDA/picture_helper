@@ -113,6 +113,27 @@ class OrbitCamera:
         self.distance *= factor
         self._clamp()
 
+    @property
+    def zoom_percent(self) -> float:
+        """Zoom in Prozent des Fit-Abstands (100 = eingepasst, größer = näher).
+
+        Gemeinsame Währung mit der schwebenden Zoom-Pille (#464): die Klemmen
+        ``_MIN_DISTANCE_FACTOR``/``_MAX_DISTANCE_FACTOR`` entsprechen damit
+        1000 % (nah) bzw. 12,5 % (fern).
+        """
+        return self._fit_distance / self.distance * 100.0
+
+    def set_zoom_percent(self, percent: float) -> None:
+        """Setzt den Zoom absolut in Prozent des Fit-Abstands; distanzgeklemmt.
+
+        Ungültige Werte (nicht endlich, ``<= 0``) werden verworfen statt
+        geklemmt – analog :meth:`zoom`.
+        """
+        if not math.isfinite(percent) or percent <= 0.0:
+            return
+        self.distance = self._fit_distance * (100.0 / percent)
+        self._clamp()
+
     def pan(self, dx: float, dy: float) -> None:
         """Verschiebt den Fokuspunkt in der Ansichtsebene (rechts/oben skaliert).
 

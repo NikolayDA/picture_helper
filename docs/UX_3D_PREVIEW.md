@@ -29,8 +29,12 @@ Kombiniert) bleibt semantisch unverändert; 3D liegt als eigene Ebene
   dem 3D-Viewer-Widget. Stepper, Menüs und rechtes Panel bleiben stehen.
   Im 3D-Modus sind die 2D-Werkzeuge der Toolbar und die 2D-Modus-Segmente
   deaktiviert (Tooltip: „Im 3D-Modus nicht verfügbar – zurück zu 2D
-  wechseln"); die schwebende Zoom-Pille (§14) ist ausgeblendet, da das
-  Mausrad die 3D-Kamera zoomt.
+  wechseln"); die schwebende Zoom-Pille (§14 der Spec) bleibt sichtbar und
+  bedient den **Kamera-Zoom** (100 % = eingepasste Ansicht, gleiche
+  ±10-%-Schritte und Fixier-Lock wie in 2D; das Schloss friert auch
+  Mausrad- und Tasten-Zoom ein). Die Pille erscheint nur im Ready-Zustand
+  [R]; ihr Prozent-/Lock-Zustand ist reiner UI-State ohne Undo-Eintrag und
+  unabhängig vom 2D-Zoom.
 - **Gating:** Das 3D-Segment ist nur aktiv, wenn (a) eine HEIGHT-Ebene mit
   gültigen Daten existiert und (b) die Capability-Probe des ADR nicht
   fehlgeschlagen ist. Sonst bleibt es deaktiviert mit erklärendem Text
@@ -94,7 +98,7 @@ sind und die Pan-Gesten bewusst **identisch** zur 2D-Konvention liegen.
 |---|---|---|
 | Orbit (Drehen um Fokuspunkt) | Linke Taste ziehen | Pfeiltasten |
 | Pan (Fokuspunkt verschieben) | Mittlere Taste **oder** Alt+Linke Taste ziehen (wie 2D-Canvas) | Umschalt+Pfeiltasten |
-| Zoom | Mausrad / Trackpad-Scrollen (Grenzen: Nah-/Fernklemme) | `+` / `−` |
+| Zoom | Mausrad / Trackpad-Scrollen **oder** Zoom-Pille −/+ (100 % = eingepasst; Grenzen: Nah-/Fernklemme) | `+` / `−` |
 | Einpassen (Fit-to-view) | Button „Einpassen" | `Pos1`; zusätzlich global `Strg+0` (gleiche Semantik wie 2D-„Einpassen", kontextabhängig geroutet) |
 | Ansicht zurücksetzen (Kamera + Überhöhung + Licht + Qualität auf Defaults) | Button „Zurücksetzen" | `Umschalt+Pos1` |
 | Fokus verlassen | – | `Esc` / `Tab` (kein Fokus-Traps; `Esc` bricht zuvor eine laufende Drag-Geste ab, wie im 2D-Canvas) |
