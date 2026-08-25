@@ -43,6 +43,7 @@
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | 性能/E2E/文档/激光接口验收 | 🟡 中（收尾关卡，非新功能） | 🟠 高（基准测试套件、E2E、文档、适配器契约） | Opus，高 | 阻塞 —— #695 完成后的收尾议题 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | #825 后的评审自动化：评估回合预算中断并决定工具范围 | 🟡 中（自动评审的 CI 成本/可靠性，非产品关键） | 🟡 中（被动测量；仍有多个独立问题） | –（上层跟踪议题） | allowlist/提示修复（PR #850）与运维补齐（PR #853：成本/令牌过期已记录、`issues: read`、原因输出、单一权威分类）均已合并；#841 在未进行测量序列的情况下关闭，判据见 docs/history/ISSUE-841-VERIFIKATION.md。自评审循环降级（2026-08-24，docs/history/ADR-2026-reviewschleifen-entschaerfung.md）起：测量序列在接下来的十次真实评审运行中被动进行，不因配置修复而重置；得益于每个 PR 仅一次评审的触发器，置顶问题已不复存在；提示精简已于 2026-08-24 完成（docs/history/ADR-2026-review-workflow-verschlankung.md：提示约 55 行、回合预算与超时设上限（数值见 ADR）、论证与分类法移入 ADR），其余改造（移除 `actions: read`、`Read` 路径规则）冻结至十次运行测量完成 |
+| [#866](https://github.com/NikolayDA/picture_helper/issues/866) | macOS 应用在 Apple Silicon 上以 x86_64 经 Rosetta 运行而非原生 arm64 | 🟡 中（AI 推理/渲染经转译而非原生运行：性能/能耗；应用功能正常） | 🟢 低-中（setup 检测、真实的启动器日志、diagnose_mac.sh；端到端仅可在真实 macOS 硬件上验证） | Bug Fix Agent（在目标机器上的验证：仓库所有者） | 新（2026-08-25）——来自 #864/#865 诊断的附带观察；目标机器上的根因尚未确认（x86_64 venv 还是“使用 Rosetta 打开”），验收标准 AC1–AC6 见 issue |
 
 ### 接下来推荐
 
