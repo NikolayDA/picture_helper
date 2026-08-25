@@ -18,6 +18,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
+- **« Générer la carte de hauteur depuis l'image » bien en évidence en
+  haut de l'étape Relief.** Le bouton primaire de l'onglet hauteur
+  s'appelle désormais « Générer la carte de hauteur depuis l'image »
+  (au lieu de « Générer depuis l'image ») et apparaît sans l'ancienne
+  carte « Obtenir », tout en haut de la colonne droite de l'étape 5,
+  avant la section 3D ; « Importer niveaux de gris… » suit juste en
+  dessous (toujours réservé au mode expert).
+
 - **En-tête de l'inspecteur plus compact : l'indication du mode en
   infobulle plutôt qu'en texte permanent.** La ligne d'indication affichée
   en permanence sous l'en-tête de l'inspecteur, qui expliquait le mode
