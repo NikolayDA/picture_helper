@@ -9,6 +9,13 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Ajouté
+
+- **La pilule de zoom aussi dans l'aperçu 3D du relief.** Le contrôle de
+  zoom flottant du canevas 2D apparaît désormais aussi dans la vue 3D et y
+  pilote le zoom de la caméra (100 % = vue ajustée, mêmes pas de ±10 % ; le
+  verrou fige aussi le zoom à la molette et au clavier).
+
 ### Corrigé
 
 - **Le mode Standard et la navigation entre étapes n'annulaient pas un

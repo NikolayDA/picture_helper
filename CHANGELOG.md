@@ -9,6 +9,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **Zoom-Pille auch in der 3D-Reliefvorschau.** Die schwebende
+  Zoom-Kontrolle der 2D-Leinwand erscheint jetzt auch in der 3D-Ansicht und
+  bedient dort den Kamera-Zoom (100 % = eingepasste Ansicht, gleiche
+  ±10-%-Schritte; das Fixier-Schloss friert auch Mausrad- und Tasten-Zoom
+  ein).
+
 ### Behoben
 
 - **Standard-Modus und Schrittwechsel verwarfen eine aktive

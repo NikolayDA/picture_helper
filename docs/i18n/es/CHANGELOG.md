@@ -9,6 +9,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Añadido
+
+- **La píldora de zoom ahora también en la vista previa 3D del relieve.**
+  El control de zoom flotante del lienzo 2D aparece ahora también en la
+  vista 3D y controla allí el zoom de la cámara (100 % = vista encajada,
+  mismos pasos de ±10 %; el candado también congela el zoom con la rueda
+  del ratón y el teclado).
+
 ### Corregido
 
 - **El modo Estándar y la navegación entre pasos no descartaban una vista

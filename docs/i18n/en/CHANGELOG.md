@@ -8,6 +8,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Zoom pill now also in the 3D relief preview.** The floating zoom
+  control from the 2D canvas now also appears in the 3D view and drives the
+  camera zoom there (100 % = fitted view, same ±10 % steps; the lock also
+  freezes mouse-wheel and keyboard zoom).
+
 ### Fixed
 
 - **Standard mode and step navigation did not discard an active
