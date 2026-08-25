@@ -2,14 +2,16 @@
 
 Glas-Pille unten rechts auf dem Canvas, 1:1 zum Prototyp: „−" · Live-
 Prozentwert · „+" · Fixier-Schloss. Die eigentliche Zoom-Logik (Klemmen,
-Schrittweite, Lock) liegt in :class:`CanvasViewport` (``step_zoom`` /
-``set_zoom_locked``); dieses Widget ist reine Anzeige + Bedienung und hält
-keinen eigenen Anwendungszustand. Der Zoom-/Lock-Zustand ist reiner
-UI-State ohne Undo-/Redo-Eintrag.
+Schrittweite, Lock) liegt im bedienten Ziel (:class:`ZoomTarget`): auf der
+2D-Leinwand ist das der :class:`~bgremover.canvas_viewport.CanvasViewport`,
+in der 3D-Reliefvorschau die :class:`~bgremover.viewer_3d.Relief3DView`
+(Kamera-Zoom, 100 % = eingepasste Ansicht). Dieses Widget ist reine Anzeige +
+Bedienung und hält keinen eigenen Anwendungszustand. Der Zoom-/Lock-Zustand
+ist reiner UI-State ohne Undo-/Redo-Eintrag.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Protocol
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QToolButton, QWidget
@@ -19,20 +21,30 @@ from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.theme import Palette, active_palette, zoom_pill_style
 
-if TYPE_CHECKING:
-    from bgremover.canvas_viewport import CanvasViewport
-
 # Abstand der Pille zur unteren/rechten Canvas-Kante (Prototyp: 14 px).
 _MARGIN = 14
 _BTN_SIZE = 24
 
 
+class ZoomTarget(Protocol):
+    """Minimaler Vertrag des von der Pille bedienten Zoom-Ziels.
+
+    Klemmen, Schrittweite und Lock-Semantik implementiert das Ziel selbst;
+    die Live-Prozentanzeige speist es über ``set_percent`` (Signalanbindung
+    beim Aufbau, siehe ``canvas.py`` bzw. ``viewer_3d.py``).
+    """
+
+    def step_zoom(self, delta_pct: int) -> None: ...
+
+    def set_zoom_locked(self, locked: bool) -> None: ...
+
+
 class ZoomControl(QFrame):
     """Glas-Pille mit −/+, Prozentanzeige und Fixier-Lock (#464)."""
 
-    def __init__(self, viewport: CanvasViewport, parent: QWidget) -> None:
+    def __init__(self, target: ZoomTarget, parent: QWidget) -> None:
         super().__init__(parent)
-        self._viewport = viewport
+        self._target = target
         self.setObjectName("zoomPill")
         # Nötig, damit die Stylesheet-Fläche auf dem QFrame-Kind über dem
         # QGraphicsView-Viewport tatsächlich gemalt wird.
@@ -44,7 +56,7 @@ class ZoomControl(QFrame):
 
         self.btn_out = self._make_button("−", tr("zoom.out.tooltip"))
         self.btn_out.clicked.connect(
-            lambda _=False: self._viewport.step_zoom(-_ZOOM_CTRL_STEP_PCT))
+            lambda _=False: self._target.step_zoom(-_ZOOM_CTRL_STEP_PCT))
         lay.addWidget(self.btn_out)
 
         self.label = QLabel("100%")
@@ -55,7 +67,7 @@ class ZoomControl(QFrame):
 
         self.btn_in = self._make_button("+", tr("zoom.in.tooltip"))
         self.btn_in.clicked.connect(
-            lambda _=False: self._viewport.step_zoom(_ZOOM_CTRL_STEP_PCT))
+            lambda _=False: self._target.step_zoom(_ZOOM_CTRL_STEP_PCT))
         lay.addWidget(self.btn_in)
 
         self.btn_lock = QToolButton()
@@ -103,7 +115,7 @@ class ZoomControl(QFrame):
 
     def _on_lock_toggled(self, locked: bool) -> None:
         """Friert den Zoom ein bzw. gibt ihn frei; +/− folgen dem Zustand."""
-        self._viewport.set_zoom_locked(locked)
+        self._target.set_zoom_locked(locked)
         self.btn_in.setEnabled(not locked)
         self.btn_out.setEnabled(not locked)
         self.btn_lock.setToolTip(

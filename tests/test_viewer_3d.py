@@ -361,3 +361,193 @@ def test_key_press_ignores_none_event(qapp) -> None:
 # (u. a. ``test_every_created_object_is_released_exactly_once``) – die
 # frühere, weniger strenge ``_FakeGLResource``-Variante hier war ein reines
 # Duplikat (#716).
+
+
+# ── Zoom-Pille in der 3D-Ansicht (#464-Parität) ──────────────────────────
+
+def _ready_view() -> tuple[Relief3DView, GLReliefViewer]:
+    view = Relief3DView()
+    view.show_mesh(_mesh())
+    viewer = view.viewer()
+    if view.state != "ready" or viewer is None:
+        pytest.skip("Kein GL-Viewer-Widget verfügbar")
+    return view, viewer
+
+
+def test_zoom_pill_hidden_outside_ready_state(qapp) -> None:
+    view = Relief3DView()
+    assert view._zoom_ctrl.isHidden()
+    view.show_loading()
+    assert view._zoom_ctrl.isHidden()
+    view.show_error()
+    assert view._zoom_ctrl.isHidden()
+
+
+def test_zoom_pill_visible_and_at_100_percent_in_ready_state(qapp) -> None:
+    view, _viewer = _ready_view()
+    assert not view._zoom_ctrl.isHidden()
+    assert view._zoom_ctrl.label.text() == "100%"
+
+
+def test_zoom_pill_hides_again_when_leaving_ready_state(qapp) -> None:
+    view, _viewer = _ready_view()
+    view.show_error()
+    assert view._zoom_ctrl.isHidden()
+
+
+def test_zoom_pill_buttons_step_camera_percent(qapp) -> None:
+    view, viewer = _ready_view()
+    view._zoom_ctrl.btn_in.click()
+    assert viewer.zoom_percent == pytest.approx(110)
+    assert view._zoom_ctrl.label.text() == "110%"
+    view._zoom_ctrl.btn_out.click()
+    assert viewer.zoom_percent == pytest.approx(100)
+    assert view._zoom_ctrl.label.text() == "100%"
+
+
+def test_zoom_pill_label_follows_wheel_and_key_zoom(qapp) -> None:
+    view, viewer = _ready_view()
+    viewer.wheelEvent(_wheel_event(120))
+    assert view._zoom_ctrl.label.text() == f"{round(viewer.zoom_percent)}%"
+    viewer.keyPressEvent(_key_event(Qt.Key.Key_Minus))
+    assert view._zoom_ctrl.label.text() == f"{round(viewer.zoom_percent)}%"
+
+
+def test_zoom_pill_label_follows_fit_and_reset(qapp) -> None:
+    view, viewer = _ready_view()
+    viewer.wheelEvent(_wheel_event(120))
+    assert view._zoom_ctrl.label.text() != "100%"
+    view.fit_view()
+    assert view._zoom_ctrl.label.text() == "100%"
+
+
+def test_zoom_pill_lock_freezes_wheel_keys_and_buttons(qapp) -> None:
+    view, viewer = _ready_view()
+    view._zoom_ctrl.btn_lock.setChecked(True)
+    assert viewer.zoom_locked is True
+    assert not view._zoom_ctrl.btn_in.isEnabled()
+    assert not view._zoom_ctrl.btn_out.isEnabled()
+
+    before = viewer.camera.distance
+    viewer.wheelEvent(_wheel_event(120))
+    viewer.keyPressEvent(_key_event(Qt.Key.Key_Plus))
+    viewer.step_zoom(10)
+    assert viewer.camera.distance == before
+
+    view._zoom_ctrl.btn_lock.setChecked(False)
+    assert viewer.zoom_locked is False
+    viewer.wheelEvent(_wheel_event(120))
+    assert viewer.camera.distance < before
+
+
+def test_zoom_pill_lock_survives_viewer_rebuild(qapp) -> None:
+    view, viewer = _ready_view()
+    view._zoom_ctrl.btn_lock.setChecked(True)
+    viewer._failed = True  # GL-Fehler simulieren → Retry baut neu auf
+    view.show_mesh(_mesh())
+    new_viewer = view.viewer()
+    assert new_viewer is not None and new_viewer is not viewer
+    assert new_viewer.zoom_locked is True
+
+
+def test_step_zoom_clamps_at_camera_near_limit(qapp) -> None:
+    viewer = GLReliefViewer()
+    viewer.set_mesh(_mesh())
+    viewer.camera.set_zoom_percent(995.0)  # dicht an der Nahklemme (1000 %)
+    viewer.step_zoom(10)
+    assert viewer.zoom_percent == pytest.approx(1000.0)
+    viewer.step_zoom(10)  # an der Kameraklemme → keine Änderung mehr
+    assert viewer.zoom_percent == pytest.approx(1000.0)
+
+
+def test_step_zoom_moves_only_toward_control_range(qapp) -> None:
+    from bgremover.constants import _ZOOM_CTRL_MIN_PCT
+
+    viewer = GLReliefViewer()
+    viewer.set_mesh(_mesh())
+    viewer.camera.set_zoom_percent(12.5)  # Fernklemme, unter dem Pillenbereich
+    viewer.step_zoom(-10)                 # weiter hinaus → No-op (wie 2D)
+    assert viewer.zoom_percent == pytest.approx(12.5)
+    viewer.step_zoom(10)                  # zurück in Richtung Bereich
+    assert viewer.zoom_percent == pytest.approx(_ZOOM_CTRL_MIN_PCT)
+
+
+def test_zoom_pill_repositions_bottom_right(qapp) -> None:
+    view, _viewer = _ready_view()
+    view.resize(400, 300)
+    view.show()
+    qapp.processEvents()
+    ctrl = view._zoom_ctrl
+    assert ctrl.parentWidget() is view
+    # Verankerung wie auf der 2D-Leinwand (Prototyp: 14 px Abstand, siehe
+    # tests/test_zoom_control.py zum literalen Spec-Vertrag).
+    assert ctrl.x() + ctrl.width() == view.width() - 14
+    assert ctrl.y() + ctrl.height() == view.height() - 14
+
+
+def test_locked_zoom_percent_survives_set_mesh(qapp) -> None:
+    """Review-Befund PR #863: Re-Anzeige (Cache-Hit/Qualität/Höhen-Edit)
+    läuft über ``set_mesh`` – der fixierte Prozentwert darf dabei nicht
+    still auf 100 % zurückspringen."""
+    viewer = GLReliefViewer()
+    viewer.set_mesh(_mesh())
+    viewer.camera.set_zoom_percent(250.0)
+    viewer.set_zoom_locked(True)
+    viewer.set_mesh(_mesh())
+    assert viewer.zoom_percent == pytest.approx(250.0)
+    # Ohne Lock rahmt ein neues Mesh weiterhin ein (Altverhalten).
+    viewer.set_zoom_locked(False)
+    viewer.set_mesh(_mesh())
+    assert viewer.zoom_percent == pytest.approx(100.0)
+
+
+def test_locked_zoom_percent_survives_show_mesh_redisplay(qapp) -> None:
+    view, viewer = _ready_view()
+    viewer.camera.set_zoom_percent(250.0)
+    view._zoom_ctrl.btn_lock.setChecked(True)
+    view.show_mesh(_mesh())  # Re-Anzeige, z. B. Cache-Hit beim 2D→3D-Wechsel
+    current = view.viewer()
+    assert current is not None
+    assert current.zoom_percent == pytest.approx(250.0)
+    assert view._zoom_ctrl.label.text() == "250%"
+
+
+def test_explicit_fit_view_overrides_lock_like_2d(qapp) -> None:
+    viewer = GLReliefViewer()
+    viewer.set_mesh(_mesh())
+    viewer.camera.set_zoom_percent(250.0)
+    viewer.set_zoom_locked(True)
+    viewer.fit_view()  # explizites Kommando – wie Fit-to-View in 2D
+    assert viewer.zoom_percent == pytest.approx(100.0)
+
+
+def test_step_zoom_at_camera_clamp_emits_no_signal(qapp) -> None:
+    """Review-Befund PR #863: an der Kameraklemme darf ein wirkungsloser
+    Pillen-Klick weder Signal noch Repaint auslösen (2D-Kurzschluss-Parität)."""
+    viewer = GLReliefViewer()
+    viewer.set_mesh(_mesh())
+    viewer.camera.set_zoom_percent(1000.0)  # Nahklemme
+    fired: list[float] = []
+    viewer.zoomChanged.connect(fired.append)
+    viewer.step_zoom(10)   # Klemme neutralisiert den Schritt → still
+    assert fired == []
+    assert viewer.zoom_percent == pytest.approx(1000.0)
+    viewer.step_zoom(-10)  # echter Schritt → genau ein Signal
+    assert len(fired) == 1
+
+
+def test_zoom_pill_stays_anchored_after_zoom_changes_width(qapp) -> None:
+    """Review-Befund PR #863: ``set_percent`` ändert die Pillenbreite
+    (``adjustSize``); jede Zoomänderung muss deshalb auch neu verankern."""
+    view, viewer = _ready_view()
+    view.resize(400, 300)
+    view.show()
+    qapp.processEvents()
+    ctrl = view._zoom_ctrl
+    # An die Nahklemme zoomen: „1000%" sprengt die 40-px-Mindestbreite
+    # des Labels, die Pille wird breiter.
+    viewer.camera.set_zoom_percent(1000.0)
+    viewer._notify_zoom()
+    assert ctrl.label.text() == "1000%"
+    assert ctrl.x() + ctrl.width() == view.width() - 14
+    assert ctrl.y() + ctrl.height() == view.height() - 14

@@ -462,10 +462,12 @@ Ein Paket, `bgremover/`:
   entscheidet über Navigation/Gating (`set_current`/`set_locked`, ohne Bild nur
   Schritt 1); `_apply_toolbar_for_step` schaltet die kontextuellen Werkzeuge.
   `zoom_control.py` (`ZoomControl`) ist die schwebende Glas-Zoom-Pille unten
-  rechts (−/Prozent/+/Lock, #464); die Zoom-Logik (Klemmen, Schrittweite, Lock)
-  liegt in `CanvasViewport` (`step_zoom`/`set_zoom_locked`, Grenzen
-  `_ZOOM_CTRL_MIN_PCT`/`_MAX_PCT` in `constants.py`) – reiner UI-State, keine
-  Undo-/Redo-Einträge. Das Design-System/Theming liegt in `theme.py`
+  rechts (−/Prozent/+/Lock, #464); sie bedient ein generisches `ZoomTarget`
+  (Protocol): auf der 2D-Leinwand den `CanvasViewport`
+  (`step_zoom`/`set_zoom_locked`, Grenzen `_ZOOM_CTRL_MIN_PCT`/`_MAX_PCT` in
+  `constants.py`), in der 3D-Reliefvorschau die `Relief3DView` (Kamera-Zoom,
+  100 % = eingepasste Ansicht, nur im Ready-Zustand sichtbar; Lock friert auch
+  Mausrad-/Tasten-Zoom ein) – reiner UI-State, keine Undo-/Redo-Einträge. Das Design-System/Theming liegt in `theme.py`
   (palettengetriebene `*_style`-Builder, u. a. `card_style`/`stepper_style`/
   `zoom_pill_style`, Tokens `ACCENT`/`CARD_STYLE`, hell/dunkel). Referenz-Spec:
   [`docs/REDESIGN_SPEC.md`](docs/REDESIGN_SPEC.md), Prototyp unter `design/`.

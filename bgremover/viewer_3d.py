@@ -65,11 +65,12 @@ except Exception:  # noqa: BLE001 – ohne GL-Klassen bleibt nur der Fallback
     QOpenGLWidget = QWidget  # type: ignore[assignment,misc]
     _HAS_GL_WIDGET = False
 
-from bgremover.constants import logger
+from bgremover.constants import _ZOOM_CTRL_MAX_PCT, _ZOOM_CTRL_MIN_PCT, logger
 from bgremover.i18n import tr
 from bgremover.preview3d_camera import OrbitCamera
 from bgremover.relief_mesh import ReliefMesh
 from bgremover.theme import Palette, active_palette
+from bgremover.zoom_control import ZoomControl
 
 # GL-Enum-Konstanten (roh, damit sie nicht an ein bestimmtes PyQt6-Enum-Modul
 # gebunden sind – der Wert ist Teil des OpenGL-Vertrags, nicht der Bindings).
@@ -199,6 +200,7 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
 
     initFailed = pyqtSignal(str)
     resetRequested = pyqtSignal()
+    zoomChanged = pyqtSignal(float)  # Kamera-Zoom in Prozent (Zoom-Pille, #464)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -220,6 +222,9 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         self._index_count = 0
         self._gl_ready = False
         self._failed = False
+        # Fixier-Lock der Zoom-Pille (#464): reiner UI-Zustand, friert den
+        # Kamera-Zoom gegen Mausrad, +/−-Tasten und Pillen-Buttons ein.
+        self._zoom_locked = False
         self._connected_context: Any = None
         self._last_pos: tuple[float, float] | None = None
         self._palette = active_palette()
@@ -234,12 +239,25 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         self._safe_update()
 
     def set_mesh(self, mesh: ReliefMesh) -> None:
-        """Übernimmt ein neues Mesh und rahmt es ein (Upload beim nächsten Frame)."""
+        """Übernimmt ein neues Mesh und rahmt es ein (Upload beim nächsten Frame).
+
+        Bei fixiertem Zoom (#464) bleibt der **Prozentwert** über das
+        Kamera-Reset erhalten: ``set_mesh`` läuft auch bei reinen
+        Re-Anzeigen (Cache-Hit beim 2D→3D-Wechsel, Qualitätswechsel,
+        Höhen-Edit), und ein stiller Rücksprung auf 100 % widerspräche dem
+        geschlossenen Schloss. Prozent statt Distanz, weil sich die Bounds
+        je Mesh ändern können. Die expliziten Kommandos ``fit_view``/
+        ``reset_view`` überschreiben den Wert dagegen weiterhin – wie
+        Fit-to-View auf der 2D-Leinwand.
+        """
         self._mesh = mesh
         self._pending_mesh = mesh
         lo, hi = mesh.bounds
+        locked_percent = self._camera.zoom_percent if self._zoom_locked else None
         self._camera.reset(lo, hi)
-        self._safe_update()
+        if locked_percent is not None:
+            self._camera.set_zoom_percent(locked_percent)
+        self._notify_zoom()
 
     def set_exaggeration(self, value: float) -> None:
         self._exaggeration = max(0.1, min(10.0, float(value)))
@@ -253,7 +271,7 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         if self._mesh is not None:
             lo, hi = self._mesh.bounds
             self._camera.fit_bounds(lo, hi)
-            self._safe_update()
+            self._notify_zoom()
 
     def reset_view(self) -> None:
         if self._mesh is not None:
@@ -261,6 +279,64 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
             self._camera.reset(lo, hi)
         self._exaggeration = 1.0
         self._light = (315.0, 45.0)
+        self._notify_zoom()
+
+    # ── Zoom-Pille (#464-Parität in der 3D-Ansicht) ──────────────────────
+    def step_zoom(self, delta_pct: int) -> None:
+        """Zoomt in Prozent-Schritten der Zoom-Kontrolle (Semantik wie 2D, #464).
+
+        ``zoomBy``-Logik des :class:`~bgremover.canvas_viewport.CanvasViewport`:
+        Zielwert = aktueller Prozentwert plus *delta_pct*, geklemmt auf
+        ``[_ZOOM_CTRL_MIN_PCT, _ZOOM_CTRL_MAX_PCT]``; liegt der Kamera-Zoom
+        (Mausrad) außerhalb des Kontrollbereichs, bewegen die Buttons nur in
+        Richtung des Bereichs. Die Nah-/Fernklemmen der Kamera greifen
+        zusätzlich (:meth:`OrbitCamera.set_zoom_percent`). Bei fixiertem Zoom
+        ein No-op.
+        """
+        if self._zoom_locked:
+            return
+        current = self._camera.zoom_percent
+        if (
+            delta_pct < 0 and current <= _ZOOM_CTRL_MIN_PCT
+            or delta_pct > 0 and current >= _ZOOM_CTRL_MAX_PCT
+        ):
+            return
+        target = max(_ZOOM_CTRL_MIN_PCT, min(_ZOOM_CTRL_MAX_PCT, current + delta_pct))
+        if target == current:
+            return
+        self._camera.set_zoom_percent(target)
+        if self._camera.zoom_percent == current:
+            # Die Kameraklemme hat den Schritt neutralisiert (z. B. Nahklemme
+            # 1000 % unterhalb von ``_ZOOM_CTRL_MAX_PCT``): ohne Zustands-
+            # änderung weder Signal noch Repaint. In 2D fallen Kontroll- und
+            # Viewport-Grenze zusammen, hier nicht.
+            return
+        self._notify_zoom()
+
+    def set_zoom_locked(self, locked: bool) -> None:
+        """Friert den Kamera-Zoom ein bzw. gibt ihn wieder frei (#464)."""
+        self._zoom_locked = bool(locked)
+
+    @property
+    def zoom_locked(self) -> bool:
+        """True, solange der Kamera-Zoom fixiert ist (#464)."""
+        return self._zoom_locked
+
+    @property
+    def zoom_percent(self) -> float:
+        """Kamera-Zoom in Prozent des Fit-Abstands (100 = eingepasst)."""
+        return self._camera.zoom_percent
+
+    def _camera_zoom(self, factor: float) -> None:
+        """Multiplikativer Kamera-Zoom (Mausrad/Tasten); lock-bewusst."""
+        if self._zoom_locked:
+            return
+        self._camera.zoom(factor)
+        self.zoomChanged.emit(self._camera.zoom_percent)
+
+    def _notify_zoom(self) -> None:
+        """Meldet den aktuellen Kamera-Zoom an die Anzeige und rendert neu."""
+        self.zoomChanged.emit(self._camera.zoom_percent)
         self._safe_update()
 
     @property
@@ -515,7 +591,7 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         delta = event.angleDelta().y()
         if delta == 0:
             return
-        self._camera.zoom(0.9 if delta > 0 else 1.0 / 0.9)
+        self._camera_zoom(0.9 if delta > 0 else 1.0 / 0.9)
         self._safe_update()
 
     def keyPressEvent(self, event) -> None:  # noqa: N802
@@ -533,9 +609,9 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         elif key == Qt.Key.Key_Down:
             self._camera.pan(0.0, 0.05) if shift else self._camera.orbit(0.0, -step)
         elif key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal):
-            self._camera.zoom(0.9)
+            self._camera_zoom(0.9)
         elif key == Qt.Key.Key_Minus:
-            self._camera.zoom(1.0 / 0.9)
+            self._camera_zoom(1.0 / 0.9)
         elif key == Qt.Key.Key_Home:
             if shift:
                 # Der Shortcut muss über denselben zentralen Pfad wie der
@@ -653,6 +729,15 @@ class Relief3DView(QStackedWidget):
         self.addWidget(self._loading_label)         # index 2
         self.addWidget(self._error_page)            # index 3
         self.addWidget(self._ready_page)            # index 4
+
+        # Schwebende Zoom-Pille auch in der 3D-Ansicht (#464-Parität): gleiche
+        # Bedienung wie auf der 2D-Leinwand, Ziel ist der Kamera-Zoom. Die
+        # Pille bedient den Container (nicht den GL-Viewer direkt), damit sie
+        # einen Retry-bedingten Viewer-Neuaufbau samt Lock-Zustand überlebt.
+        self._zoom_locked = False
+        self._zoom_ctrl = ZoomControl(self, self)
+        self._zoom_ctrl.setVisible(False)
+
         self._apply_page_styles()
         self.show_empty()
 
@@ -667,18 +752,22 @@ class Relief3DView(QStackedWidget):
     def show_empty(self) -> None:
         self._state = "empty"
         self.setCurrentWidget(self._empty_label)
+        self._sync_zoom_overlay()
 
     def show_unavailable(self) -> None:
         self._state = "unavailable"
         self.setCurrentWidget(self._unavailable_page)
+        self._sync_zoom_overlay()
 
     def show_loading(self) -> None:
         self._state = "loading"
         self.setCurrentWidget(self._loading_label)
+        self._sync_zoom_overlay()
 
     def show_error(self) -> None:
         self._state = "error"
         self.setCurrentWidget(self._error_page)
+        self._sync_zoom_overlay()
 
     def show_mesh(self, mesh: ReliefMesh) -> None:
         """Zeigt ein Mesh im GL-Viewer; ein GL-Init-Fehler wechselt zu ``error``."""
@@ -690,6 +779,7 @@ class Relief3DView(QStackedWidget):
         self._update_badge(mesh)
         self._state = "ready"
         self.setCurrentWidget(self._ready_page)
+        self._sync_zoom_overlay()
 
     # ── Anzeige-Parameter durchreichen ───────────────────────────────────
     def set_exaggeration(self, value: float) -> None:
@@ -708,9 +798,22 @@ class Relief3DView(QStackedWidget):
         if self._viewer is not None:
             self._viewer.reset_view()
 
+    # ── Zoom-Pille (erfüllt den ``ZoomTarget``-Vertrag, #464) ────────────
+    def step_zoom(self, delta_pct: int) -> None:
+        """Reicht Pillen-Schritte an den aktuellen GL-Viewer weiter."""
+        if self._viewer is not None:
+            self._viewer.step_zoom(delta_pct)
+
+    def set_zoom_locked(self, locked: bool) -> None:
+        """Merkt den Fixier-Lock und spiegelt ihn in den aktuellen Viewer."""
+        self._zoom_locked = bool(locked)
+        if self._viewer is not None:
+            self._viewer.set_zoom_locked(locked)
+
     def apply_palette(self, palette: Palette) -> None:
         self._palette = palette
         self._apply_page_styles()
+        self._zoom_ctrl.apply_palette(palette)
         if self._viewer is not None:
             self._viewer.set_palette(palette)
 
@@ -736,11 +839,14 @@ class Relief3DView(QStackedWidget):
             viewer.set_palette(self._palette)
             viewer.initFailed.connect(lambda _msg: self.show_error())
             viewer.resetRequested.connect(self.resetRequested.emit)
+            viewer.zoomChanged.connect(self._on_viewer_zoom_changed)
+            viewer.set_zoom_locked(self._zoom_locked)
             layout = self._ready_page.layout()
             assert isinstance(layout, QVBoxLayout)
             layout.addWidget(viewer)
             self._viewer = viewer
             self._badge.raise_()
+            self._zoom_ctrl.raise_()
             return viewer
         except Exception as exc:  # noqa: BLE001
             logger.warning("3D-Viewer konnte nicht erstellt werden: %s", exc)
@@ -759,6 +865,32 @@ class Relief3DView(QStackedWidget):
             layout.removeWidget(viewer)
         viewer.setParent(None)
         viewer.deleteLater()
+
+    def _on_viewer_zoom_changed(self, percent: float) -> None:
+        """Hält Anzeige **und** Verankerung synchron (2D-Parität, `_notify_zoom`).
+
+        ``set_percent`` passt die Pillenbreite an (``adjustSize``); ohne
+        anschließendes ``reposition`` wüchse die unten-rechts verankerte
+        Pille nach rechts aus der 14-px-Verankerung heraus (z. B. „1000%"
+        an der Nahklemme sprengt die Label-Mindestbreite).
+        """
+        self._zoom_ctrl.set_percent(percent)
+        self._zoom_ctrl.reposition()
+
+    def _sync_zoom_overlay(self) -> None:
+        """Zeigt die Zoom-Pille nur im Ready-Zustand; Anzeige/Position aktuell."""
+        viewer = self._viewer
+        visible = self._state == "ready" and viewer is not None
+        self._zoom_ctrl.setVisible(visible)
+        if visible and viewer is not None:
+            self._zoom_ctrl.set_percent(viewer.zoom_percent)
+            self._zoom_ctrl.reposition()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
+        super().resizeEvent(event)
+        # Die Pille ist ein frei schwebendes Kind des Containers (außerhalb
+        # des Stack-Layouts) und folgt der Größe wie auf der 2D-Leinwand.
+        self._zoom_ctrl.reposition()
 
     def _update_badge(self, mesh: ReliefMesh) -> None:
         if mesh.is_decimated:

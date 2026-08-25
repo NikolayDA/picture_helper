@@ -522,8 +522,9 @@ Glas-Pille (`glass`-Fläche, `card_border`-Haarlinie, Radius 10, Abstand
 Fixier-Schloss.
 
 - **Wertebereich/Schrittweite:** „+"/„−" ändern den Zoom in
-  10-%-Schritten, geklemmt auf **25–300 %** (`zoomBy`-Logik des
-  Prototyps; Konstanten `_ZOOM_CTRL_*`). Der Mausrad-Zoom behält seine
+  10-%-Schritten, geklemmt auf **25–4000 %** (`zoomBy`-Logik des
+  Prototyps; Konstanten `_ZOOM_CTRL_*` in `constants.py`). Der
+  Mausrad-Zoom behält seine
   weiteren technischen Grenzen (`ZOOM_MIN`/`ZOOM_MAX`); die Prozentanzeige
   aktualisiert live für **jede** Zoom-Quelle (Buttons, Mausrad,
   Fit-to-View).
@@ -532,6 +533,15 @@ Fixier-Schloss.
   aktiven `.on`-Zustand), bis erneut geklickt wird.
 - **Zustandsmodell:** Zoomwert und Lock sind reiner UI-State – kein
   Undo-/Redo-Eintrag, keine Dirty-Revision (§13).
+- **3D-Instanz:** Dieselbe Pille schwebt auch in der 3D-Reliefvorschau
+  (UX-Vertrag §1/§3 in
+  [`UX_3D_PREVIEW.md`](UX_3D_PREVIEW.md)) – dort nur im **Ready-Zustand**
+  (statt „Bild geladen") und als Bedienung des **Kamera-Zooms**: 100 % =
+  eingepasste Ansicht (nicht 1:1-Pixelabbildung), innerhalb des
+  Kontrollbereichs greifen zusätzlich die Kamera-Nah-/Fernklemmen
+  (1000 %/12,5 %). Bei fixiertem Zoom bleibt der Prozentwert auch über
+  einen Mesh-Rebuild erhalten; 2D- und 3D-Zoom-/Lock-Zustand sind
+  unabhängig voneinander.
 
 **Entscheidung zu #465 (zusätzliche Zoom-Platzierung):** Die
 Canvas-Kontrolle macht Zoom bereits jederzeit sichtbar und bedienbar;
