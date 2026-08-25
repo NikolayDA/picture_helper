@@ -563,7 +563,7 @@ height: **light = high, dark = low**. It is the basis for relief and UV
 printing. The *Height* card works on the active **height layer**; the Edit
 and Optimise sections are only active when a height layer is active.
 
-- **Generate from image** – deterministically converts the current colour
+- **Generate height map from image** – deterministically converts the current colour
   image into a height map and creates it as a new height layer.
 - **Import grayscale…** – loads a grayscale image as a height map and scales
   it to the project size. 16-bit grayscale files (PNG/TIFF) are imported
@@ -687,7 +687,7 @@ EufyMake Studio – **not** a finished `.empf` file:
   motif* role, or, if none exists, from the colour composite.
 - **Height map** (optional) as grayscale with **light = high, dark = low** –
   available only when a layer carries the *Height map* role (e.g. a height
-  layer created via "Generate from image"; a plain height layer without
+  layer created via "Generate height map from image"; a plain height layer without
   this role is not exported).
 - **Gloss mask** (optional, experimental) as a helper asset – available only
   when a layer carries the *Gloss* role.
@@ -808,7 +808,7 @@ the card inspector.
 ### E) Height-relief asset for EufyMake Studio
 
 1. Open and cut out the image.
-2. In the *Relief & Layers* step, click **Generate from image**.
+2. In the *Relief & Layers* step, click **Generate height map from image**.
 3. Refine the height in the *Optimise* section (e.g. *Levels*, *Blur*) and
    **Apply**.
 4. In the *Export* step, choose preview mode **Relief** or, via `View →

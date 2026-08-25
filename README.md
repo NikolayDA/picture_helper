@@ -47,9 +47,8 @@ Projekt aus Farbmotiv- und Höhen-Ebene samt Rollen-Zuweisung.*
 
 ![Höhenkarten-Arbeitsbereich](docs/screenshot_height.png)
 
-*Derselbe Schritt mit den Karten „Beschaffen" und „Bearbeiten": Höhenkarte aus
-dem Bild erzeugen oder importieren, dann anpassen – die Höhensemantik ist
-hell = hoch.*
+*Derselbe Schritt mit dem Höhen-Bereich: Höhenkarte aus dem Bild erzeugen
+oder importieren, dann anpassen – die Höhensemantik ist hell = hoch.*
 
 ![2D-Vorschau: Relief und Gloss über Farbe](docs/screenshot_preview.png)
 

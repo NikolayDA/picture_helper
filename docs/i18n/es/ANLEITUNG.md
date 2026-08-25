@@ -620,7 +620,7 @@ base del relieve y de la impresión UV. La tarjeta *Altura* trabaja
 sobre la **capa de altura** activa; las secciones Editar y Optimizar
 solo están activas cuando hay una capa de altura activa.
 
-- **Generar desde imagen** – convierte de forma determinista la imagen
+- **Generar mapa de altura** – convierte de forma determinista la imagen
   de color actual en un mapa de altura y lo crea como una nueva capa
   de altura.
 - **Importar escala de grises…** – carga una imagen en escala de
@@ -754,8 +754,8 @@ BgRemover escribe **activos de importación** para EufyMake Studio —
   rol *Motivo de color* o, si no hay ninguna, del composite de color.
 - **Mapa de altura** (opcional) en escala de grises con **claro = alto,
   oscuro = bajo** – disponible solo si una capa tiene el rol *Mapa de
-  altura* (p. ej. una capa de altura creada con "Generar desde
-  imagen"; una simple capa de altura sin ese rol no se exporta).
+  altura* (p. ej. una capa de altura creada con "Generar mapa de
+  altura"; una simple capa de altura sin ese rol no se exporta).
 - **Máscara de gloss** (opcional, experimental) como activo auxiliar –
   disponible solo si una capa tiene el rol *Gloss*.
 
@@ -881,7 +881,7 @@ solo se alcanzan mediante el menú o el inspector de tarjetas.
 ### E) Activo de relieve de altura para EufyMake Studio
 
 1. Abrir la imagen y recortarla.
-2. En el paso *Relieve y capas*, **Generar desde imagen**.
+2. En el paso *Relieve y capas*, **Generar mapa de altura**.
 3. Afinar la altura en la sección *Optimizar* (p. ej. *Tono*,
    *Desenfoque*) y **Aplicar**.
 4. En el paso *Exportar*, elegir el modo de vista previa **Relieve** o,

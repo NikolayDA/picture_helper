@@ -48,9 +48,9 @@ avec attribution des rôles.*
 
 ![Espace de travail des cartes de hauteur](../../screenshot_height.png)
 
-*La même étape avec les cartes « Obtenir » et « Modifier » : générer une carte
-de hauteur à partir de l'image ou en importer une, puis l'ajuster – la
-sémantique de hauteur est clair = haut.*
+*La même étape avec la zone hauteur : générer une carte de hauteur à partir
+de l'image ou en importer une, puis l'ajuster – la sémantique de hauteur est
+clair = haut.*
 
 ![Aperçu 2D : relief et brillance sur la couleur](../../screenshot_preview.png)
 

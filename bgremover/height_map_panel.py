@@ -11,7 +11,10 @@ aktiv, wenn die aktive Ebene ``LayerKind.HEIGHT`` besitzt – unabhängig davon,
 sie bereits die Rolle ``HEIGHT_MAP`` trägt. Damit folgt der Tab demselben
 Kind-Vertrag wie der Canvas (#364), sodass die UI keine Operation anbietet, die
 der Canvas anschließend ablehnt. Die **Beschaffen**-Aktionen (erzeugen/
-importieren) sind aktiv, sobald ein Projekt geladen ist.
+importieren) sind aktiv, sobald ein Projekt geladen ist; sie stehen kartenlos
+in einem eigenen Block (:meth:`HeightMapPanel.build_acquire`), den der
+Panel-Builder an der Spitze von Schritt 5 platziert – noch vor der
+Ebenen-Karte (kein eigener „Beschaffen"-Kasten).
 
 Optimierungs-Operationen werden als reine ``HeightField → HeightField``-Closures
 (``height_ops``, die ihre Reglerwerte beim Aufruf lesen) an ``preview_op``/
@@ -161,7 +164,6 @@ class HeightMapPanel:
         outer, layout = _make_scroll_tab()
         if self._preview3d is not None:
             layout.addWidget(self._build_preview3d(self._preview3d))
-        layout.addWidget(self._build_acquire())
         layout.addWidget(_make_label(tr("right_panel.height.hint"), "#777", 11))
         layout.addWidget(self._build_edit())
         layout.addWidget(self._build_tools())
@@ -353,8 +355,15 @@ class HeightMapPanel:
             self._btn_3d.setEnabled(available)
             self._btn_3d.setToolTip(tooltip)
 
-    def _build_acquire(self) -> QWidget:
-        section, body = _make_section(tr("right_panel.height.section.acquire"))
+    def build_acquire(self) -> QWidget:
+        """Kartenloser Beschaffen-Block: Primärbutton + Experten-Import.
+
+        Eigenständiger Inhaltsblock, den der Panel-Builder an der Spitze von
+        Schritt 5 platziert – noch **vor** der Ebenen-Karte (Nutzerwunsch aus
+        PR #868). Vor :meth:`build` aufrufen, damit dessen ``refresh([])``
+        auch hier den Startzustand setzt (ohne Projekt deaktiviert).
+        """
+        outer, layout = _make_scroll_tab()
         # Primärbutton wie im Prototyp/Spec §9 Schritt 5 (Issue #416: derselbe
         # blaue Verlauf wie die übrigen Primärbuttons, kein Lila-Sonderton mehr).
         btn_gen = _make_primary_btn(
@@ -365,13 +374,13 @@ class HeightMapPanel:
             tr("right_panel.height.import"),
             tr("right_panel.height.import.tooltip"), icon_name="height_import")
         btn_imp.clicked.connect(lambda _=False: self._actions.import_file())
-        body.addWidget(btn_gen)
+        layout.addWidget(btn_gen)
         # „Graustufe importieren…" nur im Experten-Modus (#809); Standard kennt
-        # nur den Primärbutton „Aus Bild erzeugen".
-        body.addWidget(_mark_expert_only(btn_imp))
+        # nur den Primärbutton „Höhenkarte aus Bild erzeugen".
+        layout.addWidget(_mark_expert_only(btn_imp))
         self._acquire_widgets += [btn_gen, btn_imp]
         self._refs.update(height_generate=btn_gen, height_import=btn_imp)
-        return section
+        return outer
 
     def _build_edit(self) -> QWidget:
         # Bearbeiten (Stärke/Aufhellen/Abdunkeln/Wert): nur im Experten-Modus

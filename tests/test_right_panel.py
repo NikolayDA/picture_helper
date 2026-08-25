@@ -22,7 +22,11 @@ from PyQt6.QtWidgets import (
 from bgremover import height_ops
 from bgremover.canvas import LayerInfo
 from bgremover.height_map import HeightField
-from bgremover.height_map_panel import HeightMapActions, HeightMapPanel
+from bgremover.height_map_panel import (
+    HeightMapActions,
+    HeightMapPanel,
+    Preview3DActions,
+)
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_model import LayerKind, LayerRole
@@ -51,6 +55,17 @@ def _noop_height_actions() -> HeightMapActions:
         preview_op=lambda _op: None,
         apply_op=lambda _op: None,
         cancel_preview=lambda: None,
+    )
+
+
+def _noop_preview3d_actions() -> Preview3DActions:
+    return Preview3DActions(
+        set_mode_3d=lambda _b: None,
+        set_exaggeration=lambda _v: None,
+        set_light=lambda _a, _e: None,
+        set_quality=lambda _q: None,
+        fit_view=lambda: None,
+        reset_view=lambda: None,
     )
 
 
@@ -940,7 +955,7 @@ def test_affected_inspector_tiles_use_their_own_dedicated_icon(qapp):
         assert button.iconSize().width() == 14
         assert button.iconSize().height() == 14
 
-    generate = _button(panel.frame, "Aus Bild erzeugen")
+    generate = _button(panel.frame, "Höhenkarte aus Bild erzeugen")
     assert generate.property("prototypeIconName") is None
     assert generate.icon().isNull()
 
@@ -1192,11 +1207,12 @@ def _height_layers(*, active_kind: LayerKind = LayerKind.HEIGHT) -> list[LayerIn
 def test_height_panel_acquire_and_edit_delegate(qapp):
     calls: list[tuple] = []
     panel = HeightMapPanel(_recording_height_actions(calls))
+    acquire = panel.build_acquire()
     widget, _refs = panel.build()
     panel.refresh(_height_layers())
 
-    _button(widget, "Aus Bild erzeugen").click()
-    _button(widget, "Graustufe importieren…").click()
+    _button(acquire, "Höhenkarte aus Bild erzeugen").click()
+    _button(acquire, "Graustufe importieren…").click()
     _button(widget, "Aufhellen").click()
     _button(widget, "Abdunkeln").click()
     _button(widget, "Höhe setzen").click()
@@ -1336,13 +1352,14 @@ def test_height_panel_optimize_accordion_header_focus_distinct_from_hover(qapp):
 @pytest.mark.ui_smoke
 def test_height_panel_is_mode_contextual(qapp):
     panel = HeightMapPanel(_noop_height_actions())
+    acquire = panel.build_acquire()
     widget, _refs = panel.build()
 
     # COLOR aktiv: Beschaffen aktiv, Bearbeiten/Optimieren gesperrt.
     color = [LayerInfo(id="c", name="Farbe", kind=LayerKind.COLOR, visible=True,
                        opacity=1.0, locked=False, role=None, active=True)]
     panel.refresh(color)
-    assert _button(widget, "Aus Bild erzeugen").isEnabled()
+    assert _button(acquire, "Höhenkarte aus Bild erzeugen").isEnabled()
     assert not _button(widget, "Aufhellen").isEnabled()
     assert not _button(widget, "Invertieren").isEnabled()
 
@@ -1359,8 +1376,44 @@ def test_height_panel_is_mode_contextual(qapp):
 
     # Kein Projekt: alles gesperrt.
     panel.refresh([])
-    assert not _button(widget, "Aus Bild erzeugen").isEnabled()
+    assert not _button(acquire, "Höhenkarte aus Bild erzeugen").isEnabled()
     assert not _button(widget, "Aufhellen").isEnabled()
+
+
+@pytest.mark.ui_smoke
+def test_relief_page_generate_block_is_cardless_and_above_layers(qapp):
+    """Pinnt den Umbau aus PR #868: Der Primärbutton steht kartenlos (kein
+    ``sectionCard``-Vorfahre) im ersten Inhaltsblock der Relief-Seite – noch
+    vor der Ebenen-Karte und dem 3D-Abschnitt –, „Graustufe importieren…"
+    im selben Block direkt darunter."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        preview3d_actions=_noop_preview3d_actions())
+    page = _relief_page(panel)
+
+    btn = _button(page, "Höhenkarte aus Bild erzeugen")
+    parent = btn.parentWidget()
+    while parent is not None:
+        assert parent.objectName() != "sectionCard", "Generate-Button liegt in einer Karte"
+        parent = parent.parentWidget()
+
+    container = page.findChild(QScrollArea).widget()
+    clay = container.layout()
+    blocks = [clay.itemAt(i).widget() for i in range(clay.count())
+              if clay.itemAt(i).widget() is not None]
+
+    def block_of(widget):
+        while widget.parentWidget() is not container:
+            widget = widget.parentWidget()
+        return widget
+
+    acquire_block = block_of(btn)
+    assert blocks.index(acquire_block) == 0
+    assert block_of(_button(page, "Graustufe importieren…")) is acquire_block
+    layers_block = next(b for b in blocks if b.accessibleName() == "Ebenen")
+    block_3d = block_of(panel.height_panel._refs["preview3d_2d"])
+    assert blocks.index(layers_block) == 1
+    assert blocks.index(block_3d) == 2
 
 
 # ── Schritt 5 „Relief & Ebenen": Basic/Expert-Aufteilung (#809, Epic #805) ─
@@ -1453,7 +1506,7 @@ def test_height_panel_standard_mode_hides_import_edit_and_optimize(qapp):
     page = _relief_page(panel)
     panel.height_panel.refresh(_height_layers())
 
-    assert _button(page, "Aus Bild erzeugen").isVisibleTo(page)
+    assert _button(page, "Höhenkarte aus Bild erzeugen").isVisibleTo(page)
     assert not _button(page, "Graustufe importieren…").isVisibleTo(page)
     for text in ("Aufhellen", "Abdunkeln", "Höhe setzen", "Invertieren"):
         assert not _button(page, text).isVisibleTo(page)

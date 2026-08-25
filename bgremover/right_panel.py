@@ -431,6 +431,8 @@ class _RightPanelBuilder:
         transform_w, transform_refs = TransformTab(self._actions).build()
         shape_w, shape_refs = ShapeTab(self._actions).build()
         layer_w, layer_refs = self._layer_panel.build()
+        # Beschaffen-Block vor build(): dessen refresh([]) deckt ihn mit ab.
+        acquire_w = self._height_panel.build_acquire()
         height_w, height_refs = self._height_panel.build()
         for r in (preview_refs, sel_refs, bg_refs, adjust_refs, transform_refs,
                   shape_refs, layer_refs, height_refs):
@@ -458,6 +460,10 @@ class _RightPanelBuilder:
              tr("right_panel.tab.shape.tooltip"), shape_w),
         ]))
         stack.addWidget(self._content_page([                          # 5 Relief & Ebenen
+            # Kartenloser Beschaffen-Block an der Spitze der Spalte – noch vor
+            # der Ebenen-Karte (Nutzerwunsch PR #868).
+            (tr("right_panel.tab.height"),
+             tr("right_panel.tab.height.tooltip"), acquire_w),
             (tr("right_panel.tab.layers"),
              tr("right_panel.tab.layers.tooltip"), layer_w),
             (tr("right_panel.tab.height"),

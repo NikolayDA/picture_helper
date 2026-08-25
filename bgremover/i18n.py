@@ -332,11 +332,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Nur Anzeige – „Bild speichern“ exportiert weiterhin ausschließlich "
             "das Farbmotiv."
         ),
-        "right_panel.height.section.acquire": "Beschaffen",
         "right_panel.height.section.edit": "Bearbeiten",
         "right_panel.height.section.tools": "Höhenkarte-Werkzeuge",
         "right_panel.height.section.optimize": "Optimieren",
-        "right_panel.height.generate": "Aus Bild erzeugen",
+        "right_panel.height.generate": "Höhenkarte aus Bild erzeugen",
         "right_panel.height.generate.tooltip": (
             "Höhenkarte aus dem aktuellen Bild erzeugen"
         ),
@@ -1245,11 +1244,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.preview.export_hint": (
             "Display only — “Save image” still exports the color motif only."
         ),
-        "right_panel.height.section.acquire": "Acquire",
         "right_panel.height.section.edit": "Edit",
         "right_panel.height.section.tools": "Height map tools",
         "right_panel.height.section.optimize": "Optimize",
-        "right_panel.height.generate": "Generate from image",
+        "right_panel.height.generate": "Generate height map from image",
         "right_panel.height.generate.tooltip": (
             "Generate a height map from the current image"
         ),
@@ -2162,11 +2160,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Solo visualización – “Guardar imagen” sigue exportando únicamente "
             "el motivo de color."
         ),
-        "right_panel.height.section.acquire": "Obtener",
         "right_panel.height.section.edit": "Editar",
         "right_panel.height.section.tools": "Herramientas del mapa de altura",
         "right_panel.height.section.optimize": "Optimizar",
-        "right_panel.height.generate": "Generar desde la imagen",
+        "right_panel.height.generate": "Generar mapa de altura",
         "right_panel.height.generate.tooltip": (
             "Generar un mapa de altura a partir de la imagen actual"
         ),
@@ -3082,11 +3079,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Affichage seulement – « Enregistrer l'image » exporte toujours "
             "uniquement le motif couleur."
         ),
-        "right_panel.height.section.acquire": "Obtenir",
         "right_panel.height.section.edit": "Modifier",
         "right_panel.height.section.tools": "Outils de la carte de hauteur",
         "right_panel.height.section.optimize": "Optimiser",
-        "right_panel.height.generate": "Générer depuis l'image",
+        "right_panel.height.generate": "Générer la carte de hauteur",
         "right_panel.height.generate.tooltip": (
             "Générer une carte de hauteur à partir de l'image actuelle"
         ),
@@ -4001,11 +3997,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Лише показ – «Зберегти зображення», як і раніше, експортує тільки "
             "колірний мотив."
         ),
-        "right_panel.height.section.acquire": "Отримати",
         "right_panel.height.section.edit": "Редагувати",
         "right_panel.height.section.tools": "Інструменти карти висот",
         "right_panel.height.section.optimize": "Оптимізувати",
-        "right_panel.height.generate": "Згенерувати із зображення",
+        "right_panel.height.generate": "Згенерувати карту висот",
         "right_panel.height.generate.tooltip": (
             "Згенерувати карту висот із поточного зображення"
         ),
@@ -4905,11 +4900,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.preview.export_hint": (
             "仅用于显示——“保存图像”仍然只导出颜色图案。"
         ),
-        "right_panel.height.section.acquire": "获取",
         "right_panel.height.section.edit": "编辑",
         "right_panel.height.section.tools": "高度图工具",
         "right_panel.height.section.optimize": "优化",
-        "right_panel.height.generate": "从图像生成",
+        "right_panel.height.generate": "从图像生成高度图",
         "right_panel.height.generate.tooltip": (
             "从当前图像生成高度图"
         ),

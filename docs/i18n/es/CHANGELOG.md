@@ -19,6 +19,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **«Generar mapa de altura» destacado en lo más alto
+  del paso 5.** El botón primario de la pestaña de altura ahora se llama
+  «Generar mapa de altura» (antes «Generar desde imagen»)
+  y aparece sin la antigua tarjeta «Obtener» en lo más alto de la
+  columna derecha del paso 5, antes de la tarjeta de capas y de la
+  sección 3D; «Importar escala de
+  grises…» le sigue justo debajo (sigue limitado al modo experto).
+
 - **Cabecera del inspector más compacta: la indicación del modo como
   tooltip en lugar de texto permanente.** La línea de indicación siempre
   visible bajo la cabecera del inspector, que explicaba el modo
