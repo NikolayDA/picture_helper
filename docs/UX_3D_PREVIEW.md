@@ -34,7 +34,10 @@ Kombiniert) bleibt semantisch unverändert; 3D liegt als eigene Ebene
   ±10-%-Schritte und Fixier-Lock wie in 2D; das Schloss friert auch
   Mausrad- und Tasten-Zoom ein). Die Pille erscheint nur im Ready-Zustand
   [R]; ihr Prozent-/Lock-Zustand ist reiner UI-State ohne Undo-Eintrag und
-  unabhängig vom 2D-Zoom.
+  unabhängig vom 2D-Zoom. Bei fixiertem Zoom bleibt der Prozentwert auch
+  über einen Mesh-Rebuild bzw. eine Re-Anzeige erhalten (Cache-Hit,
+  Qualitätswechsel, Höhen-Edit); nur die expliziten Kommandos
+  „Einpassen"/„Zurücksetzen" überschreiben ihn – wie Fit-to-View in 2D.
 - **Gating:** Das 3D-Segment ist nur aktiv, wenn (a) eine HEIGHT-Ebene mit
   gültigen Daten existiert und (b) die Capability-Probe des ADR nicht
   fehlgeschlagen ist. Sonst bleibt es deaktiviert mit erklärendem Text

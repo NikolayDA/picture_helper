@@ -483,3 +483,39 @@ def test_zoom_pill_repositions_bottom_right(qapp) -> None:
     # tests/test_zoom_control.py zum literalen Spec-Vertrag).
     assert ctrl.x() + ctrl.width() == view.width() - 14
     assert ctrl.y() + ctrl.height() == view.height() - 14
+
+
+def test_locked_zoom_percent_survives_set_mesh(qapp) -> None:
+    """Review-Befund PR #863: Re-Anzeige (Cache-Hit/Qualität/Höhen-Edit)
+    läuft über ``set_mesh`` – der fixierte Prozentwert darf dabei nicht
+    still auf 100 % zurückspringen."""
+    viewer = GLReliefViewer()
+    viewer.set_mesh(_mesh())
+    viewer.camera.set_zoom_percent(250.0)
+    viewer.set_zoom_locked(True)
+    viewer.set_mesh(_mesh())
+    assert viewer.zoom_percent == pytest.approx(250.0)
+    # Ohne Lock rahmt ein neues Mesh weiterhin ein (Altverhalten).
+    viewer.set_zoom_locked(False)
+    viewer.set_mesh(_mesh())
+    assert viewer.zoom_percent == pytest.approx(100.0)
+
+
+def test_locked_zoom_percent_survives_show_mesh_redisplay(qapp) -> None:
+    view, viewer = _ready_view()
+    viewer.camera.set_zoom_percent(250.0)
+    view._zoom_ctrl.btn_lock.setChecked(True)
+    view.show_mesh(_mesh())  # Re-Anzeige, z. B. Cache-Hit beim 2D→3D-Wechsel
+    current = view.viewer()
+    assert current is not None
+    assert current.zoom_percent == pytest.approx(250.0)
+    assert view._zoom_ctrl.label.text() == "250%"
+
+
+def test_explicit_fit_view_overrides_lock_like_2d(qapp) -> None:
+    viewer = GLReliefViewer()
+    viewer.set_mesh(_mesh())
+    viewer.camera.set_zoom_percent(250.0)
+    viewer.set_zoom_locked(True)
+    viewer.fit_view()  # explizites Kommando – wie Fit-to-View in 2D
+    assert viewer.zoom_percent == pytest.approx(100.0)

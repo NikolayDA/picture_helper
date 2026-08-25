@@ -239,11 +239,24 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         self._safe_update()
 
     def set_mesh(self, mesh: ReliefMesh) -> None:
-        """Übernimmt ein neues Mesh und rahmt es ein (Upload beim nächsten Frame)."""
+        """Übernimmt ein neues Mesh und rahmt es ein (Upload beim nächsten Frame).
+
+        Bei fixiertem Zoom (#464) bleibt der **Prozentwert** über das
+        Kamera-Reset erhalten: ``set_mesh`` läuft auch bei reinen
+        Re-Anzeigen (Cache-Hit beim 2D→3D-Wechsel, Qualitätswechsel,
+        Höhen-Edit), und ein stiller Rücksprung auf 100 % widerspräche dem
+        geschlossenen Schloss. Prozent statt Distanz, weil sich die Bounds
+        je Mesh ändern können. Die expliziten Kommandos ``fit_view``/
+        ``reset_view`` überschreiben den Wert dagegen weiterhin – wie
+        Fit-to-View auf der 2D-Leinwand.
+        """
         self._mesh = mesh
         self._pending_mesh = mesh
         lo, hi = mesh.bounds
+        locked_percent = self._camera.zoom_percent if self._zoom_locked else None
         self._camera.reset(lo, hi)
+        if locked_percent is not None:
+            self._camera.set_zoom_percent(locked_percent)
         self._notify_zoom()
 
     def set_exaggeration(self, value: float) -> None:
