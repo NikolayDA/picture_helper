@@ -597,6 +597,10 @@ class _RightPanelBuilder:
             expert_toggle.setToolTip(
                 tr("workflow.expert_mode.toggle.tooltip") + "\n" + hint_text)
             expert_toggle.setAccessibleDescription(hint_text)
+            # Tastatur-Umschalten mit gehaltenem Fokus: den sichtbaren Tooltip
+            # sofort auf den neuen Modus auffrischen (Hover kommt hier nie).
+            if expert_toggle.hasFocus():
+                expert_toggle.show_mode_tooltip()
             for w in expert_only_widgets:
                 w.setVisible(checked)
             for w in standard_only_widgets:

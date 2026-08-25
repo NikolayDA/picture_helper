@@ -23,9 +23,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Die permanent eingeblendete Hinweiszeile unter dem Inspector-Kopf, die den
   aktiven Standard-/Experten-Modus erklärte, entfällt. Die Erklärung
   erscheint jetzt als Tooltip, wenn der Mauszeiger über dem
-  Standard-/Experten-Umschalter steht (und bleibt für Screenreader als
-  Accessible-Description hinterlegt) – die rechte Seitenleiste gewinnt
-  dadurch Platz für die eigentlichen Werkzeuge.
+  Standard-/Experten-Umschalter steht oder er per Tastatur den Fokus erhält
+  (und bleibt für Screenreader als Accessible-Description hinterlegt) – die
+  rechte Seitenleiste gewinnt dadurch Platz für die eigentlichen Werkzeuge.
 
 ### Behoben
 

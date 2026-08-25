@@ -21,9 +21,9 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   permanent text.** The permanently visible hint line below the inspector
   header that explained the active Standard/Expert mode is gone. The
   explanation now appears as a tooltip when the mouse pointer hovers over
-  the Standard/Expert toggle (and remains available to screen readers as
-  the accessible description) — the right sidebar gains space for the
-  actual tools.
+  the Standard/Expert toggle or when it receives keyboard focus (and
+  remains available to screen readers as the accessible description) — the
+  right sidebar gains space for the actual tools.
 
 ### Fixed
 

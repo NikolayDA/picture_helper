@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import QRectF, QSize, Qt
 from PyQt6.QtGui import QColor, QKeyEvent, QPainter, QPaintEvent
-from PyQt6.QtWidgets import QAbstractButton, QWidget
+from PyQt6.QtWidgets import QAbstractButton, QToolTip, QWidget
 
 from bgremover.theme import Palette, active_palette
 
@@ -54,12 +54,25 @@ class ExpertModeToggle(QAbstractButton):
             return
         super().keyPressEvent(event)
 
+    def show_mode_tooltip(self) -> None:
+        """Zeigt den Tooltip aktiv unter der Pille an.
+
+        Qt blendet Tooltips nur bei Maus-Hover ein; für Tastatur- und
+        Touch-Bedienung wird die Modus-Erklärung deshalb beim Fokus (und vom
+        Panel nach einem Umschalten mit gehaltenem Fokus) explizit gezeigt.
+        """
+        if self.toolTip():
+            QToolTip.showText(
+                self.mapToGlobal(self.rect().bottomLeft()), self.toolTip(), self)
+
     def focusInEvent(self, event) -> None:  # noqa: N802
         super().focusInEvent(event)
         self.update()
+        self.show_mode_tooltip()
 
     def focusOutEvent(self, event) -> None:  # noqa: N802
         super().focusOutEvent(event)
+        QToolTip.hideText()
         self.update()
 
     def paintEvent(self, event: QPaintEvent | None) -> None:  # noqa: N802

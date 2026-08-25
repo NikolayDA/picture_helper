@@ -571,7 +571,10 @@ der Standard-Modus blendet je Schritt eine kuratierte Teilmenge ein.
   Modus wird nicht als permanenter Hinweistext gezeigt, sondern als Tooltip
   des Umschalters (Aktionsbeschreibung + Ein-Satz-Erklärung des aktiven
   Modus, zusätzlich als Accessible-Description hinterlegt) – der Kopf bleibt
-  dadurch kompakt.
+  dadurch kompakt. Da Qt Tooltips nur bei Maus-Hover einblendet, zeigt der
+  Umschalter sie für Tastatur-/Touch-Bedienung beim Fokuserhalt aktiv an
+  (und frischt sie beim Umschalten mit gehaltenem Fokus auf); Fokusverlust
+  blendet sie aus.
 - **Bedienung:** `ExpertModeToggle` (`QAbstractButton`, checkbar,
   `StrongFocus`) reagiert auf Klick, Leertaste (nativ) und Enter (explizit
   verdrahtet); der Fokusring folgt dem app-weiten `accent`-Kontrakt (§12).

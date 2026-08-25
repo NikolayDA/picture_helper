@@ -24,9 +24,10 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   visible bajo la cabecera del inspector, que explicaba el modo
   Estándar/Experto activo, desaparece. La explicación aparece ahora como
   tooltip cuando el puntero del ratón se sitúa sobre el conmutador
-  Estándar/Experto (y sigue disponible para lectores de pantalla como
-  descripción accesible) — la barra lateral derecha gana espacio para las
-  herramientas propiamente dichas.
+  Estándar/Experto o cuando este recibe el foco por teclado (y sigue
+  disponible para lectores de pantalla como descripción accesible) — la
+  barra lateral derecha gana espacio para las herramientas propiamente
+  dichas.
 
 ### Corregido
 

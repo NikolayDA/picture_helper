@@ -23,9 +23,9 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   en permanence sous l'en-tête de l'inspecteur, qui expliquait le mode
   Standard/Expert actif, disparaît. L'explication apparaît désormais en
   infobulle lorsque le pointeur de la souris survole le commutateur
-  Standard/Expert (et reste disponible pour les lecteurs d'écran comme
-  description accessible) — la barre latérale droite gagne de la place pour
-  les outils proprement dits.
+  Standard/Expert ou lorsqu'il reçoit le focus clavier (et reste disponible
+  pour les lecteurs d'écran comme description accessible) — la barre
+  latérale droite gagne de la place pour les outils proprement dits.
 
 ### Corrigé
 
