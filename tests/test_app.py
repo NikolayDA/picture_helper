@@ -125,8 +125,14 @@ def patched_app(monkeypatch):
     return created
 
 
-def test_main_configures_application(patched_app):
-    """``main()`` setzt App-Identität, Style, Palette und zeigt das Fenster."""
+def test_main_configures_application(patched_app, qapp):
+    """``main()`` setzt App-Identität, Style, Palette, Icon und zeigt das Fenster.
+
+    ``qapp`` ist hier gefahrlos UND nötig: ``app_module.QApplication`` ist
+    durch den Fake ersetzt (``main()`` konstruiert also kein zweites echtes
+    ``QApplication``), aber ``make_app_icon`` liefert nur mit laufender
+    ``QGuiApplication`` echte Pixel (harter QPixmap-Kontrakt).
+    """
     rc = app_module.main()
     app = patched_app["app"]
 

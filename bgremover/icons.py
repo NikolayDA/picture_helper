@@ -16,6 +16,7 @@ from PyQt6.QtGui import (
     QBrush,
     QColor,
     QCursor,
+    QGuiApplication,
     QIcon,
     QImage,
     QPainter,
@@ -36,16 +37,25 @@ def make_app_icon() -> QIcon:
     laufenden Prozesses statt des ``.app``-Bundles anzeigen (App-Umschalter,
     Stage-Manager-Seitenleiste), das Python-Raketen-Icon des
     venv-Interpreters – das Dock-Bundle-Icon (``AppIcon.icns``) deckt sie
-    nicht ab. Bewusst lazy über den Dateipfad (``QIcon(str(path))``): so
-    braucht die Konstruktion keine ``QGuiApplication`` und Qt rendert die
-    Größen erst bei Bedarf. Fehlendes Asset ⇒ leeres ``QIcon`` (Qt-Default),
-    nie eine Exception.
+    nicht ab. Die Pixel werden EAGER innerhalb des ``as_file``-Blocks in den
+    Speicher geladen: ein lazy ``QIcon(pfad)`` läse erst bei ``pixmap()``
+    nach und fiele bei Nicht-Filesystem-Loadern (zip-Import: ``as_file``
+    löscht seine Temp-Datei beim Verlassen des Blocks) still auf ein
+    Blank-Icon zurück. Der Eager-Pfad braucht eine laufende
+    ``QGuiApplication`` (harter QPixmap-Kontrakt, sonst Abort); ohne sie –
+    wie bei fehlendem Asset – kommt ein leeres ``QIcon`` zurück, nie eine
+    Exception. Der einzige Produktiv-Aufrufer (``app.main``) sitzt hinter
+    der ``QApplication``-Konstruktion.
     """
+    if QGuiApplication.instance() is None:
+        return QIcon()
     try:
         res = importlib.resources.files("bgremover") / "icons" / "app_icon.png"
         with importlib.resources.as_file(res) as png_path:
             if png_path.is_file():
-                return QIcon(str(png_path))
+                pm = QPixmap()
+                if pm.loadFromData(png_path.read_bytes()) and not pm.isNull():
+                    return QIcon(pm)
     except Exception:
         logger.debug("App-Icon konnte nicht geladen werden", exc_info=True)
     return QIcon()

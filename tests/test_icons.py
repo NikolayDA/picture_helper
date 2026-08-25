@@ -7,6 +7,9 @@ fest kodierten ``QColor``-Werten, (3) die fünf einst mehrfarbigen
 Glanz-Clipart-PNGs bleiben entfernt.
 """
 import importlib.resources
+import os
+import subprocess
+import sys
 
 import pytest
 from PyQt6.QtCore import QSize
@@ -63,6 +66,26 @@ def test_make_app_icon_renders_visible_pixmap(qapp):
         img.pixelColor(x, y).alpha() > 0
         for x in range(0, 64, 8) for y in range(0, 64, 8)
     ), "App-Icon-Pixmap ist vollständig transparent"
+
+
+def test_make_app_icon_without_gui_application_returns_empty_icon():
+    """Ohne laufende ``QGuiApplication`` liefert ``make_app_icon`` ein leeres
+    Icon statt des harten QPixmap-Aborts – der Eager-Pixel-Pfad (Review-Fund
+    PR #864: lazy ``QIcon(pfad)`` wäre bei zip-Import ein stilles Blank-Icon)
+    ist entsprechend geguardet. Eigener Subprozess, weil die Test-Session
+    selbst eine ``QApplication`` hält."""
+    code = (
+        "from bgremover.icons import make_app_icon; "
+        "icon = make_app_icon(); "
+        "assert icon.isNull(), 'ohne QGuiApplication muss das Icon leer sein'; "
+        "print('ok')"
+    )
+    env = dict(os.environ, QT_QPA_PLATFORM="offscreen")
+    r = subprocess.run([sys.executable, "-c", code],
+                       capture_output=True, text=True, timeout=60, env=env)
+    assert r.returncode == 0 and "ok" in r.stdout, (
+        f"--- stdout ---\n{r.stdout}\n--- stderr ---\n{r.stderr}"
+    )
 
 
 def test_rail_icon_names_have_vector_fallback(qapp):
