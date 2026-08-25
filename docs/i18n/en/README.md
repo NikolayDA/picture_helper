@@ -47,9 +47,8 @@ made of a color-motif and a height layer, including role assignment.*
 
 ![Height-map workspace](../../screenshot_height.png)
 
-*The same step with the "Acquire" and "Edit" cards: generate a height map from
-the image or import one, then adjust it – the height semantics are light =
-high.*
+*The same step with the height area: generate a height map from the image or
+import one, then adjust it – the height semantics are light = high.*
 
 ![2D preview: relief and gloss over color](../../screenshot_preview.png)
 

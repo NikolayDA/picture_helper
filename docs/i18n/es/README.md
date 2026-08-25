@@ -48,9 +48,8 @@ asignación de roles.*
 
 ![Espacio de trabajo de mapa de altura](../../screenshot_height.png)
 
-*El mismo paso con las tarjetas «Obtener» y «Editar»: genera un mapa de altura
-a partir de la imagen o impórtalo, luego ajústalo – la semántica de altura es
-claro = alto.*
+*El mismo paso con el área de altura: genera un mapa de altura a partir de la
+imagen o impórtalo, luego ajústalo – la semántica de altura es claro = alto.*
 
 ![Vista previa 2D: relieve y brillo sobre color](../../screenshot_preview.png)
 

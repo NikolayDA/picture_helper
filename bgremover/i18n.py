@@ -2163,7 +2163,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.height.section.edit": "Editar",
         "right_panel.height.section.tools": "Herramientas del mapa de altura",
         "right_panel.height.section.optimize": "Optimizar",
-        "right_panel.height.generate": "Generar mapa de altura desde la imagen",
+        "right_panel.height.generate": "Generar mapa de altura",
         "right_panel.height.generate.tooltip": (
             "Generar un mapa de altura a partir de la imagen actual"
         ),
@@ -3082,7 +3082,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.height.section.edit": "Modifier",
         "right_panel.height.section.tools": "Outils de la carte de hauteur",
         "right_panel.height.section.optimize": "Optimiser",
-        "right_panel.height.generate": "Générer la carte de hauteur depuis l'image",
+        "right_panel.height.generate": "Générer la carte de hauteur",
         "right_panel.height.generate.tooltip": (
             "Générer une carte de hauteur à partir de l'image actuelle"
         ),
@@ -4000,7 +4000,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.height.section.edit": "Редагувати",
         "right_panel.height.section.tools": "Інструменти карти висот",
         "right_panel.height.section.optimize": "Оптимізувати",
-        "right_panel.height.generate": "Згенерувати карту висот із зображення",
+        "right_panel.height.generate": "Згенерувати карту висот",
         "right_panel.height.generate.tooltip": (
             "Згенерувати карту висот із поточного зображення"
         ),

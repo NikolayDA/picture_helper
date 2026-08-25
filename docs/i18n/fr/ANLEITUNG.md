@@ -620,7 +620,7 @@ relief et de l'impression UV. La carte *Hauteur* agit sur le **calque de
 hauteur** actif ; les sections Modifier et Optimiser ne sont actives que
 lorsqu'un calque de hauteur est actif.
 
-- **Générer la carte de hauteur depuis l'image** – convertit de façon déterministe l'image
+- **Générer la carte de hauteur** – convertit de façon déterministe l'image
   couleur actuelle en carte de hauteur et la crée comme nouveau calque de
   hauteur.
 - **Importer niveaux de gris…** – charge une image en niveaux de gris comme
@@ -883,7 +883,7 @@ accessibles que via le menu ou l'inspecteur de cartes.
 ### E) Asset de relief de hauteur pour EufyMake Studio
 
 1. Ouvrez et détourez l'image.
-2. À l'étape *Relief & calques*, **Générer la carte de hauteur depuis l'image**.
+2. À l'étape *Relief & calques*, **Générer la carte de hauteur**.
 3. Affinez la hauteur dans la section *Optimiser* (p. ex. *Niveaux*,
    *Lissage*) et **Appliquer**.
 4. À l'étape *Export*, choisissez le mode d'aperçu **Relief** ou, via

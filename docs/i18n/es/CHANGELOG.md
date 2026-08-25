@@ -19,9 +19,9 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
-- **«Generar mapa de altura desde la imagen» destacado arriba del área de
+- **«Generar mapa de altura» destacado arriba del área de
   altura.** El botón primario de la pestaña de altura ahora se llama
-  «Generar mapa de altura desde la imagen» (antes «Generar desde imagen»)
+  «Generar mapa de altura» (antes «Generar desde imagen»)
   y aparece sin la antigua tarjeta «Obtener» en la parte superior del
   área de altura del paso 5, antes de la sección 3D; «Importar escala de
   grises…» le sigue justo debajo (sigue limitado al modo experto).

@@ -22,7 +22,11 @@ from PyQt6.QtWidgets import (
 from bgremover import height_ops
 from bgremover.canvas import LayerInfo
 from bgremover.height_map import HeightField
-from bgremover.height_map_panel import HeightMapActions, HeightMapPanel
+from bgremover.height_map_panel import (
+    HeightMapActions,
+    HeightMapPanel,
+    Preview3DActions,
+)
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_model import LayerKind, LayerRole
@@ -51,6 +55,17 @@ def _noop_height_actions() -> HeightMapActions:
         preview_op=lambda _op: None,
         apply_op=lambda _op: None,
         cancel_preview=lambda: None,
+    )
+
+
+def _noop_preview3d_actions() -> Preview3DActions:
+    return Preview3DActions(
+        set_mode_3d=lambda _b: None,
+        set_exaggeration=lambda _v: None,
+        set_light=lambda _a, _e: None,
+        set_quality=lambda _q: None,
+        fit_view=lambda: None,
+        reset_view=lambda: None,
     )
 
 
@@ -1361,6 +1376,29 @@ def test_height_panel_is_mode_contextual(qapp):
     panel.refresh([])
     assert not _button(widget, "Höhenkarte aus Bild erzeugen").isEnabled()
     assert not _button(widget, "Aufhellen").isEnabled()
+
+
+@pytest.mark.ui_smoke
+def test_height_panel_generate_button_is_cardless_and_topmost(qapp):
+    """Pinnt den Umbau aus PR #868: Der Primärbutton steht kartenlos (kein
+    ``sectionCard``-Vorfahre) an Position 0 des Höhen-Stapels – vor dem
+    3D-Abschnitt –, „Graustufe importieren…" direkt darunter."""
+    panel = HeightMapPanel(_noop_height_actions(), _noop_preview3d_actions())
+    widget, refs = panel.build()
+
+    btn = refs["height_generate"]
+    parent = btn.parentWidget()
+    while parent is not None:
+        assert parent.objectName() != "sectionCard", "Generate-Button liegt in einer Karte"
+        parent = parent.parentWidget()
+
+    layout = widget.layout()
+    assert layout.indexOf(btn) == 0
+    assert layout.indexOf(refs["height_import"]) == 1
+    section_3d = refs["preview3d_2d"]
+    while section_3d.parentWidget() is not widget:
+        section_3d = section_3d.parentWidget()
+    assert layout.indexOf(section_3d) > 1
 
 
 # ── Schritt 5 „Relief & Ebenen": Basic/Expert-Aufteilung (#809, Epic #805) ─

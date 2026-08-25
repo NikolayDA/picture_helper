@@ -18,9 +18,9 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
-- **« Générer la carte de hauteur depuis l'image » bien en évidence en
+- **« Générer la carte de hauteur » bien en évidence en
   haut de la zone hauteur.** Le bouton primaire de l'onglet hauteur
-  s'appelle désormais « Générer la carte de hauteur depuis l'image »
+  s'appelle désormais « Générer la carte de hauteur »
   (au lieu de « Générer depuis l'image ») et apparaît sans l'ancienne
   carte « Obtenir », tout en haut de la zone hauteur de l'étape 5,
   avant la section 3D ; « Importer niveaux de gris… » suit juste en
