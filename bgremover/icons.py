@@ -57,7 +57,9 @@ def make_app_icon() -> QIcon:
                 if pm.loadFromData(png_path.read_bytes()) and not pm.isNull():
                     return QIcon(pm)
     except Exception:
-        logger.debug("App-Icon konnte nicht geladen werden", exc_info=True)
+        # Warning statt debug: ein nicht ladbares App-Icon ist eine
+        # Packaging-Regression (Paketdaten fehlen/defekt), kein Detail.
+        logger.warning("App-Icon konnte nicht geladen werden", exc_info=True)
     return QIcon()
 
 

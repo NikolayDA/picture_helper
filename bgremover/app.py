@@ -106,12 +106,13 @@ def main() -> int:
     # .desktop-Datei (packaging/linux) → korrektes Task-Leisten-Icon und
     # App-Zuordnung. Auf anderen Plattformen ein harmloser No-op.
     app.setDesktopFileName("de.bgremover.app")
-    # Icon des LAUFENDEN Prozesses setzen: das .app-Bundle-Icon (AppIcon.icns)
-    # deckt nur Dock/Finder ab – App-Umschalter und Stage-Manager-Seitenleiste
-    # zeigen sonst das Python-Raketen-Icon des venv-Interpreters.
-    app.setWindowIcon(make_app_icon())
     # Erst jetzt – QApplication + App-Name stehen – ist der Log-Pfad korrekt.
     _setup_logging()
+    # Icon des LAUFENDEN Prozesses setzen: das .app-Bundle-Icon (AppIcon.icns)
+    # deckt nur Dock/Finder ab – App-Umschalter und Stage-Manager-Seitenleiste
+    # zeigen sonst das Python-Raketen-Icon des venv-Interpreters. Nach
+    # _setup_logging(), damit ein fehlendes Asset nicht stumm bleibt.
+    app.setWindowIcon(make_app_icon())
     app.setStyle("Fusion")
 
     # Farbschema (hell/dunkel, #428) aus den QSettings anwenden, BEVOR das Fenster
