@@ -120,3 +120,24 @@ Attestation-Payload dienen.
 - [x] Regressionstests für Selbstreferenz und Manipulation
 - [x] Provenienz mit exakt fünf abgenommenen Artefakten verbinden (#744)
 - [x] Freigabemanifest 90 Tage aufbewahren; danach neuer Kandidat (#744)
+
+## Nachtrag 2026-08-25: Versionierung der Policy bei reinen Allowlist-Ergänzungen
+
+„Bewusst ergänzt und versioniert" (Freeze-Dokumente, Abschnitt Pfadklassen)
+heißt: Die Ergänzung erfolgt in der versionierten Datei
+`release/path-policy.json` und wird über deren Digest Teil jeder Evidenz.
+`policy_version` bindet dabei die Klassifikations**semantik**, nicht die
+Regelmenge:
+
+- Reine Ergänzungen der `release-neutral`-Allowlist (neue `exact`-/
+  `prefix`-Einträge ohne Änderung bestehender Regeln oder der
+  fail-closed-Semantik) erhöhen `policy_version` **nicht** – so geschehen in
+  #857/#858 (je ein Review-ADR) und #861 (15 Doku-Pfade). Ein Bump verlangte
+  eine Änderung des aktiven, selbst kandidatenrelevanten Freeze-Dokuments
+  (`tests/test_release_freeze.py` erzwingt die Versions-Gleichheit) und
+  koppelte die laufende Policy-Pflege damit unnötig an den Inhaltskandidaten.
+- Semantikänderungen (Umklassifizierung, neue Klassen, geänderte
+  Fail-closed-Regeln) sowie Rollover-Pflege wie der
+  `historical-freeze-2.7.3`-Eintrag bumpen die Version im Zuge des nächsten
+  Freeze-Dokuments, das die neue Nummer ohnehin deklariert (zuletzt `4` → `5`
+  beim 2.8.0-Schnitt, #813).

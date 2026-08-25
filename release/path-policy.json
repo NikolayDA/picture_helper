@@ -52,6 +52,110 @@
       "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/zh/ANLEITUNG.md"]
     },
     {
+      "id": "user-guide-pdf",
+      "kind": "exact",
+      "path": "ANLEITUNG.pdf",
+      "sample_path": "ANLEITUNG.pdf",
+      "reason": "Das PDF wird ausschließlich lokal und manuell aus ANLEITUNG.md erzeugt und weder gepackt noch von einem Build-, Release- oder Gate-Schritt gelesen.",
+      "evidence": ["scripts/generate_anleitung_pdf.py läuft nur auf expliziten manuellen Aufruf", "Kein Packaging-Skript oder Workflow bettet ANLEITUNG.pdf in Artefakte ein"]
+    },
+    {
+      "id": "install-linux-de",
+      "kind": "exact",
+      "path": "INSTALL_LINUX.md",
+      "sample_path": "INSTALL_LINUX.md",
+      "reason": "Die Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert INSTALL_LINUX.md", "bgremover/ai_install_dialog.py nennt die Datei nur im Docstring, kein open()/read_text()", "tests/test_i18n_docs.py prüft die Doku gegen packaging/linux/build_deb.sh und packaging/linux/README.md – Prüfgegenstand, nicht Drift-Guard-Quelle für Code (Abgrenzung zu docs/REDESIGN_SPEC.md)"]
+    },
+    {
+      "id": "install-linux-en",
+      "kind": "exact",
+      "path": "docs/i18n/en/INSTALL_LINUX.md",
+      "sample_path": "docs/i18n/en/INSTALL_LINUX.md",
+      "reason": "Die übersetzte Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/en/INSTALL_LINUX.md"]
+    },
+    {
+      "id": "install-linux-es",
+      "kind": "exact",
+      "path": "docs/i18n/es/INSTALL_LINUX.md",
+      "sample_path": "docs/i18n/es/INSTALL_LINUX.md",
+      "reason": "Die übersetzte Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/es/INSTALL_LINUX.md"]
+    },
+    {
+      "id": "install-linux-fr",
+      "kind": "exact",
+      "path": "docs/i18n/fr/INSTALL_LINUX.md",
+      "sample_path": "docs/i18n/fr/INSTALL_LINUX.md",
+      "reason": "Die übersetzte Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/fr/INSTALL_LINUX.md"]
+    },
+    {
+      "id": "install-linux-uk",
+      "kind": "exact",
+      "path": "docs/i18n/uk/INSTALL_LINUX.md",
+      "sample_path": "docs/i18n/uk/INSTALL_LINUX.md",
+      "reason": "Die übersetzte Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/uk/INSTALL_LINUX.md"]
+    },
+    {
+      "id": "install-linux-zh",
+      "kind": "exact",
+      "path": "docs/i18n/zh/INSTALL_LINUX.md",
+      "sample_path": "docs/i18n/zh/INSTALL_LINUX.md",
+      "reason": "Die übersetzte Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/zh/INSTALL_LINUX.md"]
+    },
+    {
+      "id": "install-mac-de",
+      "kind": "exact",
+      "path": "INSTALL_MAC.md",
+      "sample_path": "INSTALL_MAC.md",
+      "reason": "Die Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert INSTALL_MAC.md", "bgremover/ai_install_dialog.py nennt die Datei nur im Docstring, kein open()/read_text()", "tests/test_i18n_docs.py prüft die Doku gegen packaging/mac/README.md – Prüfgegenstand, nicht Drift-Guard-Quelle für Code (Abgrenzung zu docs/REDESIGN_SPEC.md)"]
+    },
+    {
+      "id": "install-mac-en",
+      "kind": "exact",
+      "path": "docs/i18n/en/INSTALL_MAC.md",
+      "sample_path": "docs/i18n/en/INSTALL_MAC.md",
+      "reason": "Die übersetzte Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/en/INSTALL_MAC.md"]
+    },
+    {
+      "id": "install-mac-es",
+      "kind": "exact",
+      "path": "docs/i18n/es/INSTALL_MAC.md",
+      "sample_path": "docs/i18n/es/INSTALL_MAC.md",
+      "reason": "Die übersetzte Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/es/INSTALL_MAC.md"]
+    },
+    {
+      "id": "install-mac-fr",
+      "kind": "exact",
+      "path": "docs/i18n/fr/INSTALL_MAC.md",
+      "sample_path": "docs/i18n/fr/INSTALL_MAC.md",
+      "reason": "Die übersetzte Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/fr/INSTALL_MAC.md"]
+    },
+    {
+      "id": "install-mac-uk",
+      "kind": "exact",
+      "path": "docs/i18n/uk/INSTALL_MAC.md",
+      "sample_path": "docs/i18n/uk/INSTALL_MAC.md",
+      "reason": "Die übersetzte Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/uk/INSTALL_MAC.md"]
+    },
+    {
+      "id": "install-mac-zh",
+      "kind": "exact",
+      "path": "docs/i18n/zh/INSTALL_MAC.md",
+      "sample_path": "docs/i18n/zh/INSTALL_MAC.md",
+      "reason": "Die übersetzte Installationsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/zh/INSTALL_MAC.md"]
+    },
+    {
       "id": "contribution-guide",
       "kind": "exact",
       "path": "CONTRIBUTING.md",
@@ -66,6 +170,14 @@
       "sample_path": "TESTING.md",
       "reason": "Die Testanleitung beschreibt Befehle, wird aber von keinem Gate als Eingabe gelesen.",
       "evidence": ["Makefile und Workflows führen Tests direkt aus und lesen TESTING.md nicht"]
+    },
+    {
+      "id": "prozesse-uml",
+      "kind": "exact",
+      "path": "docs/PROZESSE_UML.md",
+      "sample_path": "docs/PROZESSE_UML.md",
+      "reason": "Die ausdrücklich nicht-normativen UML-Aktivitätsdiagramme beschreiben Prozesse; kein Build-, Release- oder Gate-Schritt liest die Datei, Doku-Governance-Tests prüfen nur ihre innere Konsistenz (Doku-als-Code, analog TESTING.md).",
+      "evidence": ["CLAUDE.md führt docs/PROZESSE_UML.md als nicht-normative Diagramme", "tests/test_process_documentation.py prüft nur Doku-Konsistenz; kein Release-Workflow liest die Datei"]
     },
     {
       "id": "security-guide",
@@ -242,6 +354,14 @@
       "sample_path": "docs/history/ADR-2026-reviewschleifen-entschaerfung.md",
       "reason": "ADR zur Entschärfung der Review-Schleifen (Trigger, Konvergenzregel, Meta-Freeze); reine Entscheidungs-Historie, kein Code oder Test liest die Datei als Eingabe.",
       "evidence": ["Nur Markdown-Querverweise aus docs/PROZESSE_UML.md, docs/history/ISSUE-841-VERIFIKATION.md und Workflow-Kommentaren; kein open()/read_text() im Code"]
+    },
+    {
+      "id": "issue-841-verifikation",
+      "kind": "exact",
+      "path": "docs/history/ISSUE-841-VERIFIKATION.md",
+      "sample_path": "docs/history/ISSUE-841-VERIFIKATION.md",
+      "reason": "Verifikations- und Messprotokoll der Review-Workflow-Governance (#841/#828); reine Prozess-Historie, kein Code oder Test liest die Datei als Eingabe.",
+      "evidence": ["Nur Markdown-Querverweise aus RECOMMENDATIONS.md (sechs Fassungen) und den beiden Review-ADRs in docs/history; kein open()/read_text() im Code"]
     },
     {
       "id": "eufymake-687-adr",
