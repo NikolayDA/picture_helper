@@ -439,10 +439,11 @@ Schritts (ein Scrollbereich pro Seite, kein Doppel-Scroll):
 4. **Form & Maße** — Karten „Drehen & Spiegeln", „Ecken runden",
    „Größe ändern" (Inline-Felder B × H px + Anwenden), „Zuschnitt-Format"
    (3×2-Raster: Kreis, 1:1, 16:9, 4:3, 9:16, 3:4).
-5. **Relief & Ebenen** — Ebenen-Karte (Liste, Sichtbarkeit, Rollen) und
-   Höhen-Bereich: Primärbutton „Höhenkarte aus Bild erzeugen" kartenlos
-   ganz oben (kein „Beschaffen"-Kasten), darunter Bearbeiten/Optimieren
-   als Karten mit Live-Vorschau.
+5. **Relief & Ebenen** — kartenloser Primärbutton „Höhenkarte aus Bild
+   erzeugen" an der Spitze der Spalte (kein „Beschaffen"-Kasten; im
+   Experten-Modus darunter „Graustufe importieren…"), dann Ebenen-Karte
+   (Liste, Sichtbarkeit, Rollen) und der Höhen-Bereich mit
+   Bearbeiten-/Optimieren-Karten (Live-Vorschau).
 6. **Export** — Karte „2D-Vorschau" (Segmented §5.7, Relief-Stärke,
    Gloss-Checkbox; „Kombiniert" nur übers Ansicht-Menü), Karte „Speichern"
    (Formatwahl + Speichern), Karte „UV-Druck" (EufyMake-Export;

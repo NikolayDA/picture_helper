@@ -12,7 +12,9 @@ sie bereits die Rolle ``HEIGHT_MAP`` trägt. Damit folgt der Tab demselben
 Kind-Vertrag wie der Canvas (#364), sodass die UI keine Operation anbietet, die
 der Canvas anschließend ablehnt. Die **Beschaffen**-Aktionen (erzeugen/
 importieren) sind aktiv, sobald ein Projekt geladen ist; sie stehen kartenlos
-ganz oben im Höhen-Bereich (kein eigener „Beschaffen"-Kasten).
+in einem eigenen Block (:meth:`HeightMapPanel.build_acquire`), den der
+Panel-Builder an der Spitze von Schritt 5 platziert – noch vor der
+Ebenen-Karte (kein eigener „Beschaffen"-Kasten).
 
 Optimierungs-Operationen werden als reine ``HeightField → HeightField``-Closures
 (``height_ops``, die ihre Reglerwerte beim Aufruf lesen) an ``preview_op``/
@@ -160,7 +162,6 @@ class HeightMapPanel:
     # ── Aufbau ───────────────────────────────────────────────────────────
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
-        self._build_acquire(layout)
         if self._preview3d is not None:
             layout.addWidget(self._build_preview3d(self._preview3d))
         layout.addWidget(_make_label(tr("right_panel.height.hint"), "#777", 11))
@@ -354,9 +355,15 @@ class HeightMapPanel:
             self._btn_3d.setEnabled(available)
             self._btn_3d.setToolTip(tooltip)
 
-    def _build_acquire(self, layout: QVBoxLayout) -> None:
-        # Beschaffen ohne eigene Karte: Der Primärbutton steht kartenlos ganz
-        # oben im Höhen-Bereich – als klarer Einstieg noch vor dem 3D-Abschnitt.
+    def build_acquire(self) -> QWidget:
+        """Kartenloser Beschaffen-Block: Primärbutton + Experten-Import.
+
+        Eigenständiger Inhaltsblock, den der Panel-Builder an der Spitze von
+        Schritt 5 platziert – noch **vor** der Ebenen-Karte (Nutzerwunsch aus
+        PR #868). Vor :meth:`build` aufrufen, damit dessen ``refresh([])``
+        auch hier den Startzustand setzt (ohne Projekt deaktiviert).
+        """
+        outer, layout = _make_scroll_tab()
         # Primärbutton wie im Prototyp/Spec §9 Schritt 5 (Issue #416: derselbe
         # blaue Verlauf wie die übrigen Primärbuttons, kein Lila-Sonderton mehr).
         btn_gen = _make_primary_btn(
@@ -373,6 +380,7 @@ class HeightMapPanel:
         layout.addWidget(_mark_expert_only(btn_imp))
         self._acquire_widgets += [btn_gen, btn_imp]
         self._refs.update(height_generate=btn_gen, height_import=btn_imp)
+        return outer
 
     def _build_edit(self) -> QWidget:
         # Bearbeiten (Stärke/Aufhellen/Abdunkeln/Wert): nur im Experten-Modus

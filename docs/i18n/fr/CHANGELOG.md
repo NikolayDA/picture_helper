@@ -18,12 +18,12 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
-- **« Générer la carte de hauteur » bien en évidence en
-  haut de la zone hauteur.** Le bouton primaire de l'onglet hauteur
+- **« Générer la carte de hauteur » bien en évidence tout en
+  haut de l'étape 5.** Le bouton primaire de l'onglet hauteur
   s'appelle désormais « Générer la carte de hauteur »
   (au lieu de « Générer depuis l'image ») et apparaît sans l'ancienne
-  carte « Obtenir », tout en haut de la zone hauteur de l'étape 5,
-  avant la section 3D ; « Importer niveaux de gris… » suit juste en
+  carte « Obtenir », tout en haut de la colonne droite de l'étape 5,
+  avant la carte des calques et la section 3D ; « Importer niveaux de gris… » suit juste en
   dessous (toujours réservé au mode expert).
 
 - **En-tête de l'inspecteur plus compact : l'indication du mode en
