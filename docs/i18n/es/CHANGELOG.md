@@ -17,6 +17,18 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   mismos pasos de ±10 %; el candado también congela el zoom con la rueda
   del ratón y el teclado).
 
+### Cambiado
+
+- **Cabecera del inspector más compacta: la indicación del modo como
+  tooltip en lugar de texto permanente.** La línea de indicación siempre
+  visible bajo la cabecera del inspector, que explicaba el modo
+  Estándar/Experto activo, desaparece. La explicación aparece ahora como
+  tooltip cuando el puntero del ratón se sitúa sobre el conmutador
+  Estándar/Experto o cuando este recibe el foco por teclado (y sigue
+  disponible para lectores de pantalla como descripción accesible) — la
+  barra lateral derecha gana espacio para las herramientas propiamente
+  dichas.
+
 ### Corregido
 
 - **El modo Estándar y la navegación entre pasos no descartaban una vista

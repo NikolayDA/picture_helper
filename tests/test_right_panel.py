@@ -1819,26 +1819,52 @@ def test_expert_toggle_honors_initial_expert_mode_param(qapp):
         expert_mode=True)
 
     assert panel.expert_toggle.isChecked()
-    hint = panel.frame.findChild(QLabel, "expertModeHint")
-    assert hint is not None
-    assert "Experten-Modus" in hint.text()
+    assert "Experten-Modus" in panel.expert_toggle.toolTip()
 
 
-def test_expert_toggle_updates_hint_without_rebuilding_panel(qapp):
-    """Klick schaltet um und aktualisiert Label/Hinweis, ohne das Panel neu
-    aufzubauen (#806-AC: „nur betroffene Karten/Zeilen")."""
+def test_expert_toggle_tooltip_replaces_permanent_hint(qapp):
+    """Klick schaltet um und aktualisiert Label/Tooltip, ohne das Panel neu
+    aufzubauen (#806-AC: „nur betroffene Karten/Zeilen"). Der Modus-Hinweis
+    lebt als Tooltip am Umschalter, nicht mehr als permanentes Kopf-Label."""
     panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
-    hint = panel.frame.findChild(QLabel, "expertModeHint")
-    assert hint is not None
-    assert "Standard-Modus" in hint.text()
+    toggle = panel.expert_toggle
+    frame = panel.frame
+    # Kein permanentes Hinweis-Label mehr im Inspector-Kopf.
+    assert panel.frame.findChild(QLabel, "expertModeHint") is None
+    assert "Standard-Modus" in toggle.toolTip()
+    assert "umschalten" in toggle.toolTip()
+    assert "Standard-Modus" in toggle.accessibleDescription()
 
-    panel.expert_toggle.setChecked(True)
-    assert "Experten-Modus" in hint.text()
-    # Dasselbe Frame/Widget – kein Neuaufbau.
-    assert panel.frame.findChild(QLabel, "expertModeHint") is hint
+    toggle.setChecked(True)
+    assert "Experten-Modus" in toggle.toolTip()
+    assert "Experten-Modus" in toggle.accessibleDescription()
+    # Dieselben Objekte – Umschalten baut das Panel nicht neu auf.
+    assert panel.expert_toggle is toggle
+    assert panel.frame is frame
 
-    panel.expert_toggle.setChecked(False)
-    assert "Standard-Modus" in hint.text()
+    toggle.setChecked(False)
+    assert "Standard-Modus" in toggle.toolTip()
+
+
+def test_expert_toggle_shows_tooltip_on_keyboard_focus(qapp):
+    """Qt zeigt Tooltips nur bei Maus-Hover; für Tastatur-/Touch-Bedienung
+    blendet der Umschalter die Modus-Erklärung beim Fokus aktiv ein und
+    versteckt sie beim Fokusverlust wieder."""
+    from PyQt6.QtCore import QEvent
+    from PyQt6.QtGui import QFocusEvent
+    from PyQt6.QtWidgets import QApplication, QToolTip
+
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    toggle = panel.expert_toggle
+
+    QApplication.sendEvent(
+        toggle, QFocusEvent(QEvent.Type.FocusIn, Qt.FocusReason.TabFocusReason))
+    assert QToolTip.isVisible()
+    assert "Standard-Modus" in QToolTip.text()
+
+    QApplication.sendEvent(
+        toggle, QFocusEvent(QEvent.Type.FocusOut, Qt.FocusReason.TabFocusReason))
+    assert not QToolTip.isVisible()
 
 
 def test_expert_toggle_keyboard_activates(qapp):

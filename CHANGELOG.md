@@ -17,6 +17,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   ±10-%-Schritte; das Fixier-Schloss friert auch Mausrad- und Tasten-Zoom
   ein).
 
+### Geändert
+
+- **Kompakterer Inspector-Kopf: Modus-Hinweis als Tooltip statt Dauertext.**
+  Die permanent eingeblendete Hinweiszeile unter dem Inspector-Kopf, die den
+  aktiven Standard-/Experten-Modus erklärte, entfällt. Die Erklärung
+  erscheint jetzt als Tooltip, wenn der Mauszeiger über dem
+  Standard-/Experten-Umschalter steht oder er per Tastatur den Fokus erhält
+  (und bleibt für Screenreader als Accessible-Description hinterlegt) – die
+  rechte Seitenleiste gewinnt dadurch Platz für die eigentlichen Werkzeuge.
+
 ### Behoben
 
 - **Standard-Modus und Schrittwechsel verwarfen eine aktive

@@ -567,9 +567,14 @@ der Standard-Modus blendet je Schritt eine kuratierte Teilmenge ein.
   identisch in allen 6 Schritten (`right_panel._assemble`).
 - **Optik:** Pille 40×22 px, Knopf 18 px, Label „EXPERTE" darunter
   (10 px/600, letter-spacing .03 em). Aus: Fläche `inset`, Rand `border_2`,
-  Label `text3`. An: Fläche/Rand `accent`, Label `accent_text`. Direkt
-  darunter ein Hinweistext (`inset`-Fläche, `text3`, 11.5 px), der den
-  aktiven Modus in einem Satz erklärt.
+  Label `text3`. An: Fläche/Rand `accent`, Label `accent_text`. Der aktive
+  Modus wird nicht als permanenter Hinweistext gezeigt, sondern als Tooltip
+  des Umschalters (Aktionsbeschreibung + Ein-Satz-Erklärung des aktiven
+  Modus, zusätzlich als Accessible-Description hinterlegt) – der Kopf bleibt
+  dadurch kompakt. Da Qt Tooltips nur bei Maus-Hover einblendet, zeigt der
+  Umschalter sie für Tastatur-/Touch-Bedienung beim Fokuserhalt aktiv an
+  (und frischt sie beim Umschalten mit gehaltenem Fokus auf); Fokusverlust
+  blendet sie aus.
 - **Bedienung:** `ExpertModeToggle` (`QAbstractButton`, checkbar,
   `StrongFocus`) reagiert auf Klick, Leertaste (nativ) und Enter (explizit
   verdrahtet); der Fokusring folgt dem app-weiten `accent`-Kontrakt (§12).
