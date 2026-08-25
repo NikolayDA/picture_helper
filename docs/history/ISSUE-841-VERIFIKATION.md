@@ -109,11 +109,16 @@ Review-Mechanik geändert haben und damit keine gewöhnlichen PRs im Sinne von
 Punkt 1 sind.
 
 **Live-Abgleich vom 2026-08-24:** **3/10** reale Läufe ausgewertet; Bilanz:
-**1 grün, 2 rot**. PR #859 ist gemergt, seine drei Review-Läufe können deshalb
-ohne Rückkopplung auf den gemessenen PR ausgewertet werden. Der erste Lauf
-erfüllt alle Kriterien. Beide ausdrücklich angeforderten Re-Reviews
-veröffentlichten ebenfalls konkrete Befunde, ihre Jobs endeten wegen 29
-beziehungsweise 30 Turns über dem Deckel von 25 aber rot.
+**1 grün, 2 rot**. Für alle noch ausstehenden Läufe gilt unverändert die
+Entkopplungsregel aus der Initialisierung dieser Tabelle (#859): Die Läufe
+eines PRs werden erst nach dessen Merge oder Schließung in einem getrennten
+Nachtrag bewertet – das verschiebt ihre Auswertung, verwirft sie aber nicht
+und verhindert, dass jeder weitere Review-Lauf einen neuen Commit im gerade
+gemessenen PR erzwingt. PR #859 ist gemergt, seine drei Review-Läufe können
+deshalb ohne Rückkopplung ausgewertet werden. Der erste Lauf erfüllt alle
+Kriterien. Beide ausdrücklich angeforderten Re-Reviews veröffentlichten
+ebenfalls konkrete Befunde, ihre Jobs endeten wegen 29 beziehungsweise
+30 Turns über dem Deckel von 25 aber rot.
 
 Für jeden der zehn realen Läufe wird genau eine nummerierte Zeile ergänzt.
 `Konfiguration` ist die Commit-SHA des zu diesem Lauf aktiven Workflow-Stands;
