@@ -603,7 +603,7 @@ für Relief und UV-Druck. Die Karte *Höhe* arbeitet auf der aktiven
 **Höhen-Ebene**; die Abschnitte Bearbeiten und Optimieren sind nur aktiv,
 wenn eine Höhen-Ebene aktiv ist.
 
-- **Aus Bild erzeugen** – wandelt das aktuelle Farbbild deterministisch in
+- **Höhenkarte aus Bild erzeugen** – wandelt das aktuelle Farbbild deterministisch in
   eine Höhenkarte um und legt sie als neue Höhen-Ebene an.
 - **Graustufe importieren…** – lädt ein Graustufenbild als Höhenkarte und
   skaliert es auf die Projektgröße. 16-Bit-Graustufen (PNG/TIFF) werden
@@ -736,7 +736,7 @@ BgRemover **Import-Assets** für EufyMake Studio – **keine** fertige
   oder, falls keine vorhanden ist, aus dem Farbkomposit.
 - **Höhenkarte** (optional) als Graustufe mit **hell = hoch, dunkel = niedrig** –
   nur verfügbar, wenn eine Ebene die Rolle *Height Map* trägt (z. B. eine über
-  „Aus Bild erzeugen" angelegte Höhenebene; eine bloße Höhen-Ebene ohne diese
+  „Höhenkarte aus Bild erzeugen" angelegte Höhenebene; eine bloße Höhen-Ebene ohne diese
   Rolle wird nicht exportiert).
 - **Gloss-Maske** (optional, experimentell) als Hilfsasset – nur verfügbar, wenn
   eine Ebene die Rolle *Gloss* trägt.
@@ -860,7 +860,7 @@ Menü bzw. Karten-Inspector erreichbar.
 ### E) Höhenrelief-Asset für EufyMake Studio
 
 1. Bild öffnen und freistellen.
-2. Im Schritt *Relief & Ebenen* **Aus Bild erzeugen**.
+2. Im Schritt *Relief & Ebenen* **Höhenkarte aus Bild erzeugen**.
 3. Höhe im Abschnitt *Optimieren* nachschärfen (z. B. *Tonwert*, *Glättung*)
    und **Anwenden**.
 4. Im Schritt *Export* den Vorschau-Modus **Relief** oder über

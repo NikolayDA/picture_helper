@@ -940,7 +940,7 @@ def test_affected_inspector_tiles_use_their_own_dedicated_icon(qapp):
         assert button.iconSize().width() == 14
         assert button.iconSize().height() == 14
 
-    generate = _button(panel.frame, "Aus Bild erzeugen")
+    generate = _button(panel.frame, "Höhenkarte aus Bild erzeugen")
     assert generate.property("prototypeIconName") is None
     assert generate.icon().isNull()
 
@@ -1195,7 +1195,7 @@ def test_height_panel_acquire_and_edit_delegate(qapp):
     widget, _refs = panel.build()
     panel.refresh(_height_layers())
 
-    _button(widget, "Aus Bild erzeugen").click()
+    _button(widget, "Höhenkarte aus Bild erzeugen").click()
     _button(widget, "Graustufe importieren…").click()
     _button(widget, "Aufhellen").click()
     _button(widget, "Abdunkeln").click()
@@ -1342,7 +1342,7 @@ def test_height_panel_is_mode_contextual(qapp):
     color = [LayerInfo(id="c", name="Farbe", kind=LayerKind.COLOR, visible=True,
                        opacity=1.0, locked=False, role=None, active=True)]
     panel.refresh(color)
-    assert _button(widget, "Aus Bild erzeugen").isEnabled()
+    assert _button(widget, "Höhenkarte aus Bild erzeugen").isEnabled()
     assert not _button(widget, "Aufhellen").isEnabled()
     assert not _button(widget, "Invertieren").isEnabled()
 
@@ -1359,7 +1359,7 @@ def test_height_panel_is_mode_contextual(qapp):
 
     # Kein Projekt: alles gesperrt.
     panel.refresh([])
-    assert not _button(widget, "Aus Bild erzeugen").isEnabled()
+    assert not _button(widget, "Höhenkarte aus Bild erzeugen").isEnabled()
     assert not _button(widget, "Aufhellen").isEnabled()
 
 
@@ -1453,7 +1453,7 @@ def test_height_panel_standard_mode_hides_import_edit_and_optimize(qapp):
     page = _relief_page(panel)
     panel.height_panel.refresh(_height_layers())
 
-    assert _button(page, "Aus Bild erzeugen").isVisibleTo(page)
+    assert _button(page, "Höhenkarte aus Bild erzeugen").isVisibleTo(page)
     assert not _button(page, "Graustufe importieren…").isVisibleTo(page)
     for text in ("Aufhellen", "Abdunkeln", "Höhe setzen", "Invertieren"):
         assert not _button(page, text).isVisibleTo(page)
