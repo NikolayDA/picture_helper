@@ -136,7 +136,11 @@ workflow de licences génère le rapport dépendances/licences.
   `undo`, `redo`, `theme`) sont rendues de façon programmatique avec
   `QPainter` ; d'autres fonctions `_draw_*_icon` servent de fallback —
   aucun asset externe.
-- **Icône d'application** : `BgRemover_icon.png` (source du `.icns` macOS).
+- **Icône d'application** : `BgRemover_icon.png` (source du `.icns` macOS) ;
+  dérivé de celui-ci, l'asset de données du paquet
+  `bgremover/icons/app_icon.png` (512 px), que `make_app_icon()` charge au
+  démarrage comme icône du processus en cours
+  (`QApplication.setWindowIcon`).
 - **Curseurs** : dessinés à l'exécution (`make_wand_cursor`,
   `make_brush_cursor`, `make_eraser_cursor`) — aucun fichier externe.
 

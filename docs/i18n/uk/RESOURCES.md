@@ -135,7 +135,10 @@ UI-тести взаємодії; workflow ліцензій генерує зв�
   `brush`, `eraser`, `lasso`, `height_lighten`, `height_darken`, `undo`,
   `redo`, `theme`) програмно рендеряться за допомогою `QPainter`; інші
   функції `_draw_*_icon` служать fallback — без зовнішнього ресурсу.
-- **Іконка застосунку**: `BgRemover_icon.png` (джерело для macOS-`.icns`).
+- **Іконка застосунку**: `BgRemover_icon.png` (джерело для macOS-`.icns`);
+  похідний від неї ресурс даних пакета `bgremover/icons/app_icon.png`
+  (512 px), який `make_app_icon()` завантажує під час запуску як іконку
+  запущеного процесу (`QApplication.setWindowIcon`).
 - **Курсори**: малюються під час виконання (`make_wand_cursor`,
   `make_brush_cursor`, `make_eraser_cursor`) — без зовнішніх файлів.
 
