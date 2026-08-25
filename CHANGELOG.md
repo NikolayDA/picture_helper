@@ -19,10 +19,10 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
-- **„Höhenkarte aus Bild erzeugen" prominent ganz oben im Relief-Schritt.**
+- **„Höhenkarte aus Bild erzeugen" prominent ganz oben im Höhen-Bereich.**
   Der Primärbutton des Höhen-Tabs heißt jetzt „Höhenkarte aus Bild
   erzeugen" (statt „Aus Bild erzeugen") und steht ohne den bisherigen
-  „Beschaffen"-Kasten kartenlos ganz oben in der rechten Spalte von
+  „Beschaffen"-Kasten kartenlos ganz oben im Höhen-Bereich von
   Schritt 5 – noch vor dem 3D-Abschnitt; „Graustufe importieren…" folgt
   direkt darunter (weiterhin nur im Experten-Modus).
 

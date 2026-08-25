@@ -17,10 +17,10 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
-- **"Generate height map from image" prominently at the top of the Relief
-  step.** The height tab's primary button is now labelled "Generate height
+- **"Generate height map from image" prominently at the top of the height
+  area.** The height tab's primary button is now labelled "Generate height
   map from image" (instead of "Generate from image") and sits without the
-  former "Acquire" card at the very top of the right column of step 5 —
+  former "Acquire" card at the very top of the height area of step 5 —
   before the 3D section; "Import grayscale…" follows directly below (still
   Expert mode only).
 

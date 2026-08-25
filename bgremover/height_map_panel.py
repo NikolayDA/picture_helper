@@ -12,7 +12,7 @@ sie bereits die Rolle ``HEIGHT_MAP`` trägt. Damit folgt der Tab demselben
 Kind-Vertrag wie der Canvas (#364), sodass die UI keine Operation anbietet, die
 der Canvas anschließend ablehnt. Die **Beschaffen**-Aktionen (erzeugen/
 importieren) sind aktiv, sobald ein Projekt geladen ist; sie stehen kartenlos
-ganz oben im Schritt (kein eigener „Beschaffen"-Kasten).
+ganz oben im Höhen-Bereich (kein eigener „Beschaffen"-Kasten).
 
 Optimierungs-Operationen werden als reine ``HeightField → HeightField``-Closures
 (``height_ops``, die ihre Reglerwerte beim Aufruf lesen) an ``preview_op``/
@@ -356,7 +356,7 @@ class HeightMapPanel:
 
     def _build_acquire(self, layout: QVBoxLayout) -> None:
         # Beschaffen ohne eigene Karte: Der Primärbutton steht kartenlos ganz
-        # oben im Schritt – als klarer Einstieg noch vor dem 3D-Abschnitt.
+        # oben im Höhen-Bereich – als klarer Einstieg noch vor dem 3D-Abschnitt.
         # Primärbutton wie im Prototyp/Spec §9 Schritt 5 (Issue #416: derselbe
         # blaue Verlauf wie die übrigen Primärbuttons, kein Lila-Sonderton mehr).
         btn_gen = _make_primary_btn(
