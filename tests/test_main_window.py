@@ -404,21 +404,33 @@ def test_save_as_cancelled_dialog_does_not_save(win, tmp_path, monkeypatch):
 
 
 def test_save_as_writes_and_remembers_path(win, tmp_path, monkeypatch):
+    """Nach erfolgreichem „Speichern unter…" schreibt Quick-Save denselben Pfad.
+
+    Geprüft wird der beobachtbare Effekt statt des privaten Feldes
+    ``_save_path`` (#869): Der zweite, dialoglose Aufruf muss ohne erneute
+    Dateiauswahl in genau dieselbe Datei schreiben.
+    """
     _load_dummy_image(win, tmp_path)
     target = str(tmp_path / "export.png")
     monkeypatch.setattr(QFileDialog, "getSaveFileName",
                         lambda *a, **k: (target, "PNG (*.png)"))
-    saved: dict = {}
+    written: list[str] = []
 
     def _save_ok(path):
-        saved["path"] = path
+        written.append(path)
         return True
 
     monkeypatch.setattr(win._canvas, "save_image", _save_ok)
     win._save_as()
-    assert saved["path"].endswith(".png")
-    # Pfad wird nur bei erfolgreichem Schreiben als Quick-Save-Ziel gemerkt.
-    assert win._save_path == saved["path"]
+    assert written == [target]
+
+    # Ein erneuter Dialog wäre der Fehlerfall: der Pfad wurde nicht gemerkt.
+    def _unexpected_dialog(*a, **k):
+        raise AssertionError("Quick-Save fragte erneut nach einem Pfad")
+
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", _unexpected_dialog)
+    win._save()
+    assert written == [target, target]
 
 
 def test_save_as_suggests_known_save_path(win, tmp_path, monkeypatch):
@@ -1099,17 +1111,18 @@ def test_expert_mode_defaults_to_standard_and_persists_on_toggle(tmp_path, qapp)
     """Default ist Standard-Modus; Umschalten merkt sich den Zustand (QSettings)."""
     from bgremover.settings_schema import EXPERT_MODE_KEY
 
+    # Beobachtbar sind der Umschalter und der persistierte Wert; das private
+    # ``_expert_mode`` sagte darüber hinaus nichts aus (#869).
     win = _isolated_window(tmp_path)
     try:
-        assert win._expert_mode is False
         assert not win._right_panel.expert_toggle.isChecked()
 
         win._right_panel.expert_toggle.setChecked(True)
-        assert win._expert_mode is True
+        assert win._right_panel.expert_toggle.isChecked()
         assert win._settings.value(EXPERT_MODE_KEY, type=bool) is True
 
         win._right_panel.expert_toggle.setChecked(False)
-        assert win._expert_mode is False
+        assert not win._right_panel.expert_toggle.isChecked()
         assert win._settings.value(EXPERT_MODE_KEY, type=bool) is False
     finally:
         win.close()
@@ -1125,7 +1138,6 @@ def test_expert_mode_restored_from_settings_on_next_launch(tmp_path, qapp):
 
     win2 = MainWindow()
     try:
-        assert win2._expert_mode is True
         assert win2._right_panel.expert_toggle.isChecked()
     finally:
         win2.close()
@@ -1141,7 +1153,6 @@ def test_expert_mode_survives_theme_rebuild(tmp_path, qapp):
         win._right_panel.expert_toggle.setChecked(True)
         win._toggle_light_mode(True)
         assert win._right_panel.expert_toggle.isChecked()
-        assert win._expert_mode is True
     finally:
         set_active_palette(DARK)
         win.close()

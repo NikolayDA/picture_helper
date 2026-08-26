@@ -654,8 +654,8 @@ def test_leaving_relief_step_discards_active_height_preview(window):
     w._go_to_step(WorkflowStep.RELIEF)
     w._canvas.generate_height_map()  # neue HEIGHT-Ebene wird aktiv
     w._canvas.preview_height_op(lambda f: height_ops.gamma(f, 1.5))
-    assert w._canvas._preview_layer_override is not None
+    assert w._canvas.preview_active
 
     w._go_to_step(WorkflowStep.EXPORT)
 
-    assert w._canvas._preview_layer_override is None
+    assert not w._canvas.preview_active

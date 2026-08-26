@@ -6,6 +6,7 @@ import sys
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from bgremover import (
@@ -774,13 +775,68 @@ def test_update_check_worker_passes_version_and_timeout(qapp, monkeypatch) -> No
 # N7 – rembg wird lazy importiert (App-Start-Latenz)
 # ─────────────────────────────────────────────────────────────
 
-def test_rembg_available_is_bool() -> None:
-    """``REMBG_AVAILABLE`` stammt aus ``find_spec`` (kein teurer Import beim
-    Modul-Load). Der eigentliche rembg-Import lebt seit #270 im Inferenz-
-    Kindprozess (``ai_process``), nicht mehr im Worker-Modul."""
-    from bgremover import workers
+#: Frischer Interpreter, in dem ``importlib.util.find_spec`` für ``rembg``
+#: kontrolliert antwortet. ``REMBG_AVAILABLE`` entsteht auf Modulebene – nur
+#: ein eigener Prozess prüft die *Ableitung* statt des im Testlauf längst
+#: berechneten Werts. Ein ``importlib.reload`` schiede aus: es tauschte die
+#: Worker-Klassen unter bereits importierenden Modulen (``worker_controller``)
+#: aus und beschädigte damit nachfolgende Tests.
+_REMBG_PROBE = """
+import importlib.machinery
+import importlib.util
+_real = importlib.util.find_spec
 
-    assert isinstance(workers.REMBG_AVAILABLE, bool)
+
+def _patched(name, *args, **kwargs):
+    if name == "rembg":
+        {branch}
+    return _real(name, *args, **kwargs)
+
+
+importlib.util.find_spec = _patched
+import bgremover.workers as workers
+assert "rembg" not in sys.modules, "rembg trotz find_spec-Patch importiert"
+print(repr(workers.REMBG_AVAILABLE))
+"""
+
+
+def _rembg_available_under(branch: str) -> str:
+    """``repr(REMBG_AVAILABLE)`` aus einem frischen Prozess mit *branch*."""
+    code = "import sys\n" + _REMBG_PROBE.format(branch=branch)
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(p for p in sys.path if p))
+    r = subprocess.run([sys.executable, "-c", code], env=env,
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, (
+        f"--- stdout ---\n{r.stdout}\n--- stderr ---\n{r.stderr}"
+    )
+    return r.stdout.strip()
+
+
+@pytest.mark.parametrize(
+    ("branch", "expected"),
+    [
+        # „Installiert" heißt für ``find_spec`` nur: irgendein ModuleSpec statt
+        # ``None``. Der Stub wird deshalb explizit auf den Namen ``rembg``
+        # gebaut, statt den Spec eines fremden Moduls zu borgen.
+        ("return importlib.machinery.ModuleSpec('rembg', None)", "True"),
+        ("return None", "False"),                             # rembg fehlt
+        ("raise ValueError('kaputter sys.path-Eintrag')", "False"),
+        ("raise ImportError('defektes Namespace-Paket')", "False"),
+    ],
+    ids=["installiert", "fehlt", "find_spec-ValueError", "find_spec-ImportError"],
+)
+def test_rembg_available_reflects_installation_state(branch: str, expected: str) -> None:
+    """``REMBG_AVAILABLE`` bildet den *tatsächlichen* Installationszustand ab.
+
+    Der Wert stammt aus ``find_spec`` (kein teurer Import beim Modul-Load;
+    der eigentliche rembg-Import lebt seit #270 im Inferenz-Kindprozess
+    ``ai_process``). Geprüft wird deshalb der Wert unter kontrollierter
+    Präsenz/Abwesenheit – inklusive der beiden Fehlerzweige, die ein
+    defekter ``sys.path``-Eintrag bzw. ein kaputtes Namespace-Paket auslösen
+    und die zu ``False`` degradieren müssen statt den App-Start zu
+    zerreißen (#869).
+    """
+    assert _rembg_available_under(branch) == expected
 
 
 def test_importing_workers_does_not_eager_import_rembg() -> None:
@@ -817,29 +873,28 @@ def test_canvas_version_increments_on_load(qapp, tmp_path) -> None:
     assert canvas.version == 2
 
 
-def test_canvas_version_tracks_edits_and_undo(qapp, tmp_path) -> None:
-    canvas = ImageCanvas()
-    img = Image.new("RGBA", (10, 10), (1, 2, 3, 255))
-    canvas.apply_loaded_image(img, str(tmp_path / "x.png"))
-    v_after_load = canvas.version
-    canvas.apply_edit(img.copy(), desc="test-edit")
-    assert canvas.version == v_after_load + 1
-    canvas.undo()
-    assert canvas.version == v_after_load + 2
+def test_canvas_version_and_content_revision_track_edits_and_undo(qapp, tmp_path) -> None:
+    """Bearbeitung *und* Undo erhöhen den Zähler – über beide Property-Namen.
 
-
-def test_canvas_content_revision_tracks_edits_and_undo(qapp, tmp_path) -> None:
+    ``ImageCanvas.version`` ist ein reiner Alias von ``content_revision``
+    (``canvas.py``: ``return self._content_revision``). Der Alias-Vertrag wird
+    deshalb in derselben Sequenz mitgeprüft, statt denselben ``apply_edit``+
+    ``undo``-Pfad ein zweites Mal in voller Kopie zu durchlaufen (#869).
+    """
     canvas = ImageCanvas()
     img = Image.new("RGBA", (10, 10), (1, 2, 3, 255))
     canvas.apply_loaded_image(img, str(tmp_path / "x.png"))
     rev_after_load = canvas.content_revision
+    assert canvas.version == rev_after_load
 
     canvas.apply_edit(Image.new("RGBA", (10, 10), (4, 5, 6, 255)),
                       desc="test-edit")
     assert canvas.content_revision == rev_after_load + 1
+    assert canvas.version == canvas.content_revision
 
     canvas.undo()
     assert canvas.content_revision == rev_after_load + 2
+    assert canvas.version == canvas.content_revision
 
 
 def test_ai_result_is_discarded_after_canvas_edit(qapp, tmp_path) -> None:

@@ -55,11 +55,34 @@ letzte Undo-Schritt –, danach die am weitesten entfernten Redo-Zustände. Das
 bewusst nicht ins Budget. Rückgaben von ``undo``/``redo``/``undo_to``/``restore``
 sind eigenständige, frisch aufgebaute :class:`Project`-Instanzen des jeweils
 vorherigen Zustands.
+
+Introspektion (#869)
+--------------------
+
+Die Buchhaltung dieses Budgets ist von außen **beobachtbar**, ohne private
+Felder zu kennen: :attr:`ProjectHistory.history_bytes` /
+:attr:`~ProjectHistory.memory_limit` nennen Verbrauch und Grenze,
+:attr:`~ProjectHistory.undo_depth` / :attr:`~ProjectHistory.redo_depth` /
+:attr:`~ProjectHistory.redo_capacity` / :attr:`~ProjectHistory.has_original`
+den Stapelzustand, :meth:`~ProjectHistory.pooled_payloads` beschreibt den
+Dedup-Pool und :meth:`~ProjectHistory.retained_layers` die je aufbewahrtem
+Schritt gehaltenen Ebenen. Damit lässt sich sowohl diagnostizieren, warum ein
+Verlauf groß ist, als auch nachrechnen, dass Refzählung und Byte-Bilanz zu den
+aufbewahrten Snapshots passen.
+
+Herausgereicht werden dabei ausschließlich **Kennzahlen und Identitäten**
+(``id()``, Art, Pixelgröße, Bytes), nie die Puffer selbst (Review auf PR #873):
+Ein aufbewahrter Snapshot gehört dem Verlauf, und ein von außen in-place
+mutiertes ``Image`` – ``paste``, ``putpixel``, ``ImageDraw`` – würde einen
+Undo-Zustand still verfälschen und die eingefrorene Bytegröße stumm falsch
+werden lassen. Höhen-Payloads sind seit #587 per Write-Lock geschützt,
+RGBA-Bilder haben kein solches Gegenstück.
 """
 from __future__ import annotations
 
 from collections import deque
 from copy import deepcopy
+from enum import Enum
 from typing import Any, NamedTuple
 
 from PIL import Image
@@ -98,6 +121,46 @@ class _ProjectState(NamedTuple):
     layers: tuple[_LayerState, ...]
     active_layer_id: str | None
     desc: str
+
+
+class PayloadKind(Enum):
+    """Art einer gezählten Payload – bestimmt die Bytes je Pixel."""
+
+    IMAGE = "image"    #: RGBA-Bild einer COLOR-/GLOSS-/GENERIC-Ebene, 4 B/px
+    HEIGHT = "height"  #: kanonische 16-Bit-Höhen-Payload, 3 B/px (ADR #586)
+
+
+class PooledPayload(NamedTuple):
+    """Beschreibung eines deduplizierten Puffers im geteilten Budget (#869).
+
+    Bewusst **ohne** das Objekt selbst (Review auf PR #873): ``payload_id`` ist
+    dessen ``id()`` – genug, um Referenzen zuzuordnen und Puffer über Snapshots
+    hinweg wiederzuerkennen, zu wenig, um einen aufbewahrten Undo-Zustand
+    anzufassen. ``kind`` und ``size`` erlauben, die Budgetgröße unabhängig
+    nachzurechnen; ``references`` ist die Zahl der Snapshots, die den Puffer
+    halten, ``nbytes`` die beim Registrieren eingefrorene Budgetgröße.
+    """
+
+    payload_id: int
+    kind: PayloadKind
+    size: tuple[int, int]
+    references: int
+    nbytes: int
+
+
+class RetainedLayer(NamedTuple):
+    """Payload-Identitäten eines Ebenen-Snapshots – roh, ohne Auswahlregel.
+
+    Genau eines der beiden Felder ist gesetzt: ``image_id`` für COLOR-/GLOSS-/
+    GENERIC-Ebenen, ``height_id`` für HEIGHT-Ebenen. Bewusst beide statt der
+    bereits ausgewählten Payload – so kann ein Aufrufer die Auswahlregel
+    („HEIGHT zählt über die kanonische Payload") unabhängig nachbauen, statt
+    sie von derselben Funktion zu übernehmen, die auch den Pool füllt
+    (Review auf PR #873).
+    """
+
+    image_id: int | None
+    height_id: int | None
 
 
 class _PoolEntry:
@@ -207,16 +270,15 @@ class ProjectHistory:
             raise ValueError("redo_max must be non-negative")
         self._undo: deque[_ProjectState] = deque()
         self._redo: deque[_ProjectState] = deque(maxlen=redo_max)
+        # Eigene Kopie der Redo-Obergrenze: ``deque.maxlen`` ist ``int | None``
+        # und taugt deshalb nicht als getypte Introspektions-Quelle.
+        self._redo_max: int = redo_max
         self._original: _ProjectState | None = None
         self._memory_limit: int = memory_limit
         # Identitäts-Pool: id(image) -> Refzähl-Eintrag. ``_pool_bytes`` ist die
         # deduplizierte Größe von Undo + Redo zusammen (geteiltes Budget).
         self._pool: dict[int, _PoolEntry] = {}
         self._pool_bytes: int = 0
-
-    @property
-    def _history_bytes(self) -> int:
-        return self._pool_bytes
 
     @staticmethod
     def _payload_of(ls: _LayerState) -> tuple[Image.Image | HeightField, int]:
@@ -231,6 +293,13 @@ class ProjectHistory:
             return field, field.values.nbytes + field.coverage.nbytes
         assert ls.image is not None
         return ls.image, ls.image.width * ls.image.height * 4
+
+    @staticmethod
+    def _describe(payload: Image.Image | HeightField) -> tuple[PayloadKind, tuple[int, int]]:
+        """Art und Pixelgröße einer Payload – Grundlage der Budgetrechnung."""
+        if isinstance(payload, HeightField):
+            return PayloadKind.HEIGHT, payload.size
+        return PayloadKind.IMAGE, (payload.width, payload.height)
 
     # ── Pool-Buchhaltung ────────────────────────────────────────────────
     def _register(self, state: _ProjectState) -> None:
@@ -261,11 +330,11 @@ class ProjectHistory:
         self._register(state)
 
     def _append_redo(self, state: _ProjectState) -> None:
-        if self._redo.maxlen == 0:
+        if self._redo_max == 0:
             return
         # Manuell den ältesten Eintrag verdrängen, bevor ``deque`` ihn selbst
         # (an der Buchhaltung vorbei) bei vollem ``maxlen`` herauswirft.
-        if len(self._redo) == self._redo.maxlen:
+        if len(self._redo) == self._redo_max:
             self._evict_oldest_redo()
         self._redo.append(state)
         self._register(state)
@@ -299,13 +368,87 @@ class ProjectHistory:
         Snapshots geteilter Puffer nur einmal; Original und aktueller Zustand
         sind ohnehin nicht Teil dieses Budgets.
         """
-        while self._history_bytes > self._memory_limit:
+        while self.history_bytes > self._memory_limit:
             if len(self._undo) > 1:
                 self._evict_oldest_undo()
             elif self._redo:
                 self._evict_oldest_redo()
             else:
                 break
+
+    # ── Öffentliche Introspektion (#869) ────────────────────────────────
+    @property
+    def history_bytes(self) -> int:
+        """Deduplizierte Budgetgröße von Undo- und Redo-Stapel zusammen.
+
+        Ein über mehrere Snapshots geteilter Puffer zählt genau einmal;
+        Original und aktueller Live-Zustand zählen bewusst nicht mit.
+        """
+        return self._pool_bytes
+
+    @property
+    def memory_limit(self) -> int:
+        """Byte-Budget, ab dem :meth:`push` & Co. alte Zustände verdrängen."""
+        return self._memory_limit
+
+    @property
+    def undo_depth(self) -> int:
+        """Anzahl der aufbewahrten Undo-Schritte."""
+        return len(self._undo)
+
+    @property
+    def redo_depth(self) -> int:
+        """Anzahl der aufbewahrten Redo-Schritte."""
+        return len(self._redo)
+
+    @property
+    def redo_capacity(self) -> int:
+        """Obergrenze des Redo-Stapels (``redo_max`` aus dem Konstruktor)."""
+        return self._redo_max
+
+    @property
+    def has_original(self) -> bool:
+        """True, wenn ein Original-Referenzzustand hinterlegt ist."""
+        return self._original is not None
+
+    def pooled_payloads(self) -> tuple[PooledPayload, ...]:
+        """Momentaufnahme des deduplizierenden Pixelpools – **nur lesend**.
+
+        Ein Eintrag je *unterschiedlichem* Puffer, in Einfügereihenfolge; die
+        Summe der ``nbytes`` ist genau :attr:`history_bytes`. Beschrieben wird
+        der Puffer über ``payload_id``/``kind``/``size``, herausgegeben wird er
+        nicht (siehe Modul-Doku, Abschnitt „Introspektion").
+        """
+        return tuple(
+            PooledPayload(key, *self._describe(entry.payload), entry.count, entry.nbytes)
+            for key, entry in self._pool.items()
+        )
+
+    def retained_layers(self) -> tuple[tuple[RetainedLayer, ...], ...]:
+        """Die von jedem *aufbewahrten* Verlaufsschritt gehaltenen Ebenen.
+
+        Ein Tupel je Schritt – erst der Undo-Stapel (ältester zuerst), dann
+        der Redo-Stapel (ältester zuerst); je Schritt eine
+        :class:`RetainedLayer` pro Ebene in Ebenenreihenfolge, die die
+        Payload-``id()`` roh nach Bild und Höhe getrennt nennt. Zusammen mit
+        :meth:`pooled_payloads` wird die Dedup-Buchhaltung damit von außen
+        nachrechenbar: Wie oft eine Identität hier vorkommt, muss exakt ihren
+        ``references`` dort entsprechen – verwaiste oder doppelt gezählte
+        Einträge fallen so auf, ohne private Felder zu kennen.
+
+        Original und aktueller Live-Zustand sind nicht Teil des Budgets und
+        erscheinen deshalb auch hier nicht.
+        """
+        return tuple(
+            tuple(
+                RetainedLayer(
+                    None if layer.image is None else id(layer.image),
+                    None if layer.height_data is None else id(layer.height_data),
+                )
+                for layer in state.layers
+            )
+            for state in (*self._undo, *self._redo)
+        )
 
     # ── Öffentliche API ─────────────────────────────────────────────────
     @property

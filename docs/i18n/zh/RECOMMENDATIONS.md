@@ -13,7 +13,7 @@
 
 ## 当前状态（2026-08-26，v2.8.0 稳定，未结议题已全部审计）
 
-**2026-08-26 例行检查：** 实时状态现为 16 个未结议题（此前为 15 个）。新收录并评估了 **#869**（自动化测试套件审计：`test_workers.py` 中的一处重复用例、若干私有字段/控件访问、六处薄弱断言——无生产环境缺陷，`make coverage` 仍保持 93% 绿色通过）。**#866**（Apple Silicon 上的 Rosetta/x86_64）与 **#828**（评审自动化，测量序列自 2026-08-25 同步以来仍为 3/10）均无变化。没有未决的 🔴 级发现。
+**2026-08-26 例行检查：** 实时状态现为 16 个未结议题（此前为 15 个）。新收录并评估了 **#869**（自动化测试套件审计：`test_workers.py` 中的一处重复用例、若干私有字段/控件访问、六处薄弱断言——无生产环境缺陷，`make coverage` 仍保持 93% 绿色通过）。**#866**（Apple Silicon 上的 Rosetta/x86_64）与 **#828**（评审自动化，测量序列自 2026-08-25 同步以来仍为 3/10）均无变化。没有未决的 🔴 级发现。 **2026-08-26 补记：** #869 已通过 [PR #873](https://github.com/NikolayDA/picture_helper/pull/873) 全部完成，并已从表中移除；实时状态因此为 15 个。
 
 **2026-08-26 发布范围检查：** 自 v2.8.0（2026-08-17）以来，`main` 上已合并 37 个提交。与此前几轮的判断不同，自 2026-08-24 的补记以来，落地的已不只是治理/文档工作：`CHANGELOG.md` 中的 `[Unreleased]` 部分已经包含一项真正的功能（#863，缩放胶囊控件现在也出现在 3D 浮雕预览中）以及四项修复/UX 变更（#839/#846 在切换到标准模式时丢弃高度实时预览；#864/#865 修复 macOS 上应用切换器/Stage Manager 侧边栏中错误的进程图标；#867 将标准/专家模式提示从常驻文字改为工具提示；#868 将“从图像生成高度图”主按钮移到步骤 5 顶部）。下一个版本的冻结文档尚不存在（`docs/history/RELEASE-*-scope-freeze.md` 仍止步于 2.8.0）。由于 3D 缩放胶囊是一项新功能，按 SemVer 应发布**次要版本 v2.9.0**，目前已到期但尚未启动准备工作。#866 与 #869 与此无关，不会阻塞该发布。
 
@@ -25,7 +25,7 @@
 
 **EufyMake #681/#687–#691：** 现有 31 个 fixture、协议模板和已批准的测试治理均已正确反映在议题中。#687 已完成 16/18 项标准；仅剩 I-06（文件夹/清单）以及真实测试后的收尾评审。对于独立的 Spot UV 路径，有厂商资料支持的假设为：黑色 = gloss，白色 = 无 gloss。完整 16 位利用、`pHYs` 优先级、灰度到毫米映射以及 gloss 强度仍是 #688–#690 的硬件问题。
 
-保持不变并已关闭：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项、v2.7.0 至 v2.8.0 各版本，以及史诗 #741（含其十一个子议题）、史诗 #805（含 #806–#811）、#817 与 #821；自上次同步以来新关闭：#836（PR #844）、#837（PR #838）、#839（PR #846）、#849（PR #851）、#841（由 owner 关闭）与 #847（PR #852）（详见以往轮次）。
+保持不变并已关闭：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项、v2.7.0 至 v2.8.0 各版本，以及史诗 #741（含其十一个子议题）、史诗 #805（含 #806–#811）、#817 与 #821；自上次同步以来新关闭：#836（PR #844）、#837（PR #838）、#839（PR #846）、#849（PR #851）、#841（由 owner 关闭）、#847（PR #852）与 #869（PR #873）（详见以往轮次）。
 
 未结事项：下方分诊表中每个议题一行。自 #821 起，数量与表行都不再人工维护——`scripts/recommendations_live_check.py --write` 依据 GitHub 实时状态更新全部六个版本，评估列仍是编辑工作。
 
@@ -48,7 +48,6 @@
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | #825 后的评审自动化：评估回合预算中断并决定工具范围 | 🟡 中（自动评审的 CI 成本/可靠性，非产品关键） | 🟡 中（被动测量；仍有多个独立问题） | –（上层跟踪议题） | allowlist/提示修复（PR #850）与运维补齐（PR #853：成本/令牌过期已记录、`issues: read`、原因输出、单一权威分类）均已合并；#841 在未进行测量序列的情况下关闭，判据见 docs/history/ISSUE-841-VERIFIKATION.md。自评审循环降级（2026-08-24，docs/history/ADR-2026-reviewschleifen-entschaerfung.md）起：测量序列在接下来的十次真实评审运行中被动进行，不因配置修复而重置；得益于每个 PR 仅一次评审的触发器，置顶问题已不复存在；提示精简已于 2026-08-24 完成（docs/history/ADR-2026-review-workflow-verschlankung.md：提示约 55 行、回合预算与超时设上限（数值见 ADR）、论证与分类法移入 ADR），其余改造（移除 `actions: read`、`Read` 路径规则）冻结至十次运行测量完成 |
 | [#866](https://github.com/NikolayDA/picture_helper/issues/866) | macOS 应用在 Apple Silicon 上以 x86_64 经 Rosetta 运行而非原生 arm64 | 🟡 中（AI 推理/渲染经转译而非原生运行：性能/能耗；应用功能正常） | 🟢 低-中（setup 检测、真实的启动器日志、diagnose_mac.sh；端到端仅可在真实 macOS 硬件上验证） | Bug Fix Agent（在目标机器上的验证：仓库所有者） | 新（2026-08-25）——来自 #864/#865 诊断的附带观察；目标机器上的根因尚未确认（x86_64 venv 还是“使用 Rosetta 打开”），验收标准 AC1–AC6 见 issue |
-| [#869](https://github.com/NikolayDA/picture_helper/issues/869) | 测试套件审计（2026-08-26）：重复用例、实现耦合、薄弱断言 | 🟢 低(无生产环境缺陷；纯测试质量/可维护性问题) | 🟢 低(约10个测试文件中范围明确的机械式修改，issue 中的清单已按优先级列出) | Sonnet，低-中 | 可立即启动——移除 `test_workers.py` 中的重复用例、减轻 `test_project_history.py` 对内部记账字段的耦合、修正六处薄弱断言、为 `test_zoom_control.py` 增加一个伪造的 `ZoomTarget` |
 
 ### 接下来推荐
 
@@ -57,10 +56,10 @@
 3. 一旦有 Studio/打印机硬件：将 #687（剩余，尤其 I-06）、#688、#689、#690 已准备好的真实测试
    在一次打包会话中执行——fixture、协议模板和已批准的中止标准均已齐备。
 4. **准备发布 v2.9.0** —— 自 v2.8.0 以来，`CHANGELOG.md` 的 `[Unreleased]` 部分已累积一项功能（#863）和四项修复/UX 变更（#839、#864/#865、#867、#868）；范围冻结文档和版本号提升仍待完成。
-5. **#869** —— 范围明确的测试质量清单（移除重复用例、修正六处断言、为 `test_zoom_control.py` 增加一个用例）已可作为一个小型 Sonnet PR 直接启动。
 
 ## 以往轮次
 
+- **2026-08-26（#869 已完成）** —— [PR #873](https://github.com/NikolayDA/picture_helper/pull/873) 完整处理了测试套件审计的清单，包括可选项：将 `test_workers.py` 中 `version`/`content_revision` 的重复用例合并为一个显式验证别名契约的用例；为 `ProjectHistory` 增加了小而完整的公开自省 API（`history_bytes`、`undo_depth`/`redo_depth`/`redo_capacity`、`has_original`、`pooled_payloads()`、`retained_payloads()`），使 `tests/test_project_history.py` 不再触及任何私有记账字段；将六处薄弱断言收紧到其文档承诺（含此前未覆盖的 `REMBG_AVAILABLE` 之 `find_spec` 错误分支）；为 `test_zoom_control.py` 增加了基于伪 `ZoomTarget` 的协议测试；并把 `test_canvas_layers.py`、`test_main_window.py`、`test_preview3d_controller.py` 与 `test_eufymake_export_dialog.py` 中的私有字段/控件访问替换为公开自省（`ImageCanvas.preview_active`/`transient_preview`、`EufyMakeExportDialog.current_findings()`）或行为断言。TESTING.md 另新增了完整的模块→测试文件对照表，由 `tests/test_module_test_map.py` 离线双向强制校验——即审计中的可发现性问题。`make check` 通过（2433 passed），`make coverage` 保持 93 %。
 - **2026-08-26（例行检查，新收录 #869，已识别 v2.9.0 发布范围）** —— 核对 GitHub 实时状态为 16 个未结议题；新收录并评估了 #869（自动化测试套件审计：`test_workers.py` 中的重复用例、若干私有字段/控件访问、六处薄弱断言，无生产环境缺陷，`make coverage` 93%）。#866 与 #828 自上次同步以来无变化。这是自 v2.8.0（2026-08-17）以来首次将提交历史与 `CHANGELOG.md` 对照检查：`[Unreleased]` 已包含一项功能（#863，3D 浮雕预览中的缩放胶囊控件）以及四项修复/UX 变更（#839/#846、#864/#865、#867、#868)——因此次要版本 **v2.9.0** 已到期但尚未准备（无范围冻结文档）。`scripts/recommendations_live_check.py --write`（由于代理沙箱仍无法直接访问实时 API，见 #752 历史，此次改为离线针对本地整理的 16 议题快照运行）机械同步了六种语言版本的表格；编辑列由人工补全。
 
 - **2026-08-25（#856 已完成，#828 测量进度 3/10）** —— [PR #859](https://github.com/NikolayDA/picture_helper/pull/859) 已在六份指南中补充 FUSE 与 macOS 前置条件；后续 [PR #860](https://github.com/NikolayDA/picture_helper/pull/860) 移除开放分诊行并同步关闭 [#856](https://github.com/NikolayDA/picture_helper/issues/856)。#859 的三次评审运行占据固定十次样本的前三个位置：一次绿色、两次因回合上限而红色；还剩七次真实运行。

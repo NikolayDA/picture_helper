@@ -12,6 +12,7 @@ import pytest
 from PIL import Image
 
 from bgremover.eufymake_export_dialog import EufyMakeExportDialog
+from bgremover.eufymake_validate import ExportCheckCode
 from bgremover.project_model import LayerKind, LayerRole, Project
 
 
@@ -151,15 +152,25 @@ def test_warning_requires_explicit_confirmation(qapp) -> None:
 def test_8bit_adds_unconfirmed_warning(qapp) -> None:
     # Seit #687 (unbestätigte Herstellerempfehlung: 16 Bit für Höhenkarten) ist
     # der DEFAULT_BIT_DEPTH-Pfad (8) der unbestätigte, nicht mehr 16 Bit.
+    # Der Befund wird über den stabilen ``ExportCheckCode`` geprüft, nicht mehr
+    # über den übersetzten Labeltext (#869). Die Sichtbarkeit der
+    # Bestätigungs-Checkbox bleibt bewusst eine Widget-Assertion: dass eine
+    # Warnung genau diese Box einblendet, *ist* der Gegenstand dieses
+    # Dialogtests. Das Umstellen der Bittiefe bleibt der Arrange-Schritt über
+    # das Combo – einen öffentlichen Setter gibt es (mangels produktivem
+    # Aufrufer) bewusst nicht.
     project = _with_height(_color_project())
     dlg = EufyMakeExportDialog(project)
     try:
         assert dlg.selected_bit_depth() == 8
-        assert "8 Bit" in dlg._findings_label.text()
+        codes = [finding.code for finding in dlg.current_findings()]
+        assert codes == [ExportCheckCode.BIT_DEPTH_UNCONFIRMED]
         assert not dlg._confirm.isHidden()
+
         dlg._bit_combo.setCurrentIndex(dlg._bit_combo.findData(16))
+
         assert dlg.selected_bit_depth() == 16
-        assert dlg._findings_label.text() == "Keine Beanstandungen."
+        assert dlg.current_findings() == ()
         assert dlg._confirm.isHidden()
     finally:
         dlg.close()

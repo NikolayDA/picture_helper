@@ -65,7 +65,12 @@ def test_paint_brush_allocates_overlay_pixmap(qapp) -> None:
     c = _canvas()
     c.set_tool(TOOL_BRUSH)
     c._paint_brush(20, 20, additive=True)
-    assert c.overlay_pixmap is not None
+    pm = c.overlay_pixmap
+    assert pm is not None
+    # Wie beim Freigabe-Nachbartest gilt: das Pixmap deckt exakt die Bildfläche
+    # ab. Ohne Größenabgleich bliebe eine falsch dimensionierte Allokation
+    # (etwa auf Viewport- statt Bildmaß) unbemerkt (#869).
+    assert (pm.width(), pm.height()) == (40, 40)
 
 
 def test_incremental_stroke_reuses_overlay_pixmap(qapp) -> None:

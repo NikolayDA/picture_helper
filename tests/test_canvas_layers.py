@@ -581,18 +581,18 @@ def test_transient_color_preview_rerenders_for_display_settings(qapp) -> None:
     revision = canvas.content_revision
 
     canvas.preview_color_op(lambda image: _solid(*image.size, (180, 120, 90, 200)))
-    color_preview = np.array(canvas._preview)
+    color_preview = np.array(canvas.transient_preview)
     canvas.set_preview_mode(PreviewMode.COMBINED)
-    combined = np.array(canvas._preview)
+    combined = np.array(canvas.transient_preview)
     canvas.set_relief_strength(0)
-    without_relief = np.array(canvas._preview)
+    without_relief = np.array(canvas.transient_preview)
     canvas.set_gloss_visible(False)
-    without_gloss = np.array(canvas._preview)
+    without_gloss = np.array(canvas.transient_preview)
 
     assert not np.array_equal(combined, color_preview)
     assert not np.array_equal(without_relief, combined)
     assert not np.array_equal(without_gloss, without_relief)
-    assert canvas._preview_layer_override is not None
+    assert canvas.preview_active
     assert np.array_equal(np.array(color.image), model_before)
     assert np.array_equal(np.array(project.composite_color()), export_before)
     assert canvas.content_revision == revision
@@ -607,16 +607,16 @@ def test_transient_height_preview_rerenders_for_display_settings(qapp) -> None:
     canvas.set_preview_mode(PreviewMode.HEIGHT)
 
     canvas.preview_height_op(_levels_op)
-    height_preview = np.array(canvas._preview)
+    height_preview = np.array(canvas.transient_preview)
     canvas.set_preview_mode(PreviewMode.RELIEF)
-    relief_preview = np.array(canvas._preview)
+    relief_preview = np.array(canvas.transient_preview)
     canvas.set_relief_strength(0)
-    no_relief = np.array(canvas._preview)
+    no_relief = np.array(canvas.transient_preview)
 
     assert np.all(height_preview[:, :, :3] == 128)
     assert not np.array_equal(relief_preview, height_preview)
     assert np.array_equal(no_relief, np.array(project.composite_color()))
-    assert canvas._preview_layer_override is not None
+    assert canvas.preview_active
     assert np.array_equal(np.array(project.active_layer().image), model_before)
 
 
@@ -1032,8 +1032,8 @@ def test_height_op_preview_is_nondestructive(qapp) -> None:
     canvas.set_preview_mode(PreviewMode.HEIGHT)
 
     canvas.preview_height_op(_levels_op)
-    assert canvas._preview is not None
-    assert np.all(np.array(canvas._preview)[:, :, 0] == 128)   # Vorschau zeigt Ergebnis
+    assert canvas.transient_preview is not None
+    assert np.all(np.array(canvas.transient_preview)[:, :, 0] == 128)   # Vorschau zeigt Ergebnis
     assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)  # Modell unberührt
 
 
@@ -1043,8 +1043,8 @@ def test_height_op_commit_is_undoable(qapp) -> None:
 
     canvas.preview_height_op(_levels_op)
     canvas.apply_height_op(_levels_op)
-    assert canvas._preview is None
-    assert canvas._preview_layer_override is None
+    assert canvas.transient_preview is None
+    assert not canvas.preview_active
     assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 128)
 
     canvas.undo()
@@ -1057,8 +1057,8 @@ def test_height_op_cancel_restores_model(qapp) -> None:
 
     canvas.preview_height_op(_levels_op)
     canvas.cancel_height_preview()
-    assert canvas._preview is None
-    assert canvas._preview_layer_override is None
+    assert canvas.transient_preview is None
+    assert not canvas.preview_active
     assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)
 
 
@@ -1069,10 +1069,10 @@ def test_height_preview_cleared_on_layer_switch(qapp) -> None:
     color_id = project.layers[0].id
 
     canvas.preview_height_op(_levels_op)
-    assert canvas._preview is not None
+    assert canvas.transient_preview is not None
     canvas.set_active_layer(color_id)               # Zustandswechsel verwirft Vorschau
-    assert canvas._preview is None
-    assert canvas._preview_layer_override is None
+    assert canvas.transient_preview is None
+    assert not canvas.preview_active
 
 
 def test_height_op_requires_height_layer(qapp) -> None:
@@ -1084,7 +1084,7 @@ def test_height_op_requires_height_layer(qapp) -> None:
     canvas.statusMsg.connect(msgs.append)
     canvas.preview_height_op(_levels_op)
     canvas.apply_height_op(_levels_op)
-    assert canvas._preview is None
+    assert canvas.transient_preview is None
     assert np.array_equal(np.array(canvas.image), before)
     assert any("höhenebene" in m.lower() for m in msgs)
 
@@ -1138,8 +1138,8 @@ def test_color_preview_is_nondestructive(qapp) -> None:
     before = np.array(canvas.image).copy()
 
     canvas.preview_color_op(_brighten_op)
-    assert canvas._preview is not None
-    assert np.all(np.array(canvas._preview)[:, :, 0] == 150)        # Vorschau zeigt Ergebnis
+    assert canvas.transient_preview is not None
+    assert np.all(np.array(canvas.transient_preview)[:, :, 0] == 150)        # Vorschau zeigt Ergebnis
     assert np.array_equal(np.array(canvas.image), before)           # Modell unberührt
 
 
@@ -1150,8 +1150,8 @@ def test_color_commit_is_single_undoable_step(qapp) -> None:
 
     canvas.preview_color_op(_brighten_op)
     canvas.apply_color_op(_brighten_op)
-    assert canvas._preview is None
-    assert canvas._preview_layer_override is None
+    assert canvas.transient_preview is None
+    assert not canvas.preview_active
     assert np.all(np.array(canvas.image)[:, :, 0] == 150)
     assert canvas._history.descriptions() == ["Farbkorrektur"]      # genau ein Schritt
 
@@ -1168,8 +1168,8 @@ def test_color_cancel_restores_model(qapp) -> None:
 
     canvas.preview_color_op(_brighten_op)
     canvas.cancel_color_preview()
-    assert canvas._preview is None
-    assert canvas._preview_layer_override is None
+    assert canvas.transient_preview is None
+    assert not canvas.preview_active
     assert np.array_equal(np.array(canvas.image), before)
 
 
@@ -1179,10 +1179,10 @@ def test_color_preview_cleared_on_layer_switch(qapp) -> None:
     canvas.set_project(project)
     canvas.set_active_layer(project.layers[0].id)   # COLOR aktiv
     canvas.preview_color_op(_brighten_op)
-    assert canvas._preview is not None
+    assert canvas.transient_preview is not None
     canvas.set_active_layer(project.layers[1].id)   # Zustandswechsel verwirft Vorschau
-    assert canvas._preview is None
-    assert canvas._preview_layer_override is None
+    assert canvas.transient_preview is None
+    assert not canvas.preview_active
 
 
 def test_color_tools_ignore_non_color_layer(qapp) -> None:
@@ -1194,7 +1194,7 @@ def test_color_tools_ignore_non_color_layer(qapp) -> None:
     msgs: list[str] = []
     canvas.statusMsg.connect(msgs.append)
     canvas.preview_color_op(_brighten_op)
-    assert canvas._preview is None                   # Vorschau still übersprungen
+    assert canvas.transient_preview is None                   # Vorschau still übersprungen
     canvas.apply_color_op(_brighten_op)
     assert np.array_equal(np.array(canvas.project.active_layer().image), before)
     assert any("farbebene" in m.lower() for m in msgs)
@@ -1229,7 +1229,7 @@ def test_height_preview_never_writes_back_into_payload(qapp) -> None:
     view = layer.image
 
     canvas.preview_height_op(_levels_op)
-    assert canvas._preview is not None
+    assert canvas.transient_preview is not None
     assert layer.height_data is payload                 # Payload-Objekt unberührt
     assert list(np.unique(payload.values)) == [0x1234]  # Niederbits erhalten
     assert layer.image is view                          # Ansicht nach Render restauriert
