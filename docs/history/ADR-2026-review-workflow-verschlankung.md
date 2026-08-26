@@ -84,6 +84,14 @@ Verschlankung von Prompt, Prosa und Tests, **E5** die Kostenbremse
    Timeout-Kill **ohne jede Ausgabe** statt roter Check **mit**
    vollständiger Ausgabe. Kostenbremse bleibt der
    Ein-Review-je-PR-Trigger, nicht der Timeout.
+   Die 20 sind bewusst großzügig gerundet statt knapp gerechnet: Die Rate
+   stammt aus einem 17-Turn-Lauf und ist nach oben offen, weil die Turn-Dauer
+   mit dem wachsenden Kontext steigt — die lineare Hochrechnung auf 40 Turns
+   unterschätzt also eher, und wie viel, ist bis zu einem realen
+   35–40-Turn-Lauf **unbelegt**. Dazu kommt die Asymmetrie des Fehlerfalls:
+   Bindet der Timeout, bricht der Job ab, und der nachgelagerte
+   Diagnoseschritt liefert seinen Ablehnungszähler nicht mehr verlässlich —
+   die Messgröße von #828 fehlt dann ausgerechnet im interessanten Fall.
 5. **Bewusst unverändert:** die Allowlist (wortgleich übernommen), das
    Verhalten des Diagnose-Skripts, das Opus-Pinning (ein Review je PR ist
    die Kostenbremse; das stärkere Modell je Lauf ist gewollt) und die

@@ -59,11 +59,16 @@ jobs:
       group: claude-review-${{ github.event.pull_request.number }}
       cancel-in-progress: true
     runs-on: ubuntu-latest
-    # Echte Reviews: median ~5, maximal beobachtet ~9 Minuten (E5). Mit dem
-    # 40er-Budget bindet der Timeout, nicht mehr der Deckel: bei der
+    # Echte Reviews: median ~5, maximal beobachtet ~9 Minuten (E5). 15 Minuten
+    # hätten mit dem 40er-Budget die Rolle des Deckels übernommen: bei der
     # langsamsten gemessenen Rate (Lauf 32903367472, ~20 s/Turn) kosten
-    # 40 Turns rund 13 Minuten. 20 statt 15 hält Luft, ohne die
-    # Kostenbremse zu lösen — die ist der Ein-Review-je-PR-Trigger.
+    # 40 Turns rund 13 Minuten plus Checkout. 20 halten den Timeout hinter
+    # dem Budget — gewollt ist der rote Check MIT veröffentlichter Ausgabe,
+    # nicht der Timeout-Kill ohne. Großzügig gerundet, aus zwei Gründen: Die
+    # Rate stammt aus einem 17-Turn-Lauf und ist nach oben offen (Turn-Dauer
+    # wächst mit dem Kontext), und bindet der Timeout doch, bricht der Job ab
+    # — dann fehlt der Ablehnungszähler des Diagnoseschritts genau im
+    # interessanten Fall. Kostenbremse bleibt der Ein-Review-je-PR-Trigger.
     timeout-minutes: 20
     permissions:
       contents: read # Checkout nur lesen; kein Schreibweg in den Code
