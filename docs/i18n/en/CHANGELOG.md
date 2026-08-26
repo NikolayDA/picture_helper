@@ -76,8 +76,10 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 - **Impact:** Feature release. The floating zoom pill now also drives the 3D
   relief preview; on top of that, four fixes (height live preview on mode
-  switch, application icon at runtime, two macOS launch paths) and two
-  inspector rearrangements. Image, project, and export data stay unchanged.
+  switch, application icon at runtime, two macOS launch paths – the latter
+  two only in the app bundle built from source, not in the shipped
+  `.dmg`) and two inspector rearrangements. Image, project, and export data
+  stay unchanged.
 - **Affected users:** Anyone using the 3D relief preview gets the same zoom
   control there as on the 2D canvas. The application icon is now set at
   runtime on every platform (macOS app switcher and Stage Manager sidebar,

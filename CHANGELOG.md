@@ -78,8 +78,10 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 - **Auswirkung:** Feature-Release. Die schwebende Zoom-Pille bedient jetzt
   auch die 3D-Reliefvorschau; dazu vier Korrekturen (Höhen-Live-Vorschau beim
-  Moduswechsel, Anwendungs-Icon zur Laufzeit, zwei macOS-Startpfade) und zwei
-  Umbauten im Inspector. Bild-, Projekt- und Exportdaten bleiben unverändert.
+  Moduswechsel, Anwendungs-Icon zur Laufzeit, zwei macOS-Startpfade – die
+  beiden letzten nur im aus dem Quellbaum gebauten App-Bundle, nicht im
+  ausgelieferten `.dmg`) und zwei Umbauten im Inspector. Bild-, Projekt- und
+  Exportdaten bleiben unverändert.
 - **Betroffene Anwender:innen:** Wer die 3D-Reliefvorschau nutzt, hat dort
   dieselbe Zoom-Kontrolle wie auf der 2D-Leinwand. Das Anwendungs-Icon wird
   auf allen Plattformen zur Laufzeit gesetzt (macOS-App-Umschalter und

@@ -84,9 +84,10 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 - **Impact :** Version fonctionnelle. La pastille de zoom flottante pilote
   désormais aussi l'aperçu de relief 3D ; s'y ajoutent quatre correctifs
   (aperçu de hauteur en direct lors du changement de mode, icône
-  d'application à l'exécution, deux chemins de démarrage macOS) et deux
-  remaniements de l'inspecteur. Les données d'image, de projet et d'export
-  restent inchangées.
+  d'application à l'exécution, deux chemins de démarrage macOS – ces
+  deux derniers uniquement dans le bundle construit depuis les sources,
+  pas dans le `.dmg` livré) et deux remaniements de l'inspecteur. Les
+  données d'image, de projet et d'export restent inchangées.
 - **Utilisateurs concernés :** Quiconque utilise l'aperçu de relief 3D y
   dispose du même contrôle de zoom que sur la toile 2D. L'icône
   d'application est désormais définie à l'exécution sur toutes les

@@ -88,8 +88,10 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 - **Impacto:** Versión de funcionalidad. La pastilla de zoom flotante ahora
   también controla la vista previa de relieve 3D; además, cuatro correcciones
   (vista previa de altura en vivo al cambiar de modo, icono de aplicación en
-  tiempo de ejecución, dos rutas de arranque de macOS) y dos reordenaciones
-  del inspector. Los datos de imagen, proyecto y exportación no cambian.
+  tiempo de ejecución, dos rutas de arranque de macOS: estas dos
+  últimas solo en el paquete de aplicación construido desde el código
+  fuente, no en el `.dmg` distribuido) y dos reordenaciones del inspector.
+  Los datos de imagen, proyecto y exportación no cambian.
 - **Usuarios afectados:** Quien use la vista previa de relieve 3D dispone
   allí del mismo control de zoom que en el lienzo 2D. El icono de la
   aplicación se establece ahora en tiempo de ejecución en todas las
