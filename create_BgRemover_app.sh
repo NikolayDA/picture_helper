@@ -33,6 +33,7 @@ NATIVE_ARCH="$(hardware_arch)"
 
 supports_native_arch() {
     [ -x "$1" ] || return 1
+    [ -n "$NATIVE_ARCH" ] || return 0
     /usr/bin/arch -"$NATIVE_ARCH" "$1" -c \
         'import platform, sys; sys.exit(0 if platform.machine() == sys.argv[1] else 1)' \
         "$NATIVE_ARCH" >/dev/null 2>&1
@@ -432,16 +433,45 @@ if [ "\$(/usr/sbin/sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" = "1" ]; 
 else
     NATIVE_ARCH="\$(/usr/bin/uname -m 2>/dev/null)"
 fi
-run_python() {
+select_run() {
     local py="\$1"
-    shift
+    RUN=("\$py")
     if [ -n "\$NATIVE_ARCH" ] && /usr/bin/arch -"\$NATIVE_ARCH" "\$py" -c 'pass' >/dev/null 2>&1; then
-        /usr/bin/arch -"\$NATIVE_ARCH" "\$py" "\$@"
-    else
-        "\$py" "\$@"
+        RUN=(/usr/bin/arch -"\$NATIVE_ARCH" "\$py")
     fi
 }
-py_check() { run_python "\$1" -c 'import bgremover' >/dev/null 2>&1; }
+py_check() {
+    select_run "\$1"
+    PY_CHECK_OUTPUT="\$("\${RUN[@]}" -c 'import platform
+import bgremover
+
+translated = "unbekannt"
+try:
+    import ctypes
+
+    value = ctypes.c_int(0)
+    size = ctypes.c_size_t(ctypes.sizeof(value))
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.sysctlbyname.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_size_t),
+        ctypes.c_void_p,
+        ctypes.c_size_t,
+    ]
+    libc.sysctlbyname.restype = ctypes.c_int
+    if libc.sysctlbyname(b"sysctl.proc_translated", ctypes.byref(value), ctypes.byref(size), None, 0) == 0:
+        translated = str(value.value)
+except Exception:
+    pass
+print(f"\nBGREMOVER_RUNTIME|{platform.machine()}|{translated}")' 2>&1)" || {
+        IMPORT_ERR="\$PY_CHECK_OUTPUT"
+        return 1
+    }
+    RUNTIME_INFO="\$(printf '%s\n' "\$PY_CHECK_OUTPUT" | sed -n 's/^BGREMOVER_RUNTIME|//p' | tail -n 1)"
+    [ -n "\$RUNTIME_INFO" ] || RUNTIME_INFO="unbekannt|unbekannt"
+    IMPORT_ERR=""
+}
 
 # Eingebetteter Interpreter: __PYVENV_LAUNCHER__ zeigt auf denselben
 # venv-Stub, den auch der Fallback startet – der Export vor der Probe ist
@@ -473,7 +503,6 @@ fi
 # einwandfrei importierbar ist. Bei erfolgreicher Embedded-Probe oben
 # (EMBEDDED_OK) ist der Import bereits belegt – kein zweiter Start.
 if [ -z "\$EMBEDDED_OK" ] && ! py_check "\$PYTHON"; then
-    IMPORT_ERR="\$(run_python "\$PYTHON" -c 'import bgremover' 2>&1)"
     if printf '%s' "\$IMPORT_ERR" | grep -qE "No module named '?bgremover'?"; then
         fail "Das bgremover-Paket fehlt in der venv:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
     fi
@@ -481,32 +510,21 @@ if [ -z "\$EMBEDDED_OK" ] && ! py_check "\$PYTHON"; then
     fail "bgremover laesst sich nicht importieren in:"\$'\\n'"\$PYTHON"\$'\\n\\n'"\$LASTLINE"\$'\\n\\n'"Fix: bash diagnose_mac.sh fuer Details ausfuehren, ggf. venv neu bauen."
 fi
 
-# Native CPU-Architektur erzwingen (NATIVE_ARCH oben bestimmt): wird die
-# .app via Rosetta gestartet, läuft Python sonst als x86_64 und kann
-# arm64-Pakete nicht laden. Nur anwenden, wenn dieses Python die native
-# Arch wirklich unterstützt, sonst normal starten.
-RUN=("\$PYTHON")
-if [ -n "\$NATIVE_ARCH" ] && /usr/bin/arch -"\$NATIVE_ARCH" "\$PYTHON" -c 'pass' >/dev/null 2>&1; then
-    RUN=(/usr/bin/arch -"\$NATIVE_ARCH" "\$PYTHON")
-fi
-
-# Tatsächliche Interpreter-Architektur und Rosetta-Status IM Python-Prozess
-# erfassen. ``ctypes`` fragt ``sysctl.proc_translated`` im laufenden Prozess
-# ab; damit ist die Logzeile belastbarer als das frühere ``uname -m`` des
-# zsh-Launchers (#866).
-RUNTIME_INFO="\$("\${RUN[@]}" -c 'import ctypes, platform
-translated = "unbekannt"
-try:
-    value = ctypes.c_int(0)
-    size = ctypes.c_size_t(ctypes.sizeof(value))
-    libc = ctypes.CDLL(None)
-    if libc.sysctlbyname(b"sysctl.proc_translated", ctypes.byref(value), ctypes.byref(size), None, 0) == 0:
-        translated = str(value.value)
-except Exception:
-    pass
-print(f"{platform.machine()}|{translated}")' 2>/dev/null || echo "unbekannt|unbekannt")"
+# ``py_check`` hat die tatsächliche Interpreter-Architektur und den
+# Rosetta-Status bereits im erfolgreichen Importprozess erfasst. Dadurch
+# entsteht für die Logzeile kein zusätzlicher Python-Kaltstart (#866).
 PYTHON_ARCH="\${RUNTIME_INFO%%|*}"
 PYTHON_TRANSLATED="\${RUNTIME_INFO#*|}"
+RUNTIME_WARNING=""
+if [ "\$NATIVE_ARCH" = "arm64" ] \\
+   && { [ "\$PYTHON_ARCH" = "x86_64" ] || [ "\$PYTHON_TRANSLATED" = "1" ]; }; then
+    RUNTIME_WARNING="WARNUNG: Python läuft als x86_64 unter Rosetta. Fix: bash create_BgRemover_app.sh erneut ausführen."
+elif [ "\$PYTHON_ARCH" = "unbekannt" ] || [ "\$PYTHON_TRANSLATED" = "unbekannt" ]; then
+    RUNTIME_WARNING="HINWEIS: Interpreter-Architektur oder Rosetta-Status konnte nicht vollständig ermittelt werden."
+elif [ "\$NATIVE_ARCH" = "arm64" ] \\
+     && [ "\$PYTHON_ARCH" != "arm64" ]; then
+    RUNTIME_WARNING="WARNUNG: Python läuft nicht nativ als arm64 (interpreter_arch=\$PYTHON_ARCH). Fix: bash create_BgRemover_app.sh erneut ausführen."
+fi
 
 # Logposition VOR diesem Start merken. Die Fehlersuche unten darf nur
 # Zeilen DIESES Laufs sehen – sonst zeigt der Dialog veraltete Fehler
@@ -516,7 +534,8 @@ PYTHON_TRANSLATED="\${RUNTIME_INFO#*|}"
 LSTART=\$(wc -l < "\$LOG" 2>/dev/null || echo 0)
 
 { echo "--- \$(date '+%Y-%m-%d %H:%M:%S') BgRemover-Start ---"
-  echo "Python: \$PYTHON  (interpreter_arch=\$PYTHON_ARCH, proc_translated=\$PYTHON_TRANSLATED, hardware_arch=\$NATIVE_ARCH)"; } >> "\$LOG" 2>&1
+  echo "Python: \$PYTHON  (interpreter_arch=\$PYTHON_ARCH, proc_translated=\$PYTHON_TRANSLATED, hardware_arch=\$NATIVE_ARCH)"
+  [ -z "\$RUNTIME_WARNING" ] || echo "\$RUNTIME_WARNING"; } >> "\$LOG" 2>&1
 
 if ! "\${RUN[@]}" -m bgremover "\$@" >> "\$LOG" 2>&1; then
     LASTERR=\$(tail -n +\$((LSTART + 1)) "\$LOG" 2>/dev/null | grep -E 'Error|Exception|Traceback' | tail -n 1)

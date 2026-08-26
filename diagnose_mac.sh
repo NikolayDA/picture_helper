@@ -69,7 +69,7 @@ else
     HARDWARE_ARCH="$(uname -m 2>/dev/null)"
 fi
 PROCESS_ARCH="$(uname -m 2>/dev/null)"
-PROC_TRANSLATED="$(/usr/sbin/sysctl -in sysctl.proc_translated 2>/dev/null || echo 0)"
+PROC_TRANSLATED="$(/usr/sbin/sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)"
 
 # ── System ─────────────────────────────────────────────────────
 print_header "SYSTEM"
@@ -86,13 +86,22 @@ print_header "PYTHON-KANDIDATEN"
 APP_VENV="$HOME/Library/Application Support/BgRemover/venv/bin/python3"
 
 if [ -x "$APP_VENV" ]; then
-    APP_VENV_RUNTIME_ARCH="$("$APP_VENV" -c 'import platform; print(platform.machine())' 2>/dev/null || echo unbekannt)"
-    if [ "$HARDWARE_ARCH" = "arm64" ] \
-       && ! /usr/bin/arch -arm64 "$APP_VENV" -c 'pass' >/dev/null 2>&1; then
+    APP_VENV_NATIVE=""
+    if [ -n "$HARDWARE_ARCH" ] \
+       && /usr/bin/arch -"$HARDWARE_ARCH" "$APP_VENV" -c 'pass' >/dev/null 2>&1; then
+        APP_VENV_NATIVE=1
+        APP_VENV_RUNTIME_ARCH="$(/usr/bin/arch -"$HARDWARE_ARCH" "$APP_VENV" -c \
+            'import platform; print(platform.machine())' 2>/dev/null || echo unbekannt)"
+    else
+        APP_VENV_RUNTIME_ARCH="$("$APP_VENV" -c \
+            'import platform; print(platform.machine())' 2>/dev/null || echo unbekannt)"
+    fi
+    if [ "$HARDWARE_ARCH" = "arm64" ] && [ -z "$APP_VENV_NATIVE" ]; then
         echo "BEFUND: ARCHITEKTUR-MISMATCH – Apple-Silicon-Hardware, App-venv=$APP_VENV_RUNTIME_ARCH."
         echo "  Die App läuft damit als x86_64 unter Rosetta statt nativ arm64."
         echo "  Abhilfe: brew install python"
-        echo "           rm -rf \"$HOME/Library/Application Support/BgRemover/venv\""
+        # shellcheck disable=SC2016  # $HOME muss als kopierbares Literal erscheinen.
+        echo '           rm -rf "$HOME/Library/Application Support/BgRemover/venv"'
         echo "           bash create_BgRemover_app.sh"
     else
         echo "App-venv-Architektur: $APP_VENV_RUNTIME_ARCH (passt zu $HARDWARE_ARCH)"
@@ -113,15 +122,21 @@ CANDIDATES=(
 NATIVE_ARCH="$HARDWARE_ARCH"
 for py in "${CANDIDATES[@]}"; do
     [ -x "$py" ] || continue
-    ver="$("$py" -c 'import sys;print("%d.%d.%d"%sys.version_info[:3])' 2>/dev/null || echo "?")"
-    runtime_arch="$("$py" -c 'import platform; print(platform.machine())' 2>/dev/null || echo "?")"
-    file_arch="$(/usr/bin/file "$py" 2>/dev/null | sed 's/^[^:]*: //')"
-    arch_ok="?"
-    if /usr/bin/arch -"$NATIVE_ARCH" "$py" -c 'pass' >/dev/null 2>&1; then
+    file_arch="$(/usr/bin/file -L "$py" 2>/dev/null | sed 's/^[^:]*: //')"
+    PY_RUN=("$py")
+    if [ -n "$NATIVE_ARCH" ] \
+       && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c 'pass' >/dev/null 2>&1; then
+        PY_RUN=(/usr/bin/arch -"$NATIVE_ARCH" "$py")
         arch_ok="ok ($NATIVE_ARCH nativ)"
+    elif [ -n "$NATIVE_ARCH" ]; then
+        arch_ok="kein $NATIVE_ARCH (direkter Lauf)"
     else
-        arch_ok="kein $NATIVE_ARCH"
+        arch_ok="Hardware-Architektur unbekannt (direkter Lauf)"
     fi
+    ver="$("${PY_RUN[@]}" -c \
+        'import sys;print("%d.%d.%d"%sys.version_info[:3])' 2>/dev/null || echo "?")"
+    runtime_arch="$("${PY_RUN[@]}" -c \
+        'import platform; print(platform.machine())' 2>/dev/null || echo "?")"
     echo
     echo "→ $py"
     echo "  Python $ver   runtime_arch: $runtime_arch   native_probe: $arch_ok"
@@ -133,10 +148,10 @@ for py in "${CANDIDATES[@]}"; do
         # Injection ein `bgremover/`-Quellverzeichnis im aktuellen
         # Ordner faelschlich als „installiert" – genau so, wie der
         # App-Launcher (anderer cwd) es eben NICHT sieht.
-        if ( cd "$HOME" && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" ) >/dev/null 2>&1; then
+        if ( cd "$HOME" && "${PY_RUN[@]}" -c "import $mod" ) >/dev/null 2>&1; then
             echo "  ✓ $mod"
         else
-            ERR="$( ( cd "$HOME" && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" ) 2>&1)"
+            ERR="$( ( cd "$HOME" && "${PY_RUN[@]}" -c "import $mod" ) 2>&1)"
             LAST="$(printf '%s' "$ERR" | tail -n 1)"
             echo "  ✗ $mod   → $LAST"
         fi
@@ -145,7 +160,7 @@ for py in "${CANDIDATES[@]}"; do
     # alleine zeigt nicht, ob Qt zur Laufzeit das `cocoa`-Plugin findet
     # (typischer venv-Fehler: "Could not find the Qt platform plugin
     # 'cocoa' in ''").
-    if QAOUT="$( ( cd "$HOME" && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c \
+    if QAOUT="$( ( cd "$HOME" && "${PY_RUN[@]}" -c \
         'from PyQt6.QtWidgets import QApplication; import sys; QApplication(sys.argv); print("ok")' ) 2>&1)"; then
         if printf '%s' "$QAOUT" | grep -q '^ok$'; then
             echo "  ✓ QApplication-Erzeugung (Qt-Plugin gefunden)"
@@ -157,7 +172,7 @@ for py in "${CANDIDATES[@]}"; do
         LAST="$(printf '%s' "$QAOUT" | tail -n 1)"
         echo "  ✗ QApplication-Erzeugung scheitert → $LAST"
         # Plugin-Pfad mitschicken (haeufige Ursache: Suche in '')
-        PLUGIN_PATH="$("$py" -c 'import PyQt6, os; print(os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "plugins", "platforms"))' 2>/dev/null)"
+        PLUGIN_PATH="$("${PY_RUN[@]}" -c 'import PyQt6, os; print(os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "plugins", "platforms"))' 2>/dev/null)"
         if [ -n "$PLUGIN_PATH" ]; then
             echo "    erwarteter Plugin-Pfad: $PLUGIN_PATH"
             if [ -f "$PLUGIN_PATH/libqcocoa.dylib" ]; then
@@ -188,7 +203,7 @@ for app_dir in \
         grep -E '^(if ! "\$\{RUN|"\$PYTHON" -m bgremover)' "$launcher" | head -1 | sed 's/^/    /'
         embedded="$app_dir/Contents/MacOS/BgRemoverPython"
         if [ -f "$embedded" ]; then
-            echo "  Eingebetteter Interpreter: $(/usr/bin/file "$embedded" 2>/dev/null | sed 's/^[^:]*: //')"
+            echo "  Eingebetteter Interpreter: $(/usr/bin/file -L "$embedded" 2>/dev/null | sed 's/^[^:]*: //')"
         fi
     else
         echo "  ✗ Launcher fehlt: $launcher"

@@ -9,6 +9,7 @@ Wie ``test_app_smoke`` bewusst ohne ``ui``-Marker, läuft also in der CI.
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -96,3 +97,32 @@ def test_unknown_option_fails_with_usage(fake_home):
     r = _run_diagnose(fake_home, "--unbekannt")
     assert r.returncode == 2
     assert "Aufruf:" in r.stderr
+
+
+def test_unknown_hardware_arch_uses_direct_candidate_probe():
+    """Ohne ermittelbare Hardware-Architektur darf die Diagnose kein
+    ``arch -\"\"`` erzeugen, sondern muss denselben Python direkt prüfen."""
+    source = SCRIPT.read_text(encoding="utf-8")
+    loop_start = source.index('for py in "${CANDIDATES[@]}"; do')
+    start = source.index('    file_arch=', loop_start)
+    end = source.index('    echo\n', start)
+    selection = source[start:end]
+    shell = shutil.which("bash") or shutil.which("zsh")
+    if shell is None:
+        pytest.skip("Keine kompatible Shell verfügbar")
+
+    env = dict(os.environ, PY_UNDER_TEST=sys.executable)
+    script = (
+        'py="$PY_UNDER_TEST"\n'
+        'NATIVE_ARCH=""\n'
+        f"{selection}\n"
+        'printf "%s|%s|%s" "$arch_ok" "$ver" "$runtime_arch"\n'
+    )
+    r = subprocess.run(
+        [shell, "-c", script], env=env, capture_output=True, text=True,
+        timeout=60,
+    )
+
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.startswith("Hardware-Architektur unbekannt (direkter Lauf)|")
+    assert "|?|?" not in r.stdout
