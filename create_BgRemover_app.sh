@@ -442,11 +442,13 @@ select_run() {
 }
 py_check() {
     select_run "\$1"
-    PY_CHECK_OUTPUT="\$("\${RUN[@]}" -c 'import ctypes, platform
+    PY_CHECK_OUTPUT="\$("\${RUN[@]}" -c 'import platform
 import bgremover
 
 translated = "unbekannt"
 try:
+    import ctypes
+
     value = ctypes.c_int(0)
     size = ctypes.c_size_t(ctypes.sizeof(value))
     libc = ctypes.CDLL(None, use_errno=True)
@@ -462,7 +464,7 @@ try:
         translated = str(value.value)
 except Exception:
     pass
-print(f"BGREMOVER_RUNTIME|{platform.machine()}|{translated}")' 2>&1)" || {
+print(f"\nBGREMOVER_RUNTIME|{platform.machine()}|{translated}")' 2>&1)" || {
         IMPORT_ERR="\$PY_CHECK_OUTPUT"
         return 1
     }
@@ -514,9 +516,14 @@ fi
 PYTHON_ARCH="\${RUNTIME_INFO%%|*}"
 PYTHON_TRANSLATED="\${RUNTIME_INFO#*|}"
 RUNTIME_WARNING=""
-if [ "\$NATIVE_ARCH" = "arm64" ] \
-   && { [ "\$PYTHON_ARCH" != "arm64" ] || [ "\$PYTHON_TRANSLATED" = "1" ]; }; then
+if [ "\$NATIVE_ARCH" = "arm64" ] \\
+   && { [ "\$PYTHON_ARCH" = "x86_64" ] || [ "\$PYTHON_TRANSLATED" = "1" ]; }; then
     RUNTIME_WARNING="WARNUNG: Python läuft als x86_64 unter Rosetta. Fix: bash create_BgRemover_app.sh erneut ausführen."
+elif [ "\$PYTHON_ARCH" = "unbekannt" ] || [ "\$PYTHON_TRANSLATED" = "unbekannt" ]; then
+    RUNTIME_WARNING="HINWEIS: Interpreter-Architektur oder Rosetta-Status konnte nicht vollständig ermittelt werden."
+elif [ "\$NATIVE_ARCH" = "arm64" ] \\
+     && [ "\$PYTHON_ARCH" != "arm64" ]; then
+    RUNTIME_WARNING="WARNUNG: Python läuft nicht nativ als arm64 (interpreter_arch=\$PYTHON_ARCH). Fix: bash create_BgRemover_app.sh erneut ausführen."
 fi
 
 # Logposition VOR diesem Start merken. Die Fehlersuche unten darf nur

@@ -123,18 +123,20 @@ NATIVE_ARCH="$HARDWARE_ARCH"
 for py in "${CANDIDATES[@]}"; do
     [ -x "$py" ] || continue
     file_arch="$(/usr/bin/file -L "$py" 2>/dev/null | sed 's/^[^:]*: //')"
-    arch_ok="?"
-    if /usr/bin/arch -"$NATIVE_ARCH" "$py" -c 'pass' >/dev/null 2>&1; then
+    PY_RUN=("$py")
+    if [ -n "$NATIVE_ARCH" ] \
+       && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c 'pass' >/dev/null 2>&1; then
+        PY_RUN=(/usr/bin/arch -"$NATIVE_ARCH" "$py")
         arch_ok="ok ($NATIVE_ARCH nativ)"
-        ver="$(/usr/bin/arch -"$NATIVE_ARCH" "$py" -c \
-            'import sys;print("%d.%d.%d"%sys.version_info[:3])' 2>/dev/null || echo "?")"
-        runtime_arch="$(/usr/bin/arch -"$NATIVE_ARCH" "$py" -c \
-            'import platform; print(platform.machine())' 2>/dev/null || echo "?")"
+    elif [ -n "$NATIVE_ARCH" ]; then
+        arch_ok="kein $NATIVE_ARCH (direkter Lauf)"
     else
-        arch_ok="kein $NATIVE_ARCH"
-        ver="$("$py" -c 'import sys;print("%d.%d.%d"%sys.version_info[:3])' 2>/dev/null || echo "?")"
-        runtime_arch="$("$py" -c 'import platform; print(platform.machine())' 2>/dev/null || echo "?")"
+        arch_ok="Hardware-Architektur unbekannt (direkter Lauf)"
     fi
+    ver="$("${PY_RUN[@]}" -c \
+        'import sys;print("%d.%d.%d"%sys.version_info[:3])' 2>/dev/null || echo "?")"
+    runtime_arch="$("${PY_RUN[@]}" -c \
+        'import platform; print(platform.machine())' 2>/dev/null || echo "?")"
     echo
     echo "→ $py"
     echo "  Python $ver   runtime_arch: $runtime_arch   native_probe: $arch_ok"
@@ -146,10 +148,10 @@ for py in "${CANDIDATES[@]}"; do
         # Injection ein `bgremover/`-Quellverzeichnis im aktuellen
         # Ordner faelschlich als „installiert" – genau so, wie der
         # App-Launcher (anderer cwd) es eben NICHT sieht.
-        if ( cd "$HOME" && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" ) >/dev/null 2>&1; then
+        if ( cd "$HOME" && "${PY_RUN[@]}" -c "import $mod" ) >/dev/null 2>&1; then
             echo "  ✓ $mod"
         else
-            ERR="$( ( cd "$HOME" && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" ) 2>&1)"
+            ERR="$( ( cd "$HOME" && "${PY_RUN[@]}" -c "import $mod" ) 2>&1)"
             LAST="$(printf '%s' "$ERR" | tail -n 1)"
             echo "  ✗ $mod   → $LAST"
         fi
@@ -158,7 +160,7 @@ for py in "${CANDIDATES[@]}"; do
     # alleine zeigt nicht, ob Qt zur Laufzeit das `cocoa`-Plugin findet
     # (typischer venv-Fehler: "Could not find the Qt platform plugin
     # 'cocoa' in ''").
-    if QAOUT="$( ( cd "$HOME" && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c \
+    if QAOUT="$( ( cd "$HOME" && "${PY_RUN[@]}" -c \
         'from PyQt6.QtWidgets import QApplication; import sys; QApplication(sys.argv); print("ok")' ) 2>&1)"; then
         if printf '%s' "$QAOUT" | grep -q '^ok$'; then
             echo "  ✓ QApplication-Erzeugung (Qt-Plugin gefunden)"
@@ -170,7 +172,7 @@ for py in "${CANDIDATES[@]}"; do
         LAST="$(printf '%s' "$QAOUT" | tail -n 1)"
         echo "  ✗ QApplication-Erzeugung scheitert → $LAST"
         # Plugin-Pfad mitschicken (haeufige Ursache: Suche in '')
-        PLUGIN_PATH="$("$py" -c 'import PyQt6, os; print(os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "plugins", "platforms"))' 2>/dev/null)"
+        PLUGIN_PATH="$("${PY_RUN[@]}" -c 'import PyQt6, os; print(os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "plugins", "platforms"))' 2>/dev/null)"
         if [ -n "$PLUGIN_PATH" ]; then
             echo "    erwarteter Plugin-Pfad: $PLUGIN_PATH"
             if [ -f "$PLUGIN_PATH/libqcocoa.dylib" ]; then
