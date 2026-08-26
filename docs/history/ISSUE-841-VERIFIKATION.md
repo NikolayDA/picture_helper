@@ -209,7 +209,9 @@ steht"
 sein Anlass – vom 22.–24.08.2026 waren acht von zehn gemergten PRs Änderungen
 am Review-System selbst, unter Aufsicht ebendieses Review-Systems – ist mit
 zehn Läufen aus ausschließlich gewöhnlichen PRs abgetragen. Die in #828
-zurückgestellten Restpunkte (Streichung von `actions: read`, `Read`-Pfadregel)
-sind damit wieder verhandelbar; die Prompt-Verschlankung selbst ist am
-2026-08-24 erfolgt
-([ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md)).
+zurückgestellten Restpunkte sind am selben Tag nachgezogen worden:
+`actions: read` gestrichen und die `Read`-Pfadregel als Deny-Schicht gesetzt
+(Herleitung beider in den Bullets „Rechte" und „Fremdinhalt ist Daten" des
+[ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md),
+wo auch die Prompt-Verschlankung vom 2026-08-24 steht). Damit ist der
+#828-Restbestand leer.

@@ -111,7 +111,10 @@ Entschärfungs-ADR erfüllt; der Meta-Freeze für weitere Mechanik-Umbauten
 Abschluss der passiven Zehn-Läufe-Messung bestehen. Diese Messung ist am
 2026-08-26 mit 10/10 abgeschlossen; der Freeze ist damit beendet, und die
 Deckel-Anhebung im Nachtrag zu Entscheidung 4 ist die erste Änderung
-danach. Die beiden genannten Umbauten stehen weiterhin aus.
+danach. Die beiden genannten Umbauten sind unmittelbar darauf gefolgt und
+damit ebenfalls erledigt: `actions: read` gestrichen (Bullet „Rechte") und die
+`Read`-Pfadregel als Deny-Schicht gesetzt (Bullet „Fremdinhalt ist Daten").
+Damit ist der #828-Restbestand leer.
 
 ## Werkzeuggrenze des Reviews (verbindliche Fassung)
 
@@ -160,14 +163,31 @@ Tragende Sicherheitsargumente (aus #825/#841/#850/#853 kondensiert):
   deckt bewusst jedes öffentliche Repository) ist die eigentliche Härtung;
   `Read` über das Runner-Dateisystem plus öffentliche Ausgabewege bleibt
   der Egress-Kanal, den der Trigger-Schutz und diese Regel gemeinsam
-  einhegen (eine `Read`-Pfadregel als zweite Schicht bleibt offener
-  #828-Punkt).
+  einhegen. Die als zweite Schicht vorgesehene **`Read`-Pfadregel** ist am
+  2026-08-26 nachgezogen (letzter offener #828-Punkt), aber bewusst als
+  **Deny**-Regel statt als Allowlist auf den Checkout:
+  `--disallowedTools "Read(//**/.git/config),Read(~/.claude/.credentials.json)"`.
+  Begründung beider Hälften: `Read` ist innerhalb des Arbeitsverzeichnisses
+  ohnehin prompt-frei, ein Allowlist-Zuschnitt darauf würde aber den im Prompt
+  genannten Groß-Diff-Pfad sperren — eine zu große `gh pr diff`-Ausgabe legt
+  Claude Code unter `~/.claude/` ab. Gedeckt sind stattdessen genau die zwei
+  Ziele, die ein Review nie braucht und die Geheimnisse tragen: `.git/config`
+  hält für die Jobdauer den GITHUB_TOKEN als `http.extraheader` und liegt
+  **im** Checkout, wo die Arbeitsverzeichnis-Regel gerade nicht schützt;
+  `.credentials.json` ist der dokumentierte Login-Ablageort unter Linux. Deny
+  schlägt jede Allow-Regel, die Schicht ist also nicht umgehbar. Pin:
+  `test_review_denies_reading_credential_paths`.
 - **Rechte:** `contents: read` (kein Schreibweg in den Code),
   `pull-requests: write` genügt für beide Ausgabewege – gemessen an Lauf
   32670229428, der unter `issues: read` Zusammenfassung und
   Inline-Befunde postete. Bleibt die Ausgabe künftig aus, ist
-  `issues: write` die belegte Untergrenze. `actions: read` bleibt, bis ein
-  beobachteter Lauf die Absenkung deckt.
+  `issues: write` die belegte Untergrenze. `actions: read` ist am 2026-08-26
+  gestrichen (#828): `gh run` sperrt ohnehin der Prompt, und den CI-Stand
+  liefert `gh pr view --json statusCheckRollup` über die PR-Rechte. Wie bei
+  `issues: read` hängt die Absenkung an einer Beobachtung statt an einem
+  grünen Häkchen — das Fehlerbild wäre still, das Review meldete den CI-Stand
+  nur noch als unbelegt. Kehrt die Angabe nicht zurück, ist `actions: read`
+  die belegte Untergrenze.
 
 ## Ablehnungs-Taxonomie (Auswertungsregel für Diagnose und Messreihe)
 

@@ -209,6 +209,33 @@ def test_review_permissions_and_trigger_keep_the_fork_protection() -> None:
     assert "pull_request_target" not in text, (
         "pull_request_target würde Forks Secrets durchreichen"
     )
+    # #828-Restpunkt: `actions: read` ist gestrichen. Eine Rückkehr wäre eine
+    # stille Rechteausweitung, denn `gh run` sperrt ohnehin der Prompt und den
+    # CI-Stand liefert `gh pr view --json statusCheckRollup` über die
+    # PR-Rechte. Zeilenverankert, damit der begründende Kommentar (der den
+    # Begriff nennt) den Test nicht scheinbar erfüllt.
+    assert not re.search(r"(?m)^      actions: read\b", text), (
+        "actions: read ist mit #828 gestrichen — Rückkehr nur mit Beleg"
+    )
+
+
+def test_review_denies_reading_credential_paths() -> None:
+    """#828-Restpunkt `Read`-Pfadregel: zweite Schicht gegen den Egress-Kanal.
+
+    `Read` plus die beiden öffentlichen Ausgabewege ist der Pfad, über den
+    Fremdinhalt Geheimnisse nach draußen tragen könnte. Beide Ziele braucht
+    ein Review nie, und Deny schlägt jede Allow-Regel: `.git/config` trägt für
+    die Jobdauer den GITHUB_TOKEN als `http.extraheader` und liegt **im**
+    Checkout, wo die Arbeitsverzeichnis-Regel gerade nicht schützt;
+    `.credentials.json` ist der dokumentierte Login-Ablageort unter Linux.
+    Bewusst kein Allowlist-Zuschnitt auf den Checkout — eine zu große
+    `gh pr diff`-Ausgabe legt Claude Code unter `~/.claude/` ab, und genau
+    diesen Groß-Diff-Pfad nennt der Prompt."""
+    args = _claude_args(_REVIEW_WORKFLOW)
+    denied = [a for a in args if a.startswith("--disallowedTools")]
+    assert len(denied) == 1, f"Genau eine Deny-Liste erwartet: {denied!r}"
+    for regel in ("Read(//**/.git/config)", "Read(~/.claude/.credentials.json)"):
+        assert regel in denied[0], f"Deny-Regel fehlt: {regel}"
 
 
 def test_review_checkout_provides_history_before_git_inspection() -> None:
