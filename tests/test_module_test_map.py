@@ -12,12 +12,20 @@ netzfrei in **beide** Richtungen:
 * Jedes Modul ohne gleichnamige Testdatei hat genau eine Zeile.
 * Jede Zeile nennt ein existierendes Modul, das (noch) keine gleichnamige
   Testdatei hat – bekommt es eine, ist die Zeile zu entfernen.
-* Jede genannte Testdatei existiert und spricht das Modul tatsächlich an
-  (Modulpfad oder eines seiner öffentlichen Top-Level-Symbole). Eine Zeile,
-  die ins Leere zeigt, wäre schlimmer als keine Zeile.
+* Jede genannte Testdatei existiert und **importiert** das Modul – direkt
+  (``from bgremover.<modul> import …`` / ``import bgremover.<modul>``) oder
+  über ein Paket-Re-Export-Symbol (``from bgremover import CropOverlayItem``).
+  Eine Zeile, die ins Leere zeigt, wäre schlimmer als keine Zeile.
+
+Bewusst zählen **nur Import-Anweisungen**, nicht der freie Dateitext: Ein
+Modul wie ``i18n`` exportiert kurze, allgegenwärtige Namen (``tr``), und ein
+Texttreffer darauf hätte fast jede Testdatei als „Beleg" durchgehen lassen –
+die Rückwärtsrichtung wäre damit schwächer gewesen, als dieser Docstring
+verspricht (Review-Befund auf PR #873).
 """
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
@@ -68,18 +76,48 @@ def _modules_without_own_test_file() -> set[str]:
     }
 
 
-def _public_symbols(module: str) -> list[str]:
+def _public_symbols(module: str) -> frozenset[str]:
     """Öffentliche Top-Level-Klassen/-Funktionen eines Moduls."""
     text = (PACKAGE / f"{module}.py").read_text(encoding="utf-8")
-    return re.findall(r"(?m)^(?:class|def)\s+([A-Za-z]\w*)", text)
+    return frozenset(re.findall(r"(?m)^(?:class|def)\s+([A-Za-z]\w*)", text))
 
 
-def _mentions_module(test_file: Path, module: str) -> bool:
-    """True, wenn *test_file* das Modul namentlich oder über ein Symbol anspricht."""
-    body = test_file.read_text(encoding="utf-8")
-    if f"bgremover.{module}" in body or f"bgremover import {module}" in body:
-        return True
-    return any(re.search(rf"\b{re.escape(sym)}\b", body) for sym in _public_symbols(module))
+def _imported_names(test_file: Path) -> frozenset[str]:
+    """Aus ``bgremover`` importierte Modul- bzw. Paket-Symbolnamen.
+
+    Ausgewertet wird der Syntaxbaum, nicht der Dateitext: So zählen auch
+    funktionslokale und über mehrere Zeilen geklammerte Importe, während ein
+    bloßer ``tr(...)``-Aufruf im Rumpf **kein** Beleg mehr ist.
+    """
+    tree = ast.parse(test_file.read_text(encoding="utf-8"))
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:                      # import bgremover.canvas
+                parts = alias.name.split(".")
+                if parts[0] == "bgremover" and len(parts) > 1:
+                    names.add(parts[1])
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            parts = node.module.split(".")
+            if parts[0] != "bgremover":
+                continue
+            if len(parts) > 1:
+                names.add(parts[1])                       # from bgremover.canvas import …
+            else:
+                names.update(a.name for a in node.names)  # from bgremover import canvas|Symbol
+    return frozenset(names)
+
+
+def _imports_module(test_file: Path, module: str) -> bool:
+    """True, wenn *test_file* das Modul importiert.
+
+    Neben dem Modulpfad zählt der Paket-Re-Export: ``test_crop_overlay.py``
+    holt ``CropOverlayItem`` über ``from bgremover import …`` statt über
+    ``bgremover.crop``. Symbolnamen sind modulspezifisch genug, um das
+    zuzulassen, ohne die Schärfe des Import-Kriteriums aufzugeben.
+    """
+    imported = _imported_names(test_file)
+    return module in imported or bool(imported & _public_symbols(module))
 
 
 def test_every_module_without_own_test_file_is_documented() -> None:
@@ -104,8 +142,8 @@ def test_documented_rows_still_describe_modules_without_own_test_file() -> None:
     )
 
 
-def test_documented_test_files_exist_and_reference_their_module() -> None:
-    """Jede genannte Datei existiert und spricht das Modul tatsächlich an."""
+def test_documented_test_files_exist_and_import_their_module() -> None:
+    """Jede genannte Datei existiert und importiert das Modul tatsächlich."""
     broken: list[str] = []
     for module, files in _documented_map().items():
         if not files:
@@ -115,8 +153,8 @@ def test_documented_test_files_exist_and_reference_their_module() -> None:
             path = TESTS / name
             if not path.is_file():
                 broken.append(f"{module}: tests/{name} existiert nicht")
-            elif not _mentions_module(path, module):
+            elif not _imports_module(path, module):
                 broken.append(
-                    f"{module}: tests/{name} erwähnt weder bgremover.{module} "
+                    f"{module}: tests/{name} importiert weder bgremover.{module} "
                     "noch eines seiner öffentlichen Symbole")
     assert not broken, "Zuordnung in TESTING.md zeigt ins Leere:\n" + "\n".join(broken)

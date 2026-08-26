@@ -349,13 +349,17 @@ Die Tabelle nennt die Suiten, die nach einer Änderung am Modul laufen sollten
 – nicht dessen vollständige Abdeckung. Sie ist **vollständig** und wird von
 `tests/test_module_test_map.py` netzfrei in beide Richtungen erzwungen: jedes
 Modul ohne gleichnamige Testdatei hat genau eine Zeile, jede Zeile nennt ein
-Modul ohne gleichnamige Testdatei, und jede genannte Datei spricht das Modul
-tatsächlich an (Modulpfad oder eines seiner öffentlichen Top-Level-Symbole).
-Bekommt ein Modul später eine eigene Testdatei, ist seine Zeile zu entfernen.
+Modul ohne gleichnamige Testdatei, und jede genannte Datei **importiert** das
+Modul – direkt (`from bgremover.<modul> import …`) oder über ein
+Paket-Re-Export-Symbol (`from bgremover import CropOverlayItem`). Bewusst zählt
+nur die Import-Anweisung, nicht der freie Dateitext: Ein Texttreffer auf kurze,
+allgegenwärtige Exporte wie `tr` hätte fast jede Testdatei als „Beleg"
+durchgehen lassen. Bekommt ein Modul später eine eigene Testdatei, ist seine
+Zeile zu entfernen.
 
 | Modul | Mitgeprüft in |
 | --- | --- |
-| `bgremover/_version.py` | `tests/test_version.py`, `tests/test_package_imports.py` |
+| `bgremover/_version.py` | `tests/test_version.py` |
 | `bgremover/canvas.py` | `tests/test_image_canvas.py`, `tests/test_canvas_layers.py`, `tests/test_canvas_events.py` |
 | `bgremover/canvas_lasso.py` | `tests/test_lasso.py` |
 | `bgremover/canvas_transform.py` | `tests/test_geometry.py` |
@@ -369,7 +373,7 @@ Bekommt ein Modul später eine eigene Testdatei, ist seine Zeile zu entfernen.
 | `bgremover/image_utils.py` | `tests/test_helpers.py`, `tests/test_flood_fill.py` |
 | `bgremover/layer_panel.py` | `tests/test_right_panel.py` |
 | `bgremover/logging_config.py` | `tests/test_logging.py`, `tests/test_settings_dialog.py` |
-| `bgremover/main_toolbar.py` | `tests/test_icons.py`, `tests/test_ui_interactions.py` |
+| `bgremover/main_toolbar.py` | `tests/test_icons.py` |
 | `bgremover/preview_mode.py` | `tests/test_canvas_layers.py`, `tests/test_right_panel.py` |
 | `bgremover/project_schema.py` | `tests/test_project_io.py`, `tests/test_project_v270_upgrade.py` |
 | `bgremover/right_panel_tabs.py` | `tests/test_right_panel.py`, `tests/test_i18n_coverage.py` |
