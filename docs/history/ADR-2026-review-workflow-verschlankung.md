@@ -186,8 +186,12 @@ Tragende Sicherheitsargumente (aus #825/#841/#850/#853 kondensiert):
   liefert `gh pr view --json statusCheckRollup` über die PR-Rechte. Wie bei
   `issues: read` hängt die Absenkung an einer Beobachtung statt an einem
   grünen Häkchen — das Fehlerbild wäre still, das Review meldete den CI-Stand
-  nur noch als unbelegt. Kehrt die Angabe nicht zurück, ist `actions: read`
-  die belegte Untergrenze.
+  nur noch als unbelegt. Der Rückfall wäre dann allerdings **nicht**
+  `actions: read`: Das deckt Workflow-Runs (`gh run`), während der Rollup aus
+  GraphQL über die PR-Rechte kommt. Passend wären `checks: read` (Check-Runs)
+  bzw. `statuses: read` (Commit-Status). Warum der Rollup heute ohne beide
+  auskommt, ist nicht ermittelt und für die Streichung auch nicht nötig — sie
+  steht auf der Beobachtung, nicht auf einer Scope-Herleitung.
 
 ## Ablehnungs-Taxonomie (Auswertungsregel für Diagnose und Messreihe)
 

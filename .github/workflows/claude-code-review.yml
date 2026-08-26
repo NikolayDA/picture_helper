@@ -81,8 +81,12 @@ jobs:
       # still — das Review meldet den CI-Stand als unbelegt, statt rot zu
       # werden —, deshalb hängt die Streichung wie bei `issues: read` an einer
       # Beobachtung: dem `re-review`-Lauf auf PR #876 unter genau dieser
-      # Fassung. Bleibt die CI-Angabe künftig aus, ist `actions: read` die
-      # belegte Untergrenze.
+      # Fassung. Bleibt die CI-Angabe künftig aus, wäre `checks: read`
+      # (Check-Runs) bzw. `statuses: read` (Commit-Status) der passende
+      # Rückfall — nicht `actions: read`, das Workflow-Runs (`gh run`) deckt
+      # und mit dem Rollup gar nichts zu tun hat. Warum der Rollup heute ohne
+      # beide auskommt, ist nicht ermittelt und für die Streichung auch nicht
+      # nötig.
     env:
       HAS_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
     steps:
