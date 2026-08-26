@@ -236,6 +236,14 @@
       "evidence": ["Verbindlicher chinesischer Lizenz-Snapshot ist docs/i18n/zh/LICENSES.md"]
     },
     {
+      "id": "height-workspace-screenshot",
+      "kind": "exact",
+      "path": "docs/screenshot_height.png",
+      "sample_path": "docs/screenshot_height.png",
+      "reason": "Der kuratierte Höhen-Arbeitsbereich-Screenshot dokumentiert die Bedienoberfläche, wird aber weder in Pakete noch in Release-Artefakte eingebettet.",
+      "evidence": ["README.md und die fünf übersetzten READMEs betten das Bild ausschließlich als Repository-Dokumentation ein", "Kein Packaging-, Build- oder Release-Workflow liest docs/screenshot_height.png"]
+    },
+    {
       "id": "translated-readme-en",
       "kind": "exact",
       "path": "docs/i18n/en/README.md",
@@ -435,6 +443,8 @@
     {"id": "release-changelog", "kind": "exact", "path": "CHANGELOG.md", "sample_path": "CHANGELOG.md", "reason": "Der Publish-Workflow erzeugt daraus den Release-Body."},
     {"id": "project-metadata", "kind": "exact", "path": "pyproject.toml", "sample_path": "pyproject.toml", "reason": "Version, Paketmetadaten, Abhängigkeiten und Paketinhalt werden hier definiert."},
     {"id": "make-gates", "kind": "exact", "path": "Makefile", "sample_path": "Makefile", "reason": "Das Makefile definiert lokale und CI-nahe Qualitäts- und Freeze-Gates."},
+    {"id": "mac-local-app-builder", "kind": "exact", "path": "create_BgRemover_app.sh", "sample_path": "create_BgRemover_app.sh", "reason": "Das Skript erzeugt das lokal installierte macOS-App-Bundle einschließlich Interpreter, Launcher, Metadaten und Prozessidentität."},
+    {"id": "mac-diagnostics", "kind": "exact", "path": "diagnose_mac.sh", "sample_path": "diagnose_mac.sh", "reason": "Das Diagnose-Skript prüft die Laufzeit-, Binär- und Hardware-Architektur der lokal installierten macOS-App und dokumentiert ihre Wiederherstellung."},
     {"id": "application", "kind": "prefix", "path": "bgremover/", "sample_path": "bgremover/app.py", "reason": "Anwendungscode und eingebettete Ressourcen werden ausgeliefert."},
     {"id": "packaging", "kind": "prefix", "path": "packaging/", "sample_path": "packaging/linux/build_appimage.sh", "reason": "Packaging-Dateien steuern Bundle-Inhalt, Metadaten und Startverhalten."},
     {"id": "release-scripts", "kind": "prefix", "path": "scripts/", "sample_path": "scripts/verify_release_freeze.py", "reason": "Skripte erzeugen oder prüfen Build-, Release- und Abnahme-Evidenz."},
@@ -454,6 +464,7 @@
     {"id": "clamav-signature-cache-adr", "kind": "exact", "path": "docs/history/ADR-2026-clamav-signaturcache.md", "sample_path": "docs/history/ADR-2026-clamav-signaturcache.md", "reason": "Die ADR legt den Sicherheits- und Betriebsvertrag des ClamAV-Signaturbezugs fest."},
     {"id": "path-policy", "kind": "exact", "path": "release/path-policy.json", "sample_path": "release/path-policy.json", "reason": "Die Policy steuert fail-closed Kandidaten- und Freeze-Klassifikation."},
     {"id": "redesign-spec", "kind": "exact", "path": "docs/REDESIGN_SPEC.md", "sample_path": "docs/REDESIGN_SPEC.md", "reason": "tests/test_theme.py liest §2/§3 als Drift-Guard-Quelle fuer theme.py-Farbtoken; der Inhalt beeinflusst das Ergebnis der Full-CI-Tests im Kandidatenbau (#480)."},
+    {"id": "preview3d-ux-contract", "kind": "exact", "path": "docs/UX_3D_PREVIEW.md", "sample_path": "docs/UX_3D_PREVIEW.md", "reason": "Der kanonische 3D-UX-Vertrag definiert sichtbares Produktverhalten und die manuelle Abnahme der 3D-Reliefvorschau; CLAUDE.md und die Renderer-ADR verweisen auf ihn als verbindlichen Vertrag."},
     {"id": "changelog-en", "kind": "exact", "path": "docs/i18n/en/CHANGELOG.md", "sample_path": "docs/i18n/en/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
     {"id": "changelog-es", "kind": "exact", "path": "docs/i18n/es/CHANGELOG.md", "sample_path": "docs/i18n/es/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
     {"id": "changelog-fr", "kind": "exact", "path": "docs/i18n/fr/CHANGELOG.md", "sample_path": "docs/i18n/fr/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},

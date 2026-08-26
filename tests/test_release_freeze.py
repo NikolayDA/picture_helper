@@ -136,6 +136,9 @@ def test_every_relevant_rule_has_a_covered_sample() -> None:
         "docs/history/ADR-2026-release-abnahme-automatisierung.md",
         "docs/history/ADR-2026-release-manifest-publish.md",
         "docs/history/ADR-2026-clamav-signaturcache.md",
+        "create_BgRemover_app.sh",
+        "diagnose_mac.sh",
+        "docs/UX_3D_PREVIEW.md",
     ],
 )
 def test_known_release_inputs_are_explicitly_candidate_relevant(path: str) -> None:

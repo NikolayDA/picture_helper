@@ -170,6 +170,21 @@ Editable-встановлення (`pip install -e`) **не** потрібно
   brew install python
   bash create_BgRemover_app.sh   # підтвердьте запит про venv клавішею Enter
   ```
+- **Застосунок працює на Apple Silicon, але запускається як `x86_64` під
+  Rosetta** → лише `uname -m` не є надійною діагностикою: у трансльованому
+  процесі він показує `x86_64`, хоча апаратна архітектура — `arm64`.
+  `bash diagnose_mac.sh` тому окремо показує апаратну архітектуру,
+  `sysctl.proc_translated`, архітектури бінарних файлів через `file` і
+  `platform.machine()` Python застосунку. Якщо `create_BgRemover_app.sh`
+  виявляє x86_64-venv на Apple Silicon, він попереджає та пропонує нативну
+  перебудову до будь-якого видалення. Еквівалентне ручне відновлення:
+  ```bash
+  brew install python
+  rm -rf "$HOME/Library/Application Support/BgRemover/venv"
+  bash create_BgRemover_app.sh
+  ```
+  Наступний рядок запуску в `bgremover.log` має містити
+  `interpreter_arch=arm64` і `proc_translated=0`.
 - **Побачити помилку напряму (ручна діагностика)** → Запустіть лаунчер у терміналі,
   тоді з'явиться справжнє повідомлення про помилку:
   ```bash

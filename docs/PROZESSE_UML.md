@@ -153,9 +153,11 @@ flowchart TD
   auf `make lint`.
 - `make pr-check` führt dasselbe Projekt-Gate wie
   [`pr-ci.yml`](../.github/workflows/pr-ci.yml) aus: nicht-editabler Install,
-  `doctor`, dann `check`. Die CI legt zusätzlich Python 3.12 fest, aktualisiert
-  `pip` und installiert Qt-Systembibliotheken sowie `shellcheck`; lokal ist das
-  Ergebnis deshalb nur in einer vergleichbaren Umgebung gleichwertig.
+  `doctor`, `check`, dann das fail-closed `release-freeze-check`. Die CI holt
+  dafür Basis-Tag und Git-Historie vollständig (`fetch-depth: 0`), legt
+  zusätzlich Python 3.12 fest, aktualisiert `pip` und installiert
+  Qt-Systembibliotheken sowie `shellcheck`; lokal ist das Ergebnis deshalb nur
+  in einer vergleichbaren Umgebung gleichwertig.
 - Die volle qtbot-UI-Suite (`make ui`) läuft regulär nur nachts
   ([`ui-nightly.yml`](../.github/workflows/ui-nightly.yml)), nicht im
   Standard-Gate.

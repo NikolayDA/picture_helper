@@ -16,6 +16,7 @@ Abgedeckt:
   syntaktisch valide.
 """
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -160,15 +161,8 @@ def test_shell_starter_syntax(script):
     assert r.returncode == 0, f"{script}: Syntaxfehler\n{r.stderr}"
 
 
-def test_bundled_launcher_syntax():
-    """Der ins App-Bundle eingebackene Launcher (Heredoc in
-    create_BgRemover_app.sh) ist syntaktisch valide.
-
-    ``bash -n`` auf das Hauptskript prüft den Heredoc-Inhalt NICHT – der
-    ist dort nur ein String. Hier wird der Launcher-Block extrahiert,
-    die Heredoc-Escapes (``\\$``/``\\``` ``/``\\\\``) wie beim ``cat``
-    aufgelöst und separat geprüft.
-    """
+def _bundled_launcher_body() -> str:
+    """Erzeugten Launcher-Inhalt inklusive unquoted-Heredoc-Expansion liefern."""
     text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
     lines = text.splitlines()
     start = next(i for i, ln in enumerate(lines)
@@ -177,13 +171,93 @@ def test_bundled_launcher_syntax():
                if i > start and ln.strip() == "LAUNCHER_EOF")
     body = "\n".join(lines[start + 1:end]) + "\n"
     # Unquoted Heredoc: die Shell löst diese Escapes beim Schreiben auf.
-    body = body.replace("\\$", "$").replace("\\`", "`").replace("\\\\", "\\")
+    return body.replace("\\$", "$").replace("\\`", "`").replace("\\\\", "\\")
+
+
+def test_bundled_launcher_syntax():
+    """Der tatsächlich erzeugte Heredoc-Inhalt ist syntaktisch valide."""
+    body = _bundled_launcher_body()
     shell = "zsh" if body.splitlines()[0].strip().endswith("zsh") else "bash"
     if shutil.which(shell) is None:
         pytest.skip(f"{shell} nicht verfügbar (Syntax-Check läuft auf macOS-CI)")
     r = subprocess.run([shell, "-n", "/dev/stdin"], input=body,
                        capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, f"Bundle-Launcher: Syntaxfehler\n{r.stderr}"
+
+
+def test_bundled_launcher_runtime_probe_is_optional(tmp_path):
+    """Fehlendes optionales ``ctypes`` darf den belegten Paketimport nicht
+    in einen Startabbruch verwandeln; die Metadaten fallen auf unbekannt."""
+    body = _bundled_launcher_body()
+    marker = "\"${RUN[@]}\" -c '"
+    code_start = body.index(marker) + len(marker)
+    code_end = body.index("' 2>&1)\"", code_start)
+    runtime_probe = body[code_start:code_end]
+
+    (tmp_path / "ctypes.py").write_text(
+        'raise ImportError("simuliertes fehlendes _ctypes")\n', encoding="utf-8"
+    )
+    env = dict(os.environ, PYTHONPATH=str(ROOT))
+    r = subprocess.run(
+        [sys.executable, "-c", runtime_probe], cwd=tmp_path, env=env,
+        capture_output=True, text=True, timeout=60,
+    )
+
+    assert r.returncode == 0, r.stderr
+    assert re.search(r"BGREMOVER_RUNTIME\|[^|]+\|unbekannt", r.stdout)
+
+
+@pytest.mark.parametrize(
+    ("runtime_arch", "translated", "expected"),
+    [
+        (
+            "x86_64", "1",
+            "WARNUNG: Python läuft als x86_64 unter Rosetta. "
+            "Fix: bash create_BgRemover_app.sh erneut ausführen.",
+        ),
+        (
+            "unbekannt", "unbekannt",
+            "HINWEIS: Interpreter-Architektur oder Rosetta-Status konnte "
+            "nicht vollständig ermittelt werden.",
+        ),
+        ("arm64", "0", ""),
+        (
+            "ppc64", "0",
+            "WARNUNG: Python läuft nicht nativ als arm64 "
+            "(interpreter_arch=ppc64). Fix: bash create_BgRemover_app.sh "
+            "erneut ausführen.",
+        ),
+    ],
+)
+def test_bundled_launcher_runtime_warning_matches_evidence(
+    runtime_arch, translated, expected,
+):
+    """Rosetta wird nur bei positiver Evidenz behauptet; unbekannte Werte
+    bleiben ein neutraler Diagnosehinweis."""
+    body = _bundled_launcher_body()
+    start = body.index('RUNTIME_WARNING=""')
+    end = body.index("\n# Logposition", start)
+    warning_block = body[start:end]
+    assert (
+        'if [ "$NATIVE_ARCH" = "arm64" ] ' + "\\\n" + "   && {"
+    ) in warning_block
+
+    shell = shutil.which("zsh") or shutil.which("bash")
+    if shell is None:
+        pytest.skip("Keine kompatible Shell verfügbar")
+    env = dict(
+        os.environ,
+        NATIVE_ARCH="arm64",
+        PYTHON_ARCH=runtime_arch,
+        PYTHON_TRANSLATED=translated,
+    )
+    r = subprocess.run(
+        [shell, "-c", warning_block + '\nprintf "%s" "$RUNTIME_WARNING"\n'],
+        env=env, capture_output=True, text=True, timeout=60,
+    )
+
+    assert r.returncode == 0, r.stderr
+    assert r.stdout == expected
 
 
 def test_mac_bundle_metadata_uses_package_version():
@@ -210,9 +284,8 @@ def test_bundled_launcher_uses_app_data_log_path():
 def test_mac_bundle_refreshes_existing_app_venv_from_checkout():
     """Ein erneuter Build darf nicht still die alte Paketkopie weiterverwenden."""
     text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
-    ready_branch = text[text.index('if [ -n "$APP_VENV_READY" ]'):text.index(
-        'elif [ -x "$VENV_PY" ]'
-    )]
+    branch_start = text.index('if [ -n "$APP_VENV_READY" ]')
+    ready_branch = text[branch_start:text.index("\nelif ", branch_start)]
 
     assert 'Aktualisiere App-venv aus aktuellem Checkout' in ready_branch
     assert 'install_app_project "App-venv aktualisiert"' in ready_branch
@@ -267,6 +340,53 @@ def test_mac_bundle_embeds_interpreter_for_process_attribution():
     # Greift der Laufzeit-Fallback, degradiert die App nicht still: die
     # Rückkehr des Python-Icons steht belegbar im Log.
     assert "Eingebetteter Interpreter nicht lauffaehig" in text
+
+
+def test_mac_bundle_detects_and_repairs_rosetta_app_venv():
+    """#866: Hardware-Architektur darf nicht aus einem Rosetta-``uname``
+    abgeleitet werden. Eine x86_64-App-venv auf Apple Silicon wird klar
+    benannt und nur nach Nutzerentscheidung nativ neu gebaut; der Launcher
+    protokolliert anschließend Interpreter-Arch und Übersetzungsstatus."""
+    text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
+
+    assert "/usr/sbin/sysctl -n hw.optional.arm64" in text
+    assert "supports_native_arch" in text
+    assert '[ -n "$NATIVE_ARCH" ] || return 0' in text
+    assert "Architektur-Mismatch: Apple-Silicon-Hardware" in text
+    assert "App-venv jetzt mit nativem arm64-Python neu bauen? [J/n]" in text
+    assert 'FORCE_NATIVE_REBUILD=1' in text
+    assert 'supports_native_arch "$FULL_PATH" || continue' in text
+    assert "sysctl.proc_translated" in text
+    assert "interpreter_arch=\\$PYTHON_ARCH" in text
+    assert "proc_translated=\\$PYTHON_TRANSLATED" in text
+    assert "hardware_arch=\\$NATIVE_ARCH" in text
+    assert "BGREMOVER_RUNTIME|" in text
+    assert "libc.sysctlbyname.argtypes" in text
+    assert "kein zusätzlicher Python-Kaltstart" in text
+    assert "WARNUNG: Python läuft als x86_64 unter Rosetta" in text
+
+
+def test_mac_diagnostics_report_hardware_binary_and_runtime_architectures():
+    """Die read-only Diagnose benennt den Mismatch und seine Abhilfe, statt
+    ``uname -m`` irrtümlich als Hardware- oder Python-Arch auszugeben."""
+    text = (ROOT / "diagnose_mac.sh").read_text(encoding="utf-8")
+
+    for marker in (
+        "/usr/sbin/sysctl -n hw.optional.arm64",
+        "hardware_arch:",
+        "diagnose_process_arch:",
+        "proc_translated:",
+        "sysctl -n sysctl.proc_translated",
+        "BEFUND: ARCHITEKTUR-MISMATCH",
+        "runtime_arch:",
+        "/usr/bin/file -L",
+        '/usr/bin/arch -"$HARDWARE_ARCH" "$APP_VENV"',
+        'PY_RUN=("$py")',
+        '"${PY_RUN[@]}" -c "import $mod"',
+        "brew install python",
+        'rm -rf "$HOME/Library/Application Support/BgRemover/venv"',
+    ):
+        assert marker in text
 
 
 def test_mac_bundle_document_types_cover_supported_formats():

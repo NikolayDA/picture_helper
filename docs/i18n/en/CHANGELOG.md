@@ -63,6 +63,12 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `BgRemover.app` (icon and menu-bar name) with an identical venv
   context. A build-time self-test and a runtime fallback to the venv
   start preserve the status quo when embedding is not possible.
+- **The macOS app silently ran as x86_64 under Rosetta on Apple Silicon
+  (#866).** Setup and launcher now detect hardware architecture independently
+  of a translated shell. An x86_64 app venv is reported clearly and rebuilt
+  natively only after confirmation; the startup log and `diagnose_mac.sh`
+  report the actual interpreter architecture, `sysctl.proc_translated`, and
+  binary architectures separately.
 
 ## [2.8.0] – 2026-08-16
 

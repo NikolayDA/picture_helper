@@ -29,6 +29,7 @@ headless-Qt-Betrieb:
   `coverage.xml`/`htmlcov` für Codecov bzw. lokale Durchsicht)
 - `make ui` — volle qtbot-UI-Suite (sonst nur nightly); `make all` = `check` + `ui`
 - `make pr-check` — wie die PR-CI: nicht-editable Install + `doctor` + `check`
+  + fail-closed `release-freeze-check` (benötigt Basis-Tag/Git-Historie)
 - `make install-test` — `.[test]` mit `requirements/constraints.txt` (derselbe
   Dependency-Snapshot wie PR-CI, Lizenzreport und App-Bundle)
 - `make doctor` — prüft die Test-Umgebung (`scripts/check_test_env.py`)

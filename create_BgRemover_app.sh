@@ -19,12 +19,32 @@ set -e
 # wie Laufzeit. Alle Kind-Pythons erben das.
 export PYTHONNOUSERSITE=1
 
-# Native CPU-Architektur. venv/pip MÜSSEN in derselben Arch laufen wie
-# später der Launcher (der ebenfalls nativ startet), sonst arm64/x86_64-
-# Mismatch unter Rosetta.
-NATIVE_ARCH="$(uname -m 2>/dev/null || echo)"
+# Hardware-Architektur unabhängig von der aktuellen Shell. ``uname -m``
+# liefert auf Apple Silicon in einem Rosetta-Terminal ``x86_64`` und darf
+# deshalb nicht allein über die App-Architektur entscheiden (#866).
+hardware_arch() {
+    if [ "$(/usr/sbin/sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" = "1" ]; then
+        echo "arm64"
+    else
+        uname -m 2>/dev/null || echo ""
+    fi
+}
+NATIVE_ARCH="$(hardware_arch)"
+
+supports_native_arch() {
+    [ -x "$1" ] || return 1
+    [ -n "$NATIVE_ARCH" ] || return 0
+    /usr/bin/arch -"$NATIVE_ARCH" "$1" -c \
+        'import platform, sys; sys.exit(0 if platform.machine() == sys.argv[1] else 1)' \
+        "$NATIVE_ARCH" >/dev/null 2>&1
+}
+
+# venv/pip MÜSSEN in der Hardware-Architektur laufen wie später der Launcher,
+# sonst wird auf Apple Silicon unbemerkt der gesamte Stack unter Rosetta
+# ausgeführt. Der Fallback bleibt nur für ältere Intel-/Sonderinstallationen;
+# neu ausgewählte Interpreter werden unten vorher strikt geprüft.
 arch_run() {
-    if [ -n "$NATIVE_ARCH" ] && /usr/bin/arch -"$NATIVE_ARCH" "$1" -c 'pass' >/dev/null 2>&1; then
+    if [ -n "$NATIVE_ARCH" ] && supports_native_arch "$1"; then
         /usr/bin/arch -"$NATIVE_ARCH" "$@"
     else
         "$@"
@@ -58,7 +78,7 @@ export PATH="/opt/homebrew/bin:/opt/homebrew/opt/python@3.15/bin:/opt/homebrew/o
 
 py_version_ok() {
     local ver major minor
-    ver=$("$1" -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null) || return 1
+    ver=$(arch_run "$1" -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null) || return 1
     major=${ver%%.*}; minor=${ver#*.}
     [ "${major:-0}" -ge 3 ] && [ "${minor:-0}" -ge 10 ]
 }
@@ -136,6 +156,29 @@ APPSUPPORT_DIR="$HOME/Library/Application Support/BgRemover"
 VENV_DIR="$APPSUPPORT_DIR/venv"
 VENV_PY="$VENV_DIR/bin/python3"
 
+# Eine bestehende x86_64-App-venv auf Apple Silicon ist funktional, aber sie
+# zwingt KI-Inferenz, numpy und Qt unter Rosetta. Das Setup darf diesen Zustand
+# nicht still konservieren (#866): klar benennen und vor jedem Löschen eine
+# ausdrückliche, standardmäßig bejahte Nutzerentscheidung einholen.
+FORCE_NATIVE_REBUILD=""
+APP_VENV_ARCH=""
+if [ -x "$VENV_PY" ]; then
+    APP_VENV_ARCH=$("$VENV_PY" -c 'import platform; print(platform.machine())' 2>/dev/null || echo "unbekannt")
+    if [ "$NATIVE_ARCH" = "arm64" ] && ! supports_native_arch "$VENV_PY"; then
+        echo -e "${YELLOW}⚠️  Architektur-Mismatch: Apple-Silicon-Hardware, aber App-venv = ${APP_VENV_ARCH}.${NC}"
+        echo "    Die App würde vollständig als x86_64 unter Rosetta laufen."
+        echo "    Abhilfe: nativen Python installieren und die App-venv neu bauen:"
+        echo "      brew install python"
+        echo "      rm -rf \"$VENV_DIR\" && bash create_BgRemover_app.sh"
+        read -r -p "    App-venv jetzt mit nativem arm64-Python neu bauen? [J/n]: " rebuild_native
+        if [[ "$rebuild_native" =~ ^[nN] ]]; then
+            echo -e "${RED}❌ Abbruch: Eine Rosetta-App wird nicht still neu gebaut.${NC}"
+            exit 1
+        fi
+        FORCE_NATIVE_REBUILD=1
+    fi
+fi
+
 PY_CANDIDATES=(
     "$SCRIPT_DIR/.venv/bin/python3" "$SCRIPT_DIR/venv/bin/python3"
     python3.15 python3.14 python3.13 python3.12 python3.11 python3.10 python3 python
@@ -148,7 +191,8 @@ PY_CANDIDATES=(
 )
 
 APP_VENV_READY=""
-if [ -x "$VENV_PY" ] && py_version_ok "$VENV_PY" && has_deps "$VENV_PY"; then
+if [ -z "$FORCE_NATIVE_REBUILD" ] && [ -x "$VENV_PY" ] \
+   && py_version_ok "$VENV_PY" && has_deps "$VENV_PY"; then
     APP_VENV_READY=1
 fi
 
@@ -160,6 +204,7 @@ PYTHON=""
 for py in "${PY_CANDIDATES[@]}"; do
     FULL_PATH=$(command -v "$py" 2>/dev/null || echo "$py")
     [ -x "$FULL_PATH" ] || continue
+    supports_native_arch "$FULL_PATH" || continue
     py_version_ok "$FULL_PATH" || continue
     PYTHON="$FULL_PATH"
     break
@@ -174,7 +219,7 @@ if [ -n "$APP_VENV_READY" ]; then
         echo -e "${RED}❌ Aktualisierung der App-venv fehlgeschlagen.${NC}"
         exit 1
     fi
-elif [ -x "$VENV_PY" ] && py_version_ok "$VENV_PY" \
+elif [ -z "$FORCE_NATIVE_REBUILD" ] && [ -x "$VENV_PY" ] && py_version_ok "$VENV_PY" \
      && arch_run "$VENV_PY" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; then
     # App-venv existiert mit PyQt6/Pillow/numpy, aber `bgremover` fehlt
     # (typisch fuer einen venv aus der Monolith-Aera, vor dem Paket-
@@ -195,8 +240,9 @@ else
         echo -e "${YELLOW}⚠️  Python 3.10+ nicht automatisch gefunden.${NC}"
         read -r -p "    Python-Pfad angeben (z.B. /opt/homebrew/bin/python3): " USER_PY
         FULL_PATH=$(command -v "$USER_PY" 2>/dev/null || echo "$USER_PY")
-        { [ -x "$FULL_PATH" ] && py_version_ok "$FULL_PATH"; } \
-            || { echo -e "${RED}❌ Kein nutzbares Python 3.10+.${NC}"; exit 1; }
+        { [ -x "$FULL_PATH" ] && supports_native_arch "$FULL_PATH" \
+          && py_version_ok "$FULL_PATH"; } \
+            || { echo -e "${RED}❌ Kein natives Python 3.10+ für $NATIVE_ARCH.${NC}"; exit 1; }
         PYTHON="$FULL_PATH"
     fi
 
@@ -380,17 +426,51 @@ fail() {
     exit 1
 }
 
-# Native CPU-Architektur frueh bestimmen: Probe und echter Start muessen
-# dieselbe Arch nutzen – sonst wuerde die Probe des eingebetteten
-# Interpreters unter Rosetta systematisch scheitern, waehrend der echte
-# Start nativ liefe.
-NATIVE_ARCH="\$(/usr/bin/uname -m 2>/dev/null)"
-py_check() {
-    if [ -n "\$NATIVE_ARCH" ] && /usr/bin/arch -"\$NATIVE_ARCH" "\$1" -c 'pass' >/dev/null 2>&1; then
-        /usr/bin/arch -"\$NATIVE_ARCH" "\$1" -c 'import bgremover' >/dev/null 2>&1
-    else
-        "\$1" -c 'import bgremover' >/dev/null 2>&1
+# Hardware-Architektur frueh und Rosetta-unabhaengig bestimmen: ``uname -m``
+# allein beschreibt nur die aktuelle Launcher-Architektur (#866).
+if [ "\$(/usr/sbin/sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" = "1" ]; then
+    NATIVE_ARCH="arm64"
+else
+    NATIVE_ARCH="\$(/usr/bin/uname -m 2>/dev/null)"
+fi
+select_run() {
+    local py="\$1"
+    RUN=("\$py")
+    if [ -n "\$NATIVE_ARCH" ] && /usr/bin/arch -"\$NATIVE_ARCH" "\$py" -c 'pass' >/dev/null 2>&1; then
+        RUN=(/usr/bin/arch -"\$NATIVE_ARCH" "\$py")
     fi
+}
+py_check() {
+    select_run "\$1"
+    PY_CHECK_OUTPUT="\$("\${RUN[@]}" -c 'import platform
+import bgremover
+
+translated = "unbekannt"
+try:
+    import ctypes
+
+    value = ctypes.c_int(0)
+    size = ctypes.c_size_t(ctypes.sizeof(value))
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.sysctlbyname.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_size_t),
+        ctypes.c_void_p,
+        ctypes.c_size_t,
+    ]
+    libc.sysctlbyname.restype = ctypes.c_int
+    if libc.sysctlbyname(b"sysctl.proc_translated", ctypes.byref(value), ctypes.byref(size), None, 0) == 0:
+        translated = str(value.value)
+except Exception:
+    pass
+print(f"\nBGREMOVER_RUNTIME|{platform.machine()}|{translated}")' 2>&1)" || {
+        IMPORT_ERR="\$PY_CHECK_OUTPUT"
+        return 1
+    }
+    RUNTIME_INFO="\$(printf '%s\n' "\$PY_CHECK_OUTPUT" | sed -n 's/^BGREMOVER_RUNTIME|//p' | tail -n 1)"
+    [ -n "\$RUNTIME_INFO" ] || RUNTIME_INFO="unbekannt|unbekannt"
+    IMPORT_ERR=""
 }
 
 # Eingebetteter Interpreter: __PYVENV_LAUNCHER__ zeigt auf denselben
@@ -422,8 +502,7 @@ fi
 # beim Start zum falschen "fehlt"-Dialog fuehren, obwohl das Paket
 # einwandfrei importierbar ist. Bei erfolgreicher Embedded-Probe oben
 # (EMBEDDED_OK) ist der Import bereits belegt – kein zweiter Start.
-if [ -z "\$EMBEDDED_OK" ] && ! "\$PYTHON" -c 'import bgremover' >/dev/null 2>&1; then
-    IMPORT_ERR="\$("\$PYTHON" -c 'import bgremover' 2>&1)"
+if [ -z "\$EMBEDDED_OK" ] && ! py_check "\$PYTHON"; then
     if printf '%s' "\$IMPORT_ERR" | grep -qE "No module named '?bgremover'?"; then
         fail "Das bgremover-Paket fehlt in der venv:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
     fi
@@ -431,13 +510,20 @@ if [ -z "\$EMBEDDED_OK" ] && ! "\$PYTHON" -c 'import bgremover' >/dev/null 2>&1;
     fail "bgremover laesst sich nicht importieren in:"\$'\\n'"\$PYTHON"\$'\\n\\n'"\$LASTLINE"\$'\\n\\n'"Fix: bash diagnose_mac.sh fuer Details ausfuehren, ggf. venv neu bauen."
 fi
 
-# Native CPU-Architektur erzwingen (NATIVE_ARCH oben bestimmt): wird die
-# .app via Rosetta gestartet, läuft Python sonst als x86_64 und kann
-# arm64-Pakete nicht laden. Nur anwenden, wenn dieses Python die native
-# Arch wirklich unterstützt, sonst normal starten.
-RUN=("\$PYTHON")
-if [ -n "\$NATIVE_ARCH" ] && /usr/bin/arch -"\$NATIVE_ARCH" "\$PYTHON" -c 'pass' >/dev/null 2>&1; then
-    RUN=(/usr/bin/arch -"\$NATIVE_ARCH" "\$PYTHON")
+# ``py_check`` hat die tatsächliche Interpreter-Architektur und den
+# Rosetta-Status bereits im erfolgreichen Importprozess erfasst. Dadurch
+# entsteht für die Logzeile kein zusätzlicher Python-Kaltstart (#866).
+PYTHON_ARCH="\${RUNTIME_INFO%%|*}"
+PYTHON_TRANSLATED="\${RUNTIME_INFO#*|}"
+RUNTIME_WARNING=""
+if [ "\$NATIVE_ARCH" = "arm64" ] \\
+   && { [ "\$PYTHON_ARCH" = "x86_64" ] || [ "\$PYTHON_TRANSLATED" = "1" ]; }; then
+    RUNTIME_WARNING="WARNUNG: Python läuft als x86_64 unter Rosetta. Fix: bash create_BgRemover_app.sh erneut ausführen."
+elif [ "\$PYTHON_ARCH" = "unbekannt" ] || [ "\$PYTHON_TRANSLATED" = "unbekannt" ]; then
+    RUNTIME_WARNING="HINWEIS: Interpreter-Architektur oder Rosetta-Status konnte nicht vollständig ermittelt werden."
+elif [ "\$NATIVE_ARCH" = "arm64" ] \\
+     && [ "\$PYTHON_ARCH" != "arm64" ]; then
+    RUNTIME_WARNING="WARNUNG: Python läuft nicht nativ als arm64 (interpreter_arch=\$PYTHON_ARCH). Fix: bash create_BgRemover_app.sh erneut ausführen."
 fi
 
 # Logposition VOR diesem Start merken. Die Fehlersuche unten darf nur
@@ -448,7 +534,8 @@ fi
 LSTART=\$(wc -l < "\$LOG" 2>/dev/null || echo 0)
 
 { echo "--- \$(date '+%Y-%m-%d %H:%M:%S') BgRemover-Start ---"
-  echo "Python: \$PYTHON  (arch \$NATIVE_ARCH)"; } >> "\$LOG" 2>&1
+  echo "Python: \$PYTHON  (interpreter_arch=\$PYTHON_ARCH, proc_translated=\$PYTHON_TRANSLATED, hardware_arch=\$NATIVE_ARCH)"
+  [ -z "\$RUNTIME_WARNING" ] || echo "\$RUNTIME_WARNING"; } >> "\$LOG" 2>&1
 
 if ! "\${RUN[@]}" -m bgremover "\$@" >> "\$LOG" 2>&1; then
     LASTERR=\$(tail -n +\$((LSTART + 1)) "\$LOG" 2>/dev/null | grep -E 'Error|Exception|Traceback' | tail -n 1)
