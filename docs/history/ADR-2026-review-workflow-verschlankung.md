@@ -59,6 +59,47 @@ Verschlankung von Prompt, Prosa und Tests, **E5** die Kostenbremse
    wird hier weiter erhöht — nicht der Prompt wieder aufgebläht; ein
    Anheben fasst diesen Abschnitt, den geteilten #828-Kopfblock beider
    Workflows und den Test-Pin synchron an.
+
+   **Nachtrag 2026-08-26 — Deckel 25 → 40, Timeout 15 → 20 Minuten.**
+   Der oben beschriebene Anhebungsfall ist eingetreten. Die passive
+   Zehn-Läufe-Messung aus #828
+   ([ISSUE-841-VERIFIKATION.md](ISSUE-841-VERIFIKATION.md)) endete
+   6 grün / 4 rot, und **alle vier** roten Läufe scheiterten allein am
+   Deckel — drei davon (Läufe 2, 3 und 9 mit 29, 30 und 29 Turns) mit
+   bereits vollständig veröffentlichter Zusammenfassung und
+   Inline-Befunden. Das ist wörtlich die hier verlangte „Serie realer
+   Läufe mit geposteter Ausgabe, die am Deckel scheitert". Der
+   Ablehnungszähler stand dabei in allen zehn Läufen auf 0: Das Budget
+   geht in Arbeit auf, nicht mehr in eine Ablehnungsschleife — die
+   Bedingung „nicht der Prompt wieder aufgebläht" ist damit erfüllt,
+   der Prompt bleibt unangetastet. Lauf 10 traf mit exakt 25 Turns die
+   Obergrenze und lieferte trotzdem fünf Inline-Befunde; 25 war also
+   nicht großzügig, sondern grenzwertig. 40 statt der knapp
+   ausreichenden 30 lässt bewusst Luft über dem beobachteten Maximum,
+   damit derselbe Fall nicht in drei Monaten wiederkehrt.
+   Der **Timeout zieht mit**, weil er sonst an die Stelle des Deckels
+   tritt: Bei der langsamsten gemessenen Rate (Lauf 32903367472,
+   ~20 s/Turn) kosten 40 Turns rund 13 Minuten, die alten 15 hätten den
+   roten Check nur gegen einen schlechteren Fehlermodus getauscht —
+   Timeout-Kill **ohne jede Ausgabe** statt roter Check **mit**
+   vollständiger Ausgabe. Kostenbremse bleibt der
+   Ein-Review-je-PR-Trigger, nicht der Timeout.
+   Die 20 sind bewusst großzügig gerundet statt knapp gerechnet: Die Rate
+   stammt aus einem 17-Turn-Lauf und ist nach oben offen, weil die Turn-Dauer
+   mit dem wachsenden Kontext steigt — die lineare Hochrechnung auf 40 Turns
+   unterschätzt also eher, und wie viel, ist bis zu einem realen
+   35–40-Turn-Lauf **unbelegt**. Dazu kommt die Asymmetrie des Fehlerfalls:
+   Bindet der Timeout, bricht der Job ab, und der nachgelagerte
+   Diagnoseschritt liefert seinen Ablehnungszähler nicht mehr verlässlich —
+   die Messgröße von #828 fehlt dann ausgerechnet im interessanten Fall.
+   **Preis, bewusst getragen:** Die Obergrenze der Kosten je Review steigt um
+   60 Prozent (25 → 40 Turns). Der *typische* Lauf wird davon nicht teurer —
+   die zehn gemessenen lagen bei 17 bis 30 Turns und werden durch einen
+   höheren Deckel nicht länger; teurer wird nur der Fall, der bisher rot
+   abgebrochen wurde, und dort ist der Mehrpreis genau das, was den Lauf
+   verwertbar macht. Die Kostenbremse bleibt deshalb der
+   Ein-Review-je-PR-Trigger aus E1, nicht der Deckel; wird das Nutzungslimit
+   knapp, ist weiterhin `claude.yml` die erste Stelle zum Zurückdrehen.
 5. **Bewusst unverändert:** die Allowlist (wortgleich übernommen), das
    Verhalten des Diagnose-Skripts, das Opus-Pinning (ein Review je PR ist
    die Kostenbremse; das stärkere Modell je Lauf ist gewollt) und die
@@ -67,7 +108,13 @@ Verschlankung von Prompt, Prosa und Tests, **E5** die Kostenbremse
 Damit ist die Freeze-Bedingung „Prompt-Verschlankung" aus dem
 Entschärfungs-ADR erfüllt; der Meta-Freeze für weitere Mechanik-Umbauten
 (u. a. `actions: read`-Absenkung, `Read`-Pfadregel) bleibt bis zum
-Abschluss der passiven Zehn-Läufe-Messung bestehen.
+Abschluss der passiven Zehn-Läufe-Messung bestehen. Diese Messung ist am
+2026-08-26 mit 10/10 abgeschlossen; der Freeze ist damit beendet, und die
+Deckel-Anhebung im Nachtrag zu Entscheidung 4 ist die erste Änderung
+danach. Die beiden genannten Umbauten sind unmittelbar darauf gefolgt und
+damit ebenfalls erledigt: `actions: read` gestrichen (Bullet „Rechte") und die
+`Read`-Pfadregel als Deny-Schicht gesetzt (Bullet „Fremdinhalt ist Daten").
+Damit ist der #828-Restbestand leer.
 
 ## Werkzeuggrenze des Reviews (verbindliche Fassung)
 
@@ -116,14 +163,52 @@ Tragende Sicherheitsargumente (aus #825/#841/#850/#853 kondensiert):
   deckt bewusst jedes öffentliche Repository) ist die eigentliche Härtung;
   `Read` über das Runner-Dateisystem plus öffentliche Ausgabewege bleibt
   der Egress-Kanal, den der Trigger-Schutz und diese Regel gemeinsam
-  einhegen (eine `Read`-Pfadregel als zweite Schicht bleibt offener
-  #828-Punkt).
+  einhegen. Die als zweite Schicht vorgesehene **`Read`-Pfadregel** ist am
+  2026-08-26 nachgezogen (letzter offener #828-Punkt), aber bewusst als
+  **Deny**-Regel statt als Allowlist auf den Checkout:
+  `--disallowedTools "Read(//**/.git/config),Read(~/.claude/.credentials.json)"`.
+  Begründung beider Hälften: `Read` ist innerhalb des Arbeitsverzeichnisses
+  ohnehin prompt-frei, ein Allowlist-Zuschnitt darauf würde aber den im Prompt
+  genannten Groß-Diff-Pfad sperren — eine zu große `gh pr diff`-Ausgabe legt
+  Claude Code unter `~/.claude/` ab. Gedeckt sind stattdessen genau die zwei
+  Ziele, die ein Review nie braucht und die Geheimnisse tragen: `.git/config`
+  hält für die Jobdauer den GITHUB_TOKEN als `http.extraheader` und liegt
+  **im** Checkout, wo die Arbeitsverzeichnis-Regel gerade nicht schützt;
+  `//proc/**` deckt die Prozessumgebung, in der die aktiven Token
+  (`CLAUDE_CODE_OAUTH_TOKEN`, `GITHUB_TOKEN`) über `/proc/self/environ`
+  lesbar wären — in diesem Job der Ort, an dem das Geheimnis tatsächlich
+  liegt; `.credentials.json` ist der dokumentierte Login-Ablageort unter
+  Linux und hier bloß Vorsorge, weil der Job über die Umgebungsvariable
+  authentifiziert und die Datei gar nicht schreibt.
+  **Reichweite, damit die Schicht nicht überschätzt wird:** Deny schlägt jede
+  Allow-Regel, für die drei benannten Ziele ist sie damit nicht umgehbar. Sie
+  deckt aber bewusst nur diese Pfade, nicht die Klasse geheimnistragender
+  Dateien — `Read` bleibt auf dem übrigen Runner-Dateisystem unbeschränkt,
+  notwendigerweise, siehe Groß-Diff-Pfad. Und die Doku wendet `Read`-Regeln
+  auf Grep/Glob nur „best-effort" an; im Lauf 33011827745 hat es gehalten —
+  ein `Grep` auf `.git/config` steht dort als Ablehnung im Diagnoseprotokoll,
+  die Schicht greift also nachweislich und auch über `Read` hinaus —,
+  zugesichert ist es aber nicht.
+  Pin: `test_review_denies_reading_credential_paths` — er prüft die Muster,
+  nicht ihre Wirkung; die ist nur beobachtbar.
 - **Rechte:** `contents: read` (kein Schreibweg in den Code),
   `pull-requests: write` genügt für beide Ausgabewege – gemessen an Lauf
   32670229428, der unter `issues: read` Zusammenfassung und
   Inline-Befunde postete. Bleibt die Ausgabe künftig aus, ist
-  `issues: write` die belegte Untergrenze. `actions: read` bleibt, bis ein
-  beobachteter Lauf die Absenkung deckt.
+  `issues: write` die belegte Untergrenze. `actions: read` ist am 2026-08-26
+  gestrichen (#828): `gh run` sperrt ohnehin der Prompt, und den CI-Stand
+  liefert `gh pr view --json statusCheckRollup` über die PR-Rechte. Wie bei
+  `issues: read` hängt die Absenkung an einer Beobachtung statt an einem
+  grünen Häkchen — das Fehlerbild wäre still, das Review meldete den CI-Stand
+  nur noch als unbelegt. **Beleg: Lauf 33011827745** (`re-review` auf PR #876
+  unter genau dieser Fassung) hat über `gh pr view 876 --json
+  statusCheckRollup` den vollständigen Rollup gelesen, acht Check-Runs
+  einschließlich `workflowName`. Der Rückfall wäre dann allerdings **nicht**
+  `actions: read`: Das deckt Workflow-Runs (`gh run`), während der Rollup aus
+  GraphQL über die PR-Rechte kommt. Passend wären `checks: read` (Check-Runs)
+  bzw. `statuses: read` (Commit-Status). Warum der Rollup heute ohne beide
+  auskommt, ist nicht ermittelt und für die Streichung auch nicht nötig — sie
+  steht auf der Beobachtung, nicht auf einer Scope-Herleitung.
 
 ## Ablehnungs-Taxonomie (Auswertungsregel für Diagnose und Messreihe)
 
@@ -150,9 +235,18 @@ der Agent dort schreiben und ausführen soll.
 - **W** – Ursache außerhalb von `--allowedTools` (z. B. nicht parsebares
   Kommando: belegt an `gh pr comment --body '## …'`, Lauf 32640784005).
   Fix sitzt im Prompt oder Inhalt, nie in der Allowlist.
+- **D** – von der `Read`-Deny-Schicht verursacht (`--disallowedTools`,
+  seit #828). Erwartbar und ausdrücklich gewollt: Die Regel *soll* zuschlagen,
+  wenn ein Lauf einen der drei gedeckten Pfade anfasst. Belegt an Lauf
+  33011827745, wo ein `Grep` auf `.git/config` abgewiesen wurde. D ist die
+  einzige Klasse, in der eine Ablehnung ein **Funktionsnachweis** ist statt
+  eines Befunds; sie geht L vor, weil die Ursache eine bewusste
+  Policy-Entscheidung ist und keine Allowlist-Lücke. Wer einen
+  Ablehnungszähler > 0 auswertet, muss D deshalb zuerst ausschließen —
+  sonst sucht er eine Werkzeuglücke, die es nicht gibt.
 
-A, N, S, P und W dürfen abgelehnt werden und rechtfertigen keine
-Allowlist-Erweiterung; P und W sind Prompt-Befunde. **Ausnahme:** Eine
+A, N, S, P, W und D dürfen abgelehnt werden und rechtfertigen keine
+Allowlist-Erweiterung; P und W sind Prompt-Befunde, D ist gar kein Befund. **Ausnahme:** Eine
 Ablehnung auf den zwei Ausgabewegen (Inline-Kommentar-Werkzeug,
 `gh pr comment`) blockiert die Abnahme unabhängig von der Klasse – sonst
 stünde „Befund gefunden, Kommentar abgewiesen, Lauf grün" als Normalfall

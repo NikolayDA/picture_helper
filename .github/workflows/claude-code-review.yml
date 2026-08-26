@@ -27,7 +27,7 @@ name: Claude Code Review
 # zusammen mit `is_error: true`, 0–1 Turns — siehe Lauf 32605664173).
 # Das Review läuft je PR genau einmal (Wiederholung nur per Label
 # `re-review`, Doku-Pfade ausgenommen), `claude.yml` nur auf ausdrückliche
-# `@claude`-Erwähnung; Turn-Budgets: Review 25, interaktiv 25.
+# `@claude`-Erwähnung; Turn-Budgets: Review 40, interaktiv 25.
 
 on:
   pull_request:
@@ -59,14 +59,34 @@ jobs:
       group: claude-review-${{ github.event.pull_request.number }}
       cancel-in-progress: true
     runs-on: ubuntu-latest
-    # Echte Reviews: median ~5, maximal beobachtet ~9 Minuten (E5).
-    timeout-minutes: 15
+    # Echte Reviews: median ~5, maximal beobachtet ~9 Minuten (E5). 15 Minuten
+    # hätten mit dem 40er-Budget die Rolle des Deckels übernommen: bei der
+    # langsamsten gemessenen Rate (Lauf 32903367472, ~20 s/Turn) kosten
+    # 40 Turns rund 13 Minuten plus Checkout. 20 halten den Timeout hinter
+    # dem Budget — gewollt ist der rote Check MIT veröffentlichter Ausgabe,
+    # nicht der Timeout-Kill ohne. Großzügig gerundet, aus zwei Gründen: Die
+    # Rate stammt aus einem 17-Turn-Lauf und ist nach oben offen (Turn-Dauer
+    # wächst mit dem Kontext), und bindet der Timeout doch, bricht der Job ab
+    # — dann fehlt der Ablehnungszähler des Diagnoseschritts genau im
+    # interessanten Fall. Kostenbremse bleibt der Ein-Review-je-PR-Trigger.
+    timeout-minutes: 20
     permissions:
       contents: read # Checkout nur lesen; kein Schreibweg in den Code
       pull-requests: write # die zwei Ausgabewege (Inline + PR-Kommentar)
       issues: read # Bezugsissues lesen; Ausgabe belegt durch Lauf 32670229428
       id-token: write
-      actions: read # Absenkung offen (#828), braucht einen beobachteten Lauf
+      # Kein `actions: read` mehr (#828): `gh run` ist per Prompt gesperrt, und
+      # den CI-Stand liest das Review über `gh pr view --json statusCheckRollup`,
+      # also über die PR-Rechte. Das Fehlerbild einer zu engen Absenkung wäre
+      # still — das Review meldet den CI-Stand als unbelegt, statt rot zu
+      # werden —, deshalb hängt die Streichung wie bei `issues: read` an einer
+      # Beobachtung: Lauf 33011827745 (`re-review` auf PR #876) lief unter
+      # genau dieser Fassung und las den CI-Rollup vollständig. Bleibt die CI-Angabe künftig aus, wäre `checks: read`
+      # (Check-Runs) bzw. `statuses: read` (Commit-Status) der passende
+      # Rückfall — nicht `actions: read`, das Workflow-Runs (`gh run`) deckt
+      # und mit dem Rollup gar nichts zu tun hat. Warum der Rollup heute ohne
+      # beide auskommt, ist nicht ermittelt und für die Streichung auch nicht
+      # nötig.
     env:
       HAS_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
     steps:
@@ -172,11 +192,40 @@ jobs:
           # Git nur in exakten Nur-Lese-Formen (Präfix-Wildcards könnten via
           # `--output` schreiben), `gh pr comment` per Prompt auf
           # `--body '…'` verengt; Freigaben, bewusste Ausschlüsse und
-          # Restrisiken im ADR. Turn-Budget 25 (E5-Deckel, kalibriert an
-          # zwei realen Groß-Diff-Läufen); Herleitung im ADR.
+          # Restrisiken im ADR. Turn-Budget 40 seit der abgeschlossenen
+          # Zehn-Läufe-Messung (#828): Drei reale Läufe scheiterten am
+          # 25er-Deckel, obwohl sie ihre Ausgabe bereits vollständig
+          # veröffentlicht hatten — genau der im ADR vorgesehene
+          # Anhebungsfall; Herleitung dort (Entscheidung 4 + Nachtrag).
+          # `Read`-Pfadregel (#828), zweite Schicht neben Trigger-Schutz und
+          # Prompt-Regel. Ausgangslage, im Lauf 33011827745 beobachtet: Mit
+          # `Read` in der Allowlist ist Lesen AUSSERHALB des Checkouts nicht
+          # eingeschränkt (das Review las dort regulär den Groß-Diff unter
+          # `~/.claude/projects/…`). Deny ist damit der einzige Hebel — und
+          # zugleich der richtige, denn ein Allowlist-Zuschnitt auf den
+          # Checkout würde genau diesen im Prompt genannten Groß-Diff-Pfad
+          # sperren. Gedeckt sind drei Ziele, die ein Review nie braucht:
+          # - `//proc/**`: Die aktiven Token stehen in der Prozessumgebung
+          #   (`CLAUDE_CODE_OAUTH_TOKEN`, `GITHUB_TOKEN`) und wären über
+          #   `/proc/self/environ` lesbar. Das ist in diesem Job der Ort, an
+          #   dem das Geheimnis tatsächlich liegt.
+          # - `//**/.git/config`: trägt für die Jobdauer den GITHUB_TOKEN als
+          #   `http.extraheader` (der Post-Schritt entfernt genau diesen Key
+          #   wieder) und liegt IM Checkout, wo die Arbeitsverzeichnis-Regel
+          #   gerade nicht schützt.
+          # - `~/.claude/.credentials.json`: der dokumentierte Login-Ablageort
+          #   unter Linux. Hier schreibt ihn nichts — der Job authentifiziert
+          #   über die Umgebungsvariable, nicht über `/login` —, die Regel ist
+          #   also Vorsorge für den Fall, dass sich das ändert.
+          # Grenze der Schicht, damit sie niemand überschätzt: Sie deckt diese
+          # drei Pfade, nicht die Klasse geheimnistragender Dateien, und die
+          # Doku wendet `Read`-Regeln auf Grep/Glob nur „best-effort" an
+          # (beobachtet hat es gehalten: ein `Grep` auf `.git/config` wurde
+          # abgewiesen).
           claude_args: |
-            --max-turns 25
+            --max-turns 40
             --model claude-opus-5
+            --disallowedTools "Read(//proc/**),Read(//**/.git/config),Read(~/.claude/.credentials.json)"
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(git status --short),Bash(git show-ref --head),Bash(git log --oneline --decorate --max-count=30 HEAD),Bash(git diff --stat HEAD^ HEAD),Bash(git diff --name-only HEAD^ HEAD),Bash(git show --stat --oneline HEAD),Bash(git show --format=fuller --no-patch HEAD),Read,Grep,Glob,WebFetch(domain:docs.claude.com),WebFetch(domain:code.claude.com),WebFetch(domain:platform.claude.com),WebFetch(domain:docs.anthropic.com),WebFetch(domain:docs.github.com),WebFetch(domain:raw.githubusercontent.com)"
 
       # Abgelehnte Werkzeugaufrufe sichtbar machen (#825): gezielt nur

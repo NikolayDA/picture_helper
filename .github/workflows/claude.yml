@@ -28,7 +28,7 @@ name: Claude Code
 # zusammen mit `is_error: true`, 0–1 Turns — siehe Lauf 32605664173).
 # Das Review läuft je PR genau einmal (Wiederholung nur per Label
 # `re-review`, Doku-Pfade ausgenommen), `claude.yml` nur auf ausdrückliche
-# `@claude`-Erwähnung; Turn-Budgets: Review 25, interaktiv 25.
+# `@claude`-Erwähnung; Turn-Budgets: Review 40, interaktiv 25.
 
 on:
   issue_comment:

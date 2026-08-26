@@ -65,7 +65,11 @@ die Regel sowohl `--write` als auch das Schließen des Issues.
    tabelliert. Deshalb gilt zusätzlich die qualitative Bedingung unten: Der
    Lauf muss tatsächlich etwas veröffentlicht haben (Wortlaut dort, nicht
    hier doppelt).
-5. **Klasse je Ablehnung von Hand notieren.** Der Diagnoseschritt gibt je
+5. **Klasse je Ablehnung von Hand notieren.** Seit #828 gibt es dabei eine
+   Klasse, in der eine Ablehnung *kein* Befund ist: **D** – von der
+   `Read`-Deny-Schicht verursacht. Sie ist gewollt und beweist, dass die
+   Schicht greift. Ein Zähler > 0 ist also nicht mehr automatisch eine
+   Werkzeuglücke; D gehört zuerst ausgeschlossen. Der Diagnoseschritt gibt je
    Ablehnung `tool_name`, die Feldliste (`[Felder: …]`), einen vorhandenen
    Ablehnungsgrund im Klartext (`[Grund: …]`, seit #853) und die ersten
    300 Zeichen des `tool_input` aus. Der Grund ist ein Hinweis, nicht die
@@ -189,7 +193,19 @@ lassen (Lauf 5 ist nicht belegbar, weil er abgeschnitten wurde und mehr Turns
 gebraucht haben könnte); ebenso vertretbar ist, einen roten Check bei
 vollständig veröffentlichter Ausgabe hinzunehmen oder das Budget im Prompt
 härter durchzusetzen. Die Go-/No-Go-Entscheidung ist laut Punkt 1 und laut
-#828 ein menschlicher Schritt und bleibt beim Repository-Owner.
+#828 ein menschlicher Schritt und lag beim Repository-Owner.
+
+**Entscheidung vom 2026-08-26: Deckel 25 → 40.** Der Owner hat angehoben.
+Der Timeout zieht von 15 auf 20 Minuten mit, sonst hätte er bei 40 Turns
+die Rolle des Deckels übernommen — mit dem schlechteren Fehlerbild
+(Timeout-Kill ohne Ausgabe statt rotem Check mit vollständiger Ausgabe).
+Prompt, Allowlist, Modell-Pin und Trigger-Mechanik bleiben unverändert.
+Herleitung und die drei synchron angefassten Stellen stehen im Nachtrag zu
+Entscheidung 4 des
+[ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md).
+Die zehn Läufe oben bleiben die Messung **vor** dieser Änderung; eine neue
+Stichprobe wird daraus nicht abgeleitet, solange kein neuer Verdachtsfall
+auftritt.
 
 **Der Meta-Freeze endet mit dieser Messreihe.** Er galt „bis die Messreihe
 steht"
@@ -197,7 +213,12 @@ steht"
 sein Anlass – vom 22.–24.08.2026 waren acht von zehn gemergten PRs Änderungen
 am Review-System selbst, unter Aufsicht ebendieses Review-Systems – ist mit
 zehn Läufen aus ausschließlich gewöhnlichen PRs abgetragen. Die in #828
-zurückgestellten Restpunkte (Streichung von `actions: read`, `Read`-Pfadregel)
-sind damit wieder verhandelbar; die Prompt-Verschlankung selbst ist am
-2026-08-24 erfolgt
-([ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md)).
+zurückgestellten Restpunkte sind am selben Tag nachgezogen und **belegt**
+worden: `actions: read` gestrichen (Lauf 33011827745 las den CI-Rollup unter
+der neuen Fassung weiterhin vollständig) und die `Read`-Pfadregel als
+Deny-Schicht gesetzt (derselbe Lauf weist die Abweisung eines `Grep` auf
+`.git/config` aus)
+(Herleitung beider in den Bullets „Rechte" und „Fremdinhalt ist Daten" des
+[ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md),
+wo auch die Prompt-Verschlankung vom 2026-08-24 steht). Damit ist der
+#828-Restbestand leer.

@@ -209,6 +209,52 @@ def test_review_permissions_and_trigger_keep_the_fork_protection() -> None:
     assert "pull_request_target" not in text, (
         "pull_request_target würde Forks Secrets durchreichen"
     )
+    # #828-Restpunkt: `actions: read` ist gestrichen. Eine Rückkehr wäre eine
+    # stille Rechteausweitung, denn `gh run` sperrt ohnehin der Prompt und den
+    # CI-Stand liefert `gh pr view --json statusCheckRollup` über die
+    # PR-Rechte. Zeilenverankert, damit der begründende Kommentar (der den
+    # Begriff nennt) den Test nicht scheinbar erfüllt.
+    assert not re.search(r"(?m)^      actions: read\b", text), (
+        "actions: read ist mit #828 gestrichen — Rückkehr nur mit Beleg"
+    )
+
+
+def test_review_denies_reading_credential_paths() -> None:
+    """#828-Restpunkt `Read`-Pfadregel: zweite Schicht gegen den Egress-Kanal.
+
+    `Read` plus die beiden öffentlichen Ausgabewege ist der Pfad, über den
+    Fremdinhalt Geheimnisse nach draußen tragen könnte. Beide Ziele braucht
+    ein Review nie, und Deny schlägt jede Allow-Regel: `.git/config` trägt für
+    die Jobdauer den GITHUB_TOKEN als `http.extraheader` und liegt **im**
+    Checkout, wo die Arbeitsverzeichnis-Regel gerade nicht schützt;
+    `.credentials.json` ist der dokumentierte Login-Ablageort unter Linux.
+    Bewusst kein Allowlist-Zuschnitt auf den Checkout — eine zu große
+    `gh pr diff`-Ausgabe legt Claude Code unter `~/.claude/` ab, und genau
+    diesen Groß-Diff-Pfad nennt der Prompt.
+
+    **Was dieser Test nicht kann:** Er prüft die Zeichenketten im Argument,
+    nicht ihre Wirkung. Ob eine Regel wirklich greift, zeigt nur ein Lauf —
+    im Lauf 33011827745 wurde ein `Grep` auf `.git/config` abgewiesen. Die
+    ``//``-Prüfung unten fängt wenigstens den teuersten stillen Tippfehler
+    ab: Ein einzelner Slash (``Read(/**/.git/config)``) ankert laut Doku
+    nicht im Dateisystem-Wurzelverzeichnis, sondern an der Regelquelle — die
+    Schicht wäre dann wirkungslos und der Test trotzdem grün."""
+    args = _claude_args(_REVIEW_WORKFLOW)
+    denied = [a for a in args if a.startswith("--disallowedTools")]
+    assert len(denied) == 1, f"Genau eine Deny-Liste erwartet: {denied!r}"
+    erwartet = (
+        "Read(//proc/**)",
+        "Read(//**/.git/config)",
+        "Read(~/.claude/.credentials.json)",
+    )
+    for regel in erwartet:
+        assert regel in denied[0], f"Deny-Regel fehlt: {regel}"
+    # Absolute Muster brauchen den doppelten Slash; `~` ist die Home-Form.
+    for regel in erwartet:
+        pfad = regel[len("Read(") : -1]
+        assert pfad.startswith(("//", "~/")), (
+            f"Deny-Muster ankert nicht absolut oder am Home: {regel}"
+        )
 
 
 def test_review_checkout_provides_history_before_git_inspection() -> None:
@@ -222,23 +268,44 @@ def test_review_job_carries_the_cost_bounds() -> None:
     Der Deckel ist die Kostenbremse selbst; ein bewusstes Anheben gehört
     laut ADR zuerst dorthin und dann synchron hierher (Codex-P2 auf #858:
     ein bloßes „irgendein --max-turns existiert" ließe 30, 200 oder ein
-    Duplikat grün durchlaufen). Die 25 ist an zwei realen Groß-Diff-Läufen
-    kalibriert (leer bei 21, erfolgreich mit 23 Turns; ADR Entscheidung 4)."""
-    assert re.search(r"(?m)^    timeout-minutes: 15$", _text(_REVIEW_WORKFLOW))
+    Duplikat grün durchlaufen). Die 40 löst die an zwei Groß-Diff-Läufen
+    kalibrierte 25 ab: Die Zehn-Läufe-Messung aus #828 endete 6 grün /
+    4 rot, und alle vier roten Läufe scheiterten allein am Deckel — drei
+    davon mit bereits vollständig veröffentlichter Ausgabe (ADR
+    Entscheidung 4 samt Nachtrag). Der Timeout zieht mit, weil er sonst
+    bei 40 Turns bindet und den roten Check durch einen Timeout-Kill
+    ohne jede Ausgabe ersetzen würde."""
+    assert re.search(r"(?m)^    timeout-minutes: 20$", _text(_REVIEW_WORKFLOW))
     args = _claude_args(_REVIEW_WORKFLOW)
     turn_args = [a for a in args if a.startswith("--max-turns")]
-    assert turn_args == ["--max-turns 25"], (
+    assert turn_args == ["--max-turns 40"], (
         f"Turn-Budget weicht vom E5-Deckel ab: {turn_args!r}"
     )
     assert "--model claude-opus-5" in args, "Modell-Pin fehlt (Kosten-/Auth-Anker)"
-    # Der geteilte #828-Block nennt BEIDE Budgets („Review 25, interaktiv
+    # Der geteilte #828-Block nennt BEIDE Budgets („Review 40, interaktiv
     # 25") — also beide pinnen, sonst kann die wortgleich gepinnte Aussage
-    # falsch werden (Review-Befund auf PR #858).
+    # falsch werden (Review-Befund auf PR #858). Das interaktive Budget
+    # bleibt bei 25: Angehoben wurde nur das Review (#828).
     interactive = [
         a for a in _claude_args(_INTERACTIVE_WORKFLOW) if a.startswith("--max-turns")
     ]
     assert interactive == ["--max-turns 25"], (
         f"Interaktives Turn-Budget weicht vom #828-Block ab: {interactive!r}"
+    )
+    # Und die Verbindung dazwischen: Der Kopfblock nennt die Budgets als
+    # Fließtext. Wortgleich zwischen beiden Workflows ist er schon gepinnt,
+    # gegen die tatsächlichen Argumente aber nicht — eine in beiden Dateien
+    # gleich falsch geänderte Zahl bliebe sonst grün und der Block behauptete
+    # dauerhaft etwas Falsches (Review-Befund auf PR #876). Der Satz wird
+    # deshalb aus den oben gepinnten Argumenten gebaut statt als dritte
+    # Literalkopie geführt; eine Datei genügt, weil die Wortgleichheit
+    # separat gepinnt ist.
+    kopfsatz = (
+        f"Turn-Budgets: Review {turn_args[0].removeprefix('--max-turns ')}, "
+        f"interaktiv {interactive[0].removeprefix('--max-turns ')}."
+    )
+    assert kopfsatz in _text(_REVIEW_WORKFLOW), (
+        f"#828-Kopfblock nennt andere Budgets als claude_args: {kopfsatz!r} fehlt"
     )
 
 
