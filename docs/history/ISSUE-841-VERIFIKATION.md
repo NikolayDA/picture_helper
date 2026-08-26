@@ -109,17 +109,21 @@ Die Läufe auf #857 und #858 selbst zählen nicht, weil beide PRs die
 Review-Mechanik geändert haben und damit keine gewöhnlichen PRs im Sinne von
 Punkt 1 sind.
 
-**Live-Abgleich vom 2026-08-24:** **3/10** reale Läufe ausgewertet; Bilanz:
-**1 grün, 2 rot**. Für alle noch ausstehenden Läufe gilt unverändert die
-Entkopplungsregel aus der Initialisierung dieser Tabelle (#859): Die Läufe
-eines PRs werden erst nach dessen Merge oder Schließung in einem getrennten
-Nachtrag bewertet – das verschiebt ihre Auswertung, verwirft sie aber nicht
-und verhindert, dass jeder weitere Review-Lauf einen neuen Commit im gerade
-gemessenen PR erzwingt. PR #859 ist gemergt, seine drei Review-Läufe können
-deshalb ohne Rückkopplung ausgewertet werden. Der erste Lauf erfüllt alle
-Kriterien. Beide ausdrücklich angeforderten Re-Reviews veröffentlichten
-ebenfalls konkrete Befunde, ihre Jobs endeten wegen 29 beziehungsweise
-30 Turns über dem Deckel von 25 aber rot.
+**Live-Abgleich vom 2026-08-26: die Stichprobe ist voll — 10/10** reale Läufe
+ausgewertet; Bilanz: **6 grün, 4 rot**. Alle zehn liefen unter derselben
+Konfiguration `62a3826`: Seit diesem Commit ist keine der beiden
+Claude-Workflow-Dateien mehr angefasst worden – der Meta-Freeze hat gehalten –,
+und keiner der zehn PRs ändert die Review-Mechanik; es sind gewöhnliche PRs im
+Sinne von Punkt 1.
+
+Die Entkopplungsregel aus der Initialisierung dieser Tabelle (#859) ist dabei
+eingehalten: Die Läufe eines PRs werden erst nach dessen Merge oder Schließung
+in einem getrennten Nachtrag bewertet – das verschiebt ihre Auswertung,
+verwirft sie aber nicht und verhindert, dass jeder weitere Review-Lauf einen
+neuen Commit im gerade gemessenen PR erzwingt. Alle zehn Läufe unten gehören
+zu inzwischen gemergten PRs. Reine Doku-PRs (#860, #862, #872, #874) tauchen
+nicht auf: Der Workflow schließt sie über `paths-ignore` aus, es entsteht gar
+kein Lauf.
 
 Für jeden der zehn realen Läufe wird genau eine nummerierte Zeile ergänzt.
 `Konfiguration` ist die Commit-SHA des zu diesem Lauf aktiven Workflow-Stands;
@@ -131,14 +135,69 @@ qualitative Hälfte gemeinsam erfüllt sind.
 | 1 | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32776206368](https://github.com/NikolayDA/picture_helper/actions/runs/32776206368) | `62a3826` | Job `success`; `success` (22 Turns) | 0 | Erfüllt – konkrete Zusammenfassung und zwei Inline-Befunde veröffentlicht | Grün |
 | 2 | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32777452835](https://github.com/NikolayDA/picture_helper/actions/runs/32777452835) | `62a3826` | Job `failure`; Action-Result `success` (29 Turns) über Deckel 25 | 0 | Erfüllt – konkrete Zusammenfassung und Inline-Befunde veröffentlicht | Rot – Turn-Deckel überschritten |
 | 3 | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32779114518](https://github.com/NikolayDA/picture_helper/actions/runs/32779114518) | `62a3826` | Job `failure`; Action-Result `success` (30 Turns) über Deckel 25 | 0 | Erfüllt – konkrete Zusammenfassung und vier Inline-Befunde veröffentlicht | Rot – Turn-Deckel überschritten |
+| 4 | [#861](https://github.com/NikolayDA/picture_helper/pull/861) | [32840305319](https://github.com/NikolayDA/picture_helper/actions/runs/32840305319) | `62a3826` | Job `success`; `success` (24 Turns) | 0 | Erfüllt – konkrete Zusammenfassung und zwei Inline-Befunde veröffentlicht | Grün |
+| 5 | [#863](https://github.com/NikolayDA/picture_helper/pull/863) | [32896919198](https://github.com/NikolayDA/picture_helper/actions/runs/32896919198) | `62a3826` | Job `failure`; Action-Result `error_max_turns` (26 Turns) | 0 | Erfüllt – konkrete Zusammenfassung und vier Inline-Befunde veröffentlicht | Rot – Turn-Budget aufgebraucht |
+| 6 | [#864](https://github.com/NikolayDA/picture_helper/pull/864) | [32900479506](https://github.com/NikolayDA/picture_helper/actions/runs/32900479506) | `62a3826` | Job `success`; `success` (18 Turns) | 0 | Erfüllt – konkrete Zusammenfassung und zwei Inline-Befunde veröffentlicht | Grün |
+| 7 | [#865](https://github.com/NikolayDA/picture_helper/pull/865) | [32903367472](https://github.com/NikolayDA/picture_helper/actions/runs/32903367472) | `62a3826` | Job `success`; `success` (17 Turns) | 0 | Erfüllt – konkrete Zusammenfassung und vier Inline-Befunde veröffentlicht | Grün |
+| 8 | [#867](https://github.com/NikolayDA/picture_helper/pull/867) | [32905381889](https://github.com/NikolayDA/picture_helper/actions/runs/32905381889) | `62a3826` | Job `success`; `success` (18 Turns) | 0 | Erfüllt – konkrete Zusammenfassung und zwei Inline-Befunde veröffentlicht | Grün |
+| 9 | [#868](https://github.com/NikolayDA/picture_helper/pull/868) | [32908766249](https://github.com/NikolayDA/picture_helper/actions/runs/32908766249) | `62a3826` | Job `failure`; Action-Result `success` (29 Turns) über Deckel 25 | 0 | Erfüllt – konkrete Zusammenfassung und vier Inline-Befunde veröffentlicht | Rot – Turn-Deckel überschritten |
+| 10 | [#870](https://github.com/NikolayDA/picture_helper/pull/870) | [32941942819](https://github.com/NikolayDA/picture_helper/actions/runs/32941942819) | `62a3826` | Job `success`; `success` (25 Turns, Deckel genau erreicht) | 0 | Erfüllt – konkrete Zusammenfassung und fünf Inline-Befunde veröffentlicht | Grün |
 
-**#828 bleibt offen, ist aber eingefroren.** Sein Akzeptanzkriterium ist die
-passive Zehn-Läufe-Messung aus Punkt 1; ein Haken ohne Messwert wäre genau die
-Lücke, gegen die dieses Dokument geschrieben ist. Die Prompt-Verschlankung ist
-am 2026-08-24 erfolgt
-([ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md));
-bis die Messreihe steht, werden **keine weiteren Umbauten an der
-Review-Mechanik** vorgenommen (Meta-Freeze, Begründung im
-[ADR-2026-reviewschleifen-entschaerfung.md](ADR-2026-reviewschleifen-entschaerfung.md)):
-Vom 22.–24.08.2026 waren acht von zehn gemergten PRs Änderungen am
-Review-System selbst — unter Aufsicht ebendieses Review-Systems.
+Die beiden Review-Läufe nach dem zehnten – [32947024210](https://github.com/NikolayDA/picture_helper/actions/runs/32947024210)
+(PR #871) und [32975538952](https://github.com/NikolayDA/picture_helper/actions/runs/32975538952)
+(PR #873), beide Job `success` – liegen außerhalb der festen Stichprobe und
+sind hier bewusst nicht bewertet: Die Stichprobe ist bei zehn geschlossen, ein
+nachträgliches Aufstocken bis zum gewünschten Ergebnis wäre genau die
+Beliebigkeit, gegen die Punkt 1 geschrieben ist.
+
+## Auswertung der Zehn-Läufe-Messung (2026-08-26)
+
+**Der Ablehnungszähler ist in allen zehn Läufen 0.** Das ist das eigentliche
+Ergebnis. Der Befund, mit dem #828 eröffnet wurde – das Review verbrennt sein
+Budget in einer Ablehnungsschleife – tritt nicht mehr auf. Zur Erinnerung an
+die Eröffnungslage: drei der sechs ersten Läufe endeten im Turn-Limit, zwei
+davon ohne irgendeine Ausgabe, und die abbrechenden Läufe wiesen 6 bis 10
+Ablehnungen aus. Allowlist-Fix (#850) und die im Prompt ausformulierte
+Werkzeuggrenze (#853/#858) haben gewirkt; die Akzeptanzbedingung aus #828
+„ein Folgelauf weist weniger Ablehnungen aus als der jeweilige Referenzlauf"
+ist mit 0 gegenüber 1 bis 10 in den Referenzläufen erfüllt.
+
+**Die qualitative Hälfte ist in allen zehn Läufen erfüllt.** Jeder Lauf hat
+eine Zusammenfassung mit konkretem Diff-Bezug veröffentlicht und zusätzlich
+Inline-Befunde gesetzt (wo die Zeile sie beziffert: zwei bis fünf je Lauf).
+Kein Lauf endete, ohne etwas geliefert zu haben – der teuerste Fehlermodus aus
+der Eröffnung von #828 ist damit ebenfalls verschwunden.
+
+**Was rot bleibt, ist ausschließlich das Turn-Budget**, in zwei
+unterscheidbaren Formen:
+
+- Die Action bricht selbst ab und meldet `error_max_turns` (Lauf 5, 26 Turns).
+- Die Action liefert ein Ergebnis, und ihr nachgelagerter Deckel-Vergleich
+  wirft: `Claude reported a successful result after 29 turns, exceeding the
+  configured maximum of 25` (Läufe 2, 3 und 9 mit 29, 30 und 29 Turns). In
+  dieser Form ist die Arbeit vollständig geleistet **und veröffentlicht**; rot
+  wird allein der Check.
+
+Der Verbrauch trennt sich sauber: sechs grüne Läufe bei 17 bis 25 Turns, vier
+rote bei 26 bis 30. Lauf 10 traf mit exakt 25 Turns die Obergrenze und lieferte
+trotzdem fünf Inline-Befunde – der Deckel aus E5 ist also nicht großzügig,
+sondern grenzwertig bemessen.
+
+**Offen ist damit eine Entscheidung, keine Messung.** Die Zahlen sagen nicht,
+was zu tun ist: Ein Deckel von 30 hätte die Läufe 2, 3 und 9 grün werden
+lassen (Lauf 5 ist nicht belegbar, weil er abgeschnitten wurde und mehr Turns
+gebraucht haben könnte); ebenso vertretbar ist, einen roten Check bei
+vollständig veröffentlichter Ausgabe hinzunehmen oder das Budget im Prompt
+härter durchzusetzen. Die Go-/No-Go-Entscheidung ist laut Punkt 1 und laut
+#828 ein menschlicher Schritt und bleibt beim Repository-Owner.
+
+**Der Meta-Freeze endet mit dieser Messreihe.** Er galt „bis die Messreihe
+steht"
+([ADR-2026-reviewschleifen-entschaerfung.md](ADR-2026-reviewschleifen-entschaerfung.md));
+sein Anlass – vom 22.–24.08.2026 waren acht von zehn gemergten PRs Änderungen
+am Review-System selbst, unter Aufsicht ebendieses Review-Systems – ist mit
+zehn Läufen aus ausschließlich gewöhnlichen PRs abgetragen. Die in #828
+zurückgestellten Restpunkte (Streichung von `actions: read`, `Read`-Pfadregel)
+sind damit wieder verhandelbar; die Prompt-Verschlankung selbst ist am
+2026-08-24 erfolgt
+([ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md)).
