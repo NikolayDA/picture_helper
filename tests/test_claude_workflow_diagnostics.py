@@ -246,6 +246,21 @@ def test_review_job_carries_the_cost_bounds() -> None:
     assert interactive == ["--max-turns 25"], (
         f"Interaktives Turn-Budget weicht vom #828-Block ab: {interactive!r}"
     )
+    # Und die Verbindung dazwischen: Der Kopfblock nennt die Budgets als
+    # Fließtext. Wortgleich zwischen beiden Workflows ist er schon gepinnt,
+    # gegen die tatsächlichen Argumente aber nicht — eine in beiden Dateien
+    # gleich falsch geänderte Zahl bliebe sonst grün und der Block behauptete
+    # dauerhaft etwas Falsches (Review-Befund auf PR #876). Der Satz wird
+    # deshalb aus den oben gepinnten Argumenten gebaut statt als dritte
+    # Literalkopie geführt; eine Datei genügt, weil die Wortgleichheit
+    # separat gepinnt ist.
+    kopfsatz = (
+        f"Turn-Budgets: Review {turn_args[0].removeprefix('--max-turns ')}, "
+        f"interaktiv {interactive[0].removeprefix('--max-turns ')}."
+    )
+    assert kopfsatz in _text(_REVIEW_WORKFLOW), (
+        f"#828-Kopfblock nennt andere Budgets als claude_args: {kopfsatz!r} fehlt"
+    )
 
 
 @pytest.mark.parametrize("relative", _WORKFLOWS)
