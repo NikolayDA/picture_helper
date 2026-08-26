@@ -619,10 +619,14 @@ Workflows unter `.github/workflows/` (16):
   (`opened`/`ready_for_review`; Wiederholung nur per Label `re-review`,
   Doku-Pfade ausgenommen) und ohne Merge-Sperre durch seine Konversationen.
   Es gilt die **Konvergenzregel**: höchstens zwei Bot-Review-Runden je PR,
-  danach entscheidet ein Mensch gesammelt über die Befunde; Umbauten an der
-  Review-Mechanik sind bis zum Abschluss der Zehn-Läufe-Messung eingefroren
+  danach entscheidet ein Mensch gesammelt über die Befunde. Der Meta-Freeze
+  für Umbauten an der Review-Mechanik galt bis zum Abschluss der
+  Zehn-Läufe-Messung; sie steht seit dem 2026-08-26 (10/10, Auswertung in
+  [`docs/history/ISSUE-841-VERIFIKATION.md`](docs/history/ISSUE-841-VERIFIKATION.md)),
+  der Freeze ist beendet
   (ADRs [`docs/history/ADR-2026-reviewschleifen-entschaerfung.md`](docs/history/ADR-2026-reviewschleifen-entschaerfung.md)
-  und — Prompt-Verschlankung, Turn-Budget 25, Taxonomie kanonisch dort —
+  und — Prompt-Verschlankung, Turn-Budget seit #828 auf 40 (Timeout
+  20 Minuten), Taxonomie kanonisch dort —
   [`docs/history/ADR-2026-review-workflow-verschlankung.md`](docs/history/ADR-2026-review-workflow-verschlankung.md)).
   `.github/agents/` hält die Agent-Konfigurationen (Code Review,
   Bug Fix, Documentation, Test, Performance; #547/#548), Details in

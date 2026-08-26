@@ -222,18 +222,24 @@ def test_review_job_carries_the_cost_bounds() -> None:
     Der Deckel ist die Kostenbremse selbst; ein bewusstes Anheben gehört
     laut ADR zuerst dorthin und dann synchron hierher (Codex-P2 auf #858:
     ein bloßes „irgendein --max-turns existiert" ließe 30, 200 oder ein
-    Duplikat grün durchlaufen). Die 25 ist an zwei realen Groß-Diff-Läufen
-    kalibriert (leer bei 21, erfolgreich mit 23 Turns; ADR Entscheidung 4)."""
-    assert re.search(r"(?m)^    timeout-minutes: 15$", _text(_REVIEW_WORKFLOW))
+    Duplikat grün durchlaufen). Die 40 löst die an zwei Groß-Diff-Läufen
+    kalibrierte 25 ab: Die Zehn-Läufe-Messung aus #828 endete 6 grün /
+    4 rot, und alle vier roten Läufe scheiterten allein am Deckel — drei
+    davon mit bereits vollständig veröffentlichter Ausgabe (ADR
+    Entscheidung 4 samt Nachtrag). Der Timeout zieht mit, weil er sonst
+    bei 40 Turns bindet und den roten Check durch einen Timeout-Kill
+    ohne jede Ausgabe ersetzen würde."""
+    assert re.search(r"(?m)^    timeout-minutes: 20$", _text(_REVIEW_WORKFLOW))
     args = _claude_args(_REVIEW_WORKFLOW)
     turn_args = [a for a in args if a.startswith("--max-turns")]
-    assert turn_args == ["--max-turns 25"], (
+    assert turn_args == ["--max-turns 40"], (
         f"Turn-Budget weicht vom E5-Deckel ab: {turn_args!r}"
     )
     assert "--model claude-opus-5" in args, "Modell-Pin fehlt (Kosten-/Auth-Anker)"
-    # Der geteilte #828-Block nennt BEIDE Budgets („Review 25, interaktiv
+    # Der geteilte #828-Block nennt BEIDE Budgets („Review 40, interaktiv
     # 25") — also beide pinnen, sonst kann die wortgleich gepinnte Aussage
-    # falsch werden (Review-Befund auf PR #858).
+    # falsch werden (Review-Befund auf PR #858). Das interaktive Budget
+    # bleibt bei 25: Angehoben wurde nur das Review (#828).
     interactive = [
         a for a in _claude_args(_INTERACTIVE_WORKFLOW) if a.startswith("--max-turns")
     ]

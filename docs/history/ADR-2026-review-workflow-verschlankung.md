@@ -59,6 +59,31 @@ Verschlankung von Prompt, Prosa und Tests, **E5** die Kostenbremse
    wird hier weiter erhöht — nicht der Prompt wieder aufgebläht; ein
    Anheben fasst diesen Abschnitt, den geteilten #828-Kopfblock beider
    Workflows und den Test-Pin synchron an.
+
+   **Nachtrag 2026-08-26 — Deckel 25 → 40, Timeout 15 → 20 Minuten.**
+   Der oben beschriebene Anhebungsfall ist eingetreten. Die passive
+   Zehn-Läufe-Messung aus #828
+   ([ISSUE-841-VERIFIKATION.md](ISSUE-841-VERIFIKATION.md)) endete
+   6 grün / 4 rot, und **alle vier** roten Läufe scheiterten allein am
+   Deckel — drei davon (Läufe 2, 3 und 9 mit 29, 30 und 29 Turns) mit
+   bereits vollständig veröffentlichter Zusammenfassung und
+   Inline-Befunden. Das ist wörtlich die hier verlangte „Serie realer
+   Läufe mit geposteter Ausgabe, die am Deckel scheitert". Der
+   Ablehnungszähler stand dabei in allen zehn Läufen auf 0: Das Budget
+   geht in Arbeit auf, nicht mehr in eine Ablehnungsschleife — die
+   Bedingung „nicht der Prompt wieder aufgebläht" ist damit erfüllt,
+   der Prompt bleibt unangetastet. Lauf 10 traf mit exakt 25 Turns die
+   Obergrenze und lieferte trotzdem fünf Inline-Befunde; 25 war also
+   nicht großzügig, sondern grenzwertig. 40 statt der knapp
+   ausreichenden 30 lässt bewusst Luft über dem beobachteten Maximum,
+   damit derselbe Fall nicht in drei Monaten wiederkehrt.
+   Der **Timeout zieht mit**, weil er sonst an die Stelle des Deckels
+   tritt: Bei der langsamsten gemessenen Rate (Lauf 32903367472,
+   ~20 s/Turn) kosten 40 Turns rund 13 Minuten, die alten 15 hätten den
+   roten Check nur gegen einen schlechteren Fehlermodus getauscht —
+   Timeout-Kill **ohne jede Ausgabe** statt roter Check **mit**
+   vollständiger Ausgabe. Kostenbremse bleibt der
+   Ein-Review-je-PR-Trigger, nicht der Timeout.
 5. **Bewusst unverändert:** die Allowlist (wortgleich übernommen), das
    Verhalten des Diagnose-Skripts, das Opus-Pinning (ein Review je PR ist
    die Kostenbremse; das stärkere Modell je Lauf ist gewollt) und die
@@ -67,7 +92,10 @@ Verschlankung von Prompt, Prosa und Tests, **E5** die Kostenbremse
 Damit ist die Freeze-Bedingung „Prompt-Verschlankung" aus dem
 Entschärfungs-ADR erfüllt; der Meta-Freeze für weitere Mechanik-Umbauten
 (u. a. `actions: read`-Absenkung, `Read`-Pfadregel) bleibt bis zum
-Abschluss der passiven Zehn-Läufe-Messung bestehen.
+Abschluss der passiven Zehn-Läufe-Messung bestehen. Diese Messung ist am
+2026-08-26 mit 10/10 abgeschlossen; der Freeze ist damit beendet, und die
+Deckel-Anhebung im Nachtrag zu Entscheidung 4 ist die erste Änderung
+danach. Die beiden genannten Umbauten stehen weiterhin aus.
 
 ## Werkzeuggrenze des Reviews (verbindliche Fassung)
 
