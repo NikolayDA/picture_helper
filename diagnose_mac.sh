@@ -100,6 +100,7 @@ if [ -x "$APP_VENV" ]; then
         echo "BEFUND: ARCHITEKTUR-MISMATCH – Apple-Silicon-Hardware, App-venv=$APP_VENV_RUNTIME_ARCH."
         echo "  Die App läuft damit als x86_64 unter Rosetta statt nativ arm64."
         echo "  Abhilfe: brew install python"
+        # shellcheck disable=SC2016  # $HOME muss als kopierbares Literal erscheinen.
         echo '           rm -rf "$HOME/Library/Application Support/BgRemover/venv"'
         echo "           bash create_BgRemover_app.sh"
     else
