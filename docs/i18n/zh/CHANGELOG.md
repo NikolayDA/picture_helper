@@ -9,6 +9,8 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]
 
+## [2.9.0] – 2026-08-26
+
 ### 新增
 
 - **缩放胶囊现已同样出现在 3D 浮雕预览中。** 2D 画布上的悬浮缩放控件现在也会显示在 3D 视图中，并在那里控制相机缩放（100 % = 适配视图，同样的 ±10 % 步进；锁定同样会冻结鼠标滚轮和键盘缩放）。
@@ -32,6 +34,28 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   x86_64 应用 venv 时会明确提示，并仅在确认后进行原生重建；启动日志与
   `diagnose_mac.sh` 会分别显示实际解释器架构、`sysctl.proc_translated` 和
   二进制架构。
+
+### 本版本说明
+
+- **影响：** 功能版本。悬浮缩放药丸现在同样控制 3D 浮雕预览；此外还有四项
+  修复（切换模式时的高度实时预览、运行时的应用图标、两条 macOS 启动路径）
+  以及两处检查器改版。图像、项目与导出数据均保持不变。
+- **受影响的用户：** 使用 3D 浮雕预览的用户在那里获得与 2D 画布相同的缩放
+  控件。应用图标现在在所有平台上于运行时设置（macOS 应用切换器与台前调度
+  侧栏、没有 `.desktop` 关联的 Linux 任务栏）。其余两项 macOS 修复——内嵌
+  解释器，以及针对在 Rosetta 下不知不觉以 x86_64 运行的架构检测——影响的是
+  通过 `create_BgRemover_app.sh` 从源码构建的应用包，而非分发的 `.dmg`。在
+  浮雕步骤中使用「优化」实时预览的用户，切换到标准模式时不会再失去对它的
+  控制。
+- **升级相关性：** 建议所有用户升级。无需任何迁移步骤——项目文件
+  （`.bgrproj`）、导出格式和设置均保持兼容；可在不改变数据的情况下降级到
+  2.8.0。从源码构建运行 macOS 应用的用户，请重新执行一次
+  `create_BgRemover_app.sh` 以采用这两项 macOS 修复。
+- **支持的平台：** macOS arm64（`.dmg`）、Linux x86_64 和 Linux arm64（均提供
+  `.AppImage` 和 `.deb`），Python ≥ 3.10。所有构建产物均捆绑 AI 后端
+  （`-ai` 后缀）。macOS 应用为临时签名，未使用 Developer ID 公证——首次启动
+  需右键点击 →「打开」。
+- **已知限制：** 相较 2.8.0 无新增限制。
 
 ## [2.8.0] – 2026-08-16
 
@@ -1103,7 +1127,8 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - 带有架构、已知限制和安装
   说明的 README；详细的 `INSTALL_MAC.md`。
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...v2.8.0
 [2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
 [2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2
