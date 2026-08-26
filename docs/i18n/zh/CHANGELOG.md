@@ -27,6 +27,11 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - **标准模式和步骤切换均未丢弃处于激活状态的高度优化预览 (#839)。** 在"优化"卡片展开且存在未应用的实时预览时从专家模式切换到标准模式，或离开"浮雕"步骤，预览仍会显示在画布上，尽管应用/放弃控件已不可用——此时保存/EufyMake 导出会导出未更改的模型。现在这两条路径都会可靠地丢弃预览，与手动收起时的行为一致。
 - **应用切换器和 Stage Manager 侧边栏中的进程图标错误（macOS）。** Dock 显示的是 `.app` 包的正确图标，但显示正在运行进程图标的界面（应用切换器、Stage Manager 侧边栏）却显示 venv 解释器的 Python 火箭图标，因为应用在运行时从未设置应用程序图标。应用图标现在作为包数据随附，并在启动时通过 `QApplication.setWindowIcon` 设置——这同样有助于没有 `.desktop` 关联的 Linux 任务栏。
 - **尽管设置了运行时图标，应用切换器/Stage Manager 仍显示 Python 火箭（macOS 应用包）。** #864 的后续修复：在 framework Python 上，venv 存根会重新执行 `Python.framework/…/Python.app` 中的真实解释器二进制文件——因此 macOS 将 GUI 进程归属于 `Python.app`，这些界面显示的是该包的图标，而不是通过 `setWindowIcon` 设置的图标。`create_BgRemover_app.sh` 现在将真实二进制文件的副本作为 `Contents/MacOS/BgRemoverPython` 嵌入应用包，并以指向 venv 存根的 `__PYVENV_LAUNCHER__` 启动它（与存根自身使用的机制相同）：进程以 `BgRemover.app` 的身份运行（图标和菜单栏名称），venv 上下文保持完全一致。构建时自检和运行时回退到 venv 启动可在无法嵌入时保持现状。
+- **macOS 应用在 Apple Silicon 上曾悄然以 x86_64 方式通过 Rosetta 运行
+  (#866)。** Setup 和启动器现在可独立于转译 shell 识别硬件架构。检测到
+  x86_64 应用 venv 时会明确提示，并仅在确认后进行原生重建；启动日志与
+  `diagnose_mac.sh` 会分别显示实际解释器架构、`sysctl.proc_translated` 和
+  二进制架构。
 
 ## [2.8.0] – 2026-08-16
 

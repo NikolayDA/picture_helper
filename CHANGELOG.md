@@ -65,6 +65,12 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   venv-Kontext bleibt identisch. Selbsttest beim Bauen und
   Laufzeit-Fallback auf den venv-Start sichern den Status quo ab, falls
   die Einbettung nicht möglich ist.
+- **macOS-App lief auf Apple Silicon unbemerkt als x86_64 unter Rosetta
+  (#866).** Setup und Launcher erkennen die Hardware-Architektur jetzt
+  unabhängig von einer übersetzten Shell. Eine x86_64-App-venv wird klar
+  gemeldet und nur nach Bestätigung nativ neu aufgebaut; Startlog und
+  `diagnose_mac.sh` weisen tatsächliche Interpreter-Architektur,
+  `sysctl.proc_translated` und Binärarchitekturen getrennt aus.
 
 ## [2.8.0] – 2026-08-16
 

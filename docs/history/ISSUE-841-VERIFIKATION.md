@@ -83,11 +83,12 @@ wurde, nie was geleistet wurde. Deshalb aus
 [#828](https://github.com/NikolayDA/picture_helper/issues/828) als sechste,
 bewusst nicht maschinell prüfbare Bedingung (Punkt 4 verweist hierher):
 
-> Ein Lauf zählt nur, wenn er auch etwas geliefert hat: mindestens eine
-> Zusammenfassung als PR-Kommentar mit konkretem Bezug zum Diff, und
-> Inline-Befunde, sofern der Diff welche hergibt. Ein ablehnungsfreier Lauf
-> ohne Befunde und ohne nachvollziehbare Prüfung zählt nicht als grün, sondern
-> gar nicht.
+> Ein Lauf besteht die qualitative Hälfte nur, wenn er auch etwas geliefert
+> hat: mindestens eine Zusammenfassung als PR-Kommentar mit konkretem Bezug
+> zum Diff, und Inline-Befunde, sofern der Diff welche hergibt. Jeder reale
+> Lauf belegt unverändert genau einen Stichprobenplatz; ein Lauf ohne Befunde
+> und ohne nachvollziehbare Prüfung wird **rot – qualitative Hälfte nicht
+> erfüllt**, statt aus der festen Stichprobe herauszufallen.
 
 Der Anlass war konkret: Der Prompt in `.github/workflows/claude-code-review.yml`
 war mit #850 von rund 40 auf über 100 Zeilen gewachsen, der Zuwachs fast

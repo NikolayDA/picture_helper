@@ -266,6 +266,32 @@ def test_mac_install_docs_cover_prebuilt_dmg_scope() -> None:
         )
 
 
+def test_mac_install_docs_cover_rosetta_mismatch_recovery() -> None:
+    """Alle sechs Anleitungen halten Diagnose, Abhilfe und Zielzustand aus
+    #866 zusammen; sonst würde eine Übersetzung den kritischen Neuaufbaupfad
+    oder die überprüfbare Log-Evidenz verlieren."""
+    required_markers = (
+        "x86_64",
+        "arm64",
+        "Rosetta",
+        "sysctl.proc_translated",
+        "platform.machine()",
+        "`file`",
+        "brew install python",
+        'rm -rf "$HOME/Library/Application Support/BgRemover/venv"',
+        "bash create_BgRemover_app.sh",
+        "interpreter_arch=arm64",
+        "proc_translated=0",
+    )
+    for path in _all_language_paths("INSTALL_MAC.md"):
+        text = _read(path)
+        matching_sections = _h2_sections_containing(text, *required_markers)
+        assert len(matching_sections) == 1, (
+            f"{path.relative_to(ROOT)} must document Rosetta detection, native "
+            "venv rebuild, and runtime log evidence together"
+        )
+
+
 def test_i18n_docs_match_canonical_structure() -> None:
     for name in DOC_NAMES:
         canonical_text = _read(ROOT / name)

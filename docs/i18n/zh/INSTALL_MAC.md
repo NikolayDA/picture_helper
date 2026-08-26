@@ -165,6 +165,20 @@ git checkout <branch> && git pull      # 更新某个特定分支
   brew install python
   bash create_BgRemover_app.sh   # venv 询问按 Enter 确认
   ```
+- **应用可在 Apple Silicon 上运行，但以 `x86_64` 方式通过 Rosetta
+  执行** → 仅看 `uname -m` 并不可靠：在转译进程中它会显示 `x86_64`，
+  即使硬件实际为 `arm64`。因此 `bash diagnose_mac.sh` 会分别显示硬件
+  架构、`sysctl.proc_translated`、通过 `file` 获取的二进制架构，以及应用
+  Python 的 `platform.machine()`。如果 `create_BgRemover_app.sh` 在 Apple
+  Silicon 上检测到 x86_64 应用 venv，它会先警告并提供原生重建选项，
+  不会直接删除。等效的手动恢复步骤为：
+  ```bash
+  brew install python
+  rm -rf "$HOME/Library/Application Support/BgRemover/venv"
+  bash create_BgRemover_app.sh
+  ```
+  `bgremover.log` 中下一条启动记录必须显示 `interpreter_arch=arm64` 和
+  `proc_translated=0`。
 - **直接查看错误（手动诊断）** → 在终端中启动
   启动器，这样就会出现真实的错误消息：
   ```bash

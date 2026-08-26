@@ -99,7 +99,7 @@ Im Projektordner (venv aktiv):
 |--------------|---------------------------------------------------------------------------|
 | `make install-test` | Installiert das Paket nicht-editable mit `[test]` und `requirements/constraints.txt` in das Test-venv |
 | `make doctor` | Prüft Python-Version, Test-Abhängigkeiten, Paketinstallation, Console-Script und Qt-`offscreen` |
-| `make pr-check` | **Schnelle PR-Prüfung:** `install-test` + `doctor` + `ruff` + `mypy` + `pytest` (volle UI-Suite ausgeschlossen, `ui_smoke` läuft mit) |
+| `make pr-check` | **PR-Prüfung:** `install-test` + `doctor` + `ruff` + `mypy` + `pytest` (volle UI-Suite ausgeschlossen, `ui_smoke` läuft mit) + fail-closed Release-Pfadklassifikation |
 | `make check` | Schnelle Wiederholung ohne Neuinstallation/Doctor: `ruff` + `mypy` + `pytest` |
 | `make ui`    | Volle lokale UI-Interaktionssuite inkl. `ui_smoke`                         |
 | `make all`   | Alles zusammen (`check` + `ui`)                                            |
@@ -120,6 +120,11 @@ Empfohlener Ablauf vor einem Release:
 ```bash
 make all
 ```
+
+Für `make pr-check` müssen der Basis-Tag und die Git-Historie lokal vorhanden
+sein; die PR-CI checkt sie deshalb mit `fetch-depth: 0` aus. So blockiert ein
+neuer, noch nicht bewusst klassifizierter Pfad bereits den verursachenden PR
+statt erst den späteren Release-Lauf.
 
 Alles grün ⇒ der Stand entspricht lokal den automatischen PR-Prüfungen;
 `make all` deckt zusätzlich die bewusst lokalen UI-Interaktionstests ab.
