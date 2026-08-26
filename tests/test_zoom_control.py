@@ -300,22 +300,24 @@ def test_protocol_percent_display_is_write_only(qapp) -> None:
 
 
 def test_real_zoom_targets_still_match_the_protocol(qapp) -> None:
-    """Beide produktiven Ziele erfüllen den Protokollvertrag signaturgleich.
+    """Beide produktiven Ziele erfüllen den Protokollvertrag.
 
-    Driftet eine der Implementierungen (umbenannter Parameter, geänderte
-    Signatur), schlägt das hier fehl statt erst zur Laufzeit in der Pille –
-    ``Protocol`` selbst wird ohne ``@runtime_checkable`` nicht geprüft.
+    Geprüft wird, was die Pille wirklich braucht: Protokoll-Konformität
+    (``issubclass`` gegen das ``runtime_checkable`` ``ZoomTarget``) und dass
+    beide Methoden mit genau dem Argument aufrufbar sind, das ``ZoomControl``
+    übergibt. Ein Vergleich auf *Signaturgleichheit* wäre strenger als der
+    Vertrag: Ein zusätzlicher Keyword-Parameter mit Default oder ein
+    umbenanntes Argument erfüllte das Protocol weiterhin, hätte den Wächter
+    aber rot gemacht (Review auf PR #873).
     """
     from bgremover.canvas_viewport import CanvasViewport
     from bgremover.viewer_3d import Relief3DView
 
-    expected = {
-        name: inspect.signature(getattr(ZoomTarget, name))
-        for name in ("step_zoom", "set_zoom_locked")
-    }
+    calls = {"step_zoom": (_ZOOM_CTRL_STEP_PCT,), "set_zoom_locked": (True,)}
     for impl in (CanvasViewport, Relief3DView, _FakeZoomTarget):
-        for name, signature in expected.items():
-            method = getattr(impl, name, None)
-            assert callable(method), f"{impl.__name__} erfüllt ZoomTarget.{name} nicht"
-            assert inspect.signature(method) == signature, (
-                f"{impl.__name__}.{name} weicht vom ZoomTarget-Vertrag ab")
+        assert issubclass(impl, ZoomTarget), (
+            f"{impl.__name__} erfüllt den ZoomTarget-Vertrag nicht")
+        for name, args in calls.items():
+            method = getattr(impl, name)
+            # ``self`` wird mitgebunden – geprüft wird die ungebundene Funktion.
+            inspect.signature(method).bind(None, *args)

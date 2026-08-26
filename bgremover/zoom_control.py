@@ -11,7 +11,7 @@ ist reiner UI-State ohne Undo-/Redo-Eintrag.
 """
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QToolButton, QWidget
@@ -26,12 +26,18 @@ _MARGIN = 14
 _BTN_SIZE = 24
 
 
+@runtime_checkable
 class ZoomTarget(Protocol):
     """Minimaler Vertrag des von der Pille bedienten Zoom-Ziels.
 
     Klemmen, Schrittweite und Lock-Semantik implementiert das Ziel selbst;
     die Live-Prozentanzeige speist es über ``set_percent`` (Signalanbindung
     beim Aufbau, siehe ``canvas.py`` bzw. ``viewer_3d.py``).
+
+    ``runtime_checkable`` macht den Vertrag über ``isinstance``/``issubclass``
+    auch zur Laufzeit prüfbar (Methodenpräsenz; Signaturen prüft weiterhin
+    mypy). Der Vertrag steht damit in dieser Definition statt in einer
+    Testschleife über die konkreten Ziele.
     """
 
     def step_zoom(self, delta_pct: int) -> None: ...

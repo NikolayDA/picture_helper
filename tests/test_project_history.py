@@ -9,7 +9,7 @@ Ebenenpuffer nur einmal zählt).
 Die Budget-Assertions laufen seit #869 ausschließlich über die öffentliche
 Introspektion von :class:`ProjectHistory` (``history_bytes``, ``memory_limit``,
 ``undo_depth``/``redo_depth``/``redo_capacity``, ``has_original``,
-``pooled_payloads()``, ``retained_payloads()``). Vorher griffen sie direkt auf
+``pooled_payloads()``, ``retained_layers()``). Vorher griffen sie direkt auf
 die privaten Bookkeeping-Felder des Dedup-Pools zu – ein Umbau der
 Dedup-Strategie hätte den Großteil dieser Datei gebrochen, auch ohne jede
 Verhaltensänderung.
@@ -21,7 +21,12 @@ import pytest
 from PIL import Image
 
 from bgremover.height_map import HeightField, HeightMapError
-from bgremover.project_history import ProjectHistory
+from bgremover.project_history import (
+    PayloadKind,
+    PooledPayload,
+    ProjectHistory,
+    RetainedLayer,
+)
 from bgremover.project_model import LayerKind, LayerRole, Project
 
 # ── Helfer ──────────────────────────────────────────────────────────────
@@ -82,11 +87,15 @@ def _assert_same(a: Project, b: Project) -> None:
     assert _signature(a) == _signature(b)
 
 
-def _payload_bytes(payload) -> int:
-    """Erwartete Budget-Bytes einer Pool-Payload (RGBA 4 B/px, HEIGHT 3 B/px)."""
-    if isinstance(payload, HeightField):
-        return payload.values.nbytes + payload.coverage.nbytes
-    return payload.width * payload.height * 4
+def _payload_bytes(entry: PooledPayload) -> int:
+    """Erwartete Budget-Bytes eines Pool-Eintrags (RGBA 4 B/px, HEIGHT 3 B/px).
+
+    Aus Art und Pixelgröße unabhängig nachgerechnet – die Zahl kommt aus dem
+    dokumentierten Vertrag (ADR #586: ``uint16``-Werte + ``uint8``-Deckung),
+    nicht aus dem gemeldeten ``nbytes``.
+    """
+    width, height = entry.size
+    return width * height * (3 if entry.kind is PayloadKind.HEIGHT else 4)
 
 
 def _rgba_bytes(image: Image.Image) -> int:
@@ -95,34 +104,49 @@ def _rgba_bytes(image: Image.Image) -> int:
 
 def _pool_bytes(history: ProjectHistory) -> int:
     """Unabhängig nachgerechnete, deduplizierte Pool-Größe."""
-    return sum(_payload_bytes(entry.payload) for entry in history.pooled_payloads())
+    return sum(_payload_bytes(entry) for entry in history.pooled_payloads())
+
+
+def _counted_payload_id(layer: RetainedLayer) -> int:
+    """Die Payload, über die eine aufbewahrte Ebene ins Budget zählt.
+
+    Die Regel „HEIGHT-Ebenen zählen über ihre kanonische 16-Bit-Payload, alle
+    übrigen über das RGBA-Bild" wird hier **eigenständig** nachgebaut – nicht
+    von ``ProjectHistory._payload_of`` übernommen, das auch den Pool füllt.
+    Sonst verschöben sich Pool-Schlüssel und Erwartung synchron, und ein
+    versehentliches Zählen der abgeleiteten 8-Bit-Ansicht einer HEIGHT-Ebene
+    bliebe grün (Review auf PR #873).
+    """
+    payload_id = layer.image_id if layer.height_id is None else layer.height_id
+    assert payload_id is not None, "Ebenen-Snapshot ohne jede Payload"
+    return payload_id
 
 
 def _assert_accounting(history: ProjectHistory) -> None:
     """Pool-Refzählung und Byte-Bilanz müssen exakt konsistent sein.
 
     Geprüft wird ausschließlich über die öffentliche Introspektion (#869):
-    ``pooled_payloads()`` ist der deduplizierte Pool, ``retained_payloads()``
-    liefert die je aufbewahrtem Verlaufsschritt gehaltenen Payloads. Die
-    Bytegrößen rechnet der Test aus Bildmaß bzw. Höhen-Payload **selbst** nach
-    statt sie aus den gemeldeten ``nbytes`` zu übernehmen – sonst prüfte er die
-    Implementierung gegen sich selbst.
+    ``pooled_payloads()`` beschreibt den deduplizierten Pool,
+    ``retained_layers()`` die je aufbewahrtem Verlaufsschritt gehaltenen
+    Ebenen. Beide Vergleichsgrößen entstehen im Test unabhängig – die
+    Bytegrößen aus Art und Pixelmaß, die gezählte Payload aus der oben
+    nachgebauten Auswahlregel.
     """
     pooled = history.pooled_payloads()
     assert history.history_bytes == _pool_bytes(history)
     # Eingefrorene Eintragsgröße == real nachgerechnete Payload-Größe (ein
     # Drift zwischen Ein- und Ausbuchung fiele sonst erst beim Trim auf).
-    assert all(entry.nbytes == _payload_bytes(entry.payload) for entry in pooled)
+    assert all(entry.nbytes == _payload_bytes(entry) for entry in pooled)
     # Jeder Puffer steht genau einmal im Pool …
-    assert len({id(entry.payload) for entry in pooled}) == len(pooled)
+    assert len({entry.payload_id for entry in pooled}) == len(pooled)
     # … und trägt exakt so viele Referenzen, wie aufbewahrte Snapshots ihn
-    # halten; verwaiste oder fehlende Einträge fielen hier auf. HEIGHT-Ebenen
-    # zählen dabei über ihre kanonische Payload, alle übrigen über das RGBA-Bild.
+    # halten; verwaiste oder fehlende Einträge fielen hier auf.
     expected: dict[int, int] = {}
-    for payloads in history.retained_payloads():
-        for payload in payloads:
-            expected[id(payload)] = expected.get(id(payload), 0) + 1
-    assert {id(entry.payload): entry.references for entry in pooled} == expected
+    for layers in history.retained_layers():
+        for layer in layers:
+            key = _counted_payload_id(layer)
+            expected[key] = expected.get(key, 0) + 1
+    assert {entry.payload_id: entry.references for entry in pooled} == expected
 
 
 # ── Speicherbudget & Deduplizierung ─────────────────────────────────────
@@ -541,7 +565,7 @@ def test_clear_resets_stacks_pool_and_original() -> None:
     assert not history.can_undo
     assert not history.can_redo
     assert history.pooled_payloads() == ()
-    assert history.retained_payloads() == ()
+    assert history.retained_layers() == ()
     assert history.history_bytes == 0
     assert not history.has_original
 

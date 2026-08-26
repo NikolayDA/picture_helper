@@ -396,11 +396,16 @@ class ImageCanvas(QGraphicsView):
 
     @property
     def preview_active(self) -> bool:
-        """True, solange eine transiente Live-Vorschau die Anzeige speist (#397).
+        """True, sobald ein transienter Layer-Override gesetzt ist (#397).
 
         Farb-/Höhen-Live-Vorschauen ersetzen für die Dauer der Bedienung nur
         die *Anzeige*; Modell, Content-Revision, History und Exportpfad bleiben
         unberührt. ``False`` heißt damit: Was zu sehen ist, ist der Modellstand.
+
+        Bewusst der Override, nicht das gerenderte Bild: Dieses liegt auf
+        :attr:`transient_preview` und kann kurzzeitig noch ``None`` sein, weil
+        es erst der anschließende Refresh erzeugt – die beiden Eigenschaften
+        sind also nicht deckungsgleich.
         """
         return self._preview_layer_override is not None
 
@@ -410,7 +415,8 @@ class ImageCanvas(QGraphicsView):
 
         Öffentliche Beobachtung desselben Bildes, das der Viewport während
         einer Live-Vorschau zeigt – der Modellstand liegt weiterhin auf
-        :attr:`image`.
+        :attr:`image`. Siehe :attr:`preview_active` zum Unterschied zwischen
+        „Override gesetzt" und „Vorschaubild vorhanden".
         """
         return self._preview
 
