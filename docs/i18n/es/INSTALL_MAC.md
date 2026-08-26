@@ -174,6 +174,21 @@ automáticamente la copia del paquete en el venv dedicado de la app.
   brew install python
   bash create_BgRemover_app.sh   # confirma la pregunta del venv con Enter
   ```
+- **La app funciona en Apple Silicon, pero se ejecuta como `x86_64` bajo
+  Rosetta** → `uname -m` por sí solo no es un diagnóstico fiable: dentro de
+  un proceso traducido indica `x86_64` aunque el hardware sea `arm64`.
+  `bash diagnose_mac.sh` muestra por separado la arquitectura del hardware,
+  `sysctl.proc_translated`, las arquitecturas binarias mediante `file` y el
+  `platform.machine()` del Python de la app. Si `create_BgRemover_app.sh`
+  detecta un venv x86_64 en Apple Silicon, avisa y ofrece reconstruirlo de
+  forma nativa antes de borrar nada. La recuperación manual equivalente es:
+  ```bash
+  brew install python
+  rm -rf "$HOME/Library/Application Support/BgRemover/venv"
+  bash create_BgRemover_app.sh
+  ```
+  La siguiente línea de inicio en `bgremover.log` debe mostrar
+  `interpreter_arch=arm64` y `proc_translated=0`.
 - **Ver el error directamente (diagnóstico manual)** → Inicia el
   launcher en el terminal; entonces aparece el mensaje de error real:
   ```bash

@@ -11,7 +11,7 @@ PIP_INSTALL := $(RUN_ENV) "$(PYTHON)" -m pip install --constraint "$(PIP_CONSTRA
 # Schnelle lokale PR-Pruefung; entspricht .github/workflows/pr-ci.yml.
 # Installiert das Paket bewusst nicht-editable, damit die App-Smoke-Tests
 # denselben Einstieg wie CI/Release/App-Bundle pruefen.
-pr-check: install-test doctor check
+pr-check: install-test doctor check release-freeze-check
 
 install-test:
 	$(PIP_INSTALL) ".[test]"

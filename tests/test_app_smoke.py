@@ -210,9 +210,8 @@ def test_bundled_launcher_uses_app_data_log_path():
 def test_mac_bundle_refreshes_existing_app_venv_from_checkout():
     """Ein erneuter Build darf nicht still die alte Paketkopie weiterverwenden."""
     text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
-    ready_branch = text[text.index('if [ -n "$APP_VENV_READY" ]'):text.index(
-        'elif [ -x "$VENV_PY" ]'
-    )]
+    branch_start = text.index('if [ -n "$APP_VENV_READY" ]')
+    ready_branch = text[branch_start:text.index("\nelif ", branch_start)]
 
     assert 'Aktualisiere App-venv aus aktuellem Checkout' in ready_branch
     assert 'install_app_project "App-venv aktualisiert"' in ready_branch
@@ -267,6 +266,44 @@ def test_mac_bundle_embeds_interpreter_for_process_attribution():
     # Greift der Laufzeit-Fallback, degradiert die App nicht still: die
     # Rückkehr des Python-Icons steht belegbar im Log.
     assert "Eingebetteter Interpreter nicht lauffaehig" in text
+
+
+def test_mac_bundle_detects_and_repairs_rosetta_app_venv():
+    """#866: Hardware-Architektur darf nicht aus einem Rosetta-``uname``
+    abgeleitet werden. Eine x86_64-App-venv auf Apple Silicon wird klar
+    benannt und nur nach Nutzerentscheidung nativ neu gebaut; der Launcher
+    protokolliert anschließend Interpreter-Arch und Übersetzungsstatus."""
+    text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
+
+    assert "/usr/sbin/sysctl -n hw.optional.arm64" in text
+    assert "supports_native_arch" in text
+    assert "Architektur-Mismatch: Apple-Silicon-Hardware" in text
+    assert "App-venv jetzt mit nativem arm64-Python neu bauen? [J/n]" in text
+    assert 'FORCE_NATIVE_REBUILD=1' in text
+    assert 'supports_native_arch "$FULL_PATH" || continue' in text
+    assert "sysctl.proc_translated" in text
+    assert "interpreter_arch=\\$PYTHON_ARCH" in text
+    assert "proc_translated=\\$PYTHON_TRANSLATED" in text
+    assert "hardware_arch=\\$NATIVE_ARCH" in text
+
+
+def test_mac_diagnostics_report_hardware_binary_and_runtime_architectures():
+    """Die read-only Diagnose benennt den Mismatch und seine Abhilfe, statt
+    ``uname -m`` irrtümlich als Hardware- oder Python-Arch auszugeben."""
+    text = (ROOT / "diagnose_mac.sh").read_text(encoding="utf-8")
+
+    for marker in (
+        "/usr/sbin/sysctl -n hw.optional.arm64",
+        "hardware_arch:",
+        "diagnose_process_arch:",
+        "proc_translated:",
+        "BEFUND: ARCHITEKTUR-MISMATCH",
+        "runtime_arch:",
+        "/usr/bin/file",
+        "brew install python",
+        'rm -rf \\"$HOME/Library/Application Support/BgRemover/venv\\"',
+    ):
+        assert marker in text
 
 
 def test_mac_bundle_document_types_cover_supported_formats():

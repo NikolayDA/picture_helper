@@ -13,7 +13,12 @@ jobs:
     name: Lightweight PR checks
     runs-on: ubuntu-latest
     steps:
+      # Das fail-closed Release-Freeze-Gate braucht Basis-Tag und First-Parent-
+      # Historie. Ohne vollständigen Checkout würden neue, unklassifizierte
+      # Pfade erst beim Release statt schon im verursachenden PR auffallen.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:

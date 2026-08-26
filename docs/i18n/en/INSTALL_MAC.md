@@ -170,6 +170,21 @@ non-editable package copy in the app venv.
   brew install python
   bash create_BgRemover_app.sh   # confirm the venv prompt with Enter
   ```
+- **The app works on Apple Silicon but runs as `x86_64` under Rosetta** →
+  `uname -m` alone is not a reliable diagnosis: inside a translated process
+  it reports `x86_64` even though the hardware is `arm64`.
+  `bash diagnose_mac.sh` therefore reports hardware architecture,
+  `sysctl.proc_translated`, binary architectures via `file`, and the app
+  Python's `platform.machine()` separately. If `create_BgRemover_app.sh`
+  detects an x86_64 app venv on Apple Silicon, it warns and offers a native
+  rebuild before deleting anything. The equivalent manual recovery is:
+  ```bash
+  brew install python
+  rm -rf "$HOME/Library/Application Support/BgRemover/venv"
+  bash create_BgRemover_app.sh
+  ```
+  The next startup line in `bgremover.log` must show
+  `interpreter_arch=arm64` and `proc_translated=0`.
 - **See the error directly (manual diagnosis)** → Start the launcher in
   the terminal, then the real error message appears:
   ```bash

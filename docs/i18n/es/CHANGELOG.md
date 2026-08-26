@@ -73,6 +73,13 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   de venv idéntico. Una autocomprobación al construir y un fallback en
   tiempo de ejecución al arranque por venv conservan el statu quo si la
   incrustación no es posible.
+- **La app de macOS se ejecutaba silenciosamente como x86_64 bajo Rosetta en
+  Apple Silicon (#866).** El setup y el launcher ahora detectan la arquitectura
+  del hardware con independencia de una shell traducida. Un venv x86_64 se
+  comunica con claridad y solo se reconstruye de forma nativa tras confirmarlo;
+  el registro de inicio y `diagnose_mac.sh` muestran por separado la
+  arquitectura real del intérprete, `sysctl.proc_translated` y las
+  arquitecturas binarias.
 
 ## [2.8.0] – 2026-08-16
 

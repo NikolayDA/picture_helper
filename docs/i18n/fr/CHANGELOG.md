@@ -69,6 +69,13 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   avec un contexte de venv identique. Un auto-test à la construction et
   un repli à l'exécution vers le démarrage par la venv préservent le
   statu quo si l'embarquement est impossible.
+- **L'application macOS s'exécutait silencieusement en x86_64 sous Rosetta sur
+  Apple Silicon (#866).** Le setup et le lanceur détectent désormais
+  l'architecture matérielle indépendamment d'un shell traduit. Un venv x86_64
+  est signalé clairement et n'est reconstruit nativement qu'après confirmation ;
+  le journal de démarrage et `diagnose_mac.sh` indiquent séparément
+  l'architecture réelle de l'interpréteur, `sysctl.proc_translated` et les
+  architectures binaires.
 
 ## [2.8.0] – 2026-08-16
 
