@@ -14,6 +14,13 @@ from bgremover import _version
 
 ROOT = Path(__file__).resolve().parent.parent
 
+#: Dokumentierter „unbekannt"-Sentinel von ``_version.get_version()``.
+#: Bewusst als *literaler* Vertrag geführt und **nicht** aus ``_version``
+#: importiert: sonst prüfte der Test den Rückgabewert nur gegen dieselbe
+#: Konstante, die ihn erzeugt (tautologisch) – ein versehentliches Durchreichen
+#: einer beliebigen anderen Zeichenkette bliebe unentdeckt.
+_UNKNOWN_VERSION_SENTINEL = "0.0.0"
+
 
 def _read(name: str) -> str:
     return (ROOT / name).read_text(encoding="utf-8")
@@ -59,7 +66,11 @@ def test_version_lookup_never_crashes_without_metadata_or_pyproject(monkeypatch)
     """Fehlen Paket-Metadaten UND pyproject.toml (eingefrorenes Bundle ohne
     eingebackene Metadaten), darf die Versionsermittlung den Import von
     ``bgremover`` nicht abbrechen – sonst startet die macOS-.dmg-App nicht.
-    Erwartet wird ein nicht-leerer ``unbekannt``-Sentinel statt einer Exception.
+    Erwartet wird der dokumentierte, nicht-leere ``unbekannt``-Sentinel
+    ``0.0.0`` statt einer Exception – und zwar genau er: Die frühere Prüfung
+    auf „irgendeine nicht-leere Zeichenkette" hätte auch eine versehentlich
+    durchgereichte Fehlermeldung als Erfüllung des Vertrags durchgewinkt
+    (#869).
     """
     def _no_metadata(_name: str) -> str:
         raise PackageNotFoundError("bgremover")
@@ -71,5 +82,4 @@ def test_version_lookup_never_crashes_without_metadata_or_pyproject(monkeypatch)
     monkeypatch.setattr(_version, "_read_pyproject_version", _no_pyproject)
 
     result = _version.get_version()
-    assert isinstance(result, str)
-    assert result
+    assert result == _UNKNOWN_VERSION_SENTINEL

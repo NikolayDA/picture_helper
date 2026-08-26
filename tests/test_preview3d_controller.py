@@ -109,7 +109,23 @@ def test_active_with_field_schedules_build_then_shows_mesh(qapp) -> None:
 
 # ── Generation-/Stale-Schutz ───────────────────────────────────────────────
 def test_stale_generation_is_discarded(qapp) -> None:
+    """Ein verspätetes Ergebnis erreicht weder Anzeige noch Cache.
+
+    Geprüft wird über die beobachtbare Wirkung statt über ``ctrl._cache_mesh``
+    (#869): Was der Controller anzeigt, geht durch ``view.show_mesh`` – und was
+    er gecacht hat, zeigt sich daran, welches Mesh ein Cache-Treffer erneut
+    anzeigt (ohne neuen Build).
+    """
     ctrl, canvas, worker, view = _make(qapp, _ok)
+    shown: list[object] = []
+    real_show_mesh = view.show_mesh
+
+    def _record(mesh: object) -> None:
+        shown.append(mesh)
+        real_show_mesh(mesh)                  # type: ignore[arg-type]
+
+    view.show_mesh = _record                  # type: ignore[method-assign]
+
     ctrl.set_active(True)
     ctrl._start_build()                       # Build der Generation 1 (K1)
     gen1, cb1 = worker.calls[0]
@@ -123,11 +139,19 @@ def test_stale_generation_is_discarded(qapp) -> None:
     fresh = build_relief_mesh(_field(), MeshQuality.STANDARD)
     cb2(fresh, gen2)                          # aktuelles Ergebnis
     assert view.state == "ready"
-    assert ctrl._cache_mesh is fresh
-    # Das verspätete Ergebnis der Generation 1 wird verworfen – nie gecacht.
+    assert shown == [fresh]
+
+    # Das verspätete Ergebnis der Generation 1 wird verworfen – nie angezeigt …
     stale = build_relief_mesh(_field(), MeshQuality.STANDARD)
     cb1(stale, gen1)
-    assert ctrl._cache_mesh is fresh
+    assert shown == [fresh]
+    assert view.state == "ready"
+
+    # … und nie gecacht: der Cache-Treffer zeigt weiterhin ``fresh``, ohne
+    # dass ein dritter Build angefordert wird.
+    ctrl.refresh()
+    assert len(worker.calls) == 2
+    assert shown == [fresh, fresh]
 
 
 def test_supersede_cancels_running_build(qapp) -> None:

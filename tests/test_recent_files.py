@@ -338,13 +338,26 @@ def test_future_schema_menu_build_is_read_only(qapp, tmp_path, monkeypatch):
 # ── A5: Quick-Save ──────────────────────────────────────────────────────
 
 def test_quick_save_writes_to_known_path(qapp, isolated_settings, tmp_path):
+    """Quick-Save schreibt das *Komposit* – Größe, Modus und Pixel geprüft.
+
+    Reines ``target.exists()`` bliebe auch bei einer leeren, abgeschnittenen
+    oder inhaltlich falschen Datei grün (#869); geprüft wird deshalb wie in
+    ``test_image_canvas.py`` der tatsächlich geschriebene Inhalt.
+    """
     from bgremover import MainWindow
     w = MainWindow()
     w._canvas.apply_loaded_image(Image.new("RGBA", (8, 8), (10, 20, 30, 255)), "seed.png")
     target = tmp_path / "out.png"
     w._save_path = str(target)
     w._save()
-    assert target.exists()
+
+    assert target.exists() and target.stat().st_size > 0
+    with Image.open(target) as saved:
+        saved.load()
+        assert saved.size == (8, 8)
+        assert saved.mode == "RGBA"
+        assert saved.getpixel((0, 0)) == (10, 20, 30, 255)
+        assert saved.getpixel((7, 7)) == (10, 20, 30, 255)
 
 
 def test_load_clears_save_path(qapp, isolated_settings, tmp_path):

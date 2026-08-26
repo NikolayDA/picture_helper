@@ -94,10 +94,34 @@ def test_project_metadata_is_isolated_copy() -> None:
 
 
 def test_layers_view_is_immutable_tuple() -> None:
+    """``Project.layers`` ist ein unveränderlicher Snapshot, keine lebende Sicht.
+
+    Geprüft wurden früher nur Typ und Länge (#869) – die eigentliche
+    Zusicherung blieb unbelegt: Das Tupel selbst ist nicht beschreibbar, und
+    eine bereits geholte Referenz ändert sich nicht rückwirkend, wenn danach
+    Ebenen hinzukommen, verschwinden oder umsortiert werden.
+    """
     proj = Project(2, 2)
-    proj.create_layer(_solid((2, 2), (0, 0, 0, 0)), name="l0")
-    assert isinstance(proj.layers, tuple)
-    assert len(proj.layers) == 1
+    first = proj.create_layer(_solid((2, 2), (0, 0, 0, 0)), name="l0")
+    view = proj.layers
+    assert isinstance(view, tuple)
+    assert view == (first,)
+
+    with pytest.raises(TypeError):
+        view[0] = first                       # type: ignore[index]
+
+    second = proj.create_layer(_solid((2, 2), (0, 0, 0, 0)), name="l1")
+    assert view == (first,)                   # alte Referenz unberührt …
+    assert proj.layers == (first, second)     # … frische Sicht zeigt den neuen Stand
+
+    later = proj.layers
+    proj.move_layer(second.id, 0)
+    assert later == (first, second)           # Umsortieren wirkt nicht rückwirkend
+    assert proj.layers == (second, first)
+
+    proj.remove_layer(first.id)
+    assert view == (first,)
+    assert proj.layers == (second,)
 
 
 def test_project_iterates_layers_bottom_to_top() -> None:

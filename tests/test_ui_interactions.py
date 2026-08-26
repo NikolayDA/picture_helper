@@ -264,12 +264,12 @@ def test_preview_menu_and_panel_drive_live_canvas_without_dirtying(main_window):
     w._canvas.preview_color_op(
         lambda image: Image.new("RGBA", image.size, (180, 120, 90, 200))
     )
-    transient_combined = np.array(w._canvas._preview)
+    transient_combined = np.array(w._canvas.transient_preview)
     _action(w, "Höhe (Graustufe)").trigger()
-    transient_height = np.array(w._canvas._preview)
+    transient_height = np.array(w._canvas.transient_preview)
     assert not np.array_equal(transient_height, transient_combined)
     assert w._canvas.preview_mode is PreviewMode.HEIGHT
-    assert w._canvas._preview_layer_override is not None
+    assert w._canvas.preview_active
     assert np.array_equal(np.array(color.image), color_before)
     w._canvas.cancel_color_preview()
 

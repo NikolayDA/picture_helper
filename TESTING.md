@@ -335,6 +335,47 @@ QT_QPA_PLATFORM=offscreen python -m pytest -m ui -v
 python -m pytest --markers
 ```
 
+### Wo liegen die Tests zu Modul X? (#869)
+
+Die meisten Module haben eine gleichnamige Testdatei
+(`bgremover/height_ops.py` → `tests/test_height_ops.py`) – wer sie ändert,
+findet die Tests über den Dateinamen. Für die folgenden Module gilt das
+**nicht**: Sie werden bewusst in größeren Sammeldateien mitgeprüft (vor allem
+`tests/test_right_panel.py`). Ein Contributor, der etwa
+`bgremover/expert_mode_toggle.py` isoliert ändert, übersieht die zugehörigen
+Tests sonst leicht.
+
+Die Tabelle nennt die Suiten, die nach einer Änderung am Modul laufen sollten
+– nicht dessen vollständige Abdeckung. Sie ist **vollständig** und wird von
+`tests/test_module_test_map.py` netzfrei in beide Richtungen erzwungen: jedes
+Modul ohne gleichnamige Testdatei hat genau eine Zeile, jede Zeile nennt ein
+Modul ohne gleichnamige Testdatei, und jede genannte Datei spricht das Modul
+tatsächlich an (Modulpfad oder eines seiner öffentlichen Top-Level-Symbole).
+Bekommt ein Modul später eine eigene Testdatei, ist seine Zeile zu entfernen.
+
+| Modul | Mitgeprüft in |
+| --- | --- |
+| `bgremover/_version.py` | `tests/test_version.py`, `tests/test_package_imports.py` |
+| `bgremover/canvas.py` | `tests/test_image_canvas.py`, `tests/test_canvas_layers.py`, `tests/test_canvas_events.py` |
+| `bgremover/canvas_lasso.py` | `tests/test_lasso.py` |
+| `bgremover/canvas_transform.py` | `tests/test_geometry.py` |
+| `bgremover/canvas_viewport.py` | `tests/test_viewport.py`, `tests/test_zoom_control.py` |
+| `bgremover/constants.py` | `tests/test_canvas_events.py`, `tests/test_height_tools.py` |
+| `bgremover/crop.py` | `tests/test_crop_overlay.py`, `tests/test_ui_interactions.py` |
+| `bgremover/expert_mode_toggle.py` | `tests/test_right_panel.py` |
+| `bgremover/height_map_panel.py` | `tests/test_right_panel.py` |
+| `bgremover/i18n.py` | `tests/test_i18n_runtime.py`, `tests/test_i18n_rollout.py`, `tests/test_i18n_coverage.py` |
+| `bgremover/image_loading.py` | `tests/test_workers.py`, `tests/test_canvas_layers.py` |
+| `bgremover/image_utils.py` | `tests/test_helpers.py`, `tests/test_flood_fill.py` |
+| `bgremover/layer_panel.py` | `tests/test_right_panel.py` |
+| `bgremover/logging_config.py` | `tests/test_logging.py`, `tests/test_settings_dialog.py` |
+| `bgremover/main_toolbar.py` | `tests/test_icons.py`, `tests/test_ui_interactions.py` |
+| `bgremover/preview_mode.py` | `tests/test_canvas_layers.py`, `tests/test_right_panel.py` |
+| `bgremover/project_schema.py` | `tests/test_project_io.py`, `tests/test_project_v270_upgrade.py` |
+| `bgremover/right_panel_tabs.py` | `tests/test_right_panel.py`, `tests/test_i18n_coverage.py` |
+| `bgremover/status_messages.py` | `tests/test_i18n_runtime.py`, `tests/test_canvas_events.py` |
+| `bgremover/stepper.py` | `tests/test_workflow.py`, `tests/test_right_panel.py` |
+
 ## GitHub-Tests bei PR, manuell oder Release
 
 **Pull Request:** Der Workflow **PR CI** läuft automatisch auf

@@ -395,6 +395,26 @@ class ImageCanvas(QGraphicsView):
         return self._content_revision
 
     @property
+    def preview_active(self) -> bool:
+        """True, solange eine transiente Live-Vorschau die Anzeige speist (#397).
+
+        Farb-/Höhen-Live-Vorschauen ersetzen für die Dauer der Bedienung nur
+        die *Anzeige*; Modell, Content-Revision, History und Exportpfad bleiben
+        unberührt. ``False`` heißt damit: Was zu sehen ist, ist der Modellstand.
+        """
+        return self._preview_layer_override is not None
+
+    @property
+    def transient_preview(self) -> Image.Image | None:
+        """Gerendertes Bild der laufenden Live-Vorschau, sonst ``None``.
+
+        Öffentliche Beobachtung desselben Bildes, das der Viewport während
+        einer Live-Vorschau zeigt – der Modellstand liegt weiterhin auf
+        :attr:`image`.
+        """
+        return self._preview
+
+    @property
     def wand_busy(self) -> bool:
         """True, solange ein Zauberstab-Ergebnis aussteht (``_wand_busy``-Gate)."""
         return self._wand_busy

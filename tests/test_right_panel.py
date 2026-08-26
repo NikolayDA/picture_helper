@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 
 from bgremover import height_ops
 from bgremover.canvas import LayerInfo
+from bgremover.expert_mode_toggle import ExpertModeToggle
 from bgremover.height_map import HeightField
 from bgremover.height_map_panel import (
     HeightMapActions,
@@ -1858,6 +1859,11 @@ def test_expert_toggle_default_unchecked_and_focusable(qapp):
     panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
 
     toggle = panel.expert_toggle
+    # Namentliche Bindung an ``expert_mode_toggle.py``: das Modul hat keine
+    # gleichnamige Testdatei, und ohne diese Zusicherung fände ein
+    # Contributor beim Suchen nach ``ExpertModeToggle`` keinen einzigen
+    # Test-Treffer (#869, Zuordnungstabelle in TESTING.md).
+    assert isinstance(toggle, ExpertModeToggle)
     assert toggle.isCheckable()
     assert not toggle.isChecked()
     assert toggle.focusPolicy() == Qt.FocusPolicy.StrongFocus

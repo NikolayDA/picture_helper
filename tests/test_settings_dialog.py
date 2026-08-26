@@ -6,8 +6,10 @@ QMessageBox-Warnung ausloest und die Settings nicht ueberschreibt.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
-from PyQt6.QtCore import QSettings
+from PyQt6.QtCore import QSettings, QUrl
 
 import bgremover.settings_dialog as _sd
 from bgremover import SettingsDialog
@@ -188,14 +190,25 @@ def test_load_ignores_unknown_preferred_format(qapp, isolated_settings):
 # ── Log-Ordner öffnen (QDesktopServices gepatcht) ──────────────────────
 
 def test_open_log_dir_opens_folder(qapp, isolated_settings, monkeypatch):
+    """Geöffnet wird genau das Verzeichnis der aktiven Logdatei.
+
+    Ein reiner Aufrufzähler bliebe auch dann grün, wenn ein leerer oder
+    schlicht falscher Pfad geöffnet würde (#869) – deshalb wird die erfasste
+    ``QUrl`` gegen ``current_log_file().parent`` geprüft.
+    """
+    from bgremover.logging_config import current_log_file
+
     dlg = SettingsDialog(_settings())
-    opened: list[object] = []
+    opened: list[QUrl] = []
     monkeypatch.setattr(
         _sd.QDesktopServices, "openUrl",
         lambda url: opened.append(url) or True,
     )
     dlg._open_log_dir()
     assert len(opened) == 1
+    url = opened[0]
+    assert url.isLocalFile()
+    assert Path(url.toLocalFile()) == current_log_file().parent
 
 
 def test_open_log_dir_warns_when_open_fails(qapp, isolated_settings, monkeypatch):

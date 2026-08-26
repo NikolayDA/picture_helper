@@ -5,6 +5,14 @@ Die Historie ist ebenenbewusst: Undo/Redo deckt strukturelle **und** Pixel-
 Rekonstruktion über gemischte Folgen, Sprung-Undo, „Original wiederherstellen"
 sowie das deduplizierende Speicherbudget (geteilter Undo-/Redo-Pool, der gleiche
 Ebenenpuffer nur einmal zählt).
+
+Die Budget-Assertions laufen seit #869 ausschließlich über die öffentliche
+Introspektion von :class:`ProjectHistory` (``history_bytes``, ``memory_limit``,
+``undo_depth``/``redo_depth``/``redo_capacity``, ``has_original``,
+``pooled_payloads()``, ``retained_payloads()``). Vorher griffen sie direkt auf
+die privaten Bookkeeping-Felder des Dedup-Pools zu – ein Umbau der
+Dedup-Strategie hätte den Großteil dieser Datei gebrochen, auch ohne jede
+Verhaltensänderung.
 """
 from __future__ import annotations
 
@@ -87,22 +95,34 @@ def _rgba_bytes(image: Image.Image) -> int:
 
 def _pool_bytes(history: ProjectHistory) -> int:
     """Unabhängig nachgerechnete, deduplizierte Pool-Größe."""
-    return sum(_payload_bytes(entry.payload) for entry in history._pool.values())
+    return sum(_payload_bytes(entry.payload) for entry in history.pooled_payloads())
 
 
 def _assert_accounting(history: ProjectHistory) -> None:
-    """Pool-Refzählung und Byte-Bilanz müssen exakt konsistent sein."""
-    assert history._pool_bytes == _pool_bytes(history)
-    assert history._history_bytes == history._pool_bytes
-    # Jeder gestapelte Snapshot muss mit genau einem Refzähl-Beitrag im Pool
-    # stehen; verwaiste oder fehlende Einträge fielen hier auf. HEIGHT-Ebenen
-    # zählen über ihre kanonische Payload, alle übrigen über das RGBA-Bild.
+    """Pool-Refzählung und Byte-Bilanz müssen exakt konsistent sein.
+
+    Geprüft wird ausschließlich über die öffentliche Introspektion (#869):
+    ``pooled_payloads()`` ist der deduplizierte Pool, ``retained_payloads()``
+    liefert die je aufbewahrtem Verlaufsschritt gehaltenen Payloads. Die
+    Bytegrößen rechnet der Test aus Bildmaß bzw. Höhen-Payload **selbst** nach
+    statt sie aus den gemeldeten ``nbytes`` zu übernehmen – sonst prüfte er die
+    Implementierung gegen sich selbst.
+    """
+    pooled = history.pooled_payloads()
+    assert history.history_bytes == _pool_bytes(history)
+    # Eingefrorene Eintragsgröße == real nachgerechnete Payload-Größe (ein
+    # Drift zwischen Ein- und Ausbuchung fiele sonst erst beim Trim auf).
+    assert all(entry.nbytes == _payload_bytes(entry.payload) for entry in pooled)
+    # Jeder Puffer steht genau einmal im Pool …
+    assert len({id(entry.payload) for entry in pooled}) == len(pooled)
+    # … und trägt exakt so viele Referenzen, wie aufbewahrte Snapshots ihn
+    # halten; verwaiste oder fehlende Einträge fielen hier auf. HEIGHT-Ebenen
+    # zählen dabei über ihre kanonische Payload, alle übrigen über das RGBA-Bild.
     expected: dict[int, int] = {}
-    for state in (*history._undo, *history._redo):
-        for layer in state.layers:
-            payload = layer.height_data if layer.height_data is not None else layer.image
+    for payloads in history.retained_payloads():
+        for payload in payloads:
             expected[id(payload)] = expected.get(id(payload), 0) + 1
-    assert {key: e.count for key, e in history._pool.items()} == expected
+    assert {id(entry.payload): entry.references for entry in pooled} == expected
 
 
 # ── Speicherbudget & Deduplizierung ─────────────────────────────────────
@@ -114,7 +134,7 @@ def test_unchanged_layers_are_shared_in_the_budget() -> None:
     project = _project()
 
     history.push(project, "s1")
-    bytes_after_first = history._history_bytes
+    bytes_after_first = history.history_bytes
     assert bytes_after_first == _rgba_bytes(project.layers[0].image)
 
     # Rein strukturelle Folge: Sichtbarkeit, Opazität, aktive Ebene. Das
@@ -124,7 +144,7 @@ def test_unchanged_layers_are_shared_in_the_budget() -> None:
     project.set_opacity(project.layers[0].id, 0.5)
     history.push(project, "s3")
 
-    assert history._history_bytes == bytes_after_first
+    assert history.history_bytes == bytes_after_first
     _assert_accounting(history)
 
 
@@ -134,7 +154,7 @@ def test_pixel_edit_adds_only_the_changed_layer() -> None:
     project = _project(8, 8)
     second = project.create_layer(_solid(8, 8, (0, 255, 0, 255)), name="Oben")
     history.push(project, "zwei ebenen")
-    base_bytes = history._history_bytes
+    base_bytes = history.history_bytes
     assert base_bytes == 2 * _rgba_bytes(project.layers[0].image)
 
     # Nur das Bild der aktiven Ebene ersetzen (Vertrag: ersetzen, nicht mutieren).
@@ -143,7 +163,7 @@ def test_pixel_edit_adds_only_the_changed_layer() -> None:
 
     # Drei Snapshots teilen die unveränderte Basis; nur die geänderte Ebene
     # kommt einmal hinzu.
-    assert history._history_bytes == base_bytes + _rgba_bytes(second.image)
+    assert history.history_bytes == base_bytes + _rgba_bytes(second.image)
     _assert_accounting(history)
 
 
@@ -160,7 +180,7 @@ def test_push_evicts_oldest_states_from_shared_budget() -> None:
     history.push(project, "c")
 
     assert history.descriptions() == ["c", "b"]
-    assert history._history_bytes == 2 * one
+    assert history.history_bytes == 2 * one
     _assert_accounting(history)
 
 
@@ -172,8 +192,8 @@ def test_trim_keeps_at_least_one_undo_entry() -> None:
     history.push(project, "b")
 
     assert history.descriptions() == ["b"]
-    assert history._history_bytes == 8 * 8 * 4
-    assert history._history_bytes > history._memory_limit
+    assert history.history_bytes == 8 * 8 * 4
+    assert history.history_bytes > history.memory_limit
     _assert_accounting(history)
 
 
@@ -316,7 +336,7 @@ def test_undo_to_jumps_multiple_steps_and_fills_redo() -> None:
     assert (desc, actual) == ("a", 3)
     _assert_same(restored, s_a)            # Sprung landet exakt auf dem Vorzustand
     assert history.descriptions() == []
-    assert len(history._redo) == 3
+    assert history.redo_depth == 3
     _assert_accounting(history)
 
     # Redo spielt die übersprungenen Zustände inhaltlich exakt vorwärts ab.
@@ -351,12 +371,12 @@ def test_restore_returns_original_state_and_clears_redo() -> None:
     project.layer_by_id(project.layers[0].id).image = _solid(8, 8, (4, 4, 4, 255))
     undone = history.undo(project)
     assert undone is not None
-    assert history._redo  # Redo gefüllt
+    assert history.can_redo  # Redo gefüllt
 
     restored = history.restore(undone[0], "restored")
     assert restored is not None
     _assert_same(restored, original)
-    assert not history._redo
+    assert not history.can_redo
     _assert_accounting(history)
 
 
@@ -377,7 +397,7 @@ def test_repeated_restore_stays_within_budget() -> None:
         restored = history.restore(current, "restored")
         assert restored is not None
         current = restored
-        assert history._history_bytes <= history._memory_limit
+        assert history.history_bytes <= history.memory_limit
         _assert_accounting(history)
 
 
@@ -397,17 +417,17 @@ def test_push_clears_redo() -> None:
     history.push(project, "a")
     undone = history.undo(project)
     assert undone is not None
-    assert history._redo
+    assert history.can_redo
 
     history.push(undone[0], "new branch")
-    assert not history._redo
+    assert not history.can_redo
     _assert_accounting(history)
 
 
 def test_redo_cap_limits_entries_and_budget() -> None:
     cap = 3
     history = ProjectHistory(redo_max=cap)
-    assert history._redo.maxlen == cap
+    assert history.redo_capacity == cap
     project = _project(8, 8)
 
     for i in range(cap + 5):
@@ -422,7 +442,7 @@ def test_redo_cap_limits_entries_and_budget() -> None:
         current = result[0]
         _assert_accounting(history)
 
-    assert len(history._redo) == cap
+    assert history.redo_depth == cap
     _assert_accounting(history)
 
 
@@ -433,7 +453,7 @@ def test_zero_redo_cap_drops_redo_entirely() -> None:
 
     result = history.undo(project)
     assert result is not None
-    assert not history._redo
+    assert not history.can_redo
     assert history.redo(result[0]) is None
     _assert_accounting(history)
 
@@ -449,7 +469,7 @@ def test_undo_with_none_current_does_not_fill_redo() -> None:
     history.push(project, "a")
     undone = history.undo(None)
     assert undone is not None
-    assert not history._redo
+    assert not history.can_redo
     _assert_accounting(history)
 
 
@@ -458,12 +478,12 @@ def test_redo_with_none_current_does_not_fill_undo() -> None:
     project = _project(8, 8)
     history.push(project, "a")
     undone = history.undo(project)
-    assert undone is not None and history._redo
-    undo_len = len(history._undo)
+    assert undone is not None and history.can_redo
+    undo_len = history.undo_depth
 
     redone = history.redo(None)
     assert redone is not None
-    assert len(history._undo) == undo_len  # kein neuer Undo-Eintrag
+    assert history.undo_depth == undo_len  # kein neuer Undo-Eintrag
     _assert_accounting(history)
 
 
@@ -473,7 +493,7 @@ def test_restore_with_none_current_does_not_push_undo() -> None:
     history.set_original(project)
     restored = history.restore(None, "r")
     assert restored is not None
-    assert not history._undo
+    assert not history.can_undo
     _assert_accounting(history)
 
 
@@ -482,13 +502,13 @@ def test_trim_evicts_redo_when_undo_cannot_shrink_further() -> None:
     history = ProjectHistory(memory_limit=1)  # kleiner als ein Bild (256 B)
     project = _project(8, 8)
     history.push(project, "a")  # einziger Undo-Schritt bleibt trotz Überschreitung
-    assert history._history_bytes > history._memory_limit
+    assert history.history_bytes > history.memory_limit
 
     project.layer_by_id(project.layers[0].id).image = _solid(8, 8, (9, 9, 9, 255))
     undone = history.undo(project)  # Undo leert sich; Redo-Append + Trim wirft Redo raus
     assert undone is not None
-    assert not history._redo
-    assert history._history_bytes == 0
+    assert not history.can_redo
+    assert history.history_bytes == 0
     _assert_accounting(history)
 
 
@@ -518,12 +538,12 @@ def test_clear_resets_stacks_pool_and_original() -> None:
 
     history.clear()
 
-    assert not history._undo
-    assert not history._redo
-    assert history._pool == {}
-    assert history._pool_bytes == 0
-    assert history._history_bytes == 0
-    assert history._original is None
+    assert not history.can_undo
+    assert not history.can_redo
+    assert history.pooled_payloads() == ()
+    assert history.retained_payloads() == ()
+    assert history.history_bytes == 0
+    assert not history.has_original
 
 
 def test_repeated_undo_redo_never_exceeds_shared_budget() -> None:
@@ -539,13 +559,13 @@ def test_repeated_undo_redo_never_exceeds_shared_budget() -> None:
         undone = history.undo(current)
         assert undone is not None
         current = undone[0]
-        assert history._history_bytes <= history._memory_limit
+        assert history.history_bytes <= history.memory_limit
         _assert_accounting(history)
 
         redone = history.redo(current)
         assert redone is not None
         current = redone[0]
-        assert history._history_bytes <= history._memory_limit
+        assert history.history_bytes <= history.memory_limit
         _assert_accounting(history)
 
 
@@ -699,7 +719,7 @@ def test_height_snapshots_count_payload_bytes_not_view() -> None:
     history.push(project, "s1")
     color_bytes = 4 * 8 * 4                          # COLOR-Basis: RGBA, 4 B/px
     height_bytes = 4 * 8 * 2 + 4 * 8                 # values (2 B) + coverage (1 B)
-    assert history._history_bytes == color_bytes + height_bytes
+    assert history.history_bytes == color_bytes + height_bytes
     _assert_accounting(history)
 
 
@@ -708,13 +728,13 @@ def test_unchanged_height_payload_is_shared_across_snapshots() -> None:
     project = _height_project(np.full((4, 4), 0x1234, dtype=np.uint16))
     history = ProjectHistory()
     history.push(project, "s1")
-    first = history._history_bytes
+    first = history.history_bytes
     # Rein strukturelle Schritte: Payload-Objekt bleibt identisch.
     project.set_visible(project.layers[1].id, False)
     history.push(project, "s2")
     project.set_opacity(project.layers[1].id, 0.5)
     history.push(project, "s3")
-    assert history._history_bytes == first
+    assert history.history_bytes == first
     _assert_accounting(history)
 
 
@@ -760,7 +780,7 @@ def test_color_and_gloss_snapshots_stay_rgba_accounted() -> None:
     assert gloss.height_data is None
     history = ProjectHistory()
     history.push(project, "s1")
-    assert history._history_bytes == 2 * 4 * 4 * 4
+    assert history.history_bytes == 2 * 4 * 4 * 4
     undone = history.undo(project)
     assert undone is not None
     restored = undone[0]
@@ -830,8 +850,8 @@ def test_40mp_height_scenario_stays_within_adr_budget() -> None:
     per_snapshot = width * height * 3               # 3 B/px kanonisch (ADR-Tabelle)
     # Zwei unterschiedliche Payload-Objekte → zwei volle 3-B/px-Snapshots
     # (die Dedup-Abrechnung arbeitet je Payload, die 160-MB-Ansicht zählt nie).
-    assert history._history_bytes == 2 * per_snapshot
-    assert 2 * per_snapshot <= history._memory_limit  # ≥ 2 volle Schritte im Budget
+    assert history.history_bytes == 2 * per_snapshot
+    assert 2 * per_snapshot <= history.memory_limit  # ≥ 2 volle Schritte im Budget
     assert history.descriptions() == ["s2", "s1"]     # nichts evakuiert
     _assert_accounting(history)
 

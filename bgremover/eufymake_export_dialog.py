@@ -31,7 +31,12 @@ from PyQt6.QtWidgets import (
 )
 
 from bgremover.eufymake_export import EufyMakeExportError, derive_export_target
-from bgremover.eufymake_validate import format_finding, split_findings, validate_export
+from bgremover.eufymake_validate import (
+    ExportFinding,
+    format_finding,
+    split_findings,
+    validate_export,
+)
 from bgremover.i18n import tr
 from bgremover.project_model import LayerRole, Project
 
@@ -255,6 +260,15 @@ class EufyMakeExportDialog(QDialog):
 
     def warnings_confirmed(self) -> bool:
         return bool(self._warnings) and self._confirm.isChecked()
+
+    def current_findings(self) -> tuple[ExportFinding, ...]:
+        """Die zuletzt berechneten Befunde – Fehler zuerst, dann Warnungen.
+
+        Öffentliche Abfrage desselben Bestands, den die Befundanzeige
+        formatiert (#869). Aufrufer prüfen damit den stabilen
+        ``ExportCheckCode`` statt den übersetzten Labeltext.
+        """
+        return (*self._errors, *self._warnings)
 
 
 def _hint(text: str) -> QLabel:
