@@ -185,8 +185,10 @@ Tragende Sicherheitsargumente (aus #825/#841/#850/#853 kondensiert):
   deckt aber bewusst nur diese Pfade, nicht die Klasse geheimnistragender
   Dateien — `Read` bleibt auf dem übrigen Runner-Dateisystem unbeschränkt,
   notwendigerweise, siehe Groß-Diff-Pfad. Und die Doku wendet `Read`-Regeln
-  auf Grep/Glob nur „best-effort" an; im Lauf 33011827745 hat es gehalten
-  (ein `Grep` auf `.git/config` wurde abgewiesen), zugesichert ist es nicht.
+  auf Grep/Glob nur „best-effort" an; im Lauf 33011827745 hat es gehalten —
+  ein `Grep` auf `.git/config` steht dort als Ablehnung im Diagnoseprotokoll,
+  die Schicht greift also nachweislich und auch über `Read` hinaus —,
+  zugesichert ist es aber nicht.
   Pin: `test_review_denies_reading_credential_paths` — er prüft die Muster,
   nicht ihre Wirkung; die ist nur beobachtbar.
 - **Rechte:** `contents: read` (kein Schreibweg in den Code),
@@ -198,7 +200,10 @@ Tragende Sicherheitsargumente (aus #825/#841/#850/#853 kondensiert):
   liefert `gh pr view --json statusCheckRollup` über die PR-Rechte. Wie bei
   `issues: read` hängt die Absenkung an einer Beobachtung statt an einem
   grünen Häkchen — das Fehlerbild wäre still, das Review meldete den CI-Stand
-  nur noch als unbelegt. Der Rückfall wäre dann allerdings **nicht**
+  nur noch als unbelegt. **Beleg: Lauf 33011827745** (`re-review` auf PR #876
+  unter genau dieser Fassung) hat über `gh pr view 876 --json
+  statusCheckRollup` den vollständigen Rollup gelesen, acht Check-Runs
+  einschließlich `workflowName`. Der Rückfall wäre dann allerdings **nicht**
   `actions: read`: Das deckt Workflow-Runs (`gh run`), während der Rollup aus
   GraphQL über die PR-Rechte kommt. Passend wären `checks: read` (Check-Runs)
   bzw. `statuses: read` (Commit-Status). Warum der Rollup heute ohne beide
@@ -230,9 +235,18 @@ der Agent dort schreiben und ausführen soll.
 - **W** – Ursache außerhalb von `--allowedTools` (z. B. nicht parsebares
   Kommando: belegt an `gh pr comment --body '## …'`, Lauf 32640784005).
   Fix sitzt im Prompt oder Inhalt, nie in der Allowlist.
+- **D** – von der `Read`-Deny-Schicht verursacht (`--disallowedTools`,
+  seit #828). Erwartbar und ausdrücklich gewollt: Die Regel *soll* zuschlagen,
+  wenn ein Lauf einen der drei gedeckten Pfade anfasst. Belegt an Lauf
+  33011827745, wo ein `Grep` auf `.git/config` abgewiesen wurde. D ist die
+  einzige Klasse, in der eine Ablehnung ein **Funktionsnachweis** ist statt
+  eines Befunds; sie geht L vor, weil die Ursache eine bewusste
+  Policy-Entscheidung ist und keine Allowlist-Lücke. Wer einen
+  Ablehnungszähler > 0 auswertet, muss D deshalb zuerst ausschließen —
+  sonst sucht er eine Werkzeuglücke, die es nicht gibt.
 
-A, N, S, P und W dürfen abgelehnt werden und rechtfertigen keine
-Allowlist-Erweiterung; P und W sind Prompt-Befunde. **Ausnahme:** Eine
+A, N, S, P, W und D dürfen abgelehnt werden und rechtfertigen keine
+Allowlist-Erweiterung; P und W sind Prompt-Befunde, D ist gar kein Befund. **Ausnahme:** Eine
 Ablehnung auf den zwei Ausgabewegen (Inline-Kommentar-Werkzeug,
 `gh pr comment`) blockiert die Abnahme unabhängig von der Klasse – sonst
 stünde „Befund gefunden, Kommentar abgewiesen, Lauf grün" als Normalfall

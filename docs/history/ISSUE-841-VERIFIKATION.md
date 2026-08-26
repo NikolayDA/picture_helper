@@ -65,7 +65,11 @@ die Regel sowohl `--write` als auch das Schließen des Issues.
    tabelliert. Deshalb gilt zusätzlich die qualitative Bedingung unten: Der
    Lauf muss tatsächlich etwas veröffentlicht haben (Wortlaut dort, nicht
    hier doppelt).
-5. **Klasse je Ablehnung von Hand notieren.** Der Diagnoseschritt gibt je
+5. **Klasse je Ablehnung von Hand notieren.** Seit #828 gibt es dabei eine
+   Klasse, in der eine Ablehnung *kein* Befund ist: **D** – von der
+   `Read`-Deny-Schicht verursacht. Sie ist gewollt und beweist, dass die
+   Schicht greift. Ein Zähler > 0 ist also nicht mehr automatisch eine
+   Werkzeuglücke; D gehört zuerst ausgeschlossen. Der Diagnoseschritt gibt je
    Ablehnung `tool_name`, die Feldliste (`[Felder: …]`), einen vorhandenen
    Ablehnungsgrund im Klartext (`[Grund: …]`, seit #853) und die ersten
    300 Zeichen des `tool_input` aus. Der Grund ist ein Hinweis, nicht die
@@ -209,8 +213,11 @@ steht"
 sein Anlass – vom 22.–24.08.2026 waren acht von zehn gemergten PRs Änderungen
 am Review-System selbst, unter Aufsicht ebendieses Review-Systems – ist mit
 zehn Läufen aus ausschließlich gewöhnlichen PRs abgetragen. Die in #828
-zurückgestellten Restpunkte sind am selben Tag nachgezogen worden:
-`actions: read` gestrichen und die `Read`-Pfadregel als Deny-Schicht gesetzt
+zurückgestellten Restpunkte sind am selben Tag nachgezogen und **belegt**
+worden: `actions: read` gestrichen (Lauf 33011827745 las den CI-Rollup unter
+der neuen Fassung weiterhin vollständig) und die `Read`-Pfadregel als
+Deny-Schicht gesetzt (derselbe Lauf weist die Abweisung eines `Grep` auf
+`.git/config` aus)
 (Herleitung beider in den Bullets „Rechte" und „Fremdinhalt ist Daten" des
 [ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md),
 wo auch die Prompt-Verschlankung vom 2026-08-24 steht). Damit ist der

@@ -80,8 +80,8 @@ jobs:
       # also über die PR-Rechte. Das Fehlerbild einer zu engen Absenkung wäre
       # still — das Review meldet den CI-Stand als unbelegt, statt rot zu
       # werden —, deshalb hängt die Streichung wie bei `issues: read` an einer
-      # Beobachtung: dem `re-review`-Lauf auf PR #876 unter genau dieser
-      # Fassung. Bleibt die CI-Angabe künftig aus, wäre `checks: read`
+      # Beobachtung: Lauf 33011827745 (`re-review` auf PR #876) lief unter
+      # genau dieser Fassung und las den CI-Rollup vollständig. Bleibt die CI-Angabe künftig aus, wäre `checks: read`
       # (Check-Runs) bzw. `statuses: read` (Commit-Status) der passende
       # Rückfall — nicht `actions: read`, das Workflow-Runs (`gh run`) deckt
       # und mit dem Rollup gar nichts zu tun hat. Warum der Rollup heute ohne

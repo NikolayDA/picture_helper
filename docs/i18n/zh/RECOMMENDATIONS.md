@@ -46,15 +46,13 @@
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | 图层/选区/历史/项目集成 | 🟡 中 | 🟠 高（大量状态转换：撤销/重做、选区、脏状态） | Opus，高 | 阻塞 —— 等待 #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | 性能/E2E/文档/激光接口验收 | 🟡 中（收尾关卡，非新功能） | 🟠 高（基准测试套件、E2E、文档、适配器契约） | Opus，高 | 阻塞 —— #695 完成后的收尾议题 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
-| [#828](https://github.com/NikolayDA/picture_helper/issues/828) | #825 后的评审自动化：评估回合预算中断并决定工具范围 | 🟡 中（自动评审的 CI 成本/可靠性，非产品关键） | 🟡 中（被动测量；仍有多个独立问题） | –（上层跟踪议题） | allowlist/提示修复（PR #850）与运维补齐（PR #853：成本/令牌过期已记录、`issues: read`、原因输出、单一权威分类）均已合并；#841 在未进行测量序列的情况下关闭，判据见 docs/history/ISSUE-841-VERIFIKATION.md。自评审循环降级（2026-08-24，docs/history/ADR-2026-reviewschleifen-entschaerfung.md）起：测量序列在接下来的十次真实评审运行中被动进行，不因配置修复而重置；得益于每个 PR 仅一次评审的触发器，置顶问题已不复存在；提示精简已于 2026-08-24 完成（docs/history/ADR-2026-review-workflow-verschlankung.md：提示约 55 行、回合预算与超时设上限（数值见 ADR）、论证与分类法移入 ADR），十次运行测量已于 2026-08-26 以 **10/10** 完成（6 绿、4 红；十次运行的拒绝计数均为 0，定性标准全部达成，四次红色运行仅因 25 回合上限而失败——表格与评估见 docs/history/ISSUE-841-VERIFIKATION.md）。元冻结随之结束。上限决定已于 2026-08-26 作出：回合预算 25 → 40，超时 15 → 20 分钟（推导见精简 ADR 决定 4 的补记）；提示、allowlist 与模型固定均保持不变。两项被搁置的改造已于 2026-08-26 落地：移除 `actions: read`（CI 状态经由 `gh pr view --json statusCheckRollup` 获取，即依赖 PR 权限），并将 `Read` 路径规则设为拒绝层（`Read(//proc/**)`、`Read(//**/.git/config)`、`Read(~/.claude/.credentials.json)`——刻意采用 deny 而非限定到 checkout 的 allowlist，因为过大的 `gh pr diff` 输出会落到 `~/.claude/` 下；`//proc/**` 覆盖持有活动令牌的进程环境）。仅剩用于佐证 `actions: read` 下调的那次受观察的 `re-review` 运行；之后该跟踪议题即为空 |
 
 ### 接下来推荐
 
-1. **#828** —— 已全部落实：测量（10/10：6 绿、4 红，零拒绝）、回合上限 25 → 40 及超时 15 → 20 分钟、移除 `actions: read`，以及将 `Read` 路径规则设为拒绝层。尚待完成的只有用于佐证 `actions: read` 下调的那次受观察的 `re-review` 运行——它的失败表现是静默的，因此与此前的 `issues: read` 一样，这项下调依据的是观察而非绿色勾。测量表与评估见 [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md)。
-2. **#692**（ADR）开启 COLOR 史诗 #682。
-3. 一旦有 Studio/打印机硬件：将 #687（剩余，尤其 I-06）、#688、#689、#690 已准备好的真实测试
+1. **#692**（ADR）开启 COLOR 史诗 #682。
+2. 一旦有 Studio/打印机硬件：将 #687（剩余，尤其 I-06）、#688、#689、#690 已准备好的真实测试
    在一次打包会话中执行——fixture、协议模板和已批准的中止标准均已齐备。
-4. **准备发布 v2.9.0** —— 自 v2.8.0 以来，`CHANGELOG.md` 的 `[Unreleased]` 部分已累积一项功能（#863）和四项修复/UX 变更（#839、#864/#865、#867、#868）；范围冻结文档和版本号提升仍待完成。
+3. **准备发布 v2.9.0** —— 自 v2.8.0 以来，`CHANGELOG.md` 的 `[Unreleased]` 部分已累积一项功能（#863）和四项修复/UX 变更（#839、#864/#865、#867、#868）；范围冻结文档和版本号提升仍待完成。
 
 ## 以往轮次
 
