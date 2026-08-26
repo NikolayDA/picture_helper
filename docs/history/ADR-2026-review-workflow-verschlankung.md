@@ -174,9 +174,21 @@ Tragende Sicherheitsargumente (aus #825/#841/#850/#853 kondensiert):
   Ziele, die ein Review nie braucht und die Geheimnisse tragen: `.git/config`
   hält für die Jobdauer den GITHUB_TOKEN als `http.extraheader` und liegt
   **im** Checkout, wo die Arbeitsverzeichnis-Regel gerade nicht schützt;
-  `.credentials.json` ist der dokumentierte Login-Ablageort unter Linux. Deny
-  schlägt jede Allow-Regel, die Schicht ist also nicht umgehbar. Pin:
-  `test_review_denies_reading_credential_paths`.
+  `//proc/**` deckt die Prozessumgebung, in der die aktiven Token
+  (`CLAUDE_CODE_OAUTH_TOKEN`, `GITHUB_TOKEN`) über `/proc/self/environ`
+  lesbar wären — in diesem Job der Ort, an dem das Geheimnis tatsächlich
+  liegt; `.credentials.json` ist der dokumentierte Login-Ablageort unter
+  Linux und hier bloß Vorsorge, weil der Job über die Umgebungsvariable
+  authentifiziert und die Datei gar nicht schreibt.
+  **Reichweite, damit die Schicht nicht überschätzt wird:** Deny schlägt jede
+  Allow-Regel, für die drei benannten Ziele ist sie damit nicht umgehbar. Sie
+  deckt aber bewusst nur diese Pfade, nicht die Klasse geheimnistragender
+  Dateien — `Read` bleibt auf dem übrigen Runner-Dateisystem unbeschränkt,
+  notwendigerweise, siehe Groß-Diff-Pfad. Und die Doku wendet `Read`-Regeln
+  auf Grep/Glob nur „best-effort" an; im Lauf 33011827745 hat es gehalten
+  (ein `Grep` auf `.git/config` wurde abgewiesen), zugesichert ist es nicht.
+  Pin: `test_review_denies_reading_credential_paths` — er prüft die Muster,
+  nicht ihre Wirkung; die ist nur beobachtbar.
 - **Rechte:** `contents: read` (kein Schreibweg in den Code),
   `pull-requests: write` genügt für beide Ausgabewege – gemessen an Lauf
   32670229428, der unter `issues: read` Zusammenfassung und

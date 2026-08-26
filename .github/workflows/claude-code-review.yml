@@ -198,20 +198,34 @@ jobs:
           # veröffentlicht hatten — genau der im ADR vorgesehene
           # Anhebungsfall; Herleitung dort (Entscheidung 4 + Nachtrag).
           # `Read`-Pfadregel (#828), zweite Schicht neben Trigger-Schutz und
-          # Prompt-Regel: Deny schlägt jede Allow-Regel, und beide Ziele
-          # braucht ein Review nie. `.git/config` trägt für die Jobdauer den
-          # GITHUB_TOKEN als `http.extraheader` (der Post-Schritt entfernt
-          # genau diesen Key wieder) und liegt IM Checkout, wo die
-          # Arbeitsverzeichnis-Regel nicht schützt; `.credentials.json` ist
-          # laut Claude-Code-Doku der Ablageort des Logins unter Linux.
-          # Bewusst kein Allowlist-Zuschnitt auf den Checkout: Eine zu große
-          # `gh pr diff`-Ausgabe legt Claude Code unter `~/.claude/` ab, und
-          # genau dieser Groß-Diff-Pfad steht im Prompt — eine Allowlist
-          # darauf würde ihn sperren.
+          # Prompt-Regel. Ausgangslage, im Lauf 33011827745 beobachtet: Mit
+          # `Read` in der Allowlist ist Lesen AUSSERHALB des Checkouts nicht
+          # eingeschränkt (das Review las dort regulär den Groß-Diff unter
+          # `~/.claude/projects/…`). Deny ist damit der einzige Hebel — und
+          # zugleich der richtige, denn ein Allowlist-Zuschnitt auf den
+          # Checkout würde genau diesen im Prompt genannten Groß-Diff-Pfad
+          # sperren. Gedeckt sind drei Ziele, die ein Review nie braucht:
+          # - `//proc/**`: Die aktiven Token stehen in der Prozessumgebung
+          #   (`CLAUDE_CODE_OAUTH_TOKEN`, `GITHUB_TOKEN`) und wären über
+          #   `/proc/self/environ` lesbar. Das ist in diesem Job der Ort, an
+          #   dem das Geheimnis tatsächlich liegt.
+          # - `//**/.git/config`: trägt für die Jobdauer den GITHUB_TOKEN als
+          #   `http.extraheader` (der Post-Schritt entfernt genau diesen Key
+          #   wieder) und liegt IM Checkout, wo die Arbeitsverzeichnis-Regel
+          #   gerade nicht schützt.
+          # - `~/.claude/.credentials.json`: der dokumentierte Login-Ablageort
+          #   unter Linux. Hier schreibt ihn nichts — der Job authentifiziert
+          #   über die Umgebungsvariable, nicht über `/login` —, die Regel ist
+          #   also Vorsorge für den Fall, dass sich das ändert.
+          # Grenze der Schicht, damit sie niemand überschätzt: Sie deckt diese
+          # drei Pfade, nicht die Klasse geheimnistragender Dateien, und die
+          # Doku wendet `Read`-Regeln auf Grep/Glob nur „best-effort" an
+          # (beobachtet hat es gehalten: ein `Grep` auf `.git/config` wurde
+          # abgewiesen).
           claude_args: |
             --max-turns 40
             --model claude-opus-5
-            --disallowedTools "Read(//**/.git/config),Read(~/.claude/.credentials.json)"
+            --disallowedTools "Read(//proc/**),Read(//**/.git/config),Read(~/.claude/.credentials.json)"
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(git status --short),Bash(git show-ref --head),Bash(git log --oneline --decorate --max-count=30 HEAD),Bash(git diff --stat HEAD^ HEAD),Bash(git diff --name-only HEAD^ HEAD),Bash(git show --stat --oneline HEAD),Bash(git show --format=fuller --no-patch HEAD),Read,Grep,Glob,WebFetch(domain:docs.claude.com),WebFetch(domain:code.claude.com),WebFetch(domain:platform.claude.com),WebFetch(domain:docs.anthropic.com),WebFetch(domain:docs.github.com),WebFetch(domain:raw.githubusercontent.com)"
 
       # Abgelehnte Werkzeugaufrufe sichtbar machen (#825): gezielt nur

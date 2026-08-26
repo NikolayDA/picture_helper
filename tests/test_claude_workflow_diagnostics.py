@@ -230,12 +230,31 @@ def test_review_denies_reading_credential_paths() -> None:
     `.credentials.json` ist der dokumentierte Login-Ablageort unter Linux.
     Bewusst kein Allowlist-Zuschnitt auf den Checkout — eine zu große
     `gh pr diff`-Ausgabe legt Claude Code unter `~/.claude/` ab, und genau
-    diesen Groß-Diff-Pfad nennt der Prompt."""
+    diesen Groß-Diff-Pfad nennt der Prompt.
+
+    **Was dieser Test nicht kann:** Er prüft die Zeichenketten im Argument,
+    nicht ihre Wirkung. Ob eine Regel wirklich greift, zeigt nur ein Lauf —
+    im Lauf 33011827745 wurde ein `Grep` auf `.git/config` abgewiesen. Die
+    ``//``-Prüfung unten fängt wenigstens den teuersten stillen Tippfehler
+    ab: Ein einzelner Slash (``Read(/**/.git/config)``) ankert laut Doku
+    nicht im Dateisystem-Wurzelverzeichnis, sondern an der Regelquelle — die
+    Schicht wäre dann wirkungslos und der Test trotzdem grün."""
     args = _claude_args(_REVIEW_WORKFLOW)
     denied = [a for a in args if a.startswith("--disallowedTools")]
     assert len(denied) == 1, f"Genau eine Deny-Liste erwartet: {denied!r}"
-    for regel in ("Read(//**/.git/config)", "Read(~/.claude/.credentials.json)"):
+    erwartet = (
+        "Read(//proc/**)",
+        "Read(//**/.git/config)",
+        "Read(~/.claude/.credentials.json)",
+    )
+    for regel in erwartet:
         assert regel in denied[0], f"Deny-Regel fehlt: {regel}"
+    # Absolute Muster brauchen den doppelten Slash; `~` ist die Home-Form.
+    for regel in erwartet:
+        pfad = regel[len("Read(") : -1]
+        assert pfad.startswith(("//", "~/")), (
+            f"Deny-Muster ankert nicht absolut oder am Home: {regel}"
+        )
 
 
 def test_review_checkout_provides_history_before_git_inspection() -> None:
