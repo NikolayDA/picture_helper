@@ -782,6 +782,7 @@ def test_update_check_worker_passes_version_and_timeout(qapp, monkeypatch) -> No
 #: Worker-Klassen unter bereits importierenden Modulen (``worker_controller``)
 #: aus und beschädigte damit nachfolgende Tests.
 _REMBG_PROBE = """
+import importlib.machinery
 import importlib.util
 _real = importlib.util.find_spec
 
@@ -814,7 +815,10 @@ def _rembg_available_under(branch: str) -> str:
 @pytest.mark.parametrize(
     ("branch", "expected"),
     [
-        ("return _real('sys')", "True"),                      # rembg installiert
+        # „Installiert" heißt für ``find_spec`` nur: irgendein ModuleSpec statt
+        # ``None``. Der Stub wird deshalb explizit auf den Namen ``rembg``
+        # gebaut, statt den Spec eines fremden Moduls zu borgen.
+        ("return importlib.machinery.ModuleSpec('rembg', None)", "True"),
         ("return None", "False"),                             # rembg fehlt
         ("raise ValueError('kaputter sys.path-Eintrag')", "False"),
         ("raise ImportError('defektes Namespace-Paket')", "False"),
