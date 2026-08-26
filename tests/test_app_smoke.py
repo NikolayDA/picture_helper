@@ -277,6 +277,7 @@ def test_mac_bundle_detects_and_repairs_rosetta_app_venv():
 
     assert "/usr/sbin/sysctl -n hw.optional.arm64" in text
     assert "supports_native_arch" in text
+    assert '[ -n "$NATIVE_ARCH" ] || return 0' in text
     assert "Architektur-Mismatch: Apple-Silicon-Hardware" in text
     assert "App-venv jetzt mit nativem arm64-Python neu bauen? [J/n]" in text
     assert 'FORCE_NATIVE_REBUILD=1' in text
@@ -285,6 +286,10 @@ def test_mac_bundle_detects_and_repairs_rosetta_app_venv():
     assert "interpreter_arch=\\$PYTHON_ARCH" in text
     assert "proc_translated=\\$PYTHON_TRANSLATED" in text
     assert "hardware_arch=\\$NATIVE_ARCH" in text
+    assert "BGREMOVER_RUNTIME|" in text
+    assert "libc.sysctlbyname.argtypes" in text
+    assert "kein zusätzlicher Python-Kaltstart" in text
+    assert "WARNUNG: Python läuft als x86_64 unter Rosetta" in text
 
 
 def test_mac_diagnostics_report_hardware_binary_and_runtime_architectures():
@@ -297,11 +302,13 @@ def test_mac_diagnostics_report_hardware_binary_and_runtime_architectures():
         "hardware_arch:",
         "diagnose_process_arch:",
         "proc_translated:",
+        "sysctl -n sysctl.proc_translated",
         "BEFUND: ARCHITEKTUR-MISMATCH",
         "runtime_arch:",
-        "/usr/bin/file",
+        "/usr/bin/file -L",
+        '/usr/bin/arch -"$HARDWARE_ARCH" "$APP_VENV"',
         "brew install python",
-        'rm -rf \\"$HOME/Library/Application Support/BgRemover/venv\\"',
+        'rm -rf "$HOME/Library/Application Support/BgRemover/venv"',
     ):
         assert marker in text
 

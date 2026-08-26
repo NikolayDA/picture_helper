@@ -69,7 +69,7 @@ else
     HARDWARE_ARCH="$(uname -m 2>/dev/null)"
 fi
 PROCESS_ARCH="$(uname -m 2>/dev/null)"
-PROC_TRANSLATED="$(/usr/sbin/sysctl -in sysctl.proc_translated 2>/dev/null || echo 0)"
+PROC_TRANSLATED="$(/usr/sbin/sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)"
 
 # ── System ─────────────────────────────────────────────────────
 print_header "SYSTEM"
@@ -86,13 +86,21 @@ print_header "PYTHON-KANDIDATEN"
 APP_VENV="$HOME/Library/Application Support/BgRemover/venv/bin/python3"
 
 if [ -x "$APP_VENV" ]; then
-    APP_VENV_RUNTIME_ARCH="$("$APP_VENV" -c 'import platform; print(platform.machine())' 2>/dev/null || echo unbekannt)"
-    if [ "$HARDWARE_ARCH" = "arm64" ] \
-       && ! /usr/bin/arch -arm64 "$APP_VENV" -c 'pass' >/dev/null 2>&1; then
+    APP_VENV_NATIVE=""
+    if [ -n "$HARDWARE_ARCH" ] \
+       && /usr/bin/arch -"$HARDWARE_ARCH" "$APP_VENV" -c 'pass' >/dev/null 2>&1; then
+        APP_VENV_NATIVE=1
+        APP_VENV_RUNTIME_ARCH="$(/usr/bin/arch -"$HARDWARE_ARCH" "$APP_VENV" -c \
+            'import platform; print(platform.machine())' 2>/dev/null || echo unbekannt)"
+    else
+        APP_VENV_RUNTIME_ARCH="$("$APP_VENV" -c \
+            'import platform; print(platform.machine())' 2>/dev/null || echo unbekannt)"
+    fi
+    if [ "$HARDWARE_ARCH" = "arm64" ] && [ -z "$APP_VENV_NATIVE" ]; then
         echo "BEFUND: ARCHITEKTUR-MISMATCH – Apple-Silicon-Hardware, App-venv=$APP_VENV_RUNTIME_ARCH."
         echo "  Die App läuft damit als x86_64 unter Rosetta statt nativ arm64."
         echo "  Abhilfe: brew install python"
-        echo "           rm -rf \"$HOME/Library/Application Support/BgRemover/venv\""
+        echo '           rm -rf "$HOME/Library/Application Support/BgRemover/venv"'
         echo "           bash create_BgRemover_app.sh"
     else
         echo "App-venv-Architektur: $APP_VENV_RUNTIME_ARCH (passt zu $HARDWARE_ARCH)"
@@ -113,14 +121,18 @@ CANDIDATES=(
 NATIVE_ARCH="$HARDWARE_ARCH"
 for py in "${CANDIDATES[@]}"; do
     [ -x "$py" ] || continue
-    ver="$("$py" -c 'import sys;print("%d.%d.%d"%sys.version_info[:3])' 2>/dev/null || echo "?")"
-    runtime_arch="$("$py" -c 'import platform; print(platform.machine())' 2>/dev/null || echo "?")"
-    file_arch="$(/usr/bin/file "$py" 2>/dev/null | sed 's/^[^:]*: //')"
+    file_arch="$(/usr/bin/file -L "$py" 2>/dev/null | sed 's/^[^:]*: //')"
     arch_ok="?"
     if /usr/bin/arch -"$NATIVE_ARCH" "$py" -c 'pass' >/dev/null 2>&1; then
         arch_ok="ok ($NATIVE_ARCH nativ)"
+        ver="$(/usr/bin/arch -"$NATIVE_ARCH" "$py" -c \
+            'import sys;print("%d.%d.%d"%sys.version_info[:3])' 2>/dev/null || echo "?")"
+        runtime_arch="$(/usr/bin/arch -"$NATIVE_ARCH" "$py" -c \
+            'import platform; print(platform.machine())' 2>/dev/null || echo "?")"
     else
         arch_ok="kein $NATIVE_ARCH"
+        ver="$("$py" -c 'import sys;print("%d.%d.%d"%sys.version_info[:3])' 2>/dev/null || echo "?")"
+        runtime_arch="$("$py" -c 'import platform; print(platform.machine())' 2>/dev/null || echo "?")"
     fi
     echo
     echo "→ $py"
@@ -188,7 +200,7 @@ for app_dir in \
         grep -E '^(if ! "\$\{RUN|"\$PYTHON" -m bgremover)' "$launcher" | head -1 | sed 's/^/    /'
         embedded="$app_dir/Contents/MacOS/BgRemoverPython"
         if [ -f "$embedded" ]; then
-            echo "  Eingebetteter Interpreter: $(/usr/bin/file "$embedded" 2>/dev/null | sed 's/^[^:]*: //')"
+            echo "  Eingebetteter Interpreter: $(/usr/bin/file -L "$embedded" 2>/dev/null | sed 's/^[^:]*: //')"
         fi
     else
         echo "  ✗ Launcher fehlt: $launcher"
