@@ -92,6 +92,14 @@ Verschlankung von Prompt, Prosa und Tests, **E5** die Kostenbremse
    Bindet der Timeout, bricht der Job ab, und der nachgelagerte
    Diagnoseschritt liefert seinen Ablehnungszähler nicht mehr verlässlich —
    die Messgröße von #828 fehlt dann ausgerechnet im interessanten Fall.
+   **Preis, bewusst getragen:** Die Obergrenze der Kosten je Review steigt um
+   60 Prozent (25 → 40 Turns). Der *typische* Lauf wird davon nicht teurer —
+   die zehn gemessenen lagen bei 17 bis 30 Turns und werden durch einen
+   höheren Deckel nicht länger; teurer wird nur der Fall, der bisher rot
+   abgebrochen wurde, und dort ist der Mehrpreis genau das, was den Lauf
+   verwertbar macht. Die Kostenbremse bleibt deshalb der
+   Ein-Review-je-PR-Trigger aus E1, nicht der Deckel; wird das Nutzungslimit
+   knapp, ist weiterhin `claude.yml` die erste Stelle zum Zurückdrehen.
 5. **Bewusst unverändert:** die Allowlist (wortgleich übernommen), das
    Verhalten des Diagnose-Skripts, das Opus-Pinning (ein Review je PR ist
    die Kostenbremse; das stärkere Modell je Lauf ist gewollt) und die
