@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 5,
+  "policy_version": 6,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -455,7 +455,8 @@
     {"id": "release-automation-runbook", "kind": "exact", "path": "docs/RELEASE_AUTOMATION.md", "sample_path": "docs/RELEASE_AUTOMATION.md", "reason": "Das Runbook definiert Betrieb und Evidenzsemantik der Hardware-Abnahme."},
     {"id": "release-process-runbook", "kind": "exact", "path": "docs/RELEASE_PROCESS.md", "sample_path": "docs/RELEASE_PROCESS.md", "reason": "Der für #745 geplante kanonische Release-Prozess ist bewusst kandidatenrelevant klassifiziert."},
     {"id": "release-acceptance-checklist", "kind": "exact", "path": "docs/RELEASE_ACCEPTANCE_CHECKLIST.md", "sample_path": "docs/RELEASE_ACCEPTANCE_CHECKLIST.md", "reason": "Die für #746 geplante versionierte Abnahme-Checkliste bestimmt Evidenzsemantik."},
-    {"id": "current-freeze", "kind": "exact", "path": "docs/history/RELEASE-2.8.0-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.8.0-scope-freeze.md", "reason": "Das aktive Freeze-Dokument enthält Basis, Scope und Policy-Version."},
+    {"id": "current-freeze", "kind": "exact", "path": "docs/history/RELEASE-2.9.0-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.9.0-scope-freeze.md", "reason": "Das aktive Freeze-Dokument enthält Basis, Scope und Policy-Version."},
+    {"id": "historical-freeze-2.8.0", "kind": "exact", "path": "docs/history/RELEASE-2.8.0-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.8.0-scope-freeze.md", "reason": "Vormals aktives Freeze-Dokument fuer den 2.8.0-Kandidaten. 'current-freeze' zeigt seit dem 2.9.0-Rollover nicht mehr hierher, der Pfad bleibt aber ein candidate-relevanter Release-Governance-Artefakt."},
     {"id": "historical-freeze-2.7.3", "kind": "exact", "path": "docs/history/RELEASE-2.7.3-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.7.3-scope-freeze.md", "reason": "Vormals aktives Freeze-Dokument fuer den 2.7.3-Kandidaten. 'current-freeze' zeigt seit dem 2.8.0-Rollover nicht mehr hierher, der Pfad bleibt aber ein candidate-relevanter Release-Governance-Artefakt."},
     {"id": "historical-freeze-2.7.2", "kind": "exact", "path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "reason": "Vormals aktives Freeze-Dokument; #780 aktualisierte darin die deklarierte Policy-Version noch innerhalb des damaligen 2.7.3-Kandidatenfensters. 'current-freeze' zeigt seit dem 2.7.3-Rollover nicht mehr hierher, der Pfad bleibt aber ein candidate-relevanter Release-Governance-Artefakt."},
     {"id": "freeze-provenance-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-freeze-provenienz.md", "sample_path": "docs/history/ADR-2026-release-freeze-provenienz.md", "reason": "Die ADR legt den Vertrauens- und Evidenzvertrag des Release-Gates fest."},
@@ -487,7 +488,8 @@
       "docs/RELEASE_PROCESS.md",
       "docs/RELEASE_ACCEPTANCE_CHECKLIST.md",
       "docs/history/RELEASE-2.7.3-scope-freeze.md",
-      "docs/history/RELEASE-2.8.0-scope-freeze.md"
+      "docs/history/RELEASE-2.8.0-scope-freeze.md",
+      "docs/history/RELEASE-2.9.0-scope-freeze.md"
     ]
   }
 }

@@ -9,6 +9,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.9.0] – 2026-08-26
+
 ### Hinzugefügt
 
 - **Zoom-Pille auch in der 3D-Reliefvorschau.** Die schwebende
@@ -71,6 +73,37 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   gemeldet und nur nach Bestätigung nativ neu aufgebaut; Startlog und
   `diagnose_mac.sh` weisen tatsächliche Interpreter-Architektur,
   `sysctl.proc_translated` und Binärarchitekturen getrennt aus.
+
+### Hinweise zu diesem Release
+
+- **Auswirkung:** Feature-Release. Die schwebende Zoom-Pille bedient jetzt
+  auch die 3D-Reliefvorschau; dazu vier Korrekturen (Höhen-Live-Vorschau beim
+  Moduswechsel, Anwendungs-Icon zur Laufzeit, zwei macOS-Startpfade – die
+  beiden letzten nur im aus dem Quellbaum gebauten App-Bundle, nicht im
+  ausgelieferten `.dmg`) und zwei Umbauten im Inspector. Bild-, Projekt- und
+  Exportdaten bleiben unverändert.
+- **Betroffene Anwender:innen:** Wer die 3D-Reliefvorschau nutzt, hat dort
+  dieselbe Zoom-Kontrolle wie auf der 2D-Leinwand. Das Anwendungs-Icon wird
+  auf allen Plattformen zur Laufzeit gesetzt (macOS-App-Umschalter und
+  Stage-Manager-Seitenleiste, Linux-Taskleisten ohne `.desktop`-Zuordnung).
+  Die beiden übrigen macOS-Korrekturen – eingebetteter Interpreter und
+  Architekturerkennung gegen unbemerktes x86_64 unter Rosetta – betreffen das
+  über `create_BgRemover_app.sh` aus dem Quellbaum gebaute App-Bundle, nicht
+  das ausgelieferte `.dmg`. Wer im Relief-Schritt mit der Optimieren-Live-
+  Vorschau arbeitet, verliert sie beim Wechsel in den Standard-Modus nicht
+  mehr aus der Kontrolle.
+- **Upgrade-Relevanz:** Empfohlen für alle Nutzer:innen. Kein
+  Migrationsschritt nötig – Projektdateien (`.bgrproj`), Exportformate und
+  Einstellungen bleiben unverändert kompatibel; ein Downgrade auf 2.8.0 ist
+  ohne Datenänderung möglich. Wer die macOS-App aus dem Quellbaum betreibt,
+  führt `create_BgRemover_app.sh` einmal erneut aus, um die beiden
+  macOS-Korrekturen zu übernehmen.
+- **Unterstützte Plattformen:** macOS arm64 (`.dmg`), Linux x86_64 und Linux
+  arm64 (je `.AppImage` und `.deb`), Python ≥ 3.10. Alle Artefakte bündeln das
+  KI-Backend (`-ai`-Suffix). Die macOS-App ist ad-hoc signiert, nicht mit
+  Developer ID notarisiert – beim Erststart daher Rechtsklick → „Öffnen".
+- **Bekannte Einschränkungen:** Keine über 2.8.0 hinausgehenden neuen
+  Einschränkungen.
 
 ## [2.8.0] – 2026-08-16
 
@@ -1640,7 +1673,8 @@ Erster dokumentierter 2.0.0-Release-Stand. Ein historischer
 - README mit Architektur, bekannten Einschränkungen und Installations-
   anleitung; ausführliche `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...v2.8.0
 [2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
 [2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2

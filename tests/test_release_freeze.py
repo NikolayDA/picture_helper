@@ -68,9 +68,9 @@ def test_freeze_doc_contains_only_pre_merge_machine_fields() -> None:
     text = _freeze_doc_text()
     doc = vrf.parse_freeze_doc(text)
     assert doc.version == _pyproject_version()
-    assert doc.base_tag == "v2.7.3"
+    assert doc.base_tag == "v2.8.0"
     assert re.fullmatch(r"[0-9a-f]{40}", doc.base_sha)
-    assert doc.scope == "minor-release-2.8.0"
+    assert doc.scope == "minor-release-2.9.0"
     assert doc.policy_version == rpp.load_policy().version
     assert "Protokollierter Kandidaten-SHA" not in text
     assert "Commits im Fenster" not in text

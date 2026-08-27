@@ -8,6 +8,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.9.0] – 2026-08-26
+
 ### Added
 
 - **Zoom pill now also in the 3D relief preview.** The floating zoom
@@ -69,6 +71,34 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   natively only after confirmation; the startup log and `diagnose_mac.sh`
   report the actual interpreter architecture, `sysctl.proc_translated`, and
   binary architectures separately.
+
+### Notes for this release
+
+- **Impact:** Feature release. The floating zoom pill now also drives the 3D
+  relief preview; on top of that, four fixes (height live preview on mode
+  switch, application icon at runtime, two macOS launch paths – the latter
+  two only in the app bundle built from source, not in the shipped
+  `.dmg`) and two inspector rearrangements. Image, project, and export data
+  stay unchanged.
+- **Affected users:** Anyone using the 3D relief preview gets the same zoom
+  control there as on the 2D canvas. The application icon is now set at
+  runtime on every platform (macOS app switcher and Stage Manager sidebar,
+  Linux taskbars without a `.desktop` association). The two remaining macOS
+  fixes – embedded interpreter and architecture detection against silently
+  running x86_64 under Rosetta – concern the app bundle built from source via
+  `create_BgRemover_app.sh`, not the shipped `.dmg`. Anyone working with the
+  optimize live preview in the relief step no longer loses control of it when
+  switching to standard mode.
+- **Upgrade relevance:** Recommended for all users. No migration step needed
+  – project files (`.bgrproj`), export formats, and settings remain
+  compatible; downgrading to 2.8.0 is possible without data changes. If you
+  run the macOS app from a source build, run `create_BgRemover_app.sh` once
+  more to pick up the two macOS fixes.
+- **Supported platforms:** macOS arm64 (`.dmg`), Linux x86_64 and Linux
+  arm64 (each `.AppImage` and `.deb`), Python ≥ 3.10. All artifacts bundle
+  the AI backend (`-ai` suffix). The macOS app is ad-hoc signed, not
+  notarized with a Developer ID – right-click → "Open" on first launch.
+- **Known limitations:** No new limitations beyond 2.8.0.
 
 ## [2.8.0] – 2026-08-16
 
@@ -1522,7 +1552,8 @@ First documented 2.0.0 release state. The repository has no historical
 - README with architecture, known limitations, and installation
   instructions; detailed `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...v2.8.0
 [2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
 [2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2

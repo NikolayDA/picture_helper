@@ -9,6 +9,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.9.0] – 2026-08-26
+
 ### Ajouté
 
 - **La pilule de zoom aussi dans l'aperçu 3D du relief.** Le contrôle de
@@ -76,6 +78,39 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   le journal de démarrage et `diagnose_mac.sh` indiquent séparément
   l'architecture réelle de l'interpréteur, `sysctl.proc_translated` et les
   architectures binaires.
+
+### Notes sur cette version
+
+- **Impact :** Version fonctionnelle. La pastille de zoom flottante pilote
+  désormais aussi l'aperçu de relief 3D ; s'y ajoutent quatre correctifs
+  (aperçu de hauteur en direct lors du changement de mode, icône
+  d'application à l'exécution, deux chemins de démarrage macOS – ces
+  deux derniers uniquement dans le bundle construit depuis les sources,
+  pas dans le `.dmg` livré) et deux remaniements de l'inspecteur. Les
+  données d'image, de projet et d'export restent inchangées.
+- **Utilisateurs concernés :** Quiconque utilise l'aperçu de relief 3D y
+  dispose du même contrôle de zoom que sur la toile 2D. L'icône
+  d'application est désormais définie à l'exécution sur toutes les
+  plateformes (sélecteur d'apps et barre latérale Stage Manager sur macOS,
+  barres des tâches Linux sans association `.desktop`). Les deux correctifs
+  macOS restants – interpréteur intégré et détection d'architecture contre
+  une exécution x86_64 passée inaperçue sous Rosetta – concernent le bundle
+  construit depuis les sources via `create_BgRemover_app.sh`, pas le `.dmg`
+  livré. Quiconque travaille avec l'aperçu en direct d'optimisation à
+  l'étape relief n'en perd plus le contrôle en passant en mode standard.
+- **Pertinence de la mise à jour :** Recommandée pour tous les
+  utilisateurs. Aucune étape de migration nécessaire – les fichiers de
+  projet (`.bgrproj`), formats d'export et paramètres restent compatibles
+  sans changement ; un retour à la 2.8.0 est possible sans modification de
+  données. Qui exécute l'application macOS depuis une compilation source
+  relance une fois `create_BgRemover_app.sh` pour reprendre les deux
+  correctifs macOS.
+- **Plateformes prises en charge :** macOS arm64 (`.dmg`), Linux x86_64 et
+  Linux arm64 (chacun `.AppImage` et `.deb`), Python ≥ 3.10. Tous les
+  artefacts intègrent le moteur d'IA (suffixe `-ai`). L'application macOS
+  est signée ad-hoc, non notariée avec un Developer ID – clic droit →
+  « Ouvrir » au premier lancement.
+- **Limitations connues :** Aucune nouvelle limitation au-delà de la 2.8.0.
 
 ## [2.8.0] – 2026-08-16
 
@@ -1599,7 +1634,8 @@ historique `v2.0.0`.
 - README avec architecture, limitations connues et guide
   d'installation ; `INSTALL_MAC.md` détaillé.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...v2.8.0
 [2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
 [2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2

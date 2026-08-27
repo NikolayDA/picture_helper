@@ -9,6 +9,8 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.9.0] – 2026-08-26
+
 ### Añadido
 
 - **La píldora de zoom ahora también en la vista previa 3D del relieve.**
@@ -80,6 +82,40 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   el registro de inicio y `diagnose_mac.sh` muestran por separado la
   arquitectura real del intérprete, `sysctl.proc_translated` y las
   arquitecturas binarias.
+
+### Notas sobre esta versión
+
+- **Impacto:** Versión de funcionalidad. La pastilla de zoom flotante ahora
+  también controla la vista previa de relieve 3D; además, cuatro correcciones
+  (vista previa de altura en vivo al cambiar de modo, icono de aplicación en
+  tiempo de ejecución, dos rutas de arranque de macOS: estas dos
+  últimas solo en el paquete de aplicación construido desde el código
+  fuente, no en el `.dmg` distribuido) y dos reordenaciones del inspector.
+  Los datos de imagen, proyecto y exportación no cambian.
+- **Usuarios afectados:** Quien use la vista previa de relieve 3D dispone
+  allí del mismo control de zoom que en el lienzo 2D. El icono de la
+  aplicación se establece ahora en tiempo de ejecución en todas las
+  plataformas (conmutador de apps y barra lateral de Stage Manager en macOS,
+  barras de tareas de Linux sin asociación `.desktop`). Las dos correcciones
+  restantes de macOS —intérprete incrustado y detección de arquitectura
+  frente a una ejecución x86_64 inadvertida bajo Rosetta— afectan al paquete
+  de aplicación construido desde el código fuente con
+  `create_BgRemover_app.sh`, no al `.dmg` distribuido. Quien trabaje con la
+  vista previa en vivo de optimización en el paso de relieve ya no pierde su
+  control al cambiar al modo estándar.
+- **Relevancia de la actualización:** Recomendada para todos los usuarios.
+  No se necesita ningún paso de migración: los archivos de proyecto
+  (`.bgrproj`), formatos de exportación y ajustes permanecen compatibles sin
+  cambios; es posible volver a la versión 2.8.0 sin cambios de datos. Quien
+  ejecute la app de macOS desde una compilación propia debe ejecutar
+  `create_BgRemover_app.sh` una vez más para incorporar las dos correcciones
+  de macOS.
+- **Plataformas compatibles:** macOS arm64 (`.dmg`), Linux x86_64 y Linux
+  arm64 (cada uno `.AppImage` y `.deb`), Python ≥ 3.10. Todos los artefactos
+  incluyen el backend de IA (sufijo `-ai`). La app de macOS está firmada
+  ad-hoc, no notarizada con un Developer ID: clic derecho → «Abrir» en el
+  primer inicio.
+- **Limitaciones conocidas:** Ninguna limitación nueva más allá de la 2.8.0.
 
 ## [2.8.0] – 2026-08-16
 
@@ -1585,7 +1621,8 @@ tag Git histórico `v2.0.0`.
 - README con arquitectura, limitaciones conocidas e instrucciones de
   instalación; `INSTALL_MAC.md` detallado.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...v2.8.0
 [2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
 [2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2

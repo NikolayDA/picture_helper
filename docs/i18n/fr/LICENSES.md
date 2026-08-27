@@ -1,9 +1,9 @@
 [Deutsch](../../../LICENSES.md) · [English](../en/LICENSES.md) · [Español](../es/LICENSES.md) · **Français** · [Українська](../uk/LICENSES.md) · [简体中文](../zh/LICENSES.md)
 
-# Aperçu des licences et aspects juridiques – bgremover 2.8.0
+# Aperçu des licences et aspects juridiques – bgremover 2.9.0
 
 > Généré automatiquement – **une évaluation purement technique des conditions de licence, pas un conseil juridique.**
-> Au : 2026-08-16 · Licence propre du projet : `GPL-3.0-or-later` · 45 dépendances analysées.
+> Au : 2026-08-27 · Licence propre du projet : `GPL-3.0-or-later` · 45 dépendances analysées.
 
 ## Évaluation globale – utilisabilité commerciale
 
