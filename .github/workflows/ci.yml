@@ -37,7 +37,13 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
+      # Das fail-closed Release-Freeze-Gate braucht Basis-Tag und First-Parent-
+      # Historie. `make pr-check` unten enthaelt es seit #870; ohne vollstaendigen
+      # Checkout scheitert es mit `base-tag-missing`, und zwar erst im
+      # Kandidatenbau, der diesen Workflow als Gate aufruft.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:
