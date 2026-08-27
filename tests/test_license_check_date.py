@@ -84,8 +84,7 @@ def test_workflow_expression_extracts_the_committed_date() -> None:
     )
 
     result = subprocess.run(
-        f'{_gen_date_command()}\nprintf "%s" "$gen_date"',
-        shell=True,
+        ["bash", "-e", "-c", f'{_gen_date_command()}\nprintf "%s" "$gen_date"'],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -115,13 +114,39 @@ def test_generator_writes_the_prefix_the_workflow_matches() -> None:
     )
 
 
-def test_missing_date_line_falls_back_to_today() -> None:
-    """Fehlt die Zeile, greift der dokumentierte ``date -u``-Rueckfall."""
-    text = _workflow_text()
-    assert 'gen_date="$(date -u +%Y-%m-%d)"' in text, (
+def test_missing_file_falls_back_to_today_even_under_pipefail(tmp_path: Path) -> None:
+    """Der ``date -u``-Rueckfall bleibt auch unter ``pipefail`` erreichbar.
+
+    Der Step deklariert kein ``shell:``; GitHub Actions nutzt dann
+    ``bash -e {0}`` **ohne** ``pipefail``, und der Status der Pipeline ist der
+    von ``head`` (0) – der Rueckfall greift. Ein spaeter ergaenztes
+    ``shell: bash`` am Step oder ein ``defaults: run: shell: bash`` setzt
+    jedoch ``-eo pipefail``: ``sed`` liefert bei fehlender Datei Exit 2, und
+    ohne ``|| true`` risse das die Zuweisung samt Step ab, statt
+    zurueckzufallen (Review-Befund auf PR #879). Geprueft wird deshalb im
+    schaerferen Modus – nur so haengt der Rueckfall nicht an einer nirgends
+    festgehaltenen Voraussetzung.
+    """
+    assert 'gen_date="$(date -u +%Y-%m-%d)"' in _workflow_text(), (
         "Der Rueckfall auf 'heute' muss erhalten bleiben – sonst laeuft der "
         "Generator ohne --generated-date auf einem frischen Branch ohne "
         "LICENSES.md."
+    )
+
+    result = subprocess.run(
+        ["bash", "-eo", "pipefail", "-c",
+         f'{_gen_date_command()}\nprintf "%s" "$gen_date"'],
+        cwd=tmp_path,  # bewusst ohne LICENSES.md
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, (
+        "Ohne LICENSES.md bricht der Ausdruck unter pipefail ab, statt leer zu "
+        f"liefern – der 'heute'-Rueckfall waere unerreichbar. stderr: "
+        f"{result.stderr!r}"
+    )
+    assert result.stdout == "", (
+        f"erwarte leeren gen_date ohne LICENSES.md, bekommen: {result.stdout!r}"
     )
 
 

@@ -57,7 +57,14 @@ jobs:
           # tests/test_license_check_date.py haelt beide synchron.
           # Faellt zurueck auf 'heute', wenn die Datei fehlt oder keine
           # Datumszeile traegt (z. B. frischer Branch ohne LICENSES.md).
-          gen_date="$(sed -n 's/^> Stand: \([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\) .*/\1/p' LICENSES.md 2>/dev/null | head -n 1)"
+          # Das `|| true` haelt diesen Rueckfall auch dann offen, wenn der Step
+          # einmal unter `pipefail` laeuft (`shell: bash` am Step oder ein
+          # `defaults: run: shell: bash` setzen `-eo pipefail`): `sed` liefert
+          # bei fehlender Datei Exit 2, und mit `pipefail` risse das die
+          # Zuweisung samt Step ab, statt auf 'heute' zu gehen. Ohne
+          # `pipefail` - dem heutigen Default `bash -e {0}` - zaehlt ohnehin
+          # nur der Status von `head`.
+          gen_date="$(sed -n 's/^> Stand: \([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\) .*/\1/p' LICENSES.md 2>/dev/null | head -n 1 || true)"
           if [ -z "$gen_date" ]; then
             gen_date="$(date -u +%Y-%m-%d)"
           fi
