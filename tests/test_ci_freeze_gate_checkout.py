@@ -16,79 +16,110 @@ Das ist dieselbe Drift-Klasse wie die Qt-apt-Paketliste (Befund N6): eine
 Voraussetzung, die in *jedem* aufrufenden Workflow gelten muss, aber an einer
 Stelle nachgezogen wurde. Dieser Test bindet beide Seiten aneinander, statt sich
 auf die Sorgfalt beim naechsten Umbau zu verlassen.
+
+Bewusst **ohne** ``yaml``: PyYAML ist keine deklarierte Test-Abhaengigkeit. Die
+uebliche Repo-Konvention dafuer ist ein weicher ``try/except ImportError``
+(siehe ``test_process_documentation.py``) – fuer einen Waechter waere das der
+stille Skip genau dort, wo er zaehlt, naemlich in der CI. Stattdessen wird der
+Jobblock wie in ``test_license_workflow_security.py`` ueber die Einrueckung
+zerlegt.
 """
 from __future__ import annotations
 
 from pathlib import Path
-
-import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = ROOT / ".github" / "workflows"
 
 #: Das Target, dessen Voraussetzung hier durchgesetzt wird.
 PR_CHECK = "make pr-check"
-CHECKOUT = "actions/checkout"
 
 
-def _jobs_running_pr_check(document: dict) -> dict[str, dict]:
-    """Jobs des Dokuments, deren Schritte ``make pr-check`` ausfuehren."""
-    found = {}
-    for name, job in (document.get("jobs") or {}).items():
-        if not isinstance(job, dict):
-            continue
-        for step in job.get("steps") or []:
-            if isinstance(step, dict) and PR_CHECK in str(step.get("run") or ""):
-                found[name] = job
-                break
-    return found
+def _job_blocks(text: str) -> dict[str, str]:
+    """Die Jobbloecke eines Workflows, aufgeschluesselt nach Jobnamen.
+
+    Jobs stehen zwei Leerzeichen unter ``jobs:``; ein Block reicht bis zum
+    naechsten Jobnamen oder zum Dateiende.
+    """
+    lines = text.splitlines()
+    try:
+        start = lines.index("jobs:")
+    except ValueError:
+        return {}
+
+    blocks: dict[str, str] = {}
+    name: str | None = None
+    body: list[str] = []
+    for line in lines[start + 1 :]:
+        stripped = line.strip()
+        indent = len(line) - len(line.lstrip())
+        is_job_header = (
+            indent == 2 and stripped.endswith(":") and not stripped.startswith("#")
+        )
+        if is_job_header:
+            if name is not None:
+                blocks[name] = "\n".join(body)
+            name, body = stripped[:-1], []
+        elif name is not None:
+            body.append(line)
+    if name is not None:
+        blocks[name] = "\n".join(body)
+    return blocks
 
 
-def _checkout_steps(job: dict) -> list[dict]:
-    return [
-        step
-        for step in job.get("steps") or []
-        if isinstance(step, dict) and CHECKOUT in str(step.get("uses") or "")
-    ]
-
-
-def _callers() -> list[tuple[Path, str, dict]]:
-    """Alle ``(Datei, Jobname, Job)``-Tripel, die ``make pr-check`` fahren."""
+def _callers() -> list[tuple[str, str, str]]:
+    """Alle ``(Dateiname, Jobname, Jobblock)``-Tripel mit ``make pr-check``."""
     callers = []
     for path in sorted(WORKFLOWS.glob("*.yml")):
         text = path.read_text(encoding="utf-8")
         if PR_CHECK not in text:
             continue
-        document = yaml.safe_load(text)
-        for name, job in _jobs_running_pr_check(document).items():
-            callers.append((path, name, job))
+        for name, block in _job_blocks(text).items():
+            if PR_CHECK in block:
+                callers.append((path.name, name, block))
     return callers
 
 
 def test_pr_check_is_actually_called_somewhere() -> None:
     """Fail-closed: Findet der Test keine Aufrufer, prueft er nichts.
 
-    Ohne diese Zusicherung wuerde eine Umbenennung des Targets die eigentliche
-    Pruefung unten stillschweigend leerlaufen lassen.
+    Ohne diese Zusicherung liesse eine Umbenennung des Targets – oder ein
+    Fehler in der Blockzerlegung – die eigentliche Pruefung unten still
+    leerlaufen.
     """
     callers = _callers()
     assert callers, (
-        f"kein Workflow fuehrt {PR_CHECK!r} aus – wurde das Makefile-Target "
-        "umbenannt? Dann ist dieser Test nachzuziehen."
+        f"kein Jobblock fuehrt {PR_CHECK!r} aus – wurde das Makefile-Target "
+        "umbenannt oder die Workflow-Struktur geaendert? Dann ist dieser Test "
+        "nachzuziehen."
+    )
+
+
+def test_known_callers_are_both_found() -> None:
+    """Die beiden bekannten Aufrufer werden erkannt.
+
+    Haelt die Blockzerlegung ehrlich: Faende sie nur noch einen der beiden,
+    wuerde der Test unten fuer den anderen nichts mehr aussagen, ohne
+    fehlzuschlagen.
+    """
+    files = {name for name, _job, _block in _callers()}
+    assert files == {"ci.yml", "pr-ci.yml"}, (
+        f"erwarte genau ci.yml und pr-ci.yml als Aufrufer, gefunden: {files}. "
+        "Ein neuer Aufrufer ist hier einzutragen – und braucht ebenfalls den "
+        "vollen Checkout."
     )
 
 
 def test_every_pr_check_job_checks_out_full_history() -> None:
     """Jeder Aufrufer holt Tags und Historie, sonst scheitert das Freeze-Gate."""
     offenders = []
-    for path, name, job in _callers():
-        depths = [
-            (step.get("with") or {}).get("fetch-depth") for step in _checkout_steps(job)
-        ]
-        if not depths:
-            offenders.append(f"{path.name}:{name} (kein Checkout-Schritt)")
-        elif not any(str(depth) == "0" for depth in depths):
-            offenders.append(f"{path.name}:{name} (fetch-depth={depths})")
+    for file_name, job, block in _callers():
+        if "actions/checkout" not in block:
+            offenders.append(f"{file_name}:{job} (kein Checkout-Schritt)")
+        elif not any(
+            line.strip() == "fetch-depth: 0" for line in block.splitlines()
+        ):
+            offenders.append(f"{file_name}:{job} (kein 'fetch-depth: 0')")
 
     assert not offenders, (
         "Diese Jobs fahren `make pr-check` ohne vollstaendigen Checkout und "
