@@ -20,12 +20,11 @@ jobs:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
-          # Volle History, damit `git log -- LICENSES.md` den tatsaechlichen
-          # Edit-Commit findet statt des Merge-Commits (refs/pull/N/merge),
-          # den actions/checkout bei pull_request-Events standardmaessig
-          # auscheckt – sonst leitet ein shallow Clone das Datum vom Merge-
-          # Commit ab statt von der letzten echten Aenderung.
-          fetch-depth: 0
+          # Kein `fetch-depth: 0`: Die volle History existierte allein fuer
+          # `git log -- LICENSES.md` im Datumsschritt unten. Der liest den
+          # Stempel jetzt aus der Datei selbst, und die Drift-Pruefung nutzt
+          # nur `git diff` gegen den Arbeitsbaum – beides kommt ohne History
+          # aus.
 
       - uses: actions/setup-python@v6
         with:
@@ -42,17 +41,30 @@ jobs:
 
       - name: Generate license report
         run: |
-          # Stabiles Datum fuer den Drift-Vergleich: das committete
-          # LICENSES.md traegt das Datum des Commits, der es zuletzt
-          # angefasst hat. Solange niemand die Datei neu committet, bleibt
-          # der regenerierte Inhalt damit byte-identisch zum Committeten.
-          # Faellt zurueck auf 'heute', falls die Datei (noch) nicht im
-          # git-Log auftaucht (z. B. frischer Branch ohne LICENSES.md).
-          # `%cs` formatiert das Datum sonst im Committer-TZ des Commits –
-          # ein Commit mit z. B. +02:00 schiebt den Tag dann um, sobald die
-          # UTC-Zeit knapp vor Mitternacht liegt. `TZ=UTC` + `short-local`
-          # erzwingen UTC und machen den Wert TZ-unabhaengig.
-          gen_date="$(TZ=UTC git log -1 --format=%cd --date=short-local -- LICENSES.md 2>/dev/null || true)"
+          # Stabiles Datum fuer den Drift-Vergleich: Der "Stand:"-Stempel
+          # kommt aus der COMMITTETEN LICENSES.md, nicht aus der Git-Historie.
+          # Der frueher genutzte Committer-Zeitstempel
+          # (`git log -1 --format=%cd -- LICENSES.md`) ueberlebt den
+          # Squash-Merge nicht: `main` squasht, der Squash-Commit traegt den
+          # MERGE-Zeitpunkt statt des Edit-Zeitpunkts. Ein Merge nach
+          # UTC-Mitternacht machte den fail-closed Vergleich unten auf `main`
+          # rot, obwohl sich am Abhaengigkeits-Snapshot nichts geaendert hatte
+          # (Review-Befund zu PR #877). Der Snapshot-Schutz bleibt vollstaendig
+          # erhalten – selbstbezueglich ist ausschliesslich die Datumszeile,
+          # jede inhaltliche Abweichung schlaegt weiter fehl. Der Ausdruck
+          # muss zur deutschen "Stand:"-Zeile aus
+          # scripts/generate_license_report.py passen;
+          # tests/test_license_check_date.py haelt beide synchron.
+          # Faellt zurueck auf 'heute', wenn die Datei fehlt oder keine
+          # Datumszeile traegt (z. B. frischer Branch ohne LICENSES.md).
+          # Das `|| true` haelt diesen Rueckfall auch dann offen, wenn der Step
+          # einmal unter `pipefail` laeuft (`shell: bash` am Step oder ein
+          # `defaults: run: shell: bash` setzen `-eo pipefail`): `sed` liefert
+          # bei fehlender Datei Exit 2, und mit `pipefail` risse das die
+          # Zuweisung samt Step ab, statt auf 'heute' zu gehen. Ohne
+          # `pipefail` - dem heutigen Default `bash -e {0}` - zaehlt ohnehin
+          # nur der Status von `head`.
+          gen_date="$(sed -n 's/^> Stand: \([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\) .*/\1/p' LICENSES.md 2>/dev/null | head -n 1 || true)"
           if [ -z "$gen_date" ]; then
             gen_date="$(date -u +%Y-%m-%d)"
           fi
