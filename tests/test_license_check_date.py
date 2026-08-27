@@ -150,6 +150,35 @@ def test_missing_file_falls_back_to_today_even_under_pipefail(tmp_path: Path) ->
     )
 
 
+def test_dateless_file_yields_an_empty_gen_date(tmp_path: Path) -> None:
+    """Eine LICENSES.md ohne brauchbare Datumszeile liefert **leer**.
+
+    Der zweite Rueckfall-Ausloeser: Aendert der Generator sein Praefix, trifft
+    der Ausdruck die Zeile nicht mehr. Er muss dann leer liefern, damit die
+    ``[ -z ]``-Verzweigung greift. Eine Umformulierung, die stattdessen die
+    ganze Zeile ausgibt, wuerde ``--generated-date`` mit Muell fuettern statt
+    mit 'heute' – ohne dass ein Test anschlaegt (Review-Befund auf PR #879).
+    """
+    (tmp_path / "LICENSES.md").write_text(
+        "**Deutsch**\n\n# Lizenz- & Rechtsuebersicht – bgremover 9.9.9\n\n"
+        "> Stand: nicht-datierbar · Eigenlizenz des Projekts: `GPL-3.0-or-later`.\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["bash", "-eo", "pipefail", "-c",
+         f'{_gen_date_command()}\nprintf "%s" "$gen_date"'],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "", (
+        "Ohne verwertbare Datumszeile muss gen_date leer bleiben, damit der "
+        f"'heute'-Rueckfall greift; bekommen: {result.stdout!r}"
+    )
+
+
 def test_checkout_needs_no_full_history() -> None:
     """``fetch-depth: 0`` existierte allein fuer die entfernte ``git log``-Zeile.
 
