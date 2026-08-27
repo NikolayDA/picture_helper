@@ -3,7 +3,7 @@
 # License & Legal Overview – bgremover 2.9.0
 
 > Automatically generated – **a purely technical assessment of the license terms, not legal advice.**
-> As of: 2026-08-26 · Project's own license: `GPL-3.0-or-later` · 45 dependencies analyzed.
+> As of: 2026-08-27 · Project's own license: `GPL-3.0-or-later` · 45 dependencies analyzed.
 
 ## Overall Assessment – Commercial Usability
 
