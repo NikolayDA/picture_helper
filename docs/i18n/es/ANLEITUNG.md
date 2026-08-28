@@ -78,7 +78,7 @@ te acompaña durante la edición. Las funciones principales:
 
 ## 2. La interfaz del programa de un vistazo
 
-![BgRemover – ventana principal tras el inicio](../../../app_screenshots/bgremover_complete_20260722_171622/01_main_empty.png)
+![BgRemover – ventana principal tras el inicio](../../../app_screenshots/bgremover_complete_20260828_184550/01_main_empty.png)
 
 *La ventana principal justo tras el inicio: la barra de menú arriba, la
 barra de herramientas a la izquierda, el lienzo con el tablero de
@@ -112,6 +112,27 @@ La ventana está dividida en cinco áreas:
 | **Inspector de tarjetas** (derecha) | Cabecera con título/descripción del paso, las tarjetas del paso activo, pie con "Atrás"/"Siguiente" |
 | **Barra de estado** (abajo) | Sugerencias y respuestas del programa |
 
+### Modo estándar y modo experto
+
+El interruptor **EXPERTO** de la cabecera del inspector controla cuántas
+opciones se muestran. Una instalación nueva comienza en **modo estándar**,
+con el flujo habitual reducido a lo esencial. El modo experto añade las
+herramientas especializadas para selección precisa, transformaciones libres,
+capas, mapas de altura, vistas previas y exportación UV. La elección se guarda
+y se restaura al volver a abrir la aplicación. Cambiar de modo no descarta
+cambios ni valores: solo oculta o muestra controles. La descripción emergente
+del interruptor resume las diferencias y el atajo de teclado.
+
+![Modo estándar en el paso Quitar fondo](../../../app_screenshots/bgremover_complete_20260828_184550/07_mode_standard.png)
+
+*El modo estándar muestra la acción de IA, la tolerancia y la eliminación
+transparente: el camino más corto hacia un recorte limpio.*
+
+![Modo experto en el paso Quitar fondo](../../../app_screenshots/bgremover_complete_20260828_184550/08_mode_expert.png)
+
+*El modo experto añade el tamaño del pincel, las acciones de selección, el
+reemplazo de color y el suavizado del borde.*
+
 ### Menús "Edición", "Ver", "Proyecto" y "Herramientas"
 
 Muchas acciones también están disponibles desde la barra de menú:
@@ -136,7 +157,7 @@ Muchas acciones también están disponibles desde la barra de menú:
   [sección 7](#7-paso-2--quitar-fondo) y la
   [sección 18](#18-solución-de-problemas-y-archivo-de-registro)).
 
-![Menú "Edición"](../../../app_screenshots/bgremover_complete_20260722_171622/23_menu_edit.png)
+![Menú "Edición"](../../../app_screenshots/bgremover_complete_20260828_184550/23_menu_edit.png)
 
 *El menú "Edición" reúne deshacer/rehacer, rotar, voltear y las
 acciones de selección.*
@@ -185,7 +206,7 @@ Así eliminas un fondo en menos de un minuto:
    (conserva la transparencia) y haz clic en **Guardar**, o usa
    `Archivo → Guardar` (⌘S).
 
-![Resultado de la eliminación de fondo con IA](../../../app_screenshots/bgremover_complete_20260722_171622/55_function_ai_result.png)
+![Resultado de la eliminación de fondo con IA](../../../app_screenshots/bgremover_complete_20260828_184550/55_function_ai_result.png)
 
 *Tras un clic en "Eliminar fondo (IA)", el fondo queda recortado
 automáticamente — la barra de estado informa "Eliminación de fondo con
@@ -228,7 +249,7 @@ y las imágenes grandes se cargan en segundo plano — la barra de estado
 muestra el progreso. Tras la carga, la barra de pasos habilita
 automáticamente el paso siguiente.
 
-![El menú "Archivo"](../../../app_screenshots/bgremover_complete_20260722_171622/20_menu_file.png)
+![El menú "Archivo"](../../../app_screenshots/bgremover_complete_20260828_184550/20_menu_file.png)
 
 *El menú "Archivo" agrupa Abrir (⌘O), "Abiertos recientemente", Guardar
 (⌘S) y Guardar como… (⇧⌘S).*
@@ -318,7 +339,7 @@ sobre el **área actualmente seleccionada**. La selección se resalta en
 color sobre la imagen. Las herramientas de selección están activas en
 el paso *Quitar fondo*.
 
-![Imagen cargada con una selección activa](../../../app_screenshots/bgremover_complete_20260722_171622/02_main_loaded_selection.png)
+![Imagen cargada con una selección activa](../../../app_screenshots/bgremover_complete_20260828_184550/02_main_loaded_selection.png)
 
 *Una imagen cargada con una selección activa: el área de fondo
 seleccionada se resalta en color sobre el lienzo.*
@@ -338,8 +359,8 @@ seleccionada se resalta en color sobre el lienzo.*
   selección.
 - **Borrador:** pinta sobre áreas seleccionadas incorrectamente para
   eliminarlas.
-- El **tamaño del pincel** se ajusta en la tarjeta *Ajustes de
-  herramienta*.
+- El **tamaño del pincel** se ajusta en modo experto en la tarjeta *Ajustes
+  de herramienta*; el pincel y el borrador están disponibles en ambos modos.
 
 ### Con el lazo poligonal (para bordes rectos)
 
@@ -353,13 +374,13 @@ seleccionada se resalta en color sobre el lienzo.*
 ## 7. Paso 2 – Quitar fondo
 
 En el paso *Quitar fondo* separas el motivo del fondo — automáticamente
-mediante IA o a mano. El inspector de tarjetas agrupa para ello cuatro
-tarjetas.
+mediante IA o a mano. El modo estándar muestra lo esencial; el modo experto
+amplía el inspector con las tarjetas especializadas descritas a continuación.
 
-![El paso "Quitar fondo"](../../../app_screenshots/bgremover_complete_20260722_171622/11_step_2_cutout.png)
+![El paso "Quitar fondo"](../../../app_screenshots/bgremover_complete_20260828_184550/11_step_2_cutout.png)
 
-*Paso 2 "Quitar fondo": arriba el botón de IA, debajo los ajustes de
-herramienta, las acciones de selección y "Editar fondo".*
+*Paso 2 "Quitar fondo" en modo experto: arriba el botón de IA, debajo los
+ajustes de herramienta, las acciones de selección y "Editar fondo".*
 
 ### Eliminación de fondo con IA
 
@@ -382,9 +403,9 @@ cancelar la descarga allí.
 | Control deslizante | Rango | Efecto |
 |---|---|---|
 | **Tolerancia (varita mágica)** | 0 – 255 (predeterminado: 30) | Qué tan similares deben ser los colores para seleccionarse juntos con la varita mágica. **Bajo** = solo colores muy similares · **Alto** = muchos tonos. |
-| **Tamaño del pincel** | 4 – 200 px (predeterminado: 30 px) | Diámetro del pincel y del borrador. |
+| **Tamaño del pincel** | 4 – 200 px (predeterminado: 30 px) | Diámetro del pincel y del borrador. **Solo en modo experto.** |
 
-### Acciones de selección
+### Acciones de selección (solo en modo experto)
 
 - **Anular selección** – anula la selección actual. **Esc** cancela
   primero un recorte activo o un lazo poligonal iniciado, y solo anula
@@ -398,13 +419,16 @@ cancelar la descarga allí.
 
 ### Editar fondo
 
+**Eliminar (transparente)** está disponible en modo estándar. **Elegir color**
+y **Reemplazar color** solo se muestran en modo experto.
+
 | Acción | Descripción |
 |---|---|
 | **Eliminar (transparente)** | Hace completamente transparente el área seleccionada. Consejo: primero selecciona el fondo con la varita mágica. |
 | **Elegir color** | Abre un selector de color. El pequeño botón de color muestra el color de reemplazo elegido actualmente. |
 | **Reemplazar color** | Rellena el área seleccionada con el color elegido. |
 
-![Diálogo selector de color](../../../app_screenshots/bgremover_complete_20260722_171622/31_dialog_color_picker.png)
+![Diálogo selector de color](../../../app_screenshots/bgremover_complete_20260828_184550/31_dialog_color_picker.png)
 
 *Mediante "Elegir color" se abre el selector de color; el color
 elegido aparece en el campo de color y se aplica a la selección con
@@ -415,7 +439,7 @@ elegido aparece en el campo de color y se aplica a la selección con
 un color y *Reemplazar color* para un fondo de un solo color (p. ej.
 blanco para fotos de identidad).
 
-### Suavizar borde (feather)
+### Suavizar borde (feather; solo en modo experto)
 
 En la sección *Suavizar borde* de la misma tarjeta puedes dibujar el
 **borde alfa** de forma más suave — útil contra bordes duros con
@@ -456,18 +480,18 @@ cambios.
 El paso *Forma y medidas* agrupa rotar/voltear, redondear esquinas,
 recorte y un cambio rápido de tamaño en píxeles.
 
-![El paso "Forma y medidas"](../../../app_screenshots/bgremover_complete_20260722_171622/13_step_4_shape.png)
+![El paso "Forma y medidas"](../../../app_screenshots/bgremover_complete_20260828_184550/13_step_4_shape.png)
 
 *Paso 4 "Forma y medidas": rotación (rápida/ángulo libre), voltear,
 redondear esquinas y, abajo, los formatos de recorte.*
 
 ### Rotar
 
-- **Rotación rápida:** botones para *90° izquierda*, *90° derecha*,
-  *180°* y *270°*.
-- **Ángulo libre:** control deslizante o campo de entrada de **−180° a
-  +180°**, luego **Aplicar ángulo**. Los ángulos oblicuos generan
-  esquinas transparentes.
+- **90° izquierda / derecha:** disponible en modo estándar y experto.
+- **180° / 270°:** rotaciones rápidas adicionales del modo experto.
+- **Ángulo libre (solo en modo experto):** control deslizante o campo de
+  entrada de **−180° a +180°**, luego **Aplicar ángulo**. Los ángulos
+  oblicuos generan esquinas transparentes.
 
 > La rotación rápida también funciona con teclado: ⌘← (90° izquierda)
 > y ⌘→ (90° derecha).
@@ -477,7 +501,7 @@ redondear esquinas y, abajo, los formatos de recorte.*
 - **Horizontal** – voltear izquierda ↔ derecha.
 - **Vertical** – voltear arriba ↕ abajo.
 
-### Redondear esquinas
+### Redondear esquinas (solo en modo experto)
 
 1. Con el control deslizante **Radio** ajusta el grado de redondeo
    (0 = sin redondeo, hasta 500 px = máximo redondeo).
@@ -486,7 +510,7 @@ redondear esquinas y, abajo, los formatos de recorte.*
 El resultado se guarda con esquinas transparentes — lo mejor es
 hacerlo como PNG.
 
-### Cambiar tamaño (píxeles, directamente en el paso)
+### Cambiar tamaño (píxeles, directamente en el paso; solo en modo experto)
 
 La tarjeta "Cambiar tamaño" ofrece **Anchura × Altura en píxeles**
 directamente en el paso: introduce los valores y haz clic en
@@ -508,7 +532,7 @@ la [sección 10](#10-cambiar-tamaño-y-medidas-físicas).
    - **✓ Aplicar recorte** – recorta la imagen.
    - **✗ Cancelar** – descarta el marco.
 
-![Recorte circular activo con barra de confirmación](../../../app_screenshots/bgremover_complete_20260722_171622/63_crop_circle_overlay.png)
+![Recorte circular activo con barra de confirmación](../../../app_screenshots/bgremover_complete_20260828_184550/63_crop_circle_overlay.png)
 
 *Ejemplo "Círculo": el marco de recorte se sitúa sobre la imagen con
 tiradores. Con "✓ Aplicar recorte" se recorta y "✗ Cancelar" descarta
@@ -557,8 +581,11 @@ impresión.
 
 ## 11. Paso 5 – Relieve y capas
 
-El paso *Relieve y capas* agrupa la gestión de capas y el espacio de
-trabajo del mapa de altura en dos tarjetas.
+El paso *Relieve y capas* agrupa la gestión de capas y el espacio de trabajo
+del mapa de altura en dos tarjetas. El modo estándar ofrece la etiqueta de
+rol, la generación del mapa de altura desde la imagen y el selector 2D/3D.
+La construcción de capas, el selector de rol, la importación en escala de
+grises y la edición/optimización de altura son herramientas expertas.
 
 ### Tipos y roles de capa
 
@@ -583,10 +610,10 @@ En la tarjeta *Capas* gestionas la lista de capas:
 
 | Acción | Descripción |
 |---|---|
-| **Nueva capa / Duplicar / Eliminar** | Añadir una capa, copiar la capa activa o eliminarla. |
-| **Subir / Bajar** | Cambiar el orden de apilamiento de las capas. |
-| **Renombrar** | Renombrar la capa activa. |
-| **Rol** | Asignar un rol a la capa activa (solo se permiten combinaciones compatibles). |
+| **Nueva capa / Duplicar / Eliminar** | Añadir una capa, copiar la capa activa o eliminarla. **Solo en modo experto.** |
+| **Subir / Bajar** | Cambiar el orden de apilamiento de las capas. **Solo en modo experto.** |
+| **Renombrar** | Renombrar la capa activa. **Solo en modo experto.** |
+| **Rol** | El rol se ve como etiqueta en modo estándar; cambiarlo en el selector requiere el modo experto. |
 | **Visibilidad** | Mostrar u ocultar una capa. |
 | **Seleccionar** | Elegir una capa como capa **activa** – las herramientas actúan sobre ella. |
 | **Opacidad** | Opacidad de la capa (se aplica al soltar). |
@@ -623,7 +650,7 @@ solo están activas cuando hay una capa de altura activa.
 - **Generar mapa de altura** – convierte de forma determinista la imagen
   de color actual en un mapa de altura y lo crea como una nueva capa
   de altura.
-- **Importar escala de grises…** – carga una imagen en escala de
+- **Importar escala de grises… (solo en modo experto)** – carga una imagen en escala de
   grises como mapa de altura y la escala al tamaño del proyecto. Los
   archivos en escala de grises de 16 bits (PNG/TIFF) se importan de forma
   **nativa con los 65536 niveles**; las imágenes en color y de 8 bits se
@@ -632,7 +659,7 @@ solo están activas cuando hay una capa de altura activa.
   mensaje. Al exportar para EufyMake, BgRemover avisa cuando un destino de
   8 bits cuantizaría las alturas internas de 16 bits.
 
-### Mapas de altura: editar
+### Mapas de altura: editar (solo en modo experto)
 
 - **Aclarar / Oscurecer** – eleva o reduce la altura; la **Intensidad**
   controla cuánto. Para pintar a mano alzada, el paso *Relieve y
@@ -645,7 +672,7 @@ solo están activas cuando hay una capa de altura activa.
 Si hay una selección activa, las acciones basadas en controles actúan
 solo dentro de la selección; si no, sobre toda la capa.
 
-### Mapas de altura: optimizar
+### Mapas de altura: optimizar (solo en modo experto)
 
 Las operaciones de optimización muestran una **vista previa en vivo**;
 **Aplicar** las confirma (con deshacer/rehacer), **Descartar vista
@@ -672,10 +699,13 @@ mapa de altura con datos válidos y tu entorno gráfico ofrece OpenGL 2.1.
 La vista 3D es **solo de visualización**: permite girar e inspeccionar la
 superficie desde distintos ángulos, pero **no cambia ni los datos de altura ni
 la imagen guardada o la exportación**. En el viewport, arrastra con el botón
-izquierdo para orbitar, usa el botón central o Alt+arrastrar para desplazar y
-la rueda para acercar. Con el teclado, las flechas orbitan, Mayús+flechas
-desplazan, `+`/`−` acercan, `Inicio` ajusta la vista y `Mayús+Inicio` restablece
-cámara, exageración, luz y calidad a los valores predeterminados.
+izquierdo para orbitar y usa el botón central o Alt+arrastrar para desplazar.
+La cápsula de zoom funciona como en el lienzo 2D: **−** y **+** cambian el
+zoom en un 10 %, y **100 %** ajusta el modelo a la vista. El candado fija el
+zoom actual y también bloquea el zoom con la rueda o el teclado. Con el
+teclado, las flechas orbitan, Mayús+flechas desplazan, `+`/`−` acercan,
+`Inicio` ajusta la vista y `Mayús+Inicio` restablece cámara, exageración, luz
+y calidad a los valores predeterminados.
 
 Los controles 3D ajustan la **exageración** (cuánto se amplifica visualmente el
 relieve plano – solo la visualización, nunca los datos de altura), el **azimut
@@ -701,9 +731,10 @@ la imagen y la exportación para impresión UV en tres tarjetas.
 
 La **vista previa 2D** muestra distintas vistas del mismo motivo
 directamente en el lienzo. Es una **visualización en pantalla pura** y
-no cambia ni la imagen ni la exportación. La tarjeta *Vista previa*
-ofrece un control segmentado con cuatro modos; el quinto modo,
-"Combinado", se alcanza mediante `Ver → Modo de vista previa`.
+no cambia ni la imagen ni la exportación. La tarjeta *Vista previa* solo se
+muestra en modo experto; `Ver → Modo de vista previa` también está disponible
+en modo estándar. La tarjeta ofrece cuatro modos; el quinto, "Combinado", se
+alcanza mediante el menú.
 
 | Modo | Visualización |
 |---|---|
@@ -745,10 +776,10 @@ establecido).
 
 ### Exportar para EufyMake Studio
 
-A través de la tarjeta *Impresión UV* en el paso *Exportar* o de
-`Proyecto → Exportar assets para EufyMake Studio…` (Ctrl+Alt+E),
-BgRemover escribe **activos de importación** para EufyMake Studio —
-**no** un archivo `.empf` terminado:
+A través de la tarjeta *Impresión UV* en el paso *Exportar* (**solo en modo
+experto**) o de `Proyecto → Exportar assets para EufyMake Studio…`
+(Ctrl+Alt+E, disponible en ambos modos), BgRemover escribe **activos de
+importación** para EufyMake Studio — **no** un archivo `.empf` terminado:
 
 - **Motivo de color** (obligatorio) como PNG RGBA – de una capa con el
   rol *Motivo de color* o, si no hay ninguna, del composite de color.
@@ -781,7 +812,7 @@ como `.empf`.
 A través de `Herramientas → Ajustes…` (⌘, / Ctrl+,) puedes gestionar
 los siguientes ajustes:
 
-![El diálogo de ajustes](../../../app_screenshots/bgremover_complete_20260722_171622/30_dialog_settings.png)
+![El diálogo de ajustes](../../../app_screenshots/bgremover_complete_20260828_184550/30_dialog_settings.png)
 
 *El diálogo de ajustes: idioma, directorios predeterminados para abrir
 y guardar, formato de imagen preferido, así como la ruta al archivo de
@@ -845,9 +876,10 @@ solo se alcanzan mediante el menú o el inspector de tarjetas.
 
 1. Abrir la imagen.
 2. En el paso *Quitar fondo*, hacer clic en **"Eliminar fondo (IA)"**.
-3. Retocar los bordes con **borrador**/**pincel**.
-4. Si hace falta, **Contraer** (1–2 px) para eliminar el borde de
-   color.
+3. Retocar los bordes con **borrador**/**pincel**; activar **EXPERTO** solo
+   si hace falta ajustar el tamaño del pincel.
+4. Si hace falta, **Contraer** (1–2 px, modo experto) para eliminar el borde
+   de color.
 5. En el paso *Exportar*, guardar como **PNG**.
 
 ### B) Foto de identidad con fondo blanco
@@ -855,7 +887,7 @@ solo se alcanzan mediante el menú o el inspector de tarjetas.
 1. Abrir la imagen.
 2. En el paso *Quitar fondo*, hacer clic con la **varita mágica** en el
    fondo (ajustar la tolerancia).
-3. **Elegir color** (blanco) → **Reemplazar color**.
+3. Activar **EXPERTO** y **Elegir color** (blanco) → **Reemplazar color**.
 4. En el paso *Forma y medidas*, elegir el formato **1:1**, posicionar
    el marco y **✓ Aplicar recorte**.
 5. En el paso *Exportar*, guardar como **JPEG** o **PNG**.
@@ -874,7 +906,8 @@ solo se alcanzan mediante el menú o el inspector de tarjetas.
 
 1. Abrir la imagen, en el paso *Quitar fondo* hacer clic con la
    **varita mágica** sobre el **objeto**.
-2. **Invertir selección** (⌘⇧I) → ahora el fondo queda seleccionado.
+2. Activar **EXPERTO** e **Invertir selección** (⌘⇧I) → ahora el fondo queda
+   seleccionado.
 3. Elegir un color → **Reemplazar color**.
 4. En el paso *Exportar*, guardar.
 
@@ -882,12 +915,12 @@ solo se alcanzan mediante el menú o el inspector de tarjetas.
 
 1. Abrir la imagen y recortarla.
 2. En el paso *Relieve y capas*, **Generar mapa de altura**.
-3. Afinar la altura en la sección *Optimizar* (p. ej. *Tono*,
+3. Activar **EXPERTO**, afinar la altura en *Optimizar* (p. ej. *Tono* o
    *Desenfoque*) y **Aplicar**.
-4. En el paso *Exportar*, elegir el modo de vista previa **Relieve** o,
-   mediante `Ver → Modo de vista previa`, **Combinado** para
-   comprobar.
-5. Tarjeta *Impresión UV* → revisar los hallazgos y exportar.
+4. Comprobar mediante `Ver → Modo de vista previa` o con la tarjeta *Vista
+   previa* del modo experto.
+5. Exportar mediante `Proyecto → Exportar assets para EufyMake Studio…` o
+   con la tarjeta *Impresión UV* del modo experto.
 
 ---
 

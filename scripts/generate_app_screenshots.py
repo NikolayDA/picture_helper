@@ -410,6 +410,20 @@ def main() -> int:
     load_sample(background_mask, "Beispielbild geladen, Hintergrundbereich ausgewaehlt")
     snap(window, "02_main_loaded_selection.png", "Hauptfenster mit Beispielbild und Auswahlmaske")
 
+    # Der Umschalter ist seit Epic #805 ein zentraler Teil des Inspector-
+    # Vertrags. Zwei direkte Vergleichsbilder halten den dokumentierten
+    # Default (Standard) und den vollstaendigen Experten-Modus sichtbar,
+    # statt weiterhin Screenshots aus der Zeit vor dem Umschalter zu zeigen.
+    set_step(WorkflowStep.CUTOUT)
+    window._right_panel.expert_toggle.setChecked(False)
+    process(80)
+    snap(window, "07_mode_standard.png", "Inspector im Standard-Modus")
+    window._right_panel.expert_toggle.setChecked(True)
+    process(80)
+    snap(window, "08_mode_expert.png", "Inspector im Experten-Modus")
+    window._right_panel.expert_toggle.setChecked(False)
+    process(80)
+
     toolbar = window.toolbar
     for filename, label, button, tool in [
         ("03_tool_wand.png", "Werkzeug: Zauberstab", toolbar.btn_wand, TOOL_WAND),

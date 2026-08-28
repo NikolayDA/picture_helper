@@ -55,7 +55,7 @@ oder importieren, dann anpassen – die Höhensemantik ist hell = hoch.*
 *Schritt „Export": die kombinierte 2D-Vorschau legt Relief und Gloss über das
 Farbmotiv – reine Anzeige, der Export bleibt unverändert.*
 
-![3D-Reliefvorschau mit Anzeigeparametern](app_screenshots/bgremover_complete_20260722_171622/77_function_preview3d_adjusted.png)
+![3D-Reliefvorschau mit Anzeigeparametern](app_screenshots/bgremover_complete_20260828_184550/77_function_preview3d_adjusted.png)
 
 *Schritt „Relief & Ebenen": Die aktive Höhenkarte lässt sich als drehbare
 3D-Oberfläche prüfen. Überhöhung, Licht und Qualitätsstufe verändern nur die

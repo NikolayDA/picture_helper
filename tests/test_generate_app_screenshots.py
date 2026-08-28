@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parent.parent
 # Ein Screenshot je Workflow-Schritt (Spec §6: sechs Schritte) plus die vom
 # Generator zugesicherten Sammel-Artefakte.
 _EXPECTED_ARTIFACTS = [
+    "07_mode_standard.png",
+    "08_mode_expert.png",
     "10_step_1_open.png",
     "11_step_2_cutout.png",
     "12_step_3_adjust.png",
