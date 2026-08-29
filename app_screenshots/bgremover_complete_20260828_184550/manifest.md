@@ -11,8 +11,8 @@ Quelle: Repository-Root
 | `04_tool_brush.png` | Werkzeug: Pinsel | 1320x820 |
 | `05_tool_eraser.png` | Werkzeug: Radiergummi | 1320x820 |
 | `06_tool_lasso.png` | Werkzeug: Polygon-Lasso | 1320x820 |
-| `07_mode_standard.png` | Inspector im Standard-Modus | 1320x820 |
-| `08_mode_expert.png` | Inspector im Experten-Modus | 1320x820 |
+| `07_mode_standard.png` | Inspector im Standard-Modus | 332x698 |
+| `08_mode_expert.png` | Inspector im Experten-Modus | 332x698 |
 | `10_step_1_open.png` | Workflow Schritt 1: Oeffnen | 1320x820 |
 | `11_step_2_cutout.png` | Workflow Schritt 2: Freistellen | 1320x820 |
 | `12_step_3_adjust.png` | Workflow Schritt 3: Anpassen | 1320x820 |
@@ -82,7 +82,7 @@ Der Lauf nutzt In-Memory-QSettings, damit echte macOS-App-Preferences unveraende
 
 ## 3D-Renderer-Provenienz
 
-- Aufnahmezeit: `2026-08-28T23:56:52+02:00`
+- Aufnahmezeit: `2026-08-29T00:16:48+02:00`
 - Qt-Plattform: `cocoa`
 - Betriebssystem/Architektur: `Darwin 25.6.0 (arm64)`
 - OpenGL Vendor / Renderer / Version: `Apple / Apple M3 Max / 2.1 Metal - 90.5`

@@ -12,7 +12,7 @@ maschinenlesbare Provenienz außerhalb der Git-Historie gespeichert (siehe
 - **Basis-Tag:** `v2.8.0` (= `1bf95b08453b92a6d66cfc13622211bdf47cc5e2`)
 - **Kandidatenversion:** `2.9.0`
 - **Release-Scope:** `minor-release-2.9.0`
-- **Pfadpolicy:** `release/path-policy.json` (Version `6`)
+- **Pfadpolicy:** `release/path-policy.json` (Version `7`)
 
 Der volle Basis-SHA ist unveränderlich. Der Tagname allein genügt nicht: Das
 Gate weist ein verschobenes Tag zurück. Die Policy-Version bindet die Semantik,
@@ -123,16 +123,19 @@ Die einzige Quelle ist [`release/path-policy.json`](../../release/path-policy.js
 - unbekannte Pfade sind kandidatenrelevant **und blockierend**, bis die Policy
   bewusst ergänzt und versioniert wurde.
 
-Die Policy-Version wurde für diesen Kandidaten von `5` auf `6` angehoben: Das
-Repointen von `current-freeze` auf dieses Dokument ließ den Pfad des
-vorherigen aktiven Freeze-Dokuments (`RELEASE-2.8.0-scope-freeze.md`) ohne
-Klassifikationsregel zurück. Ein neuer, expliziter
-`historical-freeze-2.8.0`-Eintrag schließt die Lücke, analog zum
-`historical-freeze-2.7.3`-Eintrag beim vorherigen Rollover. Weitere
-Pfadergänzungen waren nicht nötig – die 15 zuvor unklassifizierten Doku-Pfade
-dieses Fensters sind bereits mit #861 innerhalb der Policy-Version `5`
-nachgetragen worden (reine Allowlist-Ergänzung, siehe ADR-Nachtrag
-vom 2026-08-25).
+Die Policy-Version wurde für diesen Kandidaten zunächst von `5` auf `6`
+angehoben: Das Repointen von `current-freeze` auf dieses Dokument ließ den
+Pfad des vorherigen aktiven Freeze-Dokuments
+(`RELEASE-2.8.0-scope-freeze.md`) ohne Klassifikationsregel zurück. Ein neuer,
+expliziter `historical-freeze-2.8.0`-Eintrag schloss diese Lücke, analog zum
+`historical-freeze-2.7.3`-Eintrag beim vorherigen Rollover.
+
+Version `7` klassifiziert zusätzlich die durch #878 neu erzeugten
+Screenshot-Sets sowie sechs Recommendations-Archive als kandidatenrelevante
+Test- und Governance-Evidenz. Diese Pfade waren zuvor fail-closed blockierend;
+ihre Aufnahme in die positive Regelmenge ändert daher die Policy-Semantik und
+erfordert gemäß ADR-Nachtrag vom 2026-08-25 einen Versionssprung. Die 15 mit
+#861 ergänzten, rein release-neutralen Doku-Pfade bleiben davon unberührt.
 
 ## Verbindliche Konsistenzprüfungen
 

@@ -417,10 +417,10 @@ def main() -> int:
     set_step(WorkflowStep.CUTOUT)
     window._right_panel.expert_toggle.setChecked(False)
     process(80)
-    snap(window, "07_mode_standard.png", "Inspector im Standard-Modus")
+    snap(window._right_panel.frame, "07_mode_standard.png", "Inspector im Standard-Modus")
     window._right_panel.expert_toggle.setChecked(True)
     process(80)
-    snap(window, "08_mode_expert.png", "Inspector im Experten-Modus")
+    snap(window._right_panel.frame, "08_mode_expert.png", "Inspector im Experten-Modus")
     window._right_panel.expert_toggle.setChecked(False)
     process(80)
 

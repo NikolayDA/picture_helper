@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 6,
+  "policy_version": 7,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
