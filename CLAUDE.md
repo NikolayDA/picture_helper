@@ -496,7 +496,16 @@ Ein Paket, `bgremover/`:
   Dropdown, #809). Reiner UI-Zustand, global über alle sechs Schritte,
   persistiert über `settings_schema.EXPERT_MODE_KEY` (additiver Schlüssel, keine
   Schema-Migration, Default **Standard**); i18n-Keys `workflow.expert_mode.*`.
-  Vertrag: [`docs/REDESIGN_SPEC.md`](docs/REDESIGN_SPEC.md) §15.
+  Vertrag: [`docs/REDESIGN_SPEC.md`](docs/REDESIGN_SPEC.md) §15. Nutzerseitig
+  ist der Modus seit #878 im Handbuch ([`ANLEITUNG.md`](ANLEITUNG.md), sechs
+  Sprachfassungen + PDF) geführt: jedes nur im Experten-Modus sichtbare
+  Bedienelement trägt dort den Hinweis „nur im Experten-Modus". Der
+  Screenshot-Satz hält den direkten Vergleich als Paar
+  `07_mode_standard.png`/`08_mode_expert.png`; `generate_app_screenshots.py`
+  schaltet danach bewusst in den Experten-Modus, damit die Werkzeug- und
+  Funktionsbilder die Detailsteuerungen zeigen. Wer Marker verschiebt, erzeugt
+  den Satz über `make screenshots` neu – die Artefaktliste hält
+  `tests/test_generate_app_screenshots.py` fest.
 - **Maßeinheiten/Geometrie:** `units.py` — Qt-freie, strikt getypte px↔mm↔DPI-Mathematik
   (#376): leitet aus je zwei bekannten Größen die dritte deterministisch ab
   (`MM_PER_INCH = 25.4`), validiert Eingaben und meldet ungültige Werte als strukturierte
