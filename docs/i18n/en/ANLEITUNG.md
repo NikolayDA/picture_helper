@@ -622,10 +622,15 @@ both modes and paint the height freehand.
 - **Lighten / Darken (sliders)** – raises or lowers the height; the
   **Strength** controls how much.
 - **Set height** – sets the height to a fixed **value**.
-- **Invert** – swaps high and low.
 
 When a selection is active, the slider-based actions affect only the
 selection, otherwise the whole layer.
+
+### Height map tools (expert mode only)
+
+The separate **Height map tools** card contains **Invert**. It swaps high and
+low inside the active selection, or across the whole height layer when there
+is no selection.
 
 ### Height maps: Optimise (expert mode only)
 

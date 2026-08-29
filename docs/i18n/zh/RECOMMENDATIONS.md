@@ -58,7 +58,6 @@ Epic 统一管理；#883–#907 将许可、账户、沙箱、打包、商店和
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | 直方图/色阶/伽马的实时预览 + 操作界面 | 🟡 中 | 🟡 中高（Qt UI，需类似高度预览的防抖/世代保护） | Sonnet，高 | 阻塞 —— 等待核心 #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | 图层/选区/历史/项目集成 | 🟡 中 | 🟠 高（大量状态转换：撤销/重做、选区、脏状态） | Opus，高 | 阻塞 —— 等待 #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | 性能/E2E/文档/激光接口验收 | 🟡 中（收尾关卡，非新功能） | 🟠 高（基准测试套件、E2E、文档、适配器契约） | Opus，高 | 阻塞 —— #695 完成后的收尾议题 |
-| [#878](https://github.com/NikolayDA/picture_helper/issues/878) | 在用户指南中补充标准/专家模式与 3D 缩放胶囊 | 🟡 中（标准模式用户否则看不到已记录的控件） | 🟡 中（六种语言、新截图、PDF 和漂移测试） | Sonnet，高 | 进行中 —— 完成文档/产物对齐，并在检查全部通过后关闭 |
 | [#882](https://github.com/NikolayDA/picture_helper/issues/882) | [Epic] BgRemover 上架 Mac App Store | 🟡 中高（新分发渠道，非当前产品缺陷） | 🔴 高（许可、沙箱、打包、商店和发布治理） | –（Epic） | 阻塞 —— 先将许可策略创建为具体的阶段 0 子任务并作出决定 |
 | [#883](https://github.com/NikolayDA/picture_helper/issues/883) | [MAS] 许可策略：PySide6、Riverbank 与代码重新许可 | 🟠 高（所有 MAS 技术工作的硬性阻塞项） | 🔴 高（许可/负责人决策、可能的 Qt 移植、残余风险） | Opus，高 + 负责人/法律审核 | 可启动 —— 编写 ADR 并记录负责人决定；若选 PySide6，另建移植议题 |
 | [#884](https://github.com/NikolayDA/picture_helper/issues/884) | [MAS] 加入 Apple Developer Program | 🟠 高（阻塞证书和商店访问） | 🟢 低（手动账户/付款步骤） | –（无需 Agent；Account Holder） | 阻塞（外部）—— 选择账户类型，完成注册/2FA，并明确续费责任 |

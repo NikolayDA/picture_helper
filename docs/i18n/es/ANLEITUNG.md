@@ -681,10 +681,15 @@ alzada.
 - **Aclarar / Oscurecer (controles)** – eleva o reduce la altura; la
   **Intensidad** controla cuánto.
 - **Establecer altura** – fija la altura a un **valor** determinado.
-- **Invertir** – intercambia alto y bajo.
 
 Si hay una selección activa, las acciones basadas en controles actúan
 solo dentro de la selección; si no, sobre toda la capa.
+
+### Herramientas del mapa de altura (solo en modo experto)
+
+La tarjeta independiente **Herramientas del mapa de altura** contiene
+**Invertir**. Intercambia alto y bajo dentro de la selección activa o, si no
+hay selección, en toda la capa de altura.
 
 ### Mapas de altura: optimizar (solo en modo experto)
 

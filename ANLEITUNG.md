@@ -669,10 +669,15 @@ freihändig.
 - **Aufhellen / Abdunkeln (Regler)** – hebt die Höhe an oder senkt sie ab; die
   **Stärke** steuert, wie stark.
 - **Höhe setzen** – setzt die Höhe auf einen festen **Wert**.
-- **Invertieren** – kehrt hoch und niedrig um.
 
 Ist eine Auswahl aktiv, wirken die reglerbasierten Aktionen nur innerhalb
 der Auswahl, sonst auf die ganze Ebene.
+
+### Höhenkarten-Werkzeuge (nur im Experten-Modus)
+
+Die eigenständige Karte **Höhenkarte-Werkzeuge** enthält **Invertieren**. Die
+Aktion kehrt hoch und niedrig innerhalb der aktiven Auswahl um, andernfalls
+auf der ganzen Höhen-Ebene.
 
 ### Höhenkarten: Optimieren (nur im Experten-Modus)
 

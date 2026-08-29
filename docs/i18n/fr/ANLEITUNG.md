@@ -686,10 +686,15 @@ hauteur à main levée.
 - **Éclaircir / Assombrir (commandes)** – augmente ou diminue la hauteur ;
   l'**Intensité** contrôle l'ampleur.
 - **Définir la hauteur** – fixe la hauteur à une **valeur** déterminée.
-- **Inverser** – échange haut et bas.
 
 Lorsqu'une sélection est active, les actions basées sur des curseurs
 n'agissent qu'à l'intérieur de la sélection, sinon sur tout le calque.
+
+### Outils de la carte de hauteur (uniquement en mode expert)
+
+La carte indépendante **Outils de la carte de hauteur** contient
+**Inverser**. L'action échange haut et bas dans la sélection active ou, en
+l'absence de sélection, sur tout le calque de hauteur.
 
 ### Cartes de hauteur : optimiser (uniquement en mode expert)
 
