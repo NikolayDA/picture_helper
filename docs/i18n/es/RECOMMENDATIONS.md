@@ -13,6 +13,17 @@
 
 ## Estado actual (2026-08-29, v2.9.0 publicado, inventario abierto auditado por completo)
 
+**Adenda 2026-08-29 (auditoría completa de las incidencias abiertas):** Las 40
+incidencias abiertas se comprobaron contra `main` (HEAD `411d47c`) y los
+hallazgos se contrastaron de forma adversarial. #878 está completa por el PR
+#908 y solo espera el cierre; las descripciones de #681, #882, #905 y #906 se
+han actualizado. Hallazgo principal: las pruebas reales de EufyMake #688–#690
+**no** solo esperan hardware – alfa/cobertura no tiene ni fixture ni celda de
+prueba, falta un par COLOR/HEIGHT con las mismas dimensiones en píxeles, gloss
+tiene exactamente una celda de prueba (I-10) y la celda I-06 referencia el
+manifiesto de los fixtures en lugar de uno de exportación real. Las cuatro
+filas se han corregido. No hay nuevos hallazgos 🔴.
+
 **Adenda 2026-08-29:** v2.9.0 está publicado. La aceptación en hardware pasó
 en macOS arm64 y Linux arm64 con renderizadores de GPU reales, la etiqueta y la
 publicación se verificaron byte a byte contra el manifiesto de aprobación, y
@@ -51,10 +62,10 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | # | Título | Relevancia | Complejidad | Modelo recomendado (esfuerzo) | Próximo paso |
 |---|--------|------------|-------------|--------------------------------|--------------|
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épica] Perfil objetivo EufyMake – validar Height/Gloss/mm-DPI | 🟠 Alta (corrección del principal objetivo de exportación) | 🔴 Alta (5 sub-incidencias, requiere hardware físico) | – (épica) | Preparación de #687 en 16/18 CA; quedan I-06 y la revisión final, y la integración #691 espera las pruebas reales #688–#690 |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventario de suposiciones, fuentes del fabricante, matriz de pruebas | 🟠 Alta (base vinculante para #688–#691) | 🔴 Alta (preparación terminada; el resto requiere hardware real) | – (sin agente; requiere hardware EufyMake real) | Bloqueada (externa) – 16/18 criterios cumplidos; pendientes I-06 para carpeta/manifiesto y la revisión final tras #688–#690 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Validar profundidad de bits/semántica HEIGHT en hardware real | 🟠 Alta (afecta directamente a la altura del relieve) | 🔴 Alta (impresora física, fixtures, registro de medición) | – (sin agente; requiere hardware EufyMake real) | Bloqueada (externa) – los fixtures/plantillas de protocolo de #687 ya están listos; solo falta el hardware de impresora/Studio |
-| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Validar contrato de mm/DPI, tamaño objetivo y posicionamiento | 🟠 Alta (tamaño de impresión/registro) | 🔴 Alta (mediciones físicas, motivos de control) | – (sin agente; requiere hardware real) | Bloqueada (externa) – si el diálogo de importación de Studio deriva el tamaño inicial de `pHYs`/DPI no está demostrado (N10, EM-F04) |
-| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Validar semántica de gloss/barniz | 🟡 Media (gloss ya está marcado como "experimental" en el código) | 🔴 Alta (impresiones físicas, consumo de material) | – (sin agente; requiere hardware real) | Bloqueada (externa) – el trabajo previo de #687 está terminado; solo falta el hardware |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventario de suposiciones, fuentes del fabricante, matriz de pruebas | 🟠 Alta (base vinculante para #688–#691) | 🔴 Alta (entregables propios listos; lagunas de fixtures/celdas de #688–#690 abiertas, el resto requiere hardware real) | – (sin agente; requiere hardware EufyMake real) | Bloqueada (externa) – 16/18 criterios cumplidos; pendientes I-06 para carpeta/manifiesto y la revisión final tras #688–#690 |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Validar profundidad de bits/semántica HEIGHT en hardware real | 🟠 Alta (afecta directamente a la altura del relieve) | 🔴 Alta (impresora física, fixtures, registro de medición) | – (sin agente; requiere hardware EufyMake real) | Bloqueada (externa) + trabajo previo pendiente – los fixtures/plantillas de protocolo de #687 ya están listos, pero alfa/cobertura no tiene ni fixture ni celda de prueba (todos los fixtures COLOR son opacos) y falta un par COLOR/HEIGHT con las mismas dimensiones en píxeles (I-02/I-08 confundidos); completar antes del día de pruebas |
+| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Validar contrato de mm/DPI, tamaño objetivo y posicionamiento | 🟠 Alta (tamaño de impresión/registro) | 🔴 Alta (mediciones físicas, motivos de control) | – (sin agente; requiere hardware real) | Bloqueada (externa) + trabajo previo pendiente – si el diálogo de importación de Studio deriva el tamaño inicial de `pHYs`/DPI no está demostrado (N10, EM-F04); además, la celda I-06 referencia el manifiesto de los fixtures en lugar de uno de exportación real, y los DPI no cuadrados ni se prueban ni se descartan de forma justificada |
+| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Validar semántica de gloss/barniz | 🟡 Media (gloss ya está marcado como "experimental" en el código) | 🔴 Alta (impresiones físicas, consumo de material) | – (sin agente; requiere hardware real) | Bloqueada (externa) + trabajo previo pendiente – el trabajo previo de #687 solo está hecho en parte: exactamente una celda de gloss (I-10), sin fixtures de alfa/cobertura, sin una dimensión de gloss divergente y gloss × HEIGHT sin cruzar |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Integrar el perfil objetivo versionado en validador/writer/diálogo/documentación | 🟠 Alta (endurece la ruta de exportación de producción) | 🟠 Alta (transversal a eufymake_export/_validate/_writer + UI) | Opus, alto | Bloqueada – espera a #688–#690 |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Épica] Motor de tono/escala de grises COLOR | 🟡 Media-alta (fundamento de la hoja de ruta para láser, no un bug activo) | 🔴 Alta (5 sub-incidencias, ADR→núcleo→UI→integración→aceptación) | – (épica) | En curso – iniciar primero #692 |
 | [#692](https://github.com/NikolayDA/picture_helper/issues/692) | ADR + contrato de datos para tono/histograma/escala de grises | 🟠 Alta (fija el contrato para toda la épica) | 🟡 Media (decisión de arquitectura, sin implementación) | Opus, alto | Lista para iniciar |
@@ -62,7 +73,7 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Vista previa en vivo + interfaz para histograma/niveles/gamma | 🟡 Media | 🟡 Media-alta (UI de Qt, protección de debounce/generación similar a la vista previa de altura) | Sonnet, alto | Bloqueada – espera al núcleo #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Integración de capas/selección/historial/proyecto | 🟡 Media | 🟠 Alta (muchas transiciones de estado: deshacer/rehacer, selección, estado sucio) | Opus, alto | Bloqueada – espera a #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Aceptación de rendimiento/E2E/documentación/interfaz láser | 🟡 Media (gate de cierre, no una función nueva) | 🟠 Alta (suite de benchmarks, E2E, documentación, contrato del adaptador) | Opus, alto | Bloqueada – incidencia de cierre tras #695 |
-| [#878](https://github.com/NikolayDA/picture_helper/issues/878) | Añadir modo estándar/experto y cápsula de zoom 3D a la guía | 🟡 Media (el usuario estándar no ve controles documentados) | 🟡 Media (seis idiomas, capturas nuevas, PDF y pruebas de deriva) | Sonnet, alto | En curso – completar la alineación de documentación/artefactos y cerrar tras pruebas verdes |
+| [#878](https://github.com/NikolayDA/picture_helper/issues/878) | Añadir modo estándar/experto y cápsula de zoom 3D a la guía | 🟡 Media (el usuario estándar no ve controles documentados) | 🟡 Media (seis idiomas, capturas nuevas, PDF y pruebas de deriva) | Sonnet, alto | Implementado (PR #908) – la guía, sus seis versiones lingüísticas, el PDF y el juego de capturas están completos; solo espera el cierre por parte del owner, después retirar la fila |
 | [#882](https://github.com/NikolayDA/picture_helper/issues/882) | [Epic] BgRemover en la Mac App Store | 🟡 Media-alta (nuevo canal, no defecto actual) | 🔴 Alta (licencia, sandbox, empaquetado, tienda y gobernanza) | – (Epic) | Bloqueada – crear y decidir primero la estrategia de licencia como subtarea concreta de fase 0 |
 | [#883](https://github.com/NikolayDA/picture_helper/issues/883) | [MAS] Estrategia de licencia: PySide6 vs. Riverbank y relicenciamiento | 🟠 Alta (bloqueo duro para todo trabajo técnico MAS) | 🔴 Alta (decisión legal/del propietario, posible port Qt, riesgo residual) | Opus, alto + revisión del propietario/legal | Lista – redactar ADR y decisión; crear issue de port separado si se elige PySide6 |
 | [#884](https://github.com/NikolayDA/picture_helper/issues/884) | [MAS] Inscripción en Apple Developer Program | 🟠 Alta (bloquea certificados y acceso a la tienda) | 🟢 Baja (paso manual de cuenta/pago) | – (sin agente; titular de cuenta) | Bloqueada (externa) – elegir tipo de cuenta, completar inscripción/2FA y asignar renovación |
@@ -94,9 +105,10 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 ### Recomendado a continuación
 
 1. **#692** (ADR) abre la épica COLOR #682.
-2. En cuanto haya hardware de Studio/impresora disponible: ejecutar en una sola sesión conjunta las
-   pruebas reales ya preparadas de #687 (resto, en particular I-06), #688, #689 y #690 – fixtures,
-   plantillas de protocolo y criterios de aborto aprobados ya están completamente listos.
+2. Antes de la próxima sesión de Studio/impresora, cerrar primero las lagunas de fixtures/celdas
+   documentadas en #688–#690 (alfa/cobertura, un par COLOR/HEIGHT del mismo tamaño, celdas de
+   gloss, un manifiesto de exportación real para I-06); después ejecutar #687 (resto), #688,
+   #689 y #690 en una sola sesión conjunta.
 3. **#883** (estrategia de licencia MAS) decide la vía Mac App Store #882: sin
    esa decisión del owner toda la cadena #884–#907 sigue bloqueada.
 

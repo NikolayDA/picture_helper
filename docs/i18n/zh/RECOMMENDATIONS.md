@@ -13,6 +13,14 @@
 
 ## 当前状态（2026-08-29，v2.9.0 已发布，未结议题已全部审计）
 
+**2026-08-29 补记（未结议题全面审计）：** 全部 40 个未结议题均已对照 `main`
+（HEAD `411d47c`）检查，并对结论做了对抗性复核。#878 已由 PR #908 全部完成，
+仅待关闭；#681、#882、#905 与 #906 的描述均已补正。最重要的发现是：EufyMake
+真实测试 #688–#690 **并非**只在等待硬件——Alpha/覆盖度既无 fixture 也无测试
+单元格，缺少一对像素尺寸相同的 COLOR/HEIGHT，gloss 只有一个测试单元格
+（I-10），而单元格 I-06 引用的是 fixture 清单而非真实的导出清单。相应的四行
+已更正。没有新的 🔴 级发现。
+
 **2026-08-29 补记：** v2.9.0 已发布。硬件验收在 macOS arm64 与 Linux arm64
 上以真实 GPU 渲染器通过，标签与发布已按字节比对批准清单，`PUBLIC-DOWNLOAD-01`
 与 `UPDATE-01` 均已达成。#881 因此关闭；刻意暂停的 Linux x86_64 标准仍显式
@@ -47,10 +55,10 @@ Epic 统一管理；#883–#907 将许可、账户、沙箱、打包、商店和
 | # | 标题 | 相关性 | 复杂度 | 建议模型（投入） | 下一步 |
 |---|------|--------|--------|--------------------|--------|
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake 目标配置文件 —— 验证 Height/Gloss/mm-DPI | 🟠 高（关系到最重要导出目标的正确性） | 🔴 高（5 个子议题，需要物理硬件） | –（Epic） | #687 的准备工作已完成 16/18 项；仍有 I-06 和收尾评审，#691 则等待 #688–#690 的真实测试 |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🔴 高（准备工作已完成；剩余部分需要真实硬件） | –（无需 Agent；需要真实的 EufyMake 硬件） | 阻塞（外部）—— 已完成 16/18 项；待完成文件夹/清单 I-06，以及 #688–#690 真实测试后的收尾评审 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 阻塞（外部）—— #687 提供的测试样件/协议模板均已就绪；现在只差打印机/Studio 硬件 |
-| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— Studio 导入对话框是否依据 `pHYs`/DPI 推导起始尺寸尚未证实（N10, EM-F04） |
-| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | 验证 gloss/亮光漆语义 | 🟡 中（代码中 gloss 已标记为“experimental”） | 🔴 高（需物理打印、消耗材料） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— #687 的前期工作已完成；现在只差硬件 |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🔴 高（自身交付物已完成；#688–#690 的 fixture/测试单元格缺口未补齐，剩余部分需要真实硬件） | –（无需 Agent；需要真实的 EufyMake 硬件） | 阻塞（外部）—— 已完成 16/18 项；待完成文件夹/清单 I-06，以及 #688–#690 真实测试后的收尾评审 |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 阻塞（外部）+ 前期工作未完成 —— #687 提供的 fixture/协议模板已就绪，但 Alpha/覆盖度既无 fixture 也无测试单元格（所有 COLOR fixture 均为不透明），并且缺少一对像素尺寸相同的 COLOR/HEIGHT（I-02/I-08 存在混杂）；须在测试日之前补齐 |
+| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 阻塞（外部）+ 前期工作未完成 —— Studio 导入对话框是否依据 `pHYs`/DPI 推导起始尺寸尚未证实（N10, EM-F04）；此外单元格 I-06 引用的是 fixture 清单而非真实的导出清单，非正方形 DPI 也既未测试、也没有给出排除理由 |
+| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | 验证 gloss/亮光漆语义 | 🟡 中（代码中 gloss 已标记为“experimental”） | 🔴 高（需物理打印、消耗材料） | –（无需 Agent；需要真实硬件） | 阻塞（外部）+ 前期工作未完成 —— #687 的前期工作只完成了一部分：gloss 测试单元格仅有一个（I-10），没有 Alpha/覆盖度 fixture，没有尺寸不一致的 gloss 用例，gloss × HEIGHT 也未交叉覆盖 |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | 将带版本号的目标配置文件整合进 validator/writer/对话框/文档 | 🟠 高（强化生产环境导出路径） | 🟠 高（横跨 eufymake_export/_validate/_writer + UI） | Opus，高 | 阻塞 —— 等待 #688–#690 |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR 色调/灰度引擎 | 🟡 中高（激光路线图的基础，非当前活跃缺陷） | 🔴 高（5 个子议题，ADR→核心→UI→集成→验收） | –（Epic） | 进行中 —— 优先启动 #692 |
 | [#692](https://github.com/NikolayDA/picture_helper/issues/692) | 色调/直方图/灰度操作的 ADR + 数据契约 | 🟠 高（为整个 Epic 确立契约） | 🟡 中（架构决策，无需实现） | Opus，高 | 可立即启动 |
@@ -58,7 +66,7 @@ Epic 统一管理；#883–#907 将许可、账户、沙箱、打包、商店和
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | 直方图/色阶/伽马的实时预览 + 操作界面 | 🟡 中 | 🟡 中高（Qt UI，需类似高度预览的防抖/世代保护） | Sonnet，高 | 阻塞 —— 等待核心 #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | 图层/选区/历史/项目集成 | 🟡 中 | 🟠 高（大量状态转换：撤销/重做、选区、脏状态） | Opus，高 | 阻塞 —— 等待 #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | 性能/E2E/文档/激光接口验收 | 🟡 中（收尾关卡，非新功能） | 🟠 高（基准测试套件、E2E、文档、适配器契约） | Opus，高 | 阻塞 —— #695 完成后的收尾议题 |
-| [#878](https://github.com/NikolayDA/picture_helper/issues/878) | 在用户指南中补充标准/专家模式与 3D 缩放胶囊 | 🟡 中（标准模式用户否则看不到已记录的控件） | 🟡 中（六种语言、新截图、PDF 和漂移测试） | Sonnet，高 | 进行中 —— 完成文档/产物对齐，并在检查全部通过后关闭 |
+| [#878](https://github.com/NikolayDA/picture_helper/issues/878) | 在用户指南中补充标准/专家模式与 3D 缩放胶囊 | 🟡 中（标准模式用户否则看不到已记录的控件） | 🟡 中（六种语言、新截图、PDF 和漂移测试） | Sonnet，高 | 已完成（PR #908）—— 用户指南、六种语言版本、PDF 和截图集均已完备；仅待 owner 关闭，之后移除本行 |
 | [#882](https://github.com/NikolayDA/picture_helper/issues/882) | [Epic] BgRemover 上架 Mac App Store | 🟡 中高（新分发渠道，非当前产品缺陷） | 🔴 高（许可、沙箱、打包、商店和发布治理） | –（Epic） | 阻塞 —— 先将许可策略创建为具体的阶段 0 子任务并作出决定 |
 | [#883](https://github.com/NikolayDA/picture_helper/issues/883) | [MAS] 许可策略：PySide6、Riverbank 与代码重新许可 | 🟠 高（所有 MAS 技术工作的硬性阻塞项） | 🔴 高（许可/负责人决策、可能的 Qt 移植、残余风险） | Opus，高 + 负责人/法律审核 | 可启动 —— 编写 ADR 并记录负责人决定；若选 PySide6，另建移植议题 |
 | [#884](https://github.com/NikolayDA/picture_helper/issues/884) | [MAS] 加入 Apple Developer Program | 🟠 高（阻塞证书和商店访问） | 🟢 低（手动账户/付款步骤） | –（无需 Agent；Account Holder） | 阻塞（外部）—— 选择账户类型，完成注册/2FA，并明确续费责任 |
@@ -90,8 +98,9 @@ Epic 统一管理；#883–#907 将许可、账户、沙箱、打包、商店和
 ### 接下来推荐
 
 1. **#692**（ADR）开启 COLOR 史诗 #682。
-2. 一旦有 Studio/打印机硬件：将 #687（剩余，尤其 I-06）、#688、#689、#690 已准备好的真实测试
-   在一次打包会话中执行——fixture、协议模板和已批准的中止标准均已齐备。
+2. 在下一次 Studio/打印机会话之前，先补齐 #688–#690 中记录的 fixture/测试单元格缺口
+   （Alpha/覆盖度、尺寸相同的 COLOR/HEIGHT 配对、gloss 单元格、用于 I-06 的真实导出清单）；
+   之后再将 #687（剩余）、#688、#689、#690 在一次打包会话中执行。
 3. **#883**（MAS 许可策略）决定 Mac App Store 路径 #882——没有该 owner 决策，
    #884–#907 整条链条将持续受阻。
 
