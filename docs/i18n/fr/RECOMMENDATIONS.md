@@ -13,14 +13,22 @@
 
 ## État actuel (2026-08-29, v2.9.0 publiée, inventaire ouvert entièrement audité)
 
-**Addendum 2026-08-29 :** v2.9.0 est publiée. L'acceptation matérielle est
-verte sur macOS arm64 et Linux arm64 avec de vrais moteurs de rendu GPU, le tag
-et la publication sont vérifiés octet par octet contre le manifeste
-d'approbation, et `PUBLIC-DOWNLOAD-01` comme `UPDATE-01` sont satisfaits. #881
-est donc clôturé ; les critères Linux x86_64 délibérément en pause restent
-visiblement `PENDING`. #878 a été implémenté par la PR #908 ; cette
-synchronisation de clôture ferme le ticket et le retire des six tableaux de
-triage actuels.
+**Addendum 2026-08-29 (audit complet des issues ouvertes) :** Les 40 issues
+ouvertes vérifiées contre `main` (HEAD `411d47c`), constats contre-vérifiés de
+manière adversariale. #878 est réglé par la PR #908 ; les descriptions de #681,
+#882, #905 et #906 sont mises à jour. Constat clé : les tests réels EufyMake
+#688–#690 n'attendent **pas** seulement le matériel – Alpha/couverture n'a ni
+fixture ni cellule de test, il manque une paire COLOR/HEIGHT de même taille,
+gloss n'a qu'une cellule de test (I-10), et la cellule I-06 référence le
+manifeste des fixtures, non un vrai manifeste d'export. Aucun nouveau constat 🔴.
+
+**Addendum 2026-08-29 :** v2.9.0 est publiée. L'acceptation matérielle est verte
+sur macOS arm64 et Linux arm64 avec de vrais moteurs de rendu GPU, le tag et la
+publication sont vérifiés octet par octet contre le manifeste d'approbation, et
+`PUBLIC-DOWNLOAD-01` comme `UPDATE-01` sont satisfaits. #881 est donc clôturé ;
+les critères Linux x86_64 délibérément en pause restent visiblement `PENDING`.
+#878 a été implémenté par la PR #908 ; cette synchronisation de clôture ferme le
+ticket et le retire des six tableaux de triage actuels.
 
 **Contrôle périodique 2026-08-28 :** La comparaison GitHub en direct ajoute
 les issues ouvertes **#878**, **#881**, **#882** et les nouvelles sous-issues
@@ -46,7 +54,7 @@ ses phases licence, compte, sandbox, packaging, store et exploitation. La strat�
 
 **EufyMake #681/#687–#691 :** les 31 fixtures, modèles de protocole et la gouvernance approuvée sont maintenant reflétés dans les tickets. #687 est à 16/18 critères ; seuls I-06 (dossier/manifeste) et la revue finale après les tests réels restent ouverts. Pour le chemin Spot UV séparé, l'hypothèse appuyée par le fabricant est noir = gloss et blanc = sans gloss. L'utilisation complète des 16 bits, la priorité `pHYs`, la conversion gris→mm et l'intensité gloss restent des questions matérielles de #688–#690.
 
-Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0 à v2.8.0, ainsi que l'épopée #741 avec ses onze tickets enfants, l'épopée #805 avec #806–#811, #817 et #821 ; nouvellement clôturés depuis la dernière synchronisation : #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (fermée par l'owner), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (PR #908) et #878 (PR #908/#910) (détails : Tours précédents).
+Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0 à v2.8.0, ainsi que l'épopée #741 avec ses onze tickets enfants, l'épopée #805 avec #806–#811, #817 et #821 ; nouvellement clôturés depuis la dernière synchronisation : #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (fermée par l'owner), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (fermée par l'owner) et #878 (PR #908/#910) (détails : Tours précédents).
 
 En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #821, ni le compte ni les lignes ne sont maintenus à la main – `scripts/recommendations_live_check.py --write` met à jour les six versions depuis l'état en direct GitHub, tandis que les colonnes d'évaluation restent un travail éditorial.
 
@@ -55,10 +63,10 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | # | Titre | Pertinence | Complexité | Modèle recommandé (effort) | Prochaine étape |
 |---|-------|------------|------------|------------------------------|------------------|
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épopée] Profil cible EufyMake – valider Height/Gloss/mm-DPI | 🟠 Élevée (justesse de la principale cible d'export) | 🔴 Élevée (5 sous-tickets, matériel physique requis) | – (épopée) | Préparation #687 à 16/18 CA ; I-06 et revue finale restent, tandis que #691 attend les tests réels #688–#690 |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventaire des hypothèses, sources fabricant, matrice de tests | 🟠 Élevée (base contraignante pour #688–#691) | 🔴 Élevée (préparation terminée ; le reste nécessite du matériel réel) | – (aucun agent ; matériel EufyMake réel requis) | Bloquée (externe) – 16/18 critères remplis ; restent I-06 dossier/manifeste et la revue finale après #688–#690 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Valider la profondeur de bits/sémantique HEIGHT sur matériel réel | 🟠 Élevée (affecte directement la hauteur du relief) | 🔴 Élevée (imprimante physique, gabarits, journal de mesures) | – (aucun agent ; matériel EufyMake réel requis) | Bloqué (externe) – les gabarits/modèles de protocole de #687 sont disponibles ; il ne manque plus que le matériel imprimante/Studio |
-| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Valider le contrat mm/DPI, taille cible, positionnement | 🟠 Élevée (taille d'impression/registration) | 🔴 Élevée (mesures physiques, motifs de contrôle) | – (aucun agent ; matériel réel requis) | Bloqué (externe) – la question de savoir si la boîte de dialogue d'import de Studio dérive la taille de départ de `pHYs`/DPI reste non prouvée (N10, EM-F04) |
-| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Valider la sémantique gloss/vernis | 🟡 Moyenne (gloss déjà marqué « expérimental » dans le code) | 🔴 Élevée (impressions physiques, consommation de matériau) | – (aucun agent ; matériel réel requis) | Bloqué (externe) – le travail préparatoire de #687 est terminé ; il ne manque plus que le matériel |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventaire des hypothèses, sources fabricant, matrice de tests | 🟠 Élevée (base contraignante pour #688–#691) | 🔴 Élevée (livrables propres terminés ; lacunes fixtures/cellules de #688–#690 ouvertes, le reste nécessite du matériel réel) | – (aucun agent ; matériel EufyMake réel requis) | Bloquée (externe) – 16/18 critères remplis ; restent I-06 dossier/manifeste et la revue finale après #688–#690 |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Valider la profondeur de bits/sémantique HEIGHT sur matériel réel | 🟠 Élevée (affecte directement la hauteur du relief) | 🔴 Élevée (imprimante physique, gabarits, journal de mesures) | – (aucun agent ; matériel EufyMake réel requis) | Bloqué (externe) + travail préparatoire incomplet – les fixtures/modèles de protocole de #687 sont disponibles, mais Alpha/couverture n'a ni fixture ni cellule de test (toutes les fixtures COLOR sont opaques) et il manque une paire COLOR/HEIGHT de mêmes dimensions en pixels (I-02/I-08 confondus) ; à compléter avant le jour des tests |
+| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Valider le contrat mm/DPI, taille cible, positionnement | 🟠 Élevée (taille d'impression/registration) | 🔴 Élevée (mesures physiques, motifs de contrôle) | – (aucun agent ; matériel réel requis) | Bloqué (externe) + travail préparatoire incomplet – la taille de départ dérivée de `pHYs`/DPI dans la boîte de dialogue d'import de Studio reste non prouvée (N10, EM-F04) ; de plus, la cellule I-06 référence le manifeste des fixtures et non un véritable manifeste d'export, et les DPI non carrés ne sont ni testés ni exclus de façon motivée |
+| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Valider la sémantique gloss/vernis | 🟡 Moyenne (gloss déjà marqué « expérimental » dans le code) | 🔴 Élevée (impressions physiques, consommation de matériau) | – (aucun agent ; matériel réel requis) | Bloqué (externe) + travail préparatoire incomplet – le travail préparatoire de #687 n'est que partiel : exactement une cellule gloss (I-10), aucune fixture Alpha/couverture, aucune dimension gloss divergente, gloss × HEIGHT non croisés |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Intégrer le profil cible versionné dans validator/writer/dialogue/documentation | 🟠 Élevée (renforce le chemin d'export de production) | 🟠 Élevée (transversal sur eufymake_export/_validate/_writer + UI) | Opus, élevé | Bloqué – attend #688–#690 |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Épopée] Moteur de tonalité/niveaux de gris COLOR | 🟡 Moyenne-élevée (fondation de la feuille de route laser, pas un bug actif) | 🔴 Élevée (5 sous-tickets, ADR→noyau→UI→intégration→recette) | – (épopée) | En cours – lancer d'abord #692 |
 | [#692](https://github.com/NikolayDA/picture_helper/issues/692) | ADR + contrat de données pour tonalité/histogramme/niveaux de gris | 🟠 Élevée (fixe le contrat pour toute l'épopée) | 🟡 Moyenne (décision d'architecture, pas d'implémentation) | Opus, élevé | Prêt à démarrer |
@@ -97,9 +105,10 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 ### Recommandé ensuite
 
 1. **#692** (ADR) ouvre l'épopée COLOR #682.
-2. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée
-   les tests réels déjà préparés de #687 (reste, notamment I-06), #688, #689 et #690 – fixtures,
-   modèles de protocole et critères d'abandon approuvés sont déjà entièrement prêts.
+2. Avant la prochaine session Studio/imprimante, combler d'abord les lacunes de fixtures/cellules
+   documentées dans #688–#690 (alpha/couverture, une paire COLOR/HEIGHT de même taille, cellules
+   gloss, un vrai manifeste d'export pour I-06) ; ensuite exécuter #687 (reste), #688, #689 et
+   #690 en une seule session groupée.
 3. **#883** (stratégie de licence MAS) décide la voie Mac App Store #882 : sans
    cette décision de l'owner, toute la chaîne #884–#907 reste bloquée.
 

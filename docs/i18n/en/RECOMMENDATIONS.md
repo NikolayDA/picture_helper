@@ -13,6 +13,16 @@
 
 ## Current Status (2026-08-29, v2.9.0 published, open inventory fully audited)
 
+**Addendum 2026-08-29 (full audit of the open issues):** All 40 open issues
+were checked against `main` (HEAD `411d47c`), and the findings were
+adversarially cross-checked. #878 is fully resolved through PR #908; the
+descriptions of #681, #882, #905, and #906 have been brought up to date. The most important finding: the EufyMake real-world
+tests #688–#690 are **not** only waiting on hardware – alpha/coverage has
+neither a fixture nor a test cell, a COLOR/HEIGHT pair with the same pixel
+dimensions is missing, gloss has exactly one test cell (I-10), and cell I-06
+references the fixture manifest instead of a real export manifest. The four
+rows have been corrected accordingly. No new 🔴 finding.
+
 **Addendum 2026-08-29:** v2.9.0 is published. Hardware acceptance passed on
 macOS arm64 and Linux arm64 with real GPU renderers, tag and publication are
 verified byte for byte against the approval manifest, and `PUBLIC-DOWNLOAD-01`
@@ -45,7 +55,7 @@ work. No new 🔴 finding is open.
 
 **EufyMake #681/#687–#691:** the 31 fixtures, protocol templates, and approved test governance are now reflected in the issues. #687 is at 16/18 criteria; only I-06 (folder/manifest) and the closeout review after the real tests remain. For the separate Spot UV path, the manufacturer-backed hypothesis is black = gloss and white = no gloss. Full 16-bit use, `pHYs` priority, grayscale-to-mm mapping, and gloss intensity remain hardware questions in #688–#690.
 
-Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (closed by the owner), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (PR #908), and #878 (PR #908/#910) (details: Previous Rounds).
+Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (closed by the owner), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (closed by the owner), and #878 (PR #908/#910) (details: Previous Rounds).
 
 Open items: one row per issue in the triage table below. Neither the count nor the rows are maintained by hand as of #821 – `scripts/recommendations_live_check.py --write` updates all six versions from the GitHub live state, while the rating columns stay editorial work.
 
@@ -54,10 +64,10 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake target profile – validate Height/Gloss/mm-DPI | 🟠 High (correctness of the main export target) | 🔴 High (5 sub-issues, needs physical hardware) | – (epic) | #687 preparation is at 16/18 AC; I-06 and closeout review remain, while profile integration #691 waits on real tests #688–#690 |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Assumption inventory, manufacturer sources, test matrix | 🟠 High (binding foundation for #688–#691) | 🔴 High (preparation complete; remainder needs real Studio/printer hardware) | – (no agent; needs real EufyMake hardware) | Blocked (external) – 16/18 acceptance criteria done; open: I-06 for folder/manifest and the closeout review after real tests #688–#690 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Validate HEIGHT bit depth/semantics on real hardware | 🟠 High (directly affects relief height) | 🔴 High (physical printer, fixtures, measurement log) | – (no agent; needs real EufyMake hardware) | Blocked (external) – fixtures/protocol templates from #687 are in place; now only waiting on printer/Studio hardware |
-| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Validate mm/DPI, target size, positioning contract | 🟠 High (print size/registration) | 🔴 High (physical measurements, control motifs) | – (no agent; needs real hardware) | Blocked (external) – whether the Studio import dialog derives the start size from `pHYs`/DPI is unproven (N10, EM-F04) |
-| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Validate gloss/clear-coat semantics | 🟡 Medium (gloss is already flagged "experimental" in code) | 🔴 High (physical prints, material consumption) | – (no agent; needs real hardware) | Blocked (external) – groundwork from #687 is done; now only waiting on hardware |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Assumption inventory, manufacturer sources, test matrix | 🟠 High (binding foundation for #688–#691) | 🔴 High (own deliverables done; fixture/test-cell gaps from #688–#690 open, remainder needs real hardware) | – (no agent; needs real EufyMake hardware) | Blocked (external) – 16/18 acceptance criteria done; open: I-06 for folder/manifest and the closeout review after real tests #688–#690 |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Validate HEIGHT bit depth/semantics on real hardware | 🟠 High (directly affects relief height) | 🔴 High (physical printer, fixtures, measurement log) | – (no agent; needs real EufyMake hardware) | Blocked (external) + groundwork open – fixtures/protocol templates from #687 are in place, but alpha/coverage has neither a fixture nor a test cell (all COLOR fixtures are opaque) and a COLOR/HEIGHT pair with the same pixel dimensions is missing (I-02/I-08 confounded); add both before the test day |
+| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Validate mm/DPI, target size, positioning contract | 🟠 High (print size/registration) | 🔴 High (physical measurements, control motifs) | – (no agent; needs real hardware) | Blocked (external) + groundwork open – whether the Studio import dialog derives the start size from `pHYs`/DPI is unproven (N10, EM-F04); on top of that, cell I-06 references the fixture manifest instead of a real export manifest, and non-square DPI are neither tested nor excluded with a stated reason |
+| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Validate gloss/clear-coat semantics | 🟡 Medium (gloss is already flagged "experimental" in code) | 🔴 High (physical prints, material consumption) | – (no agent; needs real hardware) | Blocked (external) + groundwork open – the groundwork from #687 is only partial: exactly one gloss cell (I-10), no alpha/coverage fixtures, no differing gloss dimensions, gloss × HEIGHT not crossed |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Integrate versioned target profile into validator/writer/dialog/docs | 🟠 High (hardens the production export path) | 🟠 High (cross-cutting across eufymake_export/_validate/_writer + UI) | Opus, high | Blocked – waits on #688–#690 |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR tonal/grayscale engine | 🟡 Medium-high (roadmap foundation for laser, not an active bug) | 🔴 High (5 sub-issues, ADR→core→UI→integration→acceptance) | – (epic) | In progress – start #692 first |
 | [#692](https://github.com/NikolayDA/picture_helper/issues/692) | ADR + data contract for tone/histogram/grayscale ops | 🟠 High (sets the contract for the whole epic) | 🟡 Medium (architecture decision, no implementation) | Opus, high | Ready to start |
@@ -96,9 +106,9 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 ### Recommended Next
 
 1. **#692** (ADR) opens the COLOR epic #682.
-2. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
-   (remainder, especially I-06), #688, #689, and #690 in one bundled session – fixtures, protocol
-   templates, and approved abort criteria are already fully in place.
+2. Before the next Studio/printer session, first close the fixture/test-cell gaps documented in
+   #688–#690 (alpha/coverage, a COLOR/HEIGHT pair of equal size, gloss cells, a real export
+   manifest for I-06); then run #687 (remainder), #688, #689, and #690 in one bundled session.
 3. **#883** (MAS licensing strategy) decides the Mac App Store path #882 –
    without that owner decision the whole chain #884–#907 stays blocked.
 
