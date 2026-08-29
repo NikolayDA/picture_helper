@@ -661,8 +661,8 @@ apparaissent aussi sous « Récemment ouverts » (voir la
 Une **carte de hauteur** est un calque en niveaux de gris où la luminosité
 représente une hauteur : **clair = haut, sombre = bas**. Elle est la base du
 relief et de l'impression UV. La carte *Hauteur* agit sur le **calque de
-hauteur** actif ; les sections Modifier et Optimiser ne sont actives que
-lorsqu'un calque de hauteur est actif.
+hauteur** actif ; les sections Modifier, Outils de la carte de hauteur et
+Optimiser ne sont actives que lorsqu'un calque de hauteur est actif.
 
 - **Générer la carte de hauteur** – convertit de façon déterministe l'image
   couleur actuelle en carte de hauteur et la crée comme nouveau calque de

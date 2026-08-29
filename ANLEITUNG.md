@@ -646,8 +646,8 @@ erscheinen zusätzlich unter „Zuletzt geöffnet" (siehe
 Eine **Höhenkarte** ist eine Graustufen-Ebene, in der die Helligkeit eine
 Höhe darstellt: **hell = hoch, dunkel = niedrig**. Sie ist die Grundlage
 für Relief und UV-Druck. Die Karte *Höhe* arbeitet auf der aktiven
-**Höhen-Ebene**; die Abschnitte Bearbeiten und Optimieren sind nur aktiv,
-wenn eine Höhen-Ebene aktiv ist.
+**Höhen-Ebene**; die Abschnitte Bearbeiten, Höhenkarte-Werkzeuge und
+Optimieren sind nur aktiv, wenn eine Höhen-Ebene aktiv ist.
 
 - **Höhenkarte aus Bild erzeugen** – wandelt das aktuelle Farbbild deterministisch in
   eine Höhenkarte um und legt sie als neue Höhen-Ebene an.
@@ -673,7 +673,7 @@ freihändig.
 Ist eine Auswahl aktiv, wirken die reglerbasierten Aktionen nur innerhalb
 der Auswahl, sonst auf die ganze Ebene.
 
-### Höhenkarten-Werkzeuge (nur im Experten-Modus)
+### Höhenkarte-Werkzeuge (nur im Experten-Modus)
 
 Die eigenständige Karte **Höhenkarte-Werkzeuge** enthält **Invertieren**. Die
 Aktion kehrt hoch und niedrig innerhalb der aktiven Auswahl um, andernfalls

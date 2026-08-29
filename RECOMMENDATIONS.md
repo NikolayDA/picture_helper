@@ -18,12 +18,15 @@ auf macOS arm64 und Linux arm64 mit echten GPU-Renderern grün, Tag und
 Veröffentlichung sind byteidentisch gegen das Freigabemanifest geprüft,
 `PUBLIC-DOWNLOAD-01` und `UPDATE-01` sind erbracht. #881 ist damit geschlossen;
 die bewusst pausierten Linux-x86_64-Kriterien bleiben sichtbar `PENDING`.
+#878 ist mit PR #908 umgesetzt; diese Abschluss-Synchronisierung schließt das
+Issue und entfernt es aus allen sechs aktuellen Triage-Tabellen.
 
 **Turnusprüfung 2026-08-28:** Der GitHub-Live-Abgleich ergänzt die bislang
 fehlenden offenen Issues **#878**, **#881**, **#882** sowie die inzwischen
-angelegten MAS-Teil-Issues **#883–#907**. #878 schließt die
+angelegten MAS-Teil-Issues **#883–#907**. Beim damaligen Stand sollte #878 die
 Lücke zwischen Standard-/Experten-Oberfläche und Nutzerhandbuch einschließlich
-aktueller Screenshots und PDF. #881 ist das verbindliche Abnahme- und
+aktueller Screenshots und PDF schließen; die Umsetzung ist inzwischen über
+PR #908 abgeschlossen. #881 ist das verbindliche Abnahme- und
 Veröffentlichungsprotokoll für 2.9.0; Kandidatenbau und Vorprüfung sind grün,
 die Hardware-Abnahme und menschlichen Freigaben stehen aus. #882 bündelt den
 Mac-App-Store-Pfad als blockiertes Epic; #883–#907 konkretisieren dessen
@@ -42,7 +45,7 @@ zuerst die Lizenzstrategie entschieden werden. Kein neuer 🔴-Befund.
 
 **EufyMake #681/#687–#691:** Die vorhandenen 31 Fixtures, Protokollvorlagen und die freigegebene Testgovernance sind jetzt in den Issues abgebildet. #687 steht bei 16/18 Kriterien; offen bleiben I-06 (Ordner/Manifest) und die Abschluss-Review nach den Realtests. Herstellerquelle und Testhypothese für den separaten Spot-UV-Pfad lauten Schwarz = Gloss, Weiß = kein Gloss; volle 16-Bit-Nutzung, `pHYs`-Priorität, Graustufe→mm und Gloss-Intensität bleiben echte Hardwarefragen aus #688–#690.
 
-Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.8.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (vom Owner geschlossen), #847 (PR #852), #866 (PR #870/#871) und #869 (PR #873) (Details: Vorige Runden).
+Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.8.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (vom Owner geschlossen), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (PR #908) und #878 (PR #908/#910) (Details: Vorige Runden).
 
 Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noch Zeilen werden seit #821 von Hand gepflegt – `scripts/recommendations_live_check.py --write` schreibt die Tabellen aller sechs Fassungen aus dem GitHub-Live-Stand fort, die Bewertungsspalten bleiben Handarbeit.
 

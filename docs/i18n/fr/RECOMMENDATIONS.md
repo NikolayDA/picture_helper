@@ -18,13 +18,16 @@ verte sur macOS arm64 et Linux arm64 avec de vrais moteurs de rendu GPU, le tag
 et la publication sont vérifiés octet par octet contre le manifeste
 d'approbation, et `PUBLIC-DOWNLOAD-01` comme `UPDATE-01` sont satisfaits. #881
 est donc clôturé ; les critères Linux x86_64 délibérément en pause restent
-visiblement `PENDING`.
+visiblement `PENDING`. #878 a été implémenté par la PR #908 ; cette
+synchronisation de clôture ferme le ticket et le retire des six tableaux de
+triage actuels.
 
 **Contrôle périodique 2026-08-28 :** La comparaison GitHub en direct ajoute
 les issues ouvertes **#878**, **#881**, **#882** et les nouvelles sous-issues
-MAS **#883–#907**, jusque-là absentes. #878
-comble l'écart entre l'interface standard/expert et le guide, avec captures et
-PDF actuels. #881 est le procès-verbal contraignant d'acceptation et de
+MAS **#883–#907**, jusque-là absentes. À ce moment-là, #878 devait combler
+l'écart entre l'interface standard/expert et le guide, avec captures et PDF
+actuels ; l'implémentation a depuis été achevée par la PR #908. #881 est le
+procès-verbal contraignant d'acceptation et de
 publication de 2.9.0 ; le build candidat et le pré-contrôle sont verts, tandis
 que l'acceptation matérielle et les validations humaines restent ouvertes.
 #882 regroupe la voie Mac App Store comme epic bloqué ; #883–#907 concrétisent
@@ -43,7 +46,7 @@ ses phases licence, compte, sandbox, packaging, store et exploitation. La strat�
 
 **EufyMake #681/#687–#691 :** les 31 fixtures, modèles de protocole et la gouvernance approuvée sont maintenant reflétés dans les tickets. #687 est à 16/18 critères ; seuls I-06 (dossier/manifeste) et la revue finale après les tests réels restent ouverts. Pour le chemin Spot UV séparé, l'hypothèse appuyée par le fabricant est noir = gloss et blanc = sans gloss. L'utilisation complète des 16 bits, la priorité `pHYs`, la conversion gris→mm et l'intensité gloss restent des questions matérielles de #688–#690.
 
-Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0 à v2.8.0, ainsi que l'épopée #741 avec ses onze tickets enfants, l'épopée #805 avec #806–#811, #817 et #821 ; nouvellement clôturés depuis la dernière synchronisation : #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (fermée par l'owner), #847 (PR #852), #866 (PR #870/#871) et #869 (PR #873) (détails : Tours précédents).
+Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0 à v2.8.0, ainsi que l'épopée #741 avec ses onze tickets enfants, l'épopée #805 avec #806–#811, #817 et #821 ; nouvellement clôturés depuis la dernière synchronisation : #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (fermée par l'owner), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (PR #908) et #878 (PR #908/#910) (détails : Tours précédents).
 
 En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #821, ni le compte ni les lignes ne sont maintenus à la main – `scripts/recommendations_live_check.py --write` met à jour les six versions depuis l'état en direct GitHub, tandis que les colonnes d'évaluation restent un travail éditorial.
 

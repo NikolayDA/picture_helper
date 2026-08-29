@@ -17,13 +17,16 @@
 macOS arm64 and Linux arm64 with real GPU renderers, tag and publication are
 verified byte for byte against the approval manifest, and `PUBLIC-DOWNLOAD-01`
 and `UPDATE-01` are satisfied. #881 is therefore closed; the deliberately
-paused Linux x86_64 criteria remain visibly `PENDING`.
+paused Linux x86_64 criteria remain visibly `PENDING`. #878 was implemented by
+PR #908; this closeout sync closes the issue and removes it from all six
+current triage tables.
 
 **Routine check 2026-08-28:** The GitHub live comparison adds the previously
 missing open issues **#878**, **#881**, **#882**, and the newly created MAS
-sub-issues **#883–#907**. #878 closes the gap
+sub-issues **#883–#907**. At that point, #878 was intended to close the gap
 between the standard/expert UI and the user guide, including current
-screenshots and PDF. #881 is the binding acceptance and publication record
+screenshots and PDF; implementation has since been completed by PR #908.
+#881 is the binding acceptance and publication record
 for 2.9.0; candidate build and pre-check are green, while hardware acceptance
 and human approvals remain open. #882 collects the Mac App Store path as a
 blocked epic; #883–#907 make its licensing, account, sandbox, packaging, store, and operations
@@ -42,7 +45,7 @@ work. No new 🔴 finding is open.
 
 **EufyMake #681/#687–#691:** the 31 fixtures, protocol templates, and approved test governance are now reflected in the issues. #687 is at 16/18 criteria; only I-06 (folder/manifest) and the closeout review after the real tests remain. For the separate Spot UV path, the manufacturer-backed hypothesis is black = gloss and white = no gloss. Full 16-bit use, `pHYs` priority, grayscale-to-mm mapping, and gloss intensity remain hardware questions in #688–#690.
 
-Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (closed by the owner), #847 (PR #852), #866 (PR #870/#871), and #869 (PR #873) (details: Previous Rounds).
+Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (closed by the owner), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (PR #908), and #878 (PR #908/#910) (details: Previous Rounds).
 
 Open items: one row per issue in the triage table below. Neither the count nor the rows are maintained by hand as of #821 – `scripts/recommendations_live_check.py --write` updates all six versions from the GitHub live state, while the rating columns stay editorial work.
 
