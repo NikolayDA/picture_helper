@@ -137,8 +137,8 @@ transparente : le chemin le plus court vers un détourage propre.*
 
 ![Mode expert à l'étape Détourer](../../../app_screenshots/bgremover_complete_20260828_184550/08_mode_expert.png)
 
-*Le mode expert ajoute la taille du pinceau, les actions de sélection, le
-remplacement de couleur et le lissage du bord.*
+*Le mode expert ajoute la taille du pinceau et les actions de sélection dans
+la partie visible de l'inspecteur.*
 
 ### Menus « Édition », « Affichage », « Projet » et « Outils »
 
@@ -412,7 +412,12 @@ téléchargement.
 | **Tolérance (baguette magique)** | 0 – 255 (par défaut : 30) | Degré de similitude que doivent avoir les couleurs pour être sélectionnées ensemble par la baguette magique. **Bas** = uniquement les couleurs très similaires · **Haut** = de nombreuses nuances. |
 | **Taille du pinceau** | 4 – 200 px (par défaut : 30 px) | Diamètre du pinceau et de la gomme. **Uniquement en mode expert.** |
 
-### Actions de sélection (uniquement en mode expert)
+### Actions de sélection (carte de l'inspecteur : mode expert uniquement)
+
+La carte de l'inspecteur n'apparaît qu'en mode expert. **Désélectionner** et
+**Inverser la sélection** restent disponibles en mode standard via le menu
+`Édition` ; leurs accès clavier sont indiqués avec les actions ci-dessous.
+**Développer / Réduire** n'est disponible que dans la carte experte.
 
 - **Désélectionner** – efface la sélection actuelle. **Échap** annule
   d'abord un recadrage actif ou un lasso polygonal commencé, et n'efface
@@ -711,10 +716,11 @@ ni l'image enregistrée, ni l'export**. Dans le viewport, faites glisser avec
 le bouton gauche pour orbiter et utilisez le bouton central ou Alt+glisser
 pour déplacer. La pilule de zoom fonctionne comme sur la zone 2D : **−** et
 **+** modifient le zoom de 10 %, et **100 %** ajuste le modèle à la vue. Le
-cadenas fige le zoom actuel et bloque aussi le zoom par la molette ou le
-clavier. Au clavier, les flèches orbitent, Maj+flèches déplacent, `+`/`−`
-zooment, `Origine` ajuste la vue et `Maj+Origine` réinitialise la caméra,
-l'exagération, la lumière et la qualité aux valeurs par défaut.
+cadenas fige le zoom actuel et bloque la molette ainsi que le zoom ordinaire
+par `+`/`−`. Les commandes de réinitialisation explicites `Origine` (ajuster,
+100 %) et `Maj+Origine` (réinitialiser la caméra, l'exagération, la lumière et
+la qualité) contournent volontairement le verrou et restent actives. Les
+flèches orbitent et Maj+flèches déplacent.
 
 Les commandes 3D règlent l'**exagération** (l'amplitude visuelle donnée au
 relief plat – uniquement l'affichage, jamais les données de hauteur),

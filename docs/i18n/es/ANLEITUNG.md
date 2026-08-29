@@ -134,8 +134,8 @@ transparente: el camino más corto hacia un recorte limpio.*
 
 ![Modo experto en el paso Quitar fondo](../../../app_screenshots/bgremover_complete_20260828_184550/08_mode_expert.png)
 
-*El modo experto añade el tamaño del pincel, las acciones de selección, el
-reemplazo de color y el suavizado del borde.*
+*El modo experto añade el tamaño del pincel y las acciones de selección en la
+parte visible del inspector.*
 
 ### Menús "Edición", "Ver", "Proyecto" y "Herramientas"
 
@@ -409,7 +409,12 @@ cancelar la descarga allí.
 | **Tolerancia (varita mágica)** | 0 – 255 (predeterminado: 30) | Qué tan similares deben ser los colores para seleccionarse juntos con la varita mágica. **Bajo** = solo colores muy similares · **Alto** = muchos tonos. |
 | **Tamaño del pincel** | 4 – 200 px (predeterminado: 30 px) | Diámetro del pincel y del borrador. **Solo en modo experto.** |
 
-### Acciones de selección (solo en modo experto)
+### Acciones de selección (tarjeta del inspector: solo en modo experto)
+
+La tarjeta del inspector solo aparece en modo experto. **Anular selección** e
+**Invertir selección** siguen disponibles en modo estándar desde el menú
+`Edición`; sus accesos por teclado figuran en las acciones siguientes.
+**Expandir / Contraer** solo está disponible en la tarjeta experta.
 
 - **Anular selección** – anula la selección actual. **Esc** cancela
   primero un recorte activo o un lazo poligonal iniciado, y solo anula
@@ -706,10 +711,11 @@ la imagen guardada o la exportación**. En el viewport, arrastra con el botón
 izquierdo para orbitar y usa el botón central o Alt+arrastrar para desplazar.
 La cápsula de zoom funciona como en el lienzo 2D: **−** y **+** cambian el
 zoom en un 10 %, y **100 %** ajusta el modelo a la vista. El candado fija el
-zoom actual y también bloquea el zoom con la rueda o el teclado. Con el
-teclado, las flechas orbitan, Mayús+flechas desplazan, `+`/`−` acercan,
-`Inicio` ajusta la vista y `Mayús+Inicio` restablece cámara, exageración, luz
-y calidad a los valores predeterminados.
+zoom actual y bloquea la rueda y el zoom normal con `+`/`−`. Los comandos de
+restablecimiento explícitos `Inicio` (ajustar, 100 %) y `Mayús+Inicio`
+(restablecer cámara, exageración, luz y calidad) ignoran el candado de forma
+intencionada y funcionan mientras está bloqueado. Las flechas orbitan y
+Mayús+flechas desplazan.
 
 Los controles 3D ajustan la **exageración** (cuánto se amplifica visualmente el
 relieve plano – solo la visualización, nunca los datos de altura), el **azimut

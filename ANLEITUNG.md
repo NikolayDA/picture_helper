@@ -129,8 +129,8 @@ sichtbar; Detailwerkzeuge sind ausgeblendet.*
 
 ![Karten-Inspector im Experten-Modus](app_screenshots/bgremover_complete_20260828_184550/08_mode_expert.png)
 
-*Experten-Modus: Derselbe Schritt mit allen Werkzeug-Einstellungen,
-Auswahl-Aktionen, Farb- und Kantenoptionen.*
+*Experten-Modus: Im sichtbaren Bereich kommen Pinselgröße und
+Auswahl-Aktionen hinzu.*
 
 Dieses Handbuch kennzeichnet im Folgenden jedes ausschließlich dort sichtbare
 Bedienelement mit **„nur im Experten-Modus"**. Menübefehle bleiben erreichbar,
@@ -402,7 +402,12 @@ starten oder abbrechen.
 | **Toleranz (Zauberstab)** | 0 – 255 (Standard: 30) | Wie ähnlich Farben sein müssen, um mit dem Zauberstab gemeinsam ausgewählt zu werden. **Niedrig** = nur sehr ähnliche Farben · **Hoch** = viele Farbtöne. |
 | **Pinselgröße** | 4 – 200 px (Standard: 30 px) | Durchmesser von Pinsel und Radiergummi. **Nur im Experten-Modus.** |
 
-### Auswahl-Aktionen (nur im Experten-Modus)
+### Auswahl-Aktionen (Inspector-Karte nur im Experten-Modus)
+
+Die Karte im Inspector erscheint nur im Experten-Modus. **Auswahl aufheben**
+und **Auswahl invertieren** bleiben im Standard-Modus über das Menü
+`Bearbeiten` erreichbar; die jeweiligen Tastaturwege stehen unten bei den
+Aktionen. **Erweitern / Schrumpfen** gibt es nur in der Experten-Karte.
 
 - **Auswahl aufheben** – hebt die aktuelle Auswahl auf. **Esc** bricht zuerst
   einen aktiven Zuschnitt oder ein begonnenes Polygon-Lasso ab und hebt die
@@ -695,10 +700,10 @@ Viewport: linke Maustaste ziehen dreht (Orbit), mittlere Maustaste oder
 Alt+Ziehen verschiebt (Pan), das Mausrad zoomt. Die schwebende **Zoom-Pille**
 unten rechts bedient dieselbe 3D-Kamera: **−**/**+** ändern den Zoom in
 10-%-Schritten, **100 %** entspricht der eingepassten Ansicht, und das Schloss
-friert auch Mausrad- und Tastatur-Zoom ein. Mit der Tastatur drehen die
-Pfeiltasten, Umschalt+Pfeiltasten verschieben, `+`/`−` zoomen, `Pos1` passt
-ein und `Umschalt+Pos1` setzt Kamera, Überhöhung, Licht und Qualität auf die
-Standardwerte zurück.
+friert Mausrad- sowie gewöhnlichen `+`/`−`-Tastatur-Zoom ein. Die ausdrücklichen
+Reset-Befehle `Pos1` (einpassen, 100 %) und `Umschalt+Pos1` (Kamera,
+Überhöhung, Licht und Qualität zurücksetzen) übergehen die Sperre bewusst. Mit
+der Tastatur drehen die Pfeiltasten und Umschalt+Pfeiltasten verschieben.
 
 Über die Regler im 3D-Abschnitt stellen Sie **Überhöhung** (wie stark das
 flache Relief räumlich überzeichnet wird – nur die Anzeige, nie die

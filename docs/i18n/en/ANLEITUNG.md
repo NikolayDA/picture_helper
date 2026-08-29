@@ -126,8 +126,8 @@ shortest path to a clean cut-out.*
 
 ![Expert mode in the Cut out step](../../../app_screenshots/bgremover_complete_20260828_184550/08_mode_expert.png)
 
-*Expert mode additionally shows brush size, selection actions, colour
-replacement, and edge smoothing.*
+*Expert mode additionally shows brush size and selection actions in the
+visible part of the inspector.*
 
 ### Menus "Edit", "View", "Project" & "Extras"
 
@@ -372,7 +372,12 @@ has already been downloaded, and start or cancel the download there.
 | **Tolerance (magic wand)** | 0 – 255 (default: 30) | How similar colours must be to get selected together by the magic wand. **Low** = only very similar colours · **High** = many shades. |
 | **Brush size** | 4 – 200 px (default: 30 px) | Diameter of brush and eraser. **Expert mode only.** |
 
-### Selection actions (expert mode only)
+### Selection actions (inspector card: expert mode only)
+
+The inspector card appears only in expert mode. **Clear selection** and
+**Invert selection** remain available in standard mode through the `Edit`
+menu; their keyboard paths are listed with the actions below. **Grow / Shrink**
+is available only on the expert card.
 
 - **Clear selection** – clears the current selection. **Esc** first cancels
   an active crop or a pending polygon lasso, and only clears the selection
@@ -646,10 +651,11 @@ from different angles but changes **neither the height data nor the saved
 image or export**. In the viewport, drag with the left mouse button to orbit
 and use the middle button or Alt+drag to pan. Its zoom pill works like the 2D
 canvas: **−** and **+** change the zoom by 10%, and **100%** fits the model to
-the view. The lock freezes the current zoom and also blocks zooming with the
-mouse wheel or keyboard. With the keyboard, arrow keys orbit, Shift+arrows
-pan, `+`/`−` zoom, `Home` fits the view and `Shift+Home` resets camera,
-exaggeration, light and quality to defaults.
+the view. The lock freezes the current zoom and blocks the mouse wheel and
+ordinary `+`/`−` keyboard zoom. The explicit reset commands `Home` (fit,
+100%) and `Shift+Home` (reset camera, exaggeration, light and quality) are
+intentional overrides and work while locked. Arrow keys orbit and Shift+arrows
+pan.
 
 The 3D controls set **exaggeration** (how strongly the flat relief is visually
 amplified – display only, never the height data), **light azimuth/elevation**
