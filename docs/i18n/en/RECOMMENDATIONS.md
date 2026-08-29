@@ -15,9 +15,8 @@
 
 **Addendum 2026-08-29 (full audit of the open issues):** All 40 open issues
 were checked against `main` (HEAD `411d47c`), and the findings were
-adversarially cross-checked. #878 is fully resolved through PR #908 and is
-only waiting to be closed; the descriptions of #681, #882, #905, and #906 have
-been brought up to date. The most important finding: the EufyMake real-world
+adversarially cross-checked. #878 is fully resolved through PR #908; the
+descriptions of #681, #882, #905, and #906 have been brought up to date. The most important finding: the EufyMake real-world
 tests #688–#690 are **not** only waiting on hardware – alpha/coverage has
 neither a fixture nor a test cell, a COLOR/HEIGHT pair with the same pixel
 dimensions is missing, gloss has exactly one test cell (I-10), and cell I-06
@@ -28,13 +27,16 @@ rows have been corrected accordingly. No new 🔴 finding.
 macOS arm64 and Linux arm64 with real GPU renderers, tag and publication are
 verified byte for byte against the approval manifest, and `PUBLIC-DOWNLOAD-01`
 and `UPDATE-01` are satisfied. #881 is therefore closed; the deliberately
-paused Linux x86_64 criteria remain visibly `PENDING`.
+paused Linux x86_64 criteria remain visibly `PENDING`. #878 was implemented by
+PR #908; this closeout sync closes the issue and removes it from all six
+current triage tables.
 
 **Routine check 2026-08-28:** The GitHub live comparison adds the previously
 missing open issues **#878**, **#881**, **#882**, and the newly created MAS
-sub-issues **#883–#907**. #878 closes the gap
+sub-issues **#883–#907**. At that point, #878 was intended to close the gap
 between the standard/expert UI and the user guide, including current
-screenshots and PDF. #881 is the binding acceptance and publication record
+screenshots and PDF; implementation has since been completed by PR #908.
+#881 is the binding acceptance and publication record
 for 2.9.0; candidate build and pre-check are green, while hardware acceptance
 and human approvals remain open. #882 collects the Mac App Store path as a
 blocked epic; #883–#907 make its licensing, account, sandbox, packaging, store, and operations
@@ -53,7 +55,7 @@ work. No new 🔴 finding is open.
 
 **EufyMake #681/#687–#691:** the 31 fixtures, protocol templates, and approved test governance are now reflected in the issues. #687 is at 16/18 criteria; only I-06 (folder/manifest) and the closeout review after the real tests remain. For the separate Spot UV path, the manufacturer-backed hypothesis is black = gloss and white = no gloss. Full 16-bit use, `pHYs` priority, grayscale-to-mm mapping, and gloss intensity remain hardware questions in #688–#690.
 
-Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (closed by the owner), #847 (PR #852), #866 (PR #870/#871), and #869 (PR #873) (details: Previous Rounds).
+Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (closed by the owner), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (closed by the owner), and #878 (PR #908/#910) (details: Previous Rounds).
 
 Open items: one row per issue in the triage table below. Neither the count nor the rows are maintained by hand as of #821 – `scripts/recommendations_live_check.py --write` updates all six versions from the GitHub live state, while the rating columns stay editorial work.
 
@@ -73,7 +75,6 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live preview + UI for histogram/levels/gamma | 🟡 Medium | 🟡 Medium-high (Qt UI, debounce/generation guard like the height preview) | Sonnet, high | Blocked – waits on core #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Layer/selection/history/project integration | 🟡 Medium | 🟠 High (many state transitions: undo/redo, selection, dirty state) | Opus, high | Blocked – waits on #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
-| [#878](https://github.com/NikolayDA/picture_helper/issues/878) | Add standard/expert mode and the 3D zoom pill to the user guide | 🟡 Medium (standard users otherwise cannot see documented controls) | 🟡 Medium (six languages, new screenshot set, PDF, drift tests) | Sonnet, high | Done (PR #908) – the guide, all six language versions, the PDF, and the screenshot set are complete; only the owner's closing of the issue is outstanding, then remove this row |
 | [#882](https://github.com/NikolayDA/picture_helper/issues/882) | [Epic] BgRemover in the Mac App Store | 🟡 Medium-high (new distribution channel, not a current product defect) | 🔴 High (licensing, sandbox, packaging, store, release governance) | – (Epic) | Blocked – create and decide the licensing strategy as the concrete phase-0 subtask first |
 | [#883](https://github.com/NikolayDA/picture_helper/issues/883) | [MAS] Licensing strategy: PySide6 vs. Riverbank and relicensing | 🟠 High (hard blocker for all technical MAS work) | 🔴 High (license/owner decision, possible Qt port, residual risk) | Opus, high + owner/legal review | Ready – write the ADR and owner decision; create a separate port issue if PySide6 is chosen |
 | [#884](https://github.com/NikolayDA/picture_helper/issues/884) | [MAS] Apple Developer Program enrollment | 🟠 High (blocks certificates and store access) | 🟢 Low (manual account/payment step) | – (no agent; account holder) | Blocked (external) – choose account type, complete enrollment/2FA, and assign renewal ownership |

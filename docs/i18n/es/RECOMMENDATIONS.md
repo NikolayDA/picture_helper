@@ -16,8 +16,7 @@
 **Adenda 2026-08-29 (auditoría completa de las incidencias abiertas):** Las 40
 incidencias abiertas se comprobaron contra `main` (HEAD `411d47c`) y los
 hallazgos se contrastaron de forma adversarial. #878 está completa por el PR
-#908 y solo espera el cierre; las descripciones de #681, #882, #905 y #906 se
-han actualizado. Hallazgo principal: las pruebas reales de EufyMake #688–#690
+#908; las descripciones de #681, #882, #905 y #906 se han actualizado. Hallazgo principal: las pruebas reales de EufyMake #688–#690
 **no** solo esperan hardware – alfa/cobertura no tiene ni fixture ni celda de
 prueba, falta un par COLOR/HEIGHT con las mismas dimensiones en píxeles, gloss
 tiene exactamente una celda de prueba (I-10) y la celda I-06 referencia el
@@ -29,12 +28,15 @@ en macOS arm64 y Linux arm64 con renderizadores de GPU reales, la etiqueta y la
 publicación se verificaron byte a byte contra el manifiesto de aprobación, y
 `PUBLIC-DOWNLOAD-01` y `UPDATE-01` están cumplidos. #881 queda cerrado; los
 criterios de Linux x86_64 pausados a propósito siguen visiblemente `PENDING`.
+#878 se implementó mediante el PR #908; esta sincronización de cierre cierra
+el issue y lo retira de las seis tablas de triaje actuales.
 
 **Revisión rutinaria 2026-08-28:** La comparación en vivo con GitHub añade
 los issues abiertos **#878**, **#881**, **#882** y los nuevos sub-issues MAS
-**#883–#907**, que faltaban. #878 cierra la
-brecha entre la interfaz estándar/experta y la guía, incluidas capturas y PDF
-actuales. #881 es el registro vinculante de aceptación y publicación de 2.9.0;
+**#883–#907**, que faltaban. En aquel momento, #878 debía cerrar la brecha
+entre la interfaz estándar/experta y la guía, incluidas capturas y PDF
+actuales; la implementación se completó después mediante el PR #908. #881 es
+el registro vinculante de aceptación y publicación de 2.9.0;
 el build candidato y la revisión previa están en verde, pero faltan la
 aceptación en hardware y las aprobaciones humanas. #882 agrupa la vía Mac App
 Store como epic bloqueado; #883–#907 concretan sus fases de licencia, cuenta,
@@ -53,7 +55,7 @@ trabajo técnico. No hay nuevos hallazgos 🔴.
 
 **EufyMake #681/#687–#691:** los 31 fixtures, las plantillas de protocolo y la gobernanza aprobada ya constan en las incidencias. #687 está en 16/18 criterios; solo faltan I-06 (carpeta/manifiesto) y la revisión final tras las pruebas reales. Para la ruta Spot UV separada, la hipótesis respaldada por el fabricante es negro = gloss y blanco = sin gloss. El uso completo de 16 bits, la prioridad de `pHYs`, el mapeo de gris a mm y la intensidad gloss siguen siendo preguntas de hardware en #688–#690.
 
-Sin cambios y cerrado: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25**, las versiones v2.7.0 a v2.8.0, además de la épica #741 con sus once sub-incidencias, la épica #805 con #806–#811, #817 y #821; cerradas desde la última sincronización: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (cerrada por el owner), #847 (PR #852), #866 (PR #870/#871) y #869 (PR #873) (detalles: Rondas anteriores).
+Sin cambios y cerrado: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25**, las versiones v2.7.0 a v2.8.0, además de la épica #741 con sus once sub-incidencias, la épica #805 con #806–#811, #817 y #821; cerradas desde la última sincronización: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (cerrada por el owner), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (cerrada por el owner) y #878 (PR #908/#910) (detalles: Rondas anteriores).
 
 Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo. Desde #821 no se mantienen a mano ni el recuento ni las filas: `scripts/recommendations_live_check.py --write` actualiza las seis versiones desde el estado en vivo de GitHub, mientras que las columnas de valoración siguen siendo trabajo editorial.
 
@@ -73,7 +75,6 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Vista previa en vivo + interfaz para histograma/niveles/gamma | 🟡 Media | 🟡 Media-alta (UI de Qt, protección de debounce/generación similar a la vista previa de altura) | Sonnet, alto | Bloqueada – espera al núcleo #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Integración de capas/selección/historial/proyecto | 🟡 Media | 🟠 Alta (muchas transiciones de estado: deshacer/rehacer, selección, estado sucio) | Opus, alto | Bloqueada – espera a #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Aceptación de rendimiento/E2E/documentación/interfaz láser | 🟡 Media (gate de cierre, no una función nueva) | 🟠 Alta (suite de benchmarks, E2E, documentación, contrato del adaptador) | Opus, alto | Bloqueada – incidencia de cierre tras #695 |
-| [#878](https://github.com/NikolayDA/picture_helper/issues/878) | Añadir modo estándar/experto y cápsula de zoom 3D a la guía | 🟡 Media (el usuario estándar no ve controles documentados) | 🟡 Media (seis idiomas, capturas nuevas, PDF y pruebas de deriva) | Sonnet, alto | Implementado (PR #908) – la guía, sus seis versiones lingüísticas, el PDF y el juego de capturas están completos; solo espera el cierre por parte del owner, después retirar la fila |
 | [#882](https://github.com/NikolayDA/picture_helper/issues/882) | [Epic] BgRemover en la Mac App Store | 🟡 Media-alta (nuevo canal, no defecto actual) | 🔴 Alta (licencia, sandbox, empaquetado, tienda y gobernanza) | – (Epic) | Bloqueada – crear y decidir primero la estrategia de licencia como subtarea concreta de fase 0 |
 | [#883](https://github.com/NikolayDA/picture_helper/issues/883) | [MAS] Estrategia de licencia: PySide6 vs. Riverbank y relicenciamiento | 🟠 Alta (bloqueo duro para todo trabajo técnico MAS) | 🔴 Alta (decisión legal/del propietario, posible port Qt, riesgo residual) | Opus, alto + revisión del propietario/legal | Lista – redactar ADR y decisión; crear issue de port separado si se elige PySide6 |
 | [#884](https://github.com/NikolayDA/picture_helper/issues/884) | [MAS] Inscripción en Apple Developer Program | 🟠 Alta (bloquea certificados y acceso a la tienda) | 🟢 Baja (paso manual de cuenta/pago) | – (sin agente; titular de cuenta) | Bloqueada (externa) – elegir tipo de cuenta, completar inscripción/2FA y asignar renovación |

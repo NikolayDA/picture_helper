@@ -656,8 +656,9 @@ proyectos aparecen además en
 Un **mapa de altura** es una capa en escala de grises en la que el
 brillo representa una altura: **claro = alto, oscuro = bajo**. Es la
 base del relieve y de la impresión UV. La tarjeta *Altura* trabaja
-sobre la **capa de altura** activa; las secciones Editar y Optimizar
-solo están activas cuando hay una capa de altura activa.
+sobre la **capa de altura** activa; las secciones Editar, Herramientas del
+mapa de altura y Optimizar solo están activas cuando hay una capa de altura
+activa.
 
 - **Generar mapa de altura** – convierte de forma determinista la imagen
   de color actual en un mapa de altura y lo crea como una nueva capa
@@ -681,10 +682,15 @@ alzada.
 - **Aclarar / Oscurecer (controles)** – eleva o reduce la altura; la
   **Intensidad** controla cuánto.
 - **Establecer altura** – fija la altura a un **valor** determinado.
-- **Invertir** – intercambia alto y bajo.
 
 Si hay una selección activa, las acciones basadas en controles actúan
 solo dentro de la selección; si no, sobre toda la capa.
+
+### Herramientas del mapa de altura (solo en modo experto)
+
+La tarjeta independiente **Herramientas del mapa de altura** contiene
+**Invertir**. Intercambia alto y bajo dentro de la selección activa o, si no
+hay selección, en toda la capa de altura.
 
 ### Mapas de altura: optimizar (solo en modo experto)
 

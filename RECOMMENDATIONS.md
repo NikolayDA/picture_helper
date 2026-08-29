@@ -15,8 +15,8 @@
 
 **Nachtrag 2026-08-29 (Vollaudit der offenen Issues):** Alle 40 offenen Issues
 gegen `main` (HEAD `411d47c`) geprüft, die Befunde adversariell gegengeprüft.
-#878 ist durch PR #908 vollständig erledigt und wartet nur auf die Schließung;
-die Beschreibungen von #681, #882, #905 und #906 sind nachgezogen. Wichtigster
+#878 ist durch PR #908 vollständig erledigt; die Beschreibungen von #681,
+#882, #905 und #906 sind nachgezogen. Wichtigster
 Befund: Die EufyMake-Realtests #688–#690 warten **nicht** nur auf Hardware –
 Alpha/Coverage hat weder Fixture noch Testzelle, ein COLOR/HEIGHT-Paar mit
 gleichem Pixelmaß fehlt, Gloss hat genau eine Testzelle (I-10), und Zelle I-06
@@ -28,12 +28,15 @@ auf macOS arm64 und Linux arm64 mit echten GPU-Renderern grün, Tag und
 Veröffentlichung sind byteidentisch gegen das Freigabemanifest geprüft,
 `PUBLIC-DOWNLOAD-01` und `UPDATE-01` sind erbracht. #881 ist damit geschlossen;
 die bewusst pausierten Linux-x86_64-Kriterien bleiben sichtbar `PENDING`.
+#878 ist mit PR #908 umgesetzt; diese Abschluss-Synchronisierung schließt das
+Issue und entfernt es aus allen sechs aktuellen Triage-Tabellen.
 
 **Turnusprüfung 2026-08-28:** Der GitHub-Live-Abgleich ergänzt die bislang
 fehlenden offenen Issues **#878**, **#881**, **#882** sowie die inzwischen
-angelegten MAS-Teil-Issues **#883–#907**. #878 schließt die
+angelegten MAS-Teil-Issues **#883–#907**. Beim damaligen Stand sollte #878 die
 Lücke zwischen Standard-/Experten-Oberfläche und Nutzerhandbuch einschließlich
-aktueller Screenshots und PDF. #881 ist das verbindliche Abnahme- und
+aktueller Screenshots und PDF schließen; die Umsetzung ist inzwischen über
+PR #908 abgeschlossen. #881 ist das verbindliche Abnahme- und
 Veröffentlichungsprotokoll für 2.9.0; Kandidatenbau und Vorprüfung sind grün,
 die Hardware-Abnahme und menschlichen Freigaben stehen aus. #882 bündelt den
 Mac-App-Store-Pfad als blockiertes Epic; #883–#907 konkretisieren dessen
@@ -52,7 +55,7 @@ zuerst die Lizenzstrategie entschieden werden. Kein neuer 🔴-Befund.
 
 **EufyMake #681/#687–#691:** Die vorhandenen 31 Fixtures, Protokollvorlagen und die freigegebene Testgovernance sind jetzt in den Issues abgebildet. #687 steht bei 16/18 Kriterien; offen bleiben I-06 (Ordner/Manifest) und die Abschluss-Review nach den Realtests. Herstellerquelle und Testhypothese für den separaten Spot-UV-Pfad lauten Schwarz = Gloss, Weiß = kein Gloss; volle 16-Bit-Nutzung, `pHYs`-Priorität, Graustufe→mm und Gloss-Intensität bleiben echte Hardwarefragen aus #688–#690.
 
-Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.8.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (vom Owner geschlossen), #847 (PR #852), #866 (PR #870/#871) und #869 (PR #873) (Details: Vorige Runden).
+Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.8.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (vom Owner geschlossen), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (vom Owner geschlossen) und #878 (PR #908/#910) (Details: Vorige Runden).
 
 Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noch Zeilen werden seit #821 von Hand gepflegt – `scripts/recommendations_live_check.py --write` schreibt die Tabellen aller sechs Fassungen aus dem GitHub-Live-Stand fort, die Bewertungsspalten bleiben Handarbeit.
 
@@ -72,7 +75,6 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live-Vorschau + Bedienoberfläche Histogramm/Levels/Gamma | 🟡 Mittel | 🟡 Mittel-Hoch (Qt-UI, Debounce/Generation-Schutz analog Höhen-Vorschau) | Sonnet, hoch | Blocked – wartet auf Kern #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Ebenen-/Auswahl-/History-/Projektintegration | 🟡 Mittel | 🟠 Hoch (viele Zustandsübergänge: Undo/Redo, Auswahl, Dirty-State) | Opus, hoch | Blocked – wartet auf #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance-/E2E-/Doku-/Laser-Schnittstellenabnahme | 🟡 Mittel (Abschluss-Gate, kein neues Feature) | 🟠 Hoch (Benchmark-Suite, E2E, Doku, Adapter-Contract) | Opus, hoch | Blocked – Abschluss-Issue nach #695 |
-| [#878](https://github.com/NikolayDA/picture_helper/issues/878) | Nutzerhandbuch um Standard-/Experten-Modus und 3D-Zoom-Pille ergänzen | 🟡 Mittel (Standardnutzer sehen sonst dokumentierte Bedienelemente nicht) | 🟡 Mittel (sechs Sprachen, neuer Screenshot-Satz, PDF und Drift-Tests) | Sonnet, hoch | Umgesetzt (PR #908) – Handbuch, sechs Sprachfassungen, PDF und Screenshot-Satz sind vollständig; wartet nur noch auf die Schließung durch den Owner, dann Zeile entfernen |
 | [#882](https://github.com/NikolayDA/picture_helper/issues/882) | [Epic] BgRemover im Mac App Store | 🟡 Mittel-Hoch (neuer Distributionskanal, kein aktueller Produktfehler) | 🔴 Hoch (Lizenz, Sandbox, Paketierung, Store und Release-Governance) | – (Epic) | Blocked – zuerst die Lizenzstrategie als konkrete Phase-0-Teilaufgabe anlegen und entscheiden |
 | [#883](https://github.com/NikolayDA/picture_helper/issues/883) | [MAS] Lizenzstrategie: PySide6 vs. Riverbank und Relizenzierung | 🟠 Hoch (harter Blocker für jede technische MAS-Arbeit) | 🔴 Hoch (Lizenz-/Owner-Entscheid, möglicher Qt-Port, Restrisiko) | Opus, hoch + Owner/Rechtsprüfung | Startbereit – ADR und Owner-Entscheid erstellen; bei PySide6 anschließend eigenes Port-Issue anlegen |
 | [#884](https://github.com/NikolayDA/picture_helper/issues/884) | [MAS] Apple Developer Program Enrollment | 🟠 Hoch (blockiert Zertifikate und Store-Zugang) | 🟢 Niedrig (manueller Konto-/Zahlungsschritt) | – (kein Agent; Account Holder) | Blocked (extern) – Kontotyp entscheiden, Enrollment/2FA abschließen und Renewal-Verantwortung festhalten |

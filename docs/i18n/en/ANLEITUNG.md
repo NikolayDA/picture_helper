@@ -600,8 +600,9 @@ Projects also appear under
 
 A **height map** is a grayscale layer in which brightness represents a
 height: **light = high, dark = low**. It is the basis for relief and UV
-printing. The *Height* card works on the active **height layer**; the Edit
-and Optimise sections are only active when a height layer is active.
+printing. The *Height* card works on the active **height layer**; the Edit,
+Height map tools, and Optimise sections are only active when a height layer
+is active.
 
 - **Generate height map from image** – deterministically converts the current colour
   image into a height map and creates it as a new height layer.
@@ -622,10 +623,15 @@ both modes and paint the height freehand.
 - **Lighten / Darken (sliders)** – raises or lowers the height; the
   **Strength** controls how much.
 - **Set height** – sets the height to a fixed **value**.
-- **Invert** – swaps high and low.
 
 When a selection is active, the slider-based actions affect only the
 selection, otherwise the whole layer.
+
+### Height map tools (expert mode only)
+
+The separate **Height map tools** card contains **Invert**. It swaps high and
+low inside the active selection, or across the whole height layer when there
+is no selection.
 
 ### Height maps: Optimise (expert mode only)
 
