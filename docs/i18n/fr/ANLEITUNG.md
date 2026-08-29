@@ -81,7 +81,7 @@ tout au long de l'édition. Les fonctionnalités principales :
 
 ## 2. La fenêtre de l'application en un coup d'œil
 
-![BgRemover – fenêtre principale après le lancement](../../../app_screenshots/bgremover_complete_20260722_171622/01_main_empty.png)
+![BgRemover – fenêtre principale après le lancement](../../../app_screenshots/bgremover_complete_20260828_184550/01_main_empty.png)
 
 *La fenêtre principale juste après le lancement : la barre de menus en haut,
 la barre d'outils à gauche, la zone de travail avec le damier de transparence
@@ -114,6 +114,32 @@ La fenêtre est divisée en cinq zones :
 | **Inspecteur de cartes** (droite) | En-tête avec le titre/la description de l'étape, les cartes de l'étape active, pied de page avec « Retour »/« Suivant » |
 | **Barre d'état** (bas) | Conseils et retours de l'application |
 
+### Mode standard et mode expert
+
+L'interrupteur **EXPERT** dans l'en-tête de l'inspecteur détermine le nombre
+de commandes affichées. Une nouvelle installation démarre en **mode
+standard**, qui limite le parcours courant à l'essentiel. Le mode expert
+ajoute les outils spécialisés pour les sélections précises, transformations
+libres, calques, cartes de hauteur, aperçus et export UV. Le choix est
+enregistré et restauré au prochain démarrage. Changer de mode conserve les
+modifications de l'image et du projet ainsi que les valeurs déjà appliquées.
+**Exception :** un aperçu en direct non appliqué dans la section réservée au
+mode expert *Cartes de hauteur : Optimiser* est annulé lors du passage au mode
+standard, car la section masquée est repliée ; les données de hauteur
+enregistrées et les modifications appliquées sont conservées. L'infobulle
+résume les différences et reste lisible lorsque l'interrupteur reçoit le focus
+au clavier.
+
+![Mode standard à l'étape Détourer](../../../app_screenshots/bgremover_complete_20260828_184550/07_mode_standard.png)
+
+*Le mode standard affiche l'action IA, la tolérance et la suppression
+transparente : le chemin le plus court vers un détourage propre.*
+
+![Mode expert à l'étape Détourer](../../../app_screenshots/bgremover_complete_20260828_184550/08_mode_expert.png)
+
+*Le mode expert ajoute la taille du pinceau et les actions de sélection dans
+la partie visible de l'inspecteur.*
+
 ### Menus « Édition », « Affichage », « Projet » et « Outils »
 
 De nombreuses actions sont aussi accessibles depuis la barre de menus :
@@ -138,7 +164,7 @@ De nombreuses actions sont aussi accessibles depuis la barre de menus :
   [section 7](#7-étape-2--détourer) et la
   [section 18](#18-résolution-de-problèmes-et-fichier-journal)).
 
-![Le menu « Édition »](../../../app_screenshots/bgremover_complete_20260722_171622/23_menu_edit.png)
+![Le menu « Édition »](../../../app_screenshots/bgremover_complete_20260828_184550/23_menu_edit.png)
 
 *Le menu « Édition » regroupe annuler/rétablir, rotation, retournement et
 les actions de sélection.*
@@ -186,7 +212,7 @@ Voici comment supprimer un arrière-plan en moins d'une minute :
    (conserve la transparence) et cliquez sur **Enregistrer**, ou utilisez
    `Fichier → Enregistrer` (⌘S).
 
-![Résultat de la suppression d'arrière-plan par IA](../../../app_screenshots/bgremover_complete_20260722_171622/55_function_ai_result.png)
+![Résultat de la suppression d'arrière-plan par IA](../../../app_screenshots/bgremover_complete_20260828_184550/55_function_ai_result.png)
 
 *Après un clic sur « Supprimer le fond (IA) », l'arrière-plan est détouré
 automatiquement — la barre d'état confirme que la suppression d'arrière-plan
@@ -228,7 +254,7 @@ les grandes images sont chargées en arrière-plan — la barre d'état affiche 
 progression. Une fois le chargement terminé, la barre d'étapes passe
 automatiquement à l'étape suivante.
 
-![Le menu « Fichier »](../../../app_screenshots/bgremover_complete_20260722_171622/20_menu_file.png)
+![Le menu « Fichier »](../../../app_screenshots/bgremover_complete_20260828_184550/20_menu_file.png)
 
 *Le menu « Fichier » regroupe Ouvrir (⌘O), « Récemment ouverts »,
 Enregistrer (⌘S) et Enregistrer sous… (⇧⌘S).*
@@ -318,7 +344,7 @@ couleur) s'appliquent à la **zone actuellement sélectionnée**. La sélection
 est mise en surbrillance en couleur sur l'image. Les outils de sélection
 sont actifs à l'étape *Détourer*.
 
-![Une image chargée avec une sélection active](../../../app_screenshots/bgremover_complete_20260722_171622/02_main_loaded_selection.png)
+![Une image chargée avec une sélection active](../../../app_screenshots/bgremover_complete_20260828_184550/02_main_loaded_selection.png)
 
 *Une image chargée avec une sélection active : la zone d'arrière-plan
 sélectionnée est mise en surbrillance en couleur sur la zone de travail.*
@@ -338,7 +364,8 @@ sélectionnée est mise en surbrillance en couleur sur la zone de travail.*
   sélection.
 - **Gomme :** peignez sur les zones incorrectement sélectionnées pour les
   supprimer.
-- Réglez la **taille du pinceau** dans la carte *Réglages de l'outil*.
+- Réglez la **taille du pinceau** en mode expert dans la carte *Réglages de
+  l'outil* ; le pinceau et la gomme restent disponibles dans les deux modes.
 
 ### Avec le lasso polygonal (pour les bords droits)
 
@@ -352,13 +379,15 @@ sélectionnée est mise en surbrillance en couleur sur la zone de travail.*
 ## 7. Étape 2 – Détourer
 
 À l'étape *Détourer*, vous séparez le sujet de l'arrière-plan — de façon
-automatique par IA ou à la main. L'inspecteur de cartes regroupe quatre
-cartes à cet effet.
+automatique par IA ou à la main. Le mode standard affiche l'essentiel ; le
+mode expert développe l'inspecteur avec les cartes spécialisées décrites
+ci-dessous.
 
-![L'étape « Détourer »](../../../app_screenshots/bgremover_complete_20260722_171622/11_step_2_cutout.png)
+![L'étape « Détourer »](../../../app_screenshots/bgremover_complete_20260828_184550/11_step_2_cutout.png)
 
-*L'étape 2 « Détourer » : en haut le bouton IA, en dessous les réglages de
-l'outil, les actions de sélection et « Modifier l'arrière-plan ».*
+*L'étape 2 « Détourer » en mode expert : en haut le bouton IA, en dessous
+les réglages de l'outil, les actions de sélection et « Modifier
+l'arrière-plan ».*
 
 ### Suppression d'arrière-plan par IA
 
@@ -381,9 +410,14 @@ téléchargement.
 | Curseur | Plage | Effet |
 |---|---|---|
 | **Tolérance (baguette magique)** | 0 – 255 (par défaut : 30) | Degré de similitude que doivent avoir les couleurs pour être sélectionnées ensemble par la baguette magique. **Bas** = uniquement les couleurs très similaires · **Haut** = de nombreuses nuances. |
-| **Taille du pinceau** | 4 – 200 px (par défaut : 30 px) | Diamètre du pinceau et de la gomme. |
+| **Taille du pinceau** | 4 – 200 px (par défaut : 30 px) | Diamètre du pinceau et de la gomme. **Uniquement en mode expert.** |
 
-### Actions de sélection
+### Actions de sélection (carte de l'inspecteur : mode expert uniquement)
+
+La carte de l'inspecteur n'apparaît qu'en mode expert. **Désélectionner** et
+**Inverser la sélection** restent disponibles en mode standard via le menu
+`Édition` ; leurs accès clavier sont indiqués avec les actions ci-dessous.
+**Développer / Réduire** n'est disponible que dans la carte experte.
 
 - **Désélectionner** – efface la sélection actuelle. **Échap** annule
   d'abord un recadrage actif ou un lasso polygonal commencé, et n'efface
@@ -397,13 +431,16 @@ téléchargement.
 
 ### Modifier l'arrière-plan
 
+**Supprimer (transparent)** est disponible en mode standard. **Choisir une
+couleur** et **Remplacer la couleur** ne s'affichent qu'en mode expert.
+
 | Action | Description |
 |---|---|
 | **Supprimer (transparent)** | Rend la zone sélectionnée complètement transparente. Astuce : sélectionnez d'abord l'arrière-plan avec la baguette magique. |
 | **Choisir une couleur** | Ouvre un sélecteur de couleur. Le petit bouton coloré affiche la couleur de remplacement actuellement choisie. |
 | **Remplacer la couleur** | Remplit la zone sélectionnée avec la couleur choisie. |
 
-![Boîte de dialogue du sélecteur de couleur](../../../app_screenshots/bgremover_complete_20260722_171622/31_dialog_color_picker.png)
+![Boîte de dialogue du sélecteur de couleur](../../../app_screenshots/bgremover_complete_20260828_184550/31_dialog_color_picker.png)
 
 *Via « Choisir une couleur » s'ouvre le sélecteur de couleur ; la couleur
 choisie apparaît dans le carré et s'applique à la sélection avec
@@ -414,7 +451,7 @@ magique/l'IA → *Supprimer (transparent)* pour un fichier PNG détouré, **ou**
 choisir une couleur et *Remplacer la couleur* pour un arrière-plan uni
 (p. ex. blanc pour des photos d'identité).
 
-### Lisser le bord (feather)
+### Lisser le bord (feather ; uniquement en mode expert)
 
 Dans la section *Lisser le bord* de la même carte, vous pouvez adoucir le
 **bord alpha** — utile contre les bordures dures à l'aspect « découpé »
@@ -455,18 +492,21 @@ inchangée.
 L'étape *Forme & dimensions* regroupe pivoter/retourner ainsi qu'arrondir
 les coins, le recadrage et un redimensionnement rapide en pixels.
 
-![L'étape « Forme & dimensions »](../../../app_screenshots/bgremover_complete_20260722_171622/13_step_4_shape.png)
+![L'étape « Forme & dimensions »](../../../app_screenshots/bgremover_complete_20260828_184550/13_step_4_shape.png)
 
 *L'étape 4 « Forme & dimensions » : rotation (rotation rapide/angle libre),
 retournement, arrondi des coins et, en bas, les formats de recadrage.*
 
 ### Pivoter
 
-- **Rotation rapide :** boutons pour *90° à gauche*, *90° à droite*,
-  *180°* et *270°*.
-- **Angle libre :** curseur ou champ de saisie de **−180° à +180°**, puis
-  cliquez sur **Appliquer l'angle**. Les angles obliques produisent des
-  coins transparents.
+- **90° à gauche / à droite :** visibles dans l'inspecteur en mode standard
+  et expert.
+- **180° :** son bouton d'inspecteur est réservé au mode expert, mais
+  `Édition → Pivoter de 180°` reste disponible dans les deux modes. **270°**
+  n'est disponible que dans l'inspecteur expert.
+- **Angle libre (uniquement en mode expert) :** curseur ou champ de saisie
+  de **−180° à +180°**, puis cliquez sur **Appliquer l'angle**. Les angles
+  obliques produisent des coins transparents.
 
 > La rotation rapide est également disponible au clavier : ⌘← (90° à
 > gauche) et ⌘→ (90° à droite).
@@ -476,7 +516,7 @@ retournement, arrondi des coins et, en bas, les formats de recadrage.*
 - **Horizontal** – retourner gauche ↔ droite.
 - **Vertical** – retourner haut ↕ bas.
 
-### Arrondir les coins
+### Arrondir les coins (uniquement en mode expert)
 
 1. Utilisez le curseur **Rayon** pour régler le degré d'arrondi (0 = aucun
    arrondi, jusqu'à 500 px = arrondi maximal).
@@ -485,7 +525,7 @@ retournement, arrondi des coins et, en bas, les formats de recadrage.*
 Le résultat est enregistré avec des coins transparents — de préférence en
 PNG.
 
-### Redimensionner (pixels, directement dans l'étape)
+### Redimensionner (pixels, directement dans l'étape ; uniquement en mode expert)
 
 La carte « Redimensionner » propose **largeur × hauteur en pixels**
 directement dans l'étape : saisissez les valeurs et cliquez sur
@@ -508,7 +548,7 @@ de dialogue complète de la
    - **✓ Appliquer le recadrage** – recadre l'image.
    - **✗ Annuler** – abandonne le cadre.
 
-![Recadrage circulaire actif avec barre de confirmation](../../../app_screenshots/bgremover_complete_20260722_171622/63_crop_circle_overlay.png)
+![Recadrage circulaire actif avec barre de confirmation](../../../app_screenshots/bgremover_complete_20260828_184550/63_crop_circle_overlay.png)
 
 *Exemple « Cercle » : le cadre de recadrage se place sur l'image avec des
 poignées. « ✓ Appliquer le recadrage » recadre l'image, « ✗ Annuler »
@@ -558,7 +598,11 @@ d'impression est dépassée.
 ## 11. Étape 5 – Relief & calques
 
 L'étape *Relief & calques* regroupe la gestion des calques et l'espace de
-travail des cartes de hauteur dans deux cartes.
+travail des cartes de hauteur dans deux cartes. Le mode standard propose
+l'étiquette du rôle, la génération de la carte de hauteur depuis l'image et
+le sélecteur 2D/3D. La construction des calques, le sélecteur de rôle,
+l'import en niveaux de gris et la modification/optimisation de hauteur sont
+des outils experts.
 
 ### Types et rôles de calque
 
@@ -583,10 +627,10 @@ Dans la carte *Calques*, vous gérez la liste des calques :
 
 | Action | Description |
 |---|---|
-| **Nouveau calque / Dupliquer / Supprimer** | Ajouter un calque, copier le calque actif ou le supprimer. |
-| **Monter / Descendre** | Modifier l'ordre d'empilement des calques. |
-| **Renommer** | Renommer le calque actif. |
-| **Rôle** | Attribuer un rôle au calque actif (seules les combinaisons compatibles sont autorisées). |
+| **Nouveau calque / Dupliquer / Supprimer** | Ajouter un calque, copier le calque actif ou le supprimer. **Uniquement en mode expert.** |
+| **Monter / Descendre** | Modifier l'ordre d'empilement des calques. **Uniquement en mode expert.** |
+| **Renommer** | Renommer le calque actif. **Uniquement en mode expert.** |
+| **Rôle** | Le rôle est visible sous forme d'étiquette en mode standard ; le modifier dans le sélecteur exige le mode expert. |
 | **Visibilité** | Afficher ou masquer un calque. |
 | **Sélectionner** | Choisir un calque comme calque **actif** – les outils agissent dessus. |
 | **Opacité** | Opacité du calque (appliquée au relâchement). |
@@ -623,7 +667,7 @@ lorsqu'un calque de hauteur est actif.
 - **Générer la carte de hauteur** – convertit de façon déterministe l'image
   couleur actuelle en carte de hauteur et la crée comme nouveau calque de
   hauteur.
-- **Importer niveaux de gris…** – charge une image en niveaux de gris comme
+- **Importer niveaux de gris… (uniquement en mode expert)** – charge une image en niveaux de gris comme
   carte de hauteur et la met à l'échelle de la taille du projet. Les
   fichiers en niveaux de gris 16 bits (PNG/TIFF) sont importés
   **nativement avec les 65536 niveaux** ; les images couleur et 8 bits
@@ -632,19 +676,22 @@ lorsqu'un calque de hauteur est actif.
   refusées avec un message. Lors de l'export EufyMake, BgRemover avertit
   quand une cible 8 bits quantifierait les hauteurs internes 16 bits.
 
-### Cartes de hauteur : modifier
+### Cartes de hauteur : modifier (commandes d'inspecteur en mode expert)
 
-- **Éclaircir / Assombrir** – augmente ou diminue la hauteur ; l'**Intensité**
-  contrôle l'ampleur. Pour peindre à main levée, l'étape *Relief & calques*
-  propose en plus les outils pinceau de même nom dans la barre d'outils
-  (voir la [section 5](#5-la-barre-doutils-gauche)).
+Les commandes suivantes de la carte n'apparaissent qu'en mode expert. Avec un
+calque de hauteur actif, les pinceaux **Éclaircir / Assombrir** restent
+visibles dans la barre d'outils gauche dans les deux modes et peignent la
+hauteur à main levée.
+
+- **Éclaircir / Assombrir (commandes)** – augmente ou diminue la hauteur ;
+  l'**Intensité** contrôle l'ampleur.
 - **Définir la hauteur** – fixe la hauteur à une **valeur** déterminée.
 - **Inverser** – échange haut et bas.
 
 Lorsqu'une sélection est active, les actions basées sur des curseurs
 n'agissent qu'à l'intérieur de la sélection, sinon sur tout le calque.
 
-### Cartes de hauteur : optimiser
+### Cartes de hauteur : optimiser (uniquement en mode expert)
 
 Les opérations d'optimisation affichent un **aperçu en direct** ;
 **Appliquer** les valide (annulable/rétablissable), **Abandonner l'aperçu**
@@ -671,11 +718,15 @@ fournit OpenGL 2.1.
 
 La vue 3D est **en lecture seule** : elle permet de faire pivoter et d'inspecter
 la surface sous différents angles, mais ne modifie **ni les données de hauteur,
-ni l'image enregistrée, ni l'export**. Dans le viewport, faites glisser avec le
-bouton gauche pour orbiter, utilisez le bouton central ou Alt+glisser pour
-déplacer, et la molette pour zoomer. Au clavier, les flèches orbitent,
-Maj+flèches déplacent, `+`/`−` zooment, `Origine` ajuste la vue et `Maj+Origine`
-réinitialise la caméra, l'exagération, la lumière et la qualité aux valeurs par défaut.
+ni l'image enregistrée, ni l'export**. Dans le viewport, faites glisser avec
+le bouton gauche pour orbiter et utilisez le bouton central ou Alt+glisser
+pour déplacer. La pilule de zoom fonctionne comme sur la zone 2D : **−** et
+**+** modifient le zoom de 10 %, et **100 %** ajuste le modèle à la vue. Le
+cadenas fige le zoom actuel et bloque la molette ainsi que le zoom ordinaire
+par `+`/`−`. Les commandes de réinitialisation explicites `Origine` (ajuster,
+100 %) et `Maj+Origine` (réinitialiser la caméra, l'exagération, la lumière et
+la qualité) contournent volontairement le verrou et restent actives. Les
+flèches orbitent et Maj+flèches déplacent.
 
 Les commandes 3D règlent l'**exagération** (l'amplitude visuelle donnée au
 relief plat – uniquement l'affichage, jamais les données de hauteur),
@@ -702,9 +753,9 @@ l'image et l'export pour l'impression UV dans trois cartes.
 
 L'**aperçu 2D** montre différentes vues du même motif directement sur la
 zone de travail. C'est un **affichage à l'écran pur** qui ne modifie ni
-l'image ni l'export. La carte *Aperçu* propose un contrôle segmenté à
-quatre modes ; le cinquième mode « Combiné » est accessible via
-`Affichage → Mode d'aperçu`.
+l'image ni l'export. La carte *Aperçu* ne s'affiche qu'en mode expert ;
+`Affichage → Mode d'aperçu` reste aussi disponible en mode standard. La carte
+propose quatre modes ; le cinquième, « Combiné », est accessible via le menu.
 
 | Mode | Affichage |
 |---|---|
@@ -745,10 +796,10 @@ enregistrer via le menu :
 
 ### Export pour EufyMake Studio
 
-Via la carte *Impression UV* de l'étape *Export* ou
-`Projet → Exporter des assets pour EufyMake Studio…` (Ctrl+Alt+E),
-BgRemover écrit des **assets d'import** pour EufyMake Studio – **pas** un
-fichier `.empf` fini :
+Via la carte *Impression UV* de l'étape *Export* (**uniquement en mode
+expert**) ou `Projet → Exporter des assets pour EufyMake Studio…`
+(Ctrl+Alt+E, disponible dans les deux modes), BgRemover écrit des **assets
+d'import** pour EufyMake Studio – **pas** un fichier `.empf` fini :
 
 - **Motif couleur** (obligatoire) en PNG RGBA – à partir d'un calque ayant
   le rôle *Motif couleur*, ou du composite couleur si aucun n'existe.
@@ -781,7 +832,7 @@ lui-même en `.empf`.
 Via `Outils → Réglages…` (⌘, / Ctrl+,), vous pouvez gérer les paramètres
 suivants :
 
-![La boîte de dialogue des paramètres](../../../app_screenshots/bgremover_complete_20260722_171622/30_dialog_settings.png)
+![La boîte de dialogue des paramètres](../../../app_screenshots/bgremover_complete_20260828_184550/30_dialog_settings.png)
 
 *La boîte de dialogue des paramètres : langue, répertoires d'ouverture et
 d'enregistrement par défaut, format d'image préféré ainsi que le chemin du
@@ -846,9 +897,10 @@ accessibles que via le menu ou l'inspecteur de cartes.
 
 1. Ouvrez l'image.
 2. À l'étape *Détourer*, cliquez sur **« Supprimer le fond (IA) »**.
-3. Affinez les bords avec la **gomme**/le **pinceau**.
-4. Le cas échéant, appliquez **Réduire** (1–2 px) pour supprimer le liseré
-   coloré.
+3. Affinez les bords avec la **gomme**/le **pinceau** ; activez **EXPERT**
+   seulement pour régler la taille du pinceau.
+4. Le cas échéant, appliquez **Réduire** (1–2 px, mode expert) pour supprimer
+   le liseré coloré.
 5. À l'étape *Export*, enregistrez en **PNG**.
 
 ### B) Photo d'identité avec fond blanc
@@ -856,7 +908,8 @@ accessibles que via le menu ou l'inspecteur de cartes.
 1. Ouvrez l'image.
 2. À l'étape *Détourer*, cliquez avec la **baguette magique** sur
    l'arrière-plan (ajustez la tolérance).
-3. **Choisir une couleur** (blanc) → **Remplacer la couleur**.
+3. Activez **EXPERT**, puis **Choisir une couleur** (blanc) → **Remplacer la
+   couleur**.
 4. À l'étape *Forme & dimensions*, choisissez le format **1:1**,
    positionnez le cadre, **✓ Appliquer le recadrage**.
 5. À l'étape *Export*, enregistrez en **JPEG** ou **PNG**.
@@ -875,8 +928,8 @@ accessibles que via le menu ou l'inspecteur de cartes.
 
 1. Ouvrez l'image, à l'étape *Détourer*, cliquez avec la **baguette
    magique** sur l'**objet**.
-2. **Inverser la sélection** (⌘⇧I) → l'arrière-plan est maintenant
-   sélectionné.
+2. Activez **EXPERT**, puis **Inverser la sélection** (⌘⇧I) → l'arrière-plan
+   est maintenant sélectionné.
 3. Choisissez une couleur → **Remplacer la couleur**.
 4. Enregistrez à l'étape *Export*.
 
@@ -884,11 +937,12 @@ accessibles que via le menu ou l'inspecteur de cartes.
 
 1. Ouvrez et détourez l'image.
 2. À l'étape *Relief & calques*, **Générer la carte de hauteur**.
-3. Affinez la hauteur dans la section *Optimiser* (p. ex. *Niveaux*,
-   *Lissage*) et **Appliquer**.
-4. À l'étape *Export*, choisissez le mode d'aperçu **Relief** ou, via
-   `Affichage → Mode d'aperçu`, **Combiné** pour vérifier.
-5. Carte *Impression UV* → vérifiez les constats et exportez.
+3. Activez **EXPERT**, affinez la hauteur dans *Optimiser* (p. ex. *Niveaux*
+   ou *Lissage*), puis **Appliquer**.
+4. Vérifiez via `Affichage → Mode d'aperçu` ou avec la carte *Aperçu* du mode
+   expert.
+5. Exportez via `Projet → Exporter des assets pour EufyMake Studio…` ou avec
+   la carte *Impression UV* du mode expert.
 
 ---
 

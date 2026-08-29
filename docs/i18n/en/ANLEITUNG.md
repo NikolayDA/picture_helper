@@ -72,7 +72,7 @@ through the editing process. The key features:
 
 ## 2. The application window at a glance
 
-![BgRemover – main window after launch](../../../app_screenshots/bgremover_complete_20260722_171622/01_main_empty.png)
+![BgRemover – main window after launch](../../../app_screenshots/bgremover_complete_20260828_184550/01_main_empty.png)
 
 *The main window right after launch: the menu bar at the top, the toolbar on
 the left, the canvas with the transparency checkerboard in the centre, the
@@ -105,6 +105,30 @@ The window is divided into five areas:
 | **Card inspector** (right) | Header with the step title/description, the cards of the active step, footer with "Back"/"Next" |
 | **Status bar** (bottom) | Hints and feedback from the application |
 
+### Standard and expert mode
+
+The **EXPERT** switch in the inspector header changes how many controls are
+shown. A fresh installation starts in **standard mode**, which keeps the
+common workflow compact. Expert mode adds specialised tools for fine
+selection work, free transformations, layer construction, height-map
+editing, previews, and UV-print export. Your choice is saved and restored at
+the next start. Switching modes preserves image and project changes as well as
+values that have already been applied. **Exception:** an unapplied live preview
+in the expert-only *Height maps: Optimise* section is discarded when switching
+to standard mode because the hidden section is collapsed; stored height data
+and applied changes remain intact. Hover the switch for a compact overview;
+keyboard users can focus it to read the same tooltip.
+
+![Standard mode in the Cut out step](../../../app_screenshots/bgremover_complete_20260828_184550/07_mode_standard.png)
+
+*Standard mode shows the AI action, tolerance, and transparent removal—the
+shortest path to a clean cut-out.*
+
+![Expert mode in the Cut out step](../../../app_screenshots/bgremover_complete_20260828_184550/08_mode_expert.png)
+
+*Expert mode additionally shows brush size and selection actions in the
+visible part of the inspector.*
+
 ### Menus "Edit", "View", "Project" & "Extras"
 
 Many actions are also available from the menu bar:
@@ -126,7 +150,7 @@ Many actions are also available from the menu bar:
   [section 7](#7-step-2--cutout) and
   [section 18](#18-troubleshooting--log-file)).
 
-![The "Edit" menu](../../../app_screenshots/bgremover_complete_20260722_171622/23_menu_edit.png)
+![The "Edit" menu](../../../app_screenshots/bgremover_complete_20260828_184550/23_menu_edit.png)
 
 *The "Edit" menu groups undo/redo, rotate, flip, and the selection actions.*
 
@@ -167,7 +191,7 @@ Here is how to remove a background in under a minute:
 5. **Save** – in the *Export* step choose format **PNG** (preserves
    transparency) and click **Save**, or use `File → Save` (⌘S).
 
-![Result of the AI background removal](../../../app_screenshots/bgremover_complete_20260722_171622/55_function_ai_result.png)
+![Result of the AI background removal](../../../app_screenshots/bgremover_complete_20260828_184550/55_function_ai_result.png)
 
 *After one click on "Remove background (AI)" the background is cut out
 automatically – the status bar reports "AI background removal complete", and
@@ -204,7 +228,7 @@ same format and size checks apply, and large images are loaded in the
 background — the status bar shows progress. Once loaded, the stepper
 automatically unlocks the next step.
 
-![The "File" menu](../../../app_screenshots/bgremover_complete_20260722_171622/20_menu_file.png)
+![The "File" menu](../../../app_screenshots/bgremover_complete_20260828_184550/20_menu_file.png)
 
 *The "File" menu groups Open (⌘O), "Recent files", Save (⌘S), and
 Save as… (⇧⌘S).*
@@ -287,7 +311,7 @@ Almost all edits (make transparent, replace colour) act on the **currently
 selected area**. The selection is highlighted on the image in colour. The
 selection tools are active in the *Cut out* step.
 
-![A loaded image with an active selection](../../../app_screenshots/bgremover_complete_20260722_171622/02_main_loaded_selection.png)
+![A loaded image with an active selection](../../../app_screenshots/bgremover_complete_20260828_184550/02_main_loaded_selection.png)
 
 *A loaded image with an active selection: the selected background area is
 highlighted in colour on the canvas.*
@@ -303,7 +327,8 @@ highlighted in colour on the canvas.*
 
 - **Brush:** paint over the desired area to add it to the selection.
 - **Eraser:** paint over incorrectly selected areas to remove them.
-- Set the **brush size** in the *Tool settings* card.
+- Set the **brush size** in the *Tool settings* card in expert mode; brush
+  and eraser themselves are available in both modes.
 
 ### With the polygon lasso (for straight edges)
 
@@ -317,13 +342,14 @@ highlighted in colour on the canvas.*
 ## 7. Step 2 – Cut out
 
 In the *Cut out* step you separate the subject from the background –
-automatically via AI or by hand. The card inspector groups four cards for
-this.
+automatically via AI or by hand. Standard mode shows the essential controls;
+expert mode expands the inspector with the specialised cards described
+below.
 
-![The "Cut out" step](../../../app_screenshots/bgremover_complete_20260722_171622/11_step_2_cutout.png)
+![The "Cut out" step](../../../app_screenshots/bgremover_complete_20260828_184550/11_step_2_cutout.png)
 
-*Step 2 "Cut out": the AI button at the top, below it tool settings,
-selection actions, and "Edit background".*
+*Step 2 "Cut out" in expert mode: the AI button at the top, below it tool
+settings, selection actions, and "Edit background".*
 
 ### AI background removal
 
@@ -344,9 +370,14 @@ has already been downloaded, and start or cancel the download there.
 | Slider | Range | Effect |
 |---|---|---|
 | **Tolerance (magic wand)** | 0 – 255 (default: 30) | How similar colours must be to get selected together by the magic wand. **Low** = only very similar colours · **High** = many shades. |
-| **Brush size** | 4 – 200 px (default: 30 px) | Diameter of brush and eraser. |
+| **Brush size** | 4 – 200 px (default: 30 px) | Diameter of brush and eraser. **Expert mode only.** |
 
-### Selection actions
+### Selection actions (inspector card: expert mode only)
+
+The inspector card appears only in expert mode. **Clear selection** and
+**Invert selection** remain available in standard mode through the `Edit`
+menu; their keyboard paths are listed with the actions below. **Grow / Shrink**
+is available only on the expert card.
 
 - **Clear selection** – clears the current selection. **Esc** first cancels
   an active crop or a pending polygon lasso, and only clears the selection
@@ -359,13 +390,16 @@ has already been downloaded, and start or cancel the download there.
 
 ### Edit background
 
+**Remove (transparent)** is available in standard mode. **Pick colour** and
+**Replace colour** are shown only in expert mode.
+
 | Action | Description |
 |---|---|
 | **Remove (transparent)** | Makes the selected area completely transparent. Tip: first select the background with the magic wand. |
 | **Pick colour** | Opens a colour picker. The small coloured button shows the currently chosen replacement colour. |
 | **Replace colour** | Fills the selected area with the chosen colour. |
 
-![Colour picker dialog](../../../app_screenshots/bgremover_complete_20260722_171622/31_dialog_color_picker.png)
+![Colour picker dialog](../../../app_screenshots/bgremover_complete_20260828_184550/31_dialog_color_picker.png)
 
 *"Pick colour" opens the colour picker; the chosen colour appears in the
 swatch and is applied to the selection with "Replace colour".*
@@ -374,7 +408,7 @@ swatch and is applied to the selection with "Replace colour".*
 *Remove (transparent)* for a cut-out PNG, **or** pick a colour and
 *Replace colour* for a solid-colour background (e.g. white for ID photos).
 
-### Smooth edge (feather)
+### Smooth edge (feather; expert mode only)
 
 In the *Smooth edge* section of the same card you can soften the **alpha
 edge** – useful against hard, "cut-out"-looking borders after a removal.
@@ -410,17 +444,20 @@ leaves the transparency unchanged.
 The *Shape & Size* step groups rotate/flip as well as round corners, crop,
 and a quick pixel resize.
 
-![The "Shape & Size" step](../../../app_screenshots/bgremover_complete_20260722_171622/13_step_4_shape.png)
+![The "Shape & Size" step](../../../app_screenshots/bgremover_complete_20260828_184550/13_step_4_shape.png)
 
 *Step 4 "Shape & Size": rotate (quick rotation/free angle), flip, round
 corners, and the crop formats at the bottom.*
 
 ### Rotate
 
-- **Quick rotation:** buttons for *90° left*, *90° right*, *180°*, and
-  *270°*.
-- **Free angle:** slider or input field from **−180° to +180°**, then click
-  **Apply angle**. Oblique angles produce transparent corners.
+- **90° left / right:** visible in the inspector in standard and expert mode.
+- **180°:** its inspector button is expert-only, but `Edit → Rotate 180°`
+  remains available in both modes. **270°** is available only in the expert
+  inspector.
+- **Free angle (expert mode only):** slider or input field from **−180° to
+  +180°**, then click **Apply angle**. Oblique angles produce transparent
+  corners.
 
 > Quick rotation is also available via keyboard: ⌘← (90° left) and
 > ⌘→ (90° right).
@@ -430,7 +467,7 @@ corners, and the crop formats at the bottom.*
 - **Horizontal** – flip left ↔ right.
 - **Vertical** – flip top ↕ bottom.
 
-### Round corners
+### Round corners (expert mode only)
 
 1. Use the **Radius** slider to set the rounding (0 = no rounding, up to
    500 px = maximum rounding).
@@ -438,7 +475,7 @@ corners, and the crop formats at the bottom.*
 
 The result is saved with transparent corners – best as PNG.
 
-### Resize (pixels, directly in the step)
+### Resize (pixels, directly in the step; expert mode only)
 
 The "Resize" card offers **width × height in pixels** directly in the step:
 enter values and click **Apply**. For the linked aspect ratio, the
@@ -458,7 +495,7 @@ dialog from [section 10](#10-resize--physical-dimensions).
    - **✓ Apply crop** – crops the image.
    - **✗ Cancel** – discards the frame.
 
-![Active circle crop with confirmation bar](../../../app_screenshots/bgremover_complete_20260722_171622/63_crop_circle_overlay.png)
+![Active circle crop with confirmation bar](../../../app_screenshots/bgremover_complete_20260828_184550/63_crop_circle_overlay.png)
 
 *"Circle" example: the crop frame sits over the image with drag handles.
 "✓ Apply crop" crops the image, "✗ Cancel" discards the frame.*
@@ -505,7 +542,10 @@ hint points out that the print area is exceeded.
 ## 11. Step 5 – Relief & Layers
 
 The *Relief & Layers* step groups the layer management and the height-map
-workspace into two cards.
+workspace into two cards. Standard mode offers the role label, height-map
+generation from the image, and the 2D/3D display switch. Layer construction,
+the role selector, grayscale import, and height editing/optimisation are
+expert tools.
 
 ### Layer kinds and roles
 
@@ -529,10 +569,10 @@ In the *Layers* card you manage the layer list:
 
 | Action | Description |
 |---|---|
-| **New layer / Duplicate / Delete** | Add a layer, copy the active layer, or remove it. |
-| **Move up / down** | Change the stacking order of the layers. |
-| **Rename** | Rename the active layer. |
-| **Role** | Assign a role to the active layer (only matching combinations are allowed). |
+| **New layer / Duplicate / Delete** | Add a layer, copy the active layer, or remove it. **Expert mode only.** |
+| **Move up / down** | Change the stacking order of the layers. **Expert mode only.** |
+| **Rename** | Rename the active layer. **Expert mode only.** |
+| **Role** | The assigned role is visible as a label in standard mode; changing it in the selector requires expert mode. |
 | **Visibility** | Show or hide a layer. |
 | **Select** | Choose a layer as the **active** layer – tools act on it. |
 | **Opacity** | Layer opacity (applied on release). |
@@ -565,7 +605,7 @@ and Optimise sections are only active when a height layer is active.
 
 - **Generate height map from image** – deterministically converts the current colour
   image into a height map and creates it as a new height layer.
-- **Import grayscale…** – loads a grayscale image as a height map and scales
+- **Import grayscale… (expert mode only)** – loads a grayscale image as a height map and scales
   it to the project size. 16-bit grayscale files (PNG/TIFF) are imported
   **natively with all 65536 levels**; color and 8-bit images are converted
   via their brightness. 16-bit images with an alpha channel and float
@@ -573,19 +613,21 @@ and Optimise sections are only active when a height layer is active.
   EufyMake export, BgRemover warns when an 8-bit target would quantize the
   internally 16-bit heights.
 
-### Height maps: Edit
+### Height maps: Edit (inspector controls: expert mode only)
 
-- **Lighten / Darken** – raises or lowers the height; the **Strength**
-  controls how much. For freehand painting, the *Relief & Layers* step also
-  offers the same-named brush tools in the toolbar (see
-  [section 5](#5-the-toolbar-left)).
+The following card controls appear only in expert mode. With an active height
+layer, the **Lighten / Darken** brushes remain visible in the left toolbar in
+both modes and paint the height freehand.
+
+- **Lighten / Darken (sliders)** – raises or lowers the height; the
+  **Strength** controls how much.
 - **Set height** – sets the height to a fixed **value**.
 - **Invert** – swaps high and low.
 
 When a selection is active, the slider-based actions affect only the
 selection, otherwise the whole layer.
 
-### Height maps: Optimise
+### Height maps: Optimise (expert mode only)
 
 The optimise operations show a **live preview**; **Apply** commits it
 (undoable/redoable), **Discard preview** discards it.
@@ -610,10 +652,14 @@ graphics environment provides OpenGL 2.1.
 
 The 3D view is **display-only**: it lets you rotate and inspect the surface
 from different angles but changes **neither the height data nor the saved
-image or export**. In the viewport, drag with the left mouse button to orbit,
-use the middle button or Alt+drag to pan, and the wheel to zoom. With the
-keyboard, arrow keys orbit, Shift+arrows pan, `+`/`−` zoom, `Home` fits the
-view and `Shift+Home` resets camera, exaggeration, light and quality to defaults.
+image or export**. In the viewport, drag with the left mouse button to orbit
+and use the middle button or Alt+drag to pan. Its zoom pill works like the 2D
+canvas: **−** and **+** change the zoom by 10%, and **100%** fits the model to
+the view. The lock freezes the current zoom and blocks the mouse wheel and
+ordinary `+`/`−` keyboard zoom. The explicit reset commands `Home` (fit,
+100%) and `Shift+Home` (reset camera, exaggeration, light and quality) are
+intentional overrides and work while locked. Arrow keys orbit and Shift+arrows
+pan.
 
 The 3D controls set **exaggeration** (how strongly the flat relief is visually
 amplified – display only, never the height data), **light azimuth/elevation**
@@ -638,8 +684,10 @@ UV-print export into three cards.
 
 The **2D preview** shows different views of the same motif directly on the
 canvas. It is a **pure on-screen display** and changes neither the image nor
-the export. The *Preview* card offers a segmented control with four modes;
-the fifth mode "Combined" is reachable via `View → Preview mode`.
+the export. The *Preview* card is shown only in expert mode; `View → Preview
+mode` remains available in standard mode too. The card offers a segmented
+control with four modes; the fifth mode "Combined" is reachable via the
+menu.
 
 | Mode | Display |
 |---|---|
@@ -679,9 +727,10 @@ layer is currently active or which preview mode is set).
 
 ### Export for EufyMake Studio
 
-Via the *UV printing* card in the *Export* step, or `Project → Export assets
-for EufyMake Studio…` (Ctrl+Alt+E), BgRemover writes **import assets** for
-EufyMake Studio – **not** a finished `.empf` file:
+Via the *UV printing* card in the *Export* step (**expert mode only**), or
+`Project → Export assets for EufyMake Studio…` (Ctrl+Alt+E, available in both
+modes), BgRemover writes **import assets** for EufyMake Studio – **not** a
+finished `.empf` file:
 
 - **Colour motif** (required) as an RGBA PNG – from a layer with the *Colour
   motif* role, or, if none exists, from the colour composite.
@@ -711,7 +760,7 @@ modes/layers there, and save the Studio project itself as `.empf`.
 Via `Extras → Settings…` (⌘, / Ctrl+,) you can manage the following
 settings:
 
-![The settings dialog](../../../app_screenshots/bgremover_complete_20260722_171622/30_dialog_settings.png)
+![The settings dialog](../../../app_screenshots/bgremover_complete_20260828_184550/30_dialog_settings.png)
 
 *The settings dialog: language, default open/save directories, preferred
 image file format, and the path to the log file with the "Open folder"
@@ -774,8 +823,9 @@ the card inspector.
 
 1. Open the image.
 2. In the *Cut out* step, click **"Remove background (AI)"**.
-3. Touch up edges with the **eraser**/**brush**.
-4. Optionally **Shrink** (1–2 px) to remove the colour fringe.
+3. Touch up edges with the **eraser**/**brush**; enable **EXPERT** only if
+   you need to adjust the brush size.
+4. Optionally **Shrink** (1–2 px, expert mode) to remove the colour fringe.
 5. In the *Export* step, save as **PNG**.
 
 ### B) ID photo with a white background
@@ -783,7 +833,7 @@ the card inspector.
 1. Open the image.
 2. In the *Cut out* step, click the **magic wand** on the background
    (adjust tolerance).
-3. **Pick colour** (white) → **Replace colour**.
+3. Enable **EXPERT**, then **Pick colour** (white) → **Replace colour**.
 4. In the *Shape & Size* step, choose format **1:1**, position the frame,
    **✓ Apply crop**.
 5. In the *Export* step, save as **JPEG** or **PNG**.
@@ -801,7 +851,8 @@ the card inspector.
 
 1. Open the image, in the *Cut out* step click the **magic wand** on the
    **object**.
-2. **Invert selection** (⌘⇧I) → the background is now selected.
+2. Enable **EXPERT**, then **Invert selection** (⌘⇧I) → the background is
+   now selected.
 3. Pick a colour → **Replace colour**.
 4. Save in the *Export* step.
 
@@ -809,11 +860,12 @@ the card inspector.
 
 1. Open and cut out the image.
 2. In the *Relief & Layers* step, click **Generate height map from image**.
-3. Refine the height in the *Optimise* section (e.g. *Levels*, *Blur*) and
-   **Apply**.
-4. In the *Export* step, choose preview mode **Relief** or, via `View →
-   Preview mode`, **Combined** to check.
-5. Card *UV printing* → review the findings and export.
+3. Enable **EXPERT** and refine the height in the *Optimise* section (e.g.
+   *Levels*, *Blur*), then **Apply**.
+4. Check the result through `View → Preview mode`, or use the *Preview* card
+   in expert mode.
+5. Export through `Project → Export assets for EufyMake Studio…`, or use the
+   *UV printing* card in expert mode.
 
 ---
 

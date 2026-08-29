@@ -75,7 +75,7 @@ durch die Bearbeitung. Die wichtigsten Funktionen:
 
 ## 2. Die Programmoberfläche im Überblick
 
-![BgRemover – Hauptfenster nach dem Start](app_screenshots/bgremover_complete_20260722_171622/01_main_empty.png)
+![BgRemover – Hauptfenster nach dem Start](app_screenshots/bgremover_complete_20260828_184550/01_main_empty.png)
 
 *Das Hauptfenster direkt nach dem Start: Menüleiste oben, Werkzeugleiste
 links, Arbeitsfläche mit Transparenz-Schachbrett in der Mitte, die
@@ -108,6 +108,34 @@ Das Fenster ist in fünf Bereiche aufgeteilt:
 | **Karten-Inspector** (rechts) | Kopf mit Schritt-Titel/-Beschreibung, die Karten des aktiven Schritts, Fußzeile mit „Zurück"/„Weiter" |
 | **Statusleiste** (unten) | Hinweise und Rückmeldungen des Programms |
 
+### Standard- und Experten-Modus
+
+Rechts oben im Kopf des Karten-Inspectors schaltet **EXPERTE** zwischen zwei
+Ansichten um. Eine neue Installation startet im **Standard-Modus** und zeigt
+pro Schritt nur die wichtigsten Bedienelemente. Der **Experten-Modus** blendet
+alle zusätzlichen Werkzeuge und Detailoptionen ein. Die Wahl wird gespeichert
+und beim nächsten Start wiederhergestellt; beim Umschalten gehen weder Bild-
+noch Projektänderungen oder bereits angewendete Werte verloren. **Ausnahme:**
+Eine noch nicht angewendete Live-Vorschau im Experten-Abschnitt
+*Höhenkarten: Optimieren* wird beim Wechsel in den Standard-Modus verworfen,
+weil der dann ausgeblendete Abschnitt eingeklappt wird; gespeicherte Höhendaten
+und bereits angewendete Änderungen bleiben erhalten. Der Tooltip des
+Umschalters nennt den aktiven Modus und lässt sich auch per Tastaturfokus lesen.
+
+![Karten-Inspector im Standard-Modus](app_screenshots/bgremover_complete_20260828_184550/07_mode_standard.png)
+
+*Standard-Modus: Im Schritt „Freistellen" bleiben die zentralen Aktionen
+sichtbar; Detailwerkzeuge sind ausgeblendet.*
+
+![Karten-Inspector im Experten-Modus](app_screenshots/bgremover_complete_20260828_184550/08_mode_expert.png)
+
+*Experten-Modus: Im sichtbaren Bereich kommen Pinselgröße und
+Auswahl-Aktionen hinzu.*
+
+Dieses Handbuch kennzeichnet im Folgenden jedes ausschließlich dort sichtbare
+Bedienelement mit **„nur im Experten-Modus"**. Menübefehle bleiben erreichbar,
+wenn dies an der jeweiligen Stelle ausdrücklich genannt ist.
+
 ### Menüs „Bearbeiten", „Ansicht", „Projekt" & „Extras"
 
 Viele Aktionen sind zusätzlich über die Menüleiste erreichbar:
@@ -130,7 +158,7 @@ Viele Aktionen sind zusätzlich über die Menüleiste erreichbar:
   *KI-Hintergrundentfernung installieren…* (siehe [Abschnitt 7](#7-schritt-2--freistellen)
   und [Abschnitt 18](#18-fehlerbehebung--log-datei)).
 
-![Menü „Bearbeiten"](app_screenshots/bgremover_complete_20260722_171622/23_menu_edit.png)
+![Menü „Bearbeiten"](app_screenshots/bgremover_complete_20260828_184550/23_menu_edit.png)
 
 *Das Menü „Bearbeiten" bündelt Rückgängig/Wiederherstellen, Drehen, Spiegeln
 und die Auswahl-Aktionen.*
@@ -179,7 +207,7 @@ So entfernen Sie einen Hintergrund in unter einer Minute:
    Transparenz) und **Speichern** klicken, oder `Datei → Speichern`
    (⌘S).
 
-![Ergebnis der KI-Hintergrundentfernung](app_screenshots/bgremover_complete_20260722_171622/55_function_ai_result.png)
+![Ergebnis der KI-Hintergrundentfernung](app_screenshots/bgremover_complete_20260828_184550/55_function_ai_result.png)
 
 *Nach einem Klick auf „Hintergrund entfernen (KI)" ist der Hintergrund
 automatisch freigestellt – die Statusleiste meldet „KI-Hintergrundentfernung
@@ -219,7 +247,7 @@ dieselben Format- und Größenprüfungen, und große Bilder werden im
 Hintergrund geladen – die Statusleiste zeigt den Fortschritt an. Nach dem
 Laden schaltet die Schrittleiste automatisch zum nächsten Schritt frei.
 
-![Das Menü „Datei"](app_screenshots/bgremover_complete_20260722_171622/20_menu_file.png)
+![Das Menü „Datei"](app_screenshots/bgremover_complete_20260828_184550/20_menu_file.png)
 
 *Das Menü „Datei" bündelt Öffnen (⌘O), „Zuletzt geöffnet", Speichern (⌘S)
 und Speichern unter… (⇧⌘S).*
@@ -306,7 +334,7 @@ den **aktuell ausgewählten Bereich**. Die Auswahl wird auf dem Bild
 farblich hervorgehoben. Die Auswahl-Werkzeuge sind im Schritt
 *Freistellen* aktiv.
 
-![Geladenes Bild mit aktiver Auswahl](app_screenshots/bgremover_complete_20260722_171622/02_main_loaded_selection.png)
+![Geladenes Bild mit aktiver Auswahl](app_screenshots/bgremover_complete_20260828_184550/02_main_loaded_selection.png)
 
 *Ein geladenes Bild mit aktiver Auswahl: Der ausgewählte Hintergrundbereich
 ist auf der Arbeitsfläche farblich hervorgehoben.*
@@ -326,8 +354,9 @@ ist auf der Arbeitsfläche farblich hervorgehoben.*
   hinzuzufügen.
 - **Radiergummi:** über fälschlich ausgewählte Bereiche malen, um sie
   zu entfernen.
-- Die **Pinselgröße** stellen Sie in der Karte *Werkzeug-Einstellungen*
-  ein.
+- Die **Pinselgröße** stellen Sie im Experten-Modus in der Karte
+  *Werkzeug-Einstellungen* ein; Pinsel und Radiergummi selbst sind in beiden
+  Modi verfügbar.
 
 ### Mit dem Polygon-Lasso (für gerade Kanten)
 
@@ -341,13 +370,14 @@ ist auf der Arbeitsfläche farblich hervorgehoben.*
 ## 7. Schritt 2 – Freistellen
 
 Im Schritt *Freistellen* trennen Sie das Motiv vom Hintergrund –
-automatisch per KI oder von Hand. Der Karten-Inspector bündelt dafür vier
-Karten.
+automatisch per KI oder von Hand. Der Karten-Inspector zeigt im
+Standard-Modus die zentralen Aktionen; der Experten-Modus ergänzt die
+Detailwerkzeuge.
 
-![Der Schritt „Freistellen"](app_screenshots/bgremover_complete_20260722_171622/11_step_2_cutout.png)
+![Der Schritt „Freistellen"](app_screenshots/bgremover_complete_20260828_184550/11_step_2_cutout.png)
 
-*Schritt 2 „Freistellen": oben die KI-Schaltfläche, darunter Werkzeug-
-Einstellungen, Auswahl-Aktionen und „Hintergrund bearbeiten".*
+*Schritt 2 „Freistellen" im Experten-Modus: oben der KI-Button, darunter
+Werkzeug-Einstellungen, Auswahl-Aktionen und „Hintergrund bearbeiten".*
 
 ### KI-Hintergrundentfernung
 
@@ -370,9 +400,14 @@ starten oder abbrechen.
 | Regler | Bereich | Wirkung |
 |---|---|---|
 | **Toleranz (Zauberstab)** | 0 – 255 (Standard: 30) | Wie ähnlich Farben sein müssen, um mit dem Zauberstab gemeinsam ausgewählt zu werden. **Niedrig** = nur sehr ähnliche Farben · **Hoch** = viele Farbtöne. |
-| **Pinselgröße** | 4 – 200 px (Standard: 30 px) | Durchmesser von Pinsel und Radiergummi. |
+| **Pinselgröße** | 4 – 200 px (Standard: 30 px) | Durchmesser von Pinsel und Radiergummi. **Nur im Experten-Modus.** |
 
-### Auswahl-Aktionen
+### Auswahl-Aktionen (Inspector-Karte nur im Experten-Modus)
+
+Die Karte im Inspector erscheint nur im Experten-Modus. **Auswahl aufheben**
+und **Auswahl invertieren** bleiben im Standard-Modus über das Menü
+`Bearbeiten` erreichbar; die jeweiligen Tastaturwege stehen unten bei den
+Aktionen. **Erweitern / Schrumpfen** gibt es nur in der Experten-Karte.
 
 - **Auswahl aufheben** – hebt die aktuelle Auswahl auf. **Esc** bricht zuerst
   einen aktiven Zuschnitt oder ein begonnenes Polygon-Lasso ab und hebt die
@@ -386,13 +421,16 @@ starten oder abbrechen.
 
 ### Hintergrund bearbeiten
 
+**Entfernen (transparent)** ist in beiden Modi sichtbar. **Farbe wählen** und
+**Farbe ersetzen** erscheinen nur im Experten-Modus.
+
 | Aktion | Beschreibung |
 |---|---|
 | **Entfernen (transparent)** | Macht den ausgewählten Bereich vollständig durchsichtig. Tipp: zuerst mit dem Zauberstab den Hintergrund auswählen. |
 | **Farbe wählen** | Öffnet einen Farbwähler. Die kleine farbige Schaltfläche zeigt die aktuell gewählte Ersatzfarbe. |
 | **Farbe ersetzen** | Füllt den ausgewählten Bereich mit der gewählten Farbe. |
 
-![Farbwähler-Dialog](app_screenshots/bgremover_complete_20260722_171622/31_dialog_color_picker.png)
+![Farbwähler-Dialog](app_screenshots/bgremover_complete_20260828_184550/31_dialog_color_picker.png)
 
 *Über „Farbe wählen" öffnet sich der Farbwähler; die gewählte Farbe landet
 im Farbfeld und wird mit „Farbe ersetzen" auf die Auswahl angewendet.*
@@ -402,7 +440,7 @@ im Farbfeld und wird mit „Farbe ersetzen" auf die Auswahl angewendet.*
 Farbe wählen und *Farbe ersetzen* für einen einfarbigen Hintergrund
 (z. B. weiß für Passfotos).
 
-### Kante glätten (Feather)
+### Kante glätten (Feather; nur im Experten-Modus)
 
 Im Abschnitt *Kante glätten* derselben Karte lässt sich die **Alphakante**
 weicher zeichnen – nützlich gegen harte, „ausgeschnitten" wirkende Ränder
@@ -441,16 +479,18 @@ lässt die Transparenz unverändert.
 Der Schritt *Form & Maße* bündelt Drehen/Spiegeln sowie Ecken abrunden,
 Zuschnitt und eine schnelle Pixel-Größenänderung.
 
-![Der Schritt „Form & Maße"](app_screenshots/bgremover_complete_20260722_171622/13_step_4_shape.png)
+![Der Schritt „Form & Maße"](app_screenshots/bgremover_complete_20260828_184550/13_step_4_shape.png)
 
 *Schritt 4 „Form & Maße": Drehen (Schnell-Drehung/freier Winkel),
 Spiegeln, Ecken abrunden sowie unten die Zuschnitt-Formate.*
 
 ### Drehen
 
-- **Schnell-Drehung:** Schaltflächen für *90° links*, *90° rechts*,
-  *180°* und *270°*.
-- **Freier Winkel:** Regler oder Eingabefeld von **−180° bis +180°**,
+- **Schnell-Drehung:** *90° links* und *90° rechts* sind in beiden Modi im
+  Inspector sichtbar. *180°* erscheint dort nur im Experten-Modus, bleibt
+  aber in beiden Modi über `Bearbeiten → 180° drehen` erreichbar. *270°* gibt
+  es nur im Experten-Inspector.
+- **Freier Winkel (nur im Experten-Modus):** Regler oder Eingabefeld von **−180° bis +180°**,
   anschließend **Winkel anwenden**. Bei schrägen Winkeln entstehen
   transparente Ecken.
 
@@ -462,7 +502,7 @@ Spiegeln, Ecken abrunden sowie unten die Zuschnitt-Formate.*
 - **Horizontal** – links ↔ rechts spiegeln.
 - **Vertikal** – oben ↕ unten spiegeln.
 
-### Ecken abrunden
+### Ecken abrunden (nur im Experten-Modus)
 
 1. Mit dem Regler **Radius** den Rundungsgrad einstellen (0 = keine
    Rundung, bis 500 px = maximal rund).
@@ -471,7 +511,7 @@ Spiegeln, Ecken abrunden sowie unten die Zuschnitt-Formate.*
 Das Ergebnis wird mit transparenten Ecken gespeichert – am besten als
 PNG.
 
-### Größe ändern (Pixel, direkt im Schritt)
+### Größe ändern (Pixel, direkt im Schritt; nur im Experten-Modus)
 
 Die Karte „Größe ändern" bietet **Breite × Höhe in Pixeln** direkt im
 Schritt an: Werte eintragen und **Übernehmen** anklicken. Für das
@@ -493,7 +533,7 @@ Maße (mm/DPI) nutzen Sie den vollständigen Dialog aus
    - **✓ Zuschnitt anwenden** – schneidet das Bild zu.
    - **✗ Abbrechen** – verwirft den Rahmen.
 
-![Aktiver Kreis-Zuschnitt mit Bestätigungsleiste](app_screenshots/bgremover_complete_20260722_171622/63_crop_circle_overlay.png)
+![Aktiver Kreis-Zuschnitt mit Bestätigungsleiste](app_screenshots/bgremover_complete_20260828_184550/63_crop_circle_overlay.png)
 
 *Beispiel „Kreis": Der Zuschnitt-Rahmen liegt mit Anfasspunkten über dem
 Bild. Über „✓ Zuschnitt anwenden" wird zugeschnitten, „✗ Abbrechen" verwirft
@@ -563,14 +603,20 @@ Druckvorbereitung.
 
 ### Ebenen verwalten
 
+In beiden Modi können Sie Ebenen auswählen, ein-/ausblenden und ihre
+Opazität ändern. Der Standard-Modus zeigt die Rolle als Text. Die
+Werkzeugleiste für Hinzufügen, Duplizieren, Löschen, Reihenfolge und
+Umbenennen sowie das editierbare Rollen-Dropdown erscheinen nur im
+Experten-Modus.
+
 In der Karte *Ebenen* verwalten Sie die Ebenenliste:
 
 | Aktion | Beschreibung |
 |---|---|
-| **Neue Ebene / Duplizieren / Löschen** | Ebene hinzufügen, die aktive Ebene kopieren oder entfernen. |
-| **Nach oben / unten** | Stapelreihenfolge der Ebenen ändern. |
-| **Umbenennen** | Die aktive Ebene umbenennen. |
-| **Rolle** | Der aktiven Ebene eine Rolle zuweisen (nur passende Kombinationen sind erlaubt). |
+| **Neue Ebene / Duplizieren / Löschen** | Ebene hinzufügen, die aktive Ebene kopieren oder entfernen. **Nur im Experten-Modus.** |
+| **Nach oben / unten** | Stapelreihenfolge der Ebenen ändern. **Nur im Experten-Modus.** |
+| **Umbenennen** | Die aktive Ebene umbenennen. **Nur im Experten-Modus.** |
+| **Rolle** | Der aktiven Ebene eine Rolle zuweisen (nur passende Kombinationen sind erlaubt). Das Dropdown ist **nur im Experten-Modus** editierbar. |
 | **Sichtbarkeit** | Eine Ebene ein- oder ausblenden. |
 | **Auswählen** | Eine Ebene als **aktive** Ebene wählen – Werkzeuge wirken auf sie. |
 | **Opazität** | Deckkraft der Ebene (wird beim Loslassen übernommen). |
@@ -605,7 +651,7 @@ wenn eine Höhen-Ebene aktiv ist.
 
 - **Höhenkarte aus Bild erzeugen** – wandelt das aktuelle Farbbild deterministisch in
   eine Höhenkarte um und legt sie als neue Höhen-Ebene an.
-- **Graustufe importieren…** – lädt ein Graustufenbild als Höhenkarte und
+- **Graustufe importieren… (nur im Experten-Modus)** – lädt ein Graustufenbild als Höhenkarte und
   skaliert es auf die Projektgröße. 16-Bit-Graustufen (PNG/TIFF) werden
   dabei **nativ mit allen 65536 Stufen** übernommen; Farb- und 8-Bit-Bilder
   werden über ihre Helligkeit umgerechnet. 16-Bit-Bilder mit Alphakanal
@@ -613,19 +659,22 @@ wenn eine Höhen-Ebene aktiv ist.
   einer Meldung abgewiesen. Beim EufyMake-Export warnt BgRemover, wenn ein
   8-Bit-Ziel die intern 16-Bit geführten Höhen quantisieren würde.
 
-### Höhenkarten: Bearbeiten
+### Höhenkarten: Bearbeiten (Inspector-Bedienelemente nur im Experten-Modus)
 
-- **Aufhellen / Abdunkeln** – hebt die Höhe an oder senkt sie ab; die
-  **Stärke** steuert, wie stark. Für freihändiges Malen stehen im
-  Schritt *Relief & Ebenen* zusätzlich die gleichnamigen Pinsel-Werkzeuge
-  in der Werkzeugleiste bereit (siehe [Abschnitt 5](#5-die-werkzeugleiste-links)).
+Die folgenden Bedienelemente in der Karte erscheinen nur im Experten-Modus.
+Bei einer aktiven Höhen-Ebene bleiben die Pinsel **Aufhellen / Abdunkeln** in
+der linken Werkzeugleiste in beiden Modi sichtbar und bearbeiten die Höhe
+freihändig.
+
+- **Aufhellen / Abdunkeln (Regler)** – hebt die Höhe an oder senkt sie ab; die
+  **Stärke** steuert, wie stark.
 - **Höhe setzen** – setzt die Höhe auf einen festen **Wert**.
 - **Invertieren** – kehrt hoch und niedrig um.
 
 Ist eine Auswahl aktiv, wirken die reglerbasierten Aktionen nur innerhalb
 der Auswahl, sonst auf die ganze Ebene.
 
-### Höhenkarten: Optimieren
+### Höhenkarten: Optimieren (nur im Experten-Modus)
 
 Die Optimieren-Operationen zeigen eine **Live-Vorschau**; **Anwenden**
 übernimmt sie (undo-/redobar), **Vorschau verwerfen** verwirft sie.
@@ -653,10 +702,13 @@ Die 3D-Ansicht ist **reine Darstellung**: Sie dreht, prüft und beurteilt die
 Oberfläche aus verschiedenen Blickwinkeln, verändert dabei aber **weder die
 Höhendaten noch das gespeicherte Bild oder den Export**. Bedienung im
 Viewport: linke Maustaste ziehen dreht (Orbit), mittlere Maustaste oder
-Alt+Ziehen verschiebt (Pan), das Mausrad zoomt. Mit der Tastatur drehen die
-Pfeiltasten, Umschalt+Pfeiltasten verschieben, `+`/`−` zoomen, `Pos1` passt
-ein und `Umschalt+Pos1` setzt Kamera, Überhöhung, Licht und Qualität auf die
-Standardwerte zurück.
+Alt+Ziehen verschiebt (Pan), das Mausrad zoomt. Die schwebende **Zoom-Pille**
+unten rechts bedient dieselbe 3D-Kamera: **−**/**+** ändern den Zoom in
+10-%-Schritten, **100 %** entspricht der eingepassten Ansicht, und das Schloss
+friert Mausrad- sowie gewöhnlichen `+`/`−`-Tastatur-Zoom ein. Die ausdrücklichen
+Reset-Befehle `Pos1` (einpassen, 100 %) und `Umschalt+Pos1` (Kamera,
+Überhöhung, Licht und Qualität zurücksetzen) übergehen die Sperre bewusst. Mit
+der Tastatur drehen die Pfeiltasten und Umschalt+Pfeiltasten verschieben.
 
 Über die Regler im 3D-Abschnitt stellen Sie **Überhöhung** (wie stark das
 flache Relief räumlich überzeichnet wird – nur die Anzeige, nie die
@@ -683,9 +735,10 @@ Bildes und den UV-Druck-Export in drei Karten.
 
 Die **2D-Vorschau** zeigt verschiedene Ansichten desselben Motivs direkt
 auf der Arbeitsfläche. Sie ist eine **reine Bildschirmanzeige** und ändert
-weder das Bild noch den Export. Die Karte *Vorschau* bietet ein
+weder das Bild noch den Export. Die Karte *Vorschau* ist nur im
+Experten-Modus sichtbar und bietet ein
 Segmented-Control mit vier Modi; der fünfte Modus „Kombiniert" ist über
-`Ansicht → Vorschaumodus` erreichbar.
+`Ansicht → Vorschaumodus` in beiden Modi erreichbar.
 
 | Modus | Anzeige |
 |---|---|
@@ -727,7 +780,7 @@ ist).
 
 ### Export für EufyMake Studio
 
-Über die Karte *UV-Druck* im Schritt *Export* oder
+Über die Karte *UV-Druck* im Schritt *Export* (nur im Experten-Modus) oder
 `Projekt → Assets für EufyMake Studio exportieren…` (Strg+Alt+E) schreibt
 BgRemover **Import-Assets** für EufyMake Studio – **keine** fertige
 `.empf`-Datei:
@@ -762,7 +815,7 @@ weisen dort Ink-Modi/Layer zu und speichern das Studio-Projekt selbst als
 Über `Extras → Einstellungen…` (⌘, / Strg+,) lassen sich folgende
 Einstellungen verwalten:
 
-![Der Einstellungen-Dialog](app_screenshots/bgremover_complete_20260722_171622/30_dialog_settings.png)
+![Der Einstellungen-Dialog](app_screenshots/bgremover_complete_20260828_184550/30_dialog_settings.png)
 
 *Der Einstellungen-Dialog: Sprache, Standard-Verzeichnisse zum Öffnen und
 Speichern, bevorzugtes Bilddateiformat sowie der Pfad zur Protokolldatei mit
@@ -826,7 +879,8 @@ Menü bzw. Karten-Inspector erreichbar.
 1. Bild öffnen.
 2. Im Schritt *Freistellen* **„Hintergrund entfernen (KI)"** klicken.
 3. Mit **Radiergummi**/**Pinsel** Ränder nachbessern.
-4. Ggf. **Schrumpfen** (1–2 px), um den Farbsaum zu entfernen.
+4. Ggf. den Experten-Modus einschalten und **Schrumpfen** (1–2 px), um den
+   Farbsaum zu entfernen.
 5. Im Schritt *Export* als **PNG** speichern.
 
 ### B) Passfoto mit weißem Hintergrund
@@ -834,7 +888,7 @@ Menü bzw. Karten-Inspector erreichbar.
 1. Bild öffnen.
 2. Im Schritt *Freistellen* **Zauberstab** auf den Hintergrund klicken
    (Toleranz anpassen).
-3. **Farbe wählen** (Weiß) → **Farbe ersetzen**.
+3. Experten-Modus einschalten: **Farbe wählen** (Weiß) → **Farbe ersetzen**.
 4. Im Schritt *Form & Maße* Format **1:1** wählen, Rahmen positionieren,
    **✓ Zuschnitt anwenden**.
 5. Im Schritt *Export* als **JPEG** oder **PNG** speichern.
@@ -853,19 +907,23 @@ Menü bzw. Karten-Inspector erreichbar.
 
 1. Bild öffnen, im Schritt *Freistellen* **Zauberstab** auf das
    **Objekt** klicken.
-2. **Auswahl invertieren** (⌘⇧I) → jetzt ist der Hintergrund ausgewählt.
-3. Farbe wählen → **Farbe ersetzen**.
+2. Experten-Modus einschalten und **Auswahl invertieren** (⌘⇧I) → jetzt ist
+   der Hintergrund ausgewählt.
+3. **Farbe wählen** → **Farbe ersetzen**.
 4. Im Schritt *Export* speichern.
 
 ### E) Höhenrelief-Asset für EufyMake Studio
 
 1. Bild öffnen und freistellen.
 2. Im Schritt *Relief & Ebenen* **Höhenkarte aus Bild erzeugen**.
-3. Höhe im Abschnitt *Optimieren* nachschärfen (z. B. *Tonwert*, *Glättung*)
+3. Experten-Modus einschalten und die Höhe im Abschnitt *Optimieren*
+   nachschärfen (z. B. *Tonwert*, *Glättung*)
    und **Anwenden**.
 4. Im Schritt *Export* den Vorschau-Modus **Relief** oder über
    `Ansicht → Vorschaumodus` **Kombiniert** zur Kontrolle wählen.
-5. Karte *UV-Druck* → Befunde prüfen und exportieren.
+5. Im Experten-Modus die Karte *UV-Druck* öffnen, oder in beiden Modi
+   `Projekt → Assets für EufyMake Studio exportieren…` wählen; Befunde prüfen
+   und exportieren.
 
 ---
 
