@@ -486,8 +486,10 @@ Spiegeln, Ecken abrunden sowie unten die Zuschnitt-Formate.*
 
 ### Drehen
 
-- **Schnell-Drehung:** *90° links* und *90° rechts* sind in beiden Modi
-  sichtbar; *180°* und *270°* nur im Experten-Modus.
+- **Schnell-Drehung:** *90° links* und *90° rechts* sind in beiden Modi im
+  Inspector sichtbar. *180°* erscheint dort nur im Experten-Modus, bleibt
+  aber in beiden Modi über `Bearbeiten → 180° drehen` erreichbar. *270°* gibt
+  es nur im Experten-Inspector.
 - **Freier Winkel (nur im Experten-Modus):** Regler oder Eingabefeld von **−180° bis +180°**,
   anschließend **Winkel anwenden**. Bei schrägen Winkeln entstehen
   transparente Ecken.
@@ -657,12 +659,15 @@ wenn eine Höhen-Ebene aktiv ist.
   einer Meldung abgewiesen. Beim EufyMake-Export warnt BgRemover, wenn ein
   8-Bit-Ziel die intern 16-Bit geführten Höhen quantisieren würde.
 
-### Höhenkarten: Bearbeiten (nur im Experten-Modus)
+### Höhenkarten: Bearbeiten (Inspector-Bedienelemente nur im Experten-Modus)
 
-- **Aufhellen / Abdunkeln** – hebt die Höhe an oder senkt sie ab; die
-  **Stärke** steuert, wie stark. Für freihändiges Malen stehen im
-  Schritt *Relief & Ebenen* zusätzlich die gleichnamigen Pinsel-Werkzeuge
-  in der Werkzeugleiste bereit (siehe [Abschnitt 5](#5-die-werkzeugleiste-links)).
+Die folgenden Bedienelemente in der Karte erscheinen nur im Experten-Modus.
+Bei einer aktiven Höhen-Ebene bleiben die Pinsel **Aufhellen / Abdunkeln** in
+der linken Werkzeugleiste in beiden Modi sichtbar und bearbeiten die Höhe
+freihändig.
+
+- **Aufhellen / Abdunkeln (Regler)** – hebt die Höhe an oder senkt sie ab; die
+  **Stärke** steuert, wie stark.
 - **Höhe setzen** – setzt die Höhe auf einen festen **Wert**.
 - **Invertieren** – kehrt hoch und niedrig um.
 

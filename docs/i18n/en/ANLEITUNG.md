@@ -451,8 +451,10 @@ corners, and the crop formats at the bottom.*
 
 ### Rotate
 
-- **90° left / right:** available in standard and expert mode.
-- **180° / 270°:** additional quick rotations in expert mode.
+- **90° left / right:** visible in the inspector in standard and expert mode.
+- **180°:** its inspector button is expert-only, but `Edit → Rotate 180°`
+  remains available in both modes. **270°** is available only in the expert
+  inspector.
 - **Free angle (expert mode only):** slider or input field from **−180° to
   +180°**, then click **Apply angle**. Oblique angles produce transparent
   corners.
@@ -611,12 +613,14 @@ and Optimise sections are only active when a height layer is active.
   EufyMake export, BgRemover warns when an 8-bit target would quantize the
   internally 16-bit heights.
 
-### Height maps: Edit (expert mode only)
+### Height maps: Edit (inspector controls: expert mode only)
 
-- **Lighten / Darken** – raises or lowers the height; the **Strength**
-  controls how much. For freehand painting, the *Relief & Layers* step also
-  offers the same-named brush tools in the toolbar (see
-  [section 5](#5-the-toolbar-left)).
+The following card controls appear only in expert mode. With an active height
+layer, the **Lighten / Darken** brushes remain visible in the left toolbar in
+both modes and paint the height freehand.
+
+- **Lighten / Darken (sliders)** – raises or lowers the height; the
+  **Strength** controls how much.
 - **Set height** – sets the height to a fixed **value**.
 - **Invert** – swaps high and low.
 

@@ -496,8 +496,11 @@ redondear esquinas y, abajo, los formatos de recorte.*
 
 ### Rotar
 
-- **90° izquierda / derecha:** disponible en modo estándar y experto.
-- **180° / 270°:** rotaciones rápidas adicionales del modo experto.
+- **90° izquierda / derecha:** visibles en el inspector en modo estándar y
+  experto.
+- **180°:** su botón del inspector es exclusivo del modo experto, pero
+  `Edición → Girar 180°` sigue disponible en ambos modos. **270°** solo está
+  disponible en el inspector experto.
 - **Ángulo libre (solo en modo experto):** control deslizante o campo de
   entrada de **−180° a +180°**, luego **Aplicar ángulo**. Los ángulos
   oblicuos generan esquinas transparentes.
@@ -668,13 +671,15 @@ solo están activas cuando hay una capa de altura activa.
   mensaje. Al exportar para EufyMake, BgRemover avisa cuando un destino de
   8 bits cuantizaría las alturas internas de 16 bits.
 
-### Mapas de altura: editar (solo en modo experto)
+### Mapas de altura: editar (controles del inspector solo en modo experto)
 
-- **Aclarar / Oscurecer** – eleva o reduce la altura; la **Intensidad**
-  controla cuánto. Para pintar a mano alzada, el paso *Relieve y
-  capas* ofrece además las herramientas de pincel homónimas en la
-  barra de herramientas (consulta la
-  [sección 5](#5-la-barra-de-herramientas-izquierda)).
+Los siguientes controles de la tarjeta solo aparecen en modo experto. Con una
+capa de altura activa, los pinceles **Aclarar / Oscurecer** siguen visibles en
+la barra de herramientas izquierda en ambos modos y pintan la altura a mano
+alzada.
+
+- **Aclarar / Oscurecer (controles)** – eleva o reduce la altura; la
+  **Intensidad** controla cuánto.
 - **Establecer altura** – fija la altura a un **valor** determinado.
 - **Invertir** – intercambia alto y bajo.
 

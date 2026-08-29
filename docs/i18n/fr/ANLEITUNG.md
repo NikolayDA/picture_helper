@@ -499,8 +499,11 @@ retournement, arrondi des coins et, en bas, les formats de recadrage.*
 
 ### Pivoter
 
-- **90° à gauche / à droite :** disponibles en mode standard et expert.
-- **180° / 270° :** rotations rapides supplémentaires du mode expert.
+- **90° à gauche / à droite :** visibles dans l'inspecteur en mode standard
+  et expert.
+- **180° :** son bouton d'inspecteur est réservé au mode expert, mais
+  `Édition → Pivoter de 180°` reste disponible dans les deux modes. **270°**
+  n'est disponible que dans l'inspecteur expert.
 - **Angle libre (uniquement en mode expert) :** curseur ou champ de saisie
   de **−180° à +180°**, puis cliquez sur **Appliquer l'angle**. Les angles
   obliques produisent des coins transparents.
@@ -673,12 +676,15 @@ lorsqu'un calque de hauteur est actif.
   refusées avec un message. Lors de l'export EufyMake, BgRemover avertit
   quand une cible 8 bits quantifierait les hauteurs internes 16 bits.
 
-### Cartes de hauteur : modifier (uniquement en mode expert)
+### Cartes de hauteur : modifier (commandes d'inspecteur en mode expert)
 
-- **Éclaircir / Assombrir** – augmente ou diminue la hauteur ; l'**Intensité**
-  contrôle l'ampleur. Pour peindre à main levée, l'étape *Relief & calques*
-  propose en plus les outils pinceau de même nom dans la barre d'outils
-  (voir la [section 5](#5-la-barre-doutils-gauche)).
+Les commandes suivantes de la carte n'apparaissent qu'en mode expert. Avec un
+calque de hauteur actif, les pinceaux **Éclaircir / Assombrir** restent
+visibles dans la barre d'outils gauche dans les deux modes et peignent la
+hauteur à main levée.
+
+- **Éclaircir / Assombrir (commandes)** – augmente ou diminue la hauteur ;
+  l'**Intensité** contrôle l'ampleur.
 - **Définir la hauteur** – fixe la hauteur à une **valeur** déterminée.
 - **Inverser** – échange haut et bas.
 
