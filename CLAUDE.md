@@ -579,7 +579,11 @@ Workflows unter `.github/workflows/` (16):
 - **Test/Qualität:** `pr-ci.yml` (jeder PR, Ubuntu + Py3.12), `ci.yml` (volle
   Matrix Ubuntu/macOS × Py3.10–3.13; Kandidaten-Gate, wöchentlich und manuell —
   wird von `release-linux.yml` als wiederverwendbarer Workflow
-  aufgerufen), `ui-nightly.yml` (volle qtbot-Suite), `coverage.yml`,
+  aufgerufen; läuft `make pr-check` und seit #880 deshalb mit **vollem**
+  Checkout `fetch-depth: 0` — das darin enthaltene fail-closed Freeze-Gate
+  braucht Basis-Tag und First-Parent-Historie und scheiterte flach mit
+  `base-tag-missing`, und zwar erst im Kandidatenbau), `ui-nightly.yml`
+  (volle qtbot-Suite), `coverage.yml`,
   `benchmark.yml` (Baseline seit #546 als Workflow-Artefakt statt per Push
   nach `main`).
 - **Sicherheit/Abhängigkeiten:** `codeql.yml` (automatisierte SAST-Grundabdeckung
@@ -588,7 +592,13 @@ Workflows unter `.github/workflows/` (16):
   `scripts/create_security_scan_issues.py` als deduplizierte GitHub-Issues an),
   `dependency-audit.yml`
   (PR + montags), `license-check.yml` (braucht bewusst kein Qt,
-  `scripts/generate_license_report.py`),
+  `scripts/generate_license_report.py`; regeneriert `LICENSES.md` samt der
+  fünf Übersetzungen und vergleicht fail-closed gegen den committeten Stand.
+  Der „Stand:"-Stempel kommt seit #879 aus der **committeten Datei selbst**
+  statt aus `git log` – der Squash-Merge auf `main` trägt den Merge- statt
+  des Edit-Zeitpunkts und machte den Vergleich nach UTC-Mitternacht ohne
+  Snapshot-Änderung rot. Selbstbezüglich ist ausschließlich die Datumszeile;
+  `fetch-depth: 0` entfällt dadurch),
   `clamav-db-refresh.yml` (wöchentlich montags 03:00 UTC + manuell; füttert den
   rotierenden Signaturcache für den Artefakt-Malware-Scan, siehe
   *Artefakt-Sicherheitsscan* unten). Modell/Begründung:
@@ -809,6 +819,26 @@ Die Qt-apt-Paketliste muss in **sechs** Dateien identisch bleiben:
 `tests/test_ci_qt_packages.py` erzwingt das — beim Ändern einer Liste alle sechs
 anpassen, sonst schlägt der Test fehl (und `import PyQt6` bricht andernorts mit
 `libGL.so.1: cannot open shared object file`).
+
+Dasselbe Muster – eine handgepflegte Kopie gegen ihre Quelle, netzfrei und
+fail-closed – tragen inzwischen mehrere Wächter. Wer die Quelle ändert, ändert
+die Kopie mit; sonst bleibt `make check` grün und die Doku still falsch:
+
+- `tests/test_marker_governance.py` (#832/#845/#847/#852): die drei
+  Markerlisten `gl_smoke`/`ui`/`ui_smoke` in [`TESTING.md`](TESTING.md) gegen
+  die von pytest selbst gesammelten Marker (über das Mini-Plugin
+  `tests/_marker_collect_plugin.py`, nicht über `--collect-only`-Text).
+- `tests/test_license_check_date.py` (#879): den Datums-Ausdruck in
+  `license-check.yml` gegen die „Stand:"-Zeile, die
+  `scripts/generate_license_report.py` tatsächlich schreibt (inkl. Rückfall
+  unter `pipefail`).
+- `tests/test_process_documentation.py`: den Ein-Review-Trigger von
+  `claude-code-review.yml` gegen seine sechs Doku-Stellen und die
+  Quellworkflow-Liste des Live-Checks gegen ihre drei.
+- `tests/test_recommendations_freeze_consistency.py`: Kurzstatus-Datum und
+  Triage-Issue-Menge über alle sechs Sprachfassungen von `RECOMMENDATIONS.md`.
+- `tests/test_release_governance.py`: dass hier in CLAUDE.md kein
+  handgepflegter Release-Stand zurückkehrt (#737).
 
 ## Web-/Remote-Umgebung
 
