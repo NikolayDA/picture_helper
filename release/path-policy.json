@@ -340,6 +340,54 @@
       "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
     },
     {
+      "id": "recommendations-history-de",
+      "kind": "exact",
+      "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.md",
+      "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.md",
+      "reason": "Das archivierte Triage-Protokoll ist reine Statushistorie und kein Build-, Evidenz- oder Gate-Eingang.",
+      "evidence": ["Nur RECOMMENDATIONS.md verlinkt das Archiv; kein Skript, Test oder Workflow liest seinen Inhalt"]
+    },
+    {
+      "id": "recommendations-history-en",
+      "kind": "exact",
+      "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.en.md",
+      "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.en.md",
+      "reason": "Das archivierte Triage-Protokoll ist reine Statushistorie und kein Build-, Evidenz- oder Gate-Eingang.",
+      "evidence": ["Nur die englische RECOMMENDATIONS.md verlinkt das Archiv; kein Skript, Test oder Workflow liest seinen Inhalt"]
+    },
+    {
+      "id": "recommendations-history-es",
+      "kind": "exact",
+      "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.es.md",
+      "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.es.md",
+      "reason": "Das archivierte Triage-Protokoll ist reine Statushistorie und kein Build-, Evidenz- oder Gate-Eingang.",
+      "evidence": ["Nur die spanische RECOMMENDATIONS.md verlinkt das Archiv; kein Skript, Test oder Workflow liest seinen Inhalt"]
+    },
+    {
+      "id": "recommendations-history-fr",
+      "kind": "exact",
+      "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.fr.md",
+      "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.fr.md",
+      "reason": "Das archivierte Triage-Protokoll ist reine Statushistorie und kein Build-, Evidenz- oder Gate-Eingang.",
+      "evidence": ["Nur die französische RECOMMENDATIONS.md verlinkt das Archiv; kein Skript, Test oder Workflow liest seinen Inhalt"]
+    },
+    {
+      "id": "recommendations-history-uk",
+      "kind": "exact",
+      "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.uk.md",
+      "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.uk.md",
+      "reason": "Das archivierte Triage-Protokoll ist reine Statushistorie und kein Build-, Evidenz- oder Gate-Eingang.",
+      "evidence": ["Nur die ukrainische RECOMMENDATIONS.md verlinkt das Archiv; kein Skript, Test oder Workflow liest seinen Inhalt"]
+    },
+    {
+      "id": "recommendations-history-zh",
+      "kind": "exact",
+      "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.zh.md",
+      "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.zh.md",
+      "reason": "Das archivierte Triage-Protokoll ist reine Statushistorie und kein Build-, Evidenz- oder Gate-Eingang.",
+      "evidence": ["Nur die chinesische RECOMMENDATIONS.md verlinkt das Archiv; kein Skript, Test oder Workflow liest seinen Inhalt"]
+    },
+    {
       "id": "release-runbook-dry-run-2026-08-01",
       "kind": "exact",
       "path": "docs/history/RELEASE-RUNBOOK-DRY-RUN-2026-08-01.md",
@@ -448,12 +496,6 @@
     {"id": "application", "kind": "prefix", "path": "bgremover/", "sample_path": "bgremover/app.py", "reason": "Anwendungscode und eingebettete Ressourcen werden ausgeliefert."},
     {"id": "packaging", "kind": "prefix", "path": "packaging/", "sample_path": "packaging/linux/build_appimage.sh", "reason": "Packaging-Dateien steuern Bundle-Inhalt, Metadaten und Startverhalten."},
     {"id": "app-screenshot-sets", "kind": "prefix", "path": "app_screenshots/", "sample_path": "app_screenshots/bgremover_complete_20260828_184550/manifest.md", "reason": "Screenshot-Sets und ihre Manifeste sind Eingaben der Doku-Referenz- und Provenienztests; ein neues Set bestimmt, welche Referenzen als aktuell gelten."},
-    {"id": "recommendations-history-de", "kind": "exact", "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.md", "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.md", "reason": "Das Recommendations-Archiv bildet die versionierte Historie der aktuellen deutschen Triage."},
-    {"id": "recommendations-history-en", "kind": "exact", "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.en.md", "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.en.md", "reason": "Das Recommendations-Archiv bildet die versionierte Historie der aktuellen englischen Triage."},
-    {"id": "recommendations-history-es", "kind": "exact", "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.es.md", "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.es.md", "reason": "Das Recommendations-Archiv bildet die versionierte Historie der aktuellen spanischen Triage."},
-    {"id": "recommendations-history-fr", "kind": "exact", "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.fr.md", "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.fr.md", "reason": "Das Recommendations-Archiv bildet die versionierte Historie der aktuellen französischen Triage."},
-    {"id": "recommendations-history-uk", "kind": "exact", "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.uk.md", "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.uk.md", "reason": "Das Recommendations-Archiv bildet die versionierte Historie der aktuellen ukrainischen Triage."},
-    {"id": "recommendations-history-zh", "kind": "exact", "path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.zh.md", "sample_path": "docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.zh.md", "reason": "Das Recommendations-Archiv bildet die versionierte Historie der aktuellen chinesischen Triage."},
     {"id": "release-scripts", "kind": "prefix", "path": "scripts/", "sample_path": "scripts/verify_release_freeze.py", "reason": "Skripte erzeugen oder prüfen Build-, Release- und Abnahme-Evidenz."},
     {"id": "tests", "kind": "prefix", "path": "tests/", "sample_path": "tests/test_release_freeze.py", "reason": "Tests definieren Gate-Semantik und müssen Kandidatenänderungen absichern."},
     {"id": "dependency-constraints", "kind": "prefix", "path": "requirements/", "sample_path": "requirements/constraints.txt", "reason": "Gepinnte Build- und Laufzeitabhängigkeiten beeinflussen Artefakte und Audits."},

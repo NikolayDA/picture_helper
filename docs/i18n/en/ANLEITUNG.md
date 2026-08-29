@@ -112,9 +112,12 @@ shown. A fresh installation starts in **standard mode**, which keeps the
 common workflow compact. Expert mode adds specialised tools for fine
 selection work, free transformations, layer construction, height-map
 editing, previews, and UV-print export. Your choice is saved and restored at
-the next start. Switching modes never discards changes or values; it only
-hides or reveals controls. Hover the switch for a compact overview and the
-keyboard shortcut.
+the next start. Switching modes preserves image and project changes as well as
+values that have already been applied. **Exception:** an unapplied live preview
+in the expert-only *Height maps: Optimise* section is discarded when switching
+to standard mode because the hidden section is collapsed; stored height data
+and applied changes remain intact. Hover the switch for a compact overview;
+keyboard users can focus it to read the same tooltip.
 
 ![Standard mode in the Cut out step](../../../app_screenshots/bgremover_complete_20260828_184550/07_mode_standard.png)
 

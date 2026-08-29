@@ -131,11 +131,14 @@ expliziter `historical-freeze-2.8.0`-Eintrag schloss diese Lücke, analog zum
 `historical-freeze-2.7.3`-Eintrag beim vorherigen Rollover.
 
 Version `7` klassifiziert zusätzlich die durch #878 neu erzeugten
-Screenshot-Sets sowie sechs Recommendations-Archive als kandidatenrelevante
-Test- und Governance-Evidenz. Diese Pfade waren zuvor fail-closed blockierend;
-ihre Aufnahme in die positive Regelmenge ändert daher die Policy-Semantik und
-erfordert gemäß ADR-Nachtrag vom 2026-08-25 einen Versionssprung. Die 15 mit
-#861 ergänzten, rein release-neutralen Doku-Pfade bleiben davon unberührt.
+Screenshot-Sets als kandidatenrelevante Testevidenz: Der Doku-Referenztest
+ermittelt aus diesem Verzeichnis das neueste Set und prüft dessen Manifest.
+Der zuvor unbekannte und damit fail-closed blockierende Pfad wird dadurch zu
+einem erlaubten Gate-Eingang; diese Änderung erfordert gemäß ADR-Nachtrag vom
+2026-08-25 einen Versionssprung. Die sechs dabei angelegten
+Recommendations-Archive sind dagegen als release-neutrale Statushistorie
+einzeln nachgewiesen. Die 15 mit #861 ergänzten, ebenfalls release-neutralen
+Doku-Pfade bleiben davon unberührt.
 
 ## Verbindliche Konsistenzprüfungen
 

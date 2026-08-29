@@ -82,7 +82,7 @@ Der Lauf nutzt In-Memory-QSettings, damit echte macOS-App-Preferences unveraende
 
 ## 3D-Renderer-Provenienz
 
-- Aufnahmezeit: `2026-08-29T00:16:48+02:00`
+- Aufnahmezeit: `2026-08-29T09:25:10+02:00`
 - Qt-Plattform: `cocoa`
 - Betriebssystem/Architektur: `Darwin 25.6.0 (arm64)`
 - OpenGL Vendor / Renderer / Version: `Apple / Apple M3 Max / 2.1 Metal - 90.5`

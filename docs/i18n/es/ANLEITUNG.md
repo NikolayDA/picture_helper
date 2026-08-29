@@ -119,9 +119,13 @@ opciones se muestran. Una instalación nueva comienza en **modo estándar**,
 con el flujo habitual reducido a lo esencial. El modo experto añade las
 herramientas especializadas para selección precisa, transformaciones libres,
 capas, mapas de altura, vistas previas y exportación UV. La elección se guarda
-y se restaura al volver a abrir la aplicación. Cambiar de modo no descarta
-cambios ni valores: solo oculta o muestra controles. La descripción emergente
-del interruptor resume las diferencias y el atajo de teclado.
+y se restaura al volver a abrir la aplicación. Cambiar de modo conserva los
+cambios de imagen y proyecto y los valores ya aplicados. **Excepción:** una
+vista previa en vivo aún no aplicada de la sección exclusiva del modo experto
+*Mapas de altura: Optimizar* se descarta al pasar al modo estándar, porque la
+sección oculta se pliega; los datos de altura guardados y los cambios aplicados
+se conservan. La descripción emergente resume las diferencias y también se
+puede leer enfocando el interruptor con el teclado.
 
 ![Modo estándar en el paso Quitar fondo](../../../app_screenshots/bgremover_complete_20260828_184550/07_mode_standard.png)
 

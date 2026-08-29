@@ -121,10 +121,14 @@ de commandes affichées. Une nouvelle installation démarre en **mode
 standard**, qui limite le parcours courant à l'essentiel. Le mode expert
 ajoute les outils spécialisés pour les sélections précises, transformations
 libres, calques, cartes de hauteur, aperçus et export UV. Le choix est
-enregistré et restauré au prochain démarrage. Changer de mode ne supprime
-aucune modification ni valeur : seules les commandes sont masquées ou
-affichées. L'infobulle de l'interrupteur résume les différences et le
-raccourci clavier.
+enregistré et restauré au prochain démarrage. Changer de mode conserve les
+modifications de l'image et du projet ainsi que les valeurs déjà appliquées.
+**Exception :** un aperçu en direct non appliqué dans la section réservée au
+mode expert *Cartes de hauteur : Optimiser* est annulé lors du passage au mode
+standard, car la section masquée est repliée ; les données de hauteur
+enregistrées et les modifications appliquées sont conservées. L'infobulle
+résume les différences et reste lisible lorsque l'interrupteur reçoit le focus
+au clavier.
 
 ![Mode standard à l'étape Détourer](../../../app_screenshots/bgremover_complete_20260828_184550/07_mode_standard.png)
 

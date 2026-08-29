@@ -421,7 +421,10 @@ def main() -> int:
     window._right_panel.expert_toggle.setChecked(True)
     process(80)
     snap(window._right_panel.frame, "08_mode_expert.png", "Inspector im Experten-Modus")
-    window._right_panel.expert_toggle.setChecked(False)
+    # Die folgenden Workflow- und Funktionsbilder dokumentieren auch
+    # Detailwerkzeuge. Deshalb bleiben sie nach dem direkten Modusvergleich
+    # bewusst im Experten-Modus sichtbar.
+    window._right_panel.expert_toggle.setChecked(True)
     process(80)
 
     toolbar = window.toolbar

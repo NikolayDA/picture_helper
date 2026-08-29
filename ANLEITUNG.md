@@ -115,7 +115,11 @@ Ansichten um. Eine neue Installation startet im **Standard-Modus** und zeigt
 pro Schritt nur die wichtigsten Bedienelemente. Der **Experten-Modus** blendet
 alle zusätzlichen Werkzeuge und Detailoptionen ein. Die Wahl wird gespeichert
 und beim nächsten Start wiederhergestellt; beim Umschalten gehen weder Bild-
-noch Projektänderungen oder eingestellte Werte verloren. Der Tooltip des
+noch Projektänderungen oder bereits angewendete Werte verloren. **Ausnahme:**
+Eine noch nicht angewendete Live-Vorschau im Experten-Abschnitt
+*Höhenkarten: Optimieren* wird beim Wechsel in den Standard-Modus verworfen,
+weil der dann ausgeblendete Abschnitt eingeklappt wird; gespeicherte Höhendaten
+und bereits angewendete Änderungen bleiben erhalten. Der Tooltip des
 Umschalters nennt den aktiven Modus und lässt sich auch per Tastaturfokus lesen.
 
 ![Karten-Inspector im Standard-Modus](app_screenshots/bgremover_complete_20260828_184550/07_mode_standard.png)
@@ -372,8 +376,8 @@ Detailwerkzeuge.
 
 ![Der Schritt „Freistellen"](app_screenshots/bgremover_complete_20260828_184550/11_step_2_cutout.png)
 
-*Schritt 2 „Freistellen" im Standard-Modus: KI, Zauberstab-Toleranz und
-transparentes Entfernen bleiben direkt erreichbar.*
+*Schritt 2 „Freistellen" im Experten-Modus: oben der KI-Button, darunter
+Werkzeug-Einstellungen, Auswahl-Aktionen und „Hintergrund bearbeiten".*
 
 ### KI-Hintergrundentfernung
 
