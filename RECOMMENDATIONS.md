@@ -61,7 +61,7 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
 |---|-------|----------|--------------|-------------------------------|-------------------|
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake-Zielprofil – Height/Gloss/mm-DPI validieren | 🟠 Hoch (Korrektheit des wichtigsten Exportziels) | 🔴 Hoch (5 Teil-Issues, physische Hardware nötig) | – (Epic) | #687-Vorbereitung bei 16/18 AC; I-06 und Abschluss-Review bleiben offen, die Profilintegration #691 wartet auf die Realtests #688–#690 |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Annahmeninventar, Herstellerquellen, Testmatrix | 🟠 Hoch (verbindliche Grundlage für #688–#691) | 🔴 Hoch (Vorbereitung abgeschlossen; Rest braucht reale Studio-/Druckerhardware) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – 16/18 Akzeptanzkriterien erledigt; offen sind I-06 für Ordner/Manifest und die Abschluss-Review nach den Realtests aus #688–#690 |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Annahmeninventar, Herstellerquellen, Testmatrix | 🟠 Hoch (verbindliche Grundlage für #688–#691) | 🔴 Hoch (eigene Deliverables fertig; Fixture-/Zellenlücken aus #688–#690 offen, Rest braucht reale Hardware) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – 16/18 Akzeptanzkriterien erledigt; offen sind I-06 für Ordner/Manifest und die Abschluss-Review nach den Realtests aus #688–#690 |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | HEIGHT-Bittiefe/-Semantik auf realer Hardware validieren | 🟠 Hoch (Reliefhöhe direkt betroffen) | 🔴 Hoch (physischer Drucker, Fixtures, Messprotokoll) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) + Vorarbeit offen – Fixtures/Protokollvorlagen aus #687 liegen vor, aber Alpha/Coverage hat weder Fixture noch Testzelle (alle COLOR-Fixtures opak) und es fehlt ein COLOR/HEIGHT-Paar mit gleichem Pixelmaß (I-02/I-08 konfundiert); vor dem Testtag ergänzen |
 | [#689](https://github.com/NikolayDA/picture_helper/issues/689) | mm/DPI, Zielgröße, Positionierungsvertrag validieren | 🟠 Hoch (Druckgröße/Registrierung) | 🔴 Hoch (physische Messungen, Kontrollmotive) | – (kein Agent; reale Hardware nötig) | Blocked (extern) + Vorarbeit offen – Startgröße im Studio-Importdialog aus `pHYs`/DPI unbelegt (N10, EM-F04); zusätzlich referenziert Zelle I-06 das Fixture- statt eines echten Export-Manifests, und nicht quadratische DPI sind weder getestet noch begründet ausgeschlossen |
 | [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Gloss-/Klarlack-Semantik validieren | 🟡 Mittel (Gloss ist laut Code bereits „experimental“) | 🔴 Hoch (physische Drucke, Materialverbrauch) | – (kein Agent; reale Hardware nötig) | Blocked (extern) + Vorarbeit offen – Vorarbeit aus #687 nur teilweise: genau eine Gloss-Zelle (I-10), keine Alpha-/Coverage-Fixtures, keine abweichende Gloss-Dimension, Gloss × HEIGHT ungekreuzt |
@@ -104,9 +104,9 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 ### Als Nächstes empfohlen
 
 1. **#692** (ADR) öffnet den COLOR-Epic #682.
-2. Sobald Studio-/Druckerhardware verfügbar ist: die bereits vorbereiteten Realtests aus #687
-   (Rest, insbesondere I-06), #688, #689 und #690 in einer gebündelten Session ausführen – Fixtures,
-   Protokollvorlagen und freigegebene Abbruchkriterien liegen bereits vollständig vor.
+2. Vor der nächsten Studio-/Druckersession zuerst die in #688–#690 dokumentierten Lücken im
+   Fixture-/Zellensatz schließen (Alpha/Coverage, COLOR/HEIGHT-Paar gleicher Größe, Gloss-Zellen,
+   echtes Export-Manifest für I-06); danach #687 (Rest), #688, #689 und #690 gebündelt ausführen.
 3. **#883** (MAS-Lizenzstrategie) entscheidet über den Mac-App-Store-Pfad #882 –
    ohne diesen Owner-Entscheid bleibt die gesamte Kette #884–#907 blockiert.
 

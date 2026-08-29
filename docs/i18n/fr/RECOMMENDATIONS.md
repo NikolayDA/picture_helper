@@ -62,7 +62,7 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | # | Titre | Pertinence | Complexité | Modèle recommandé (effort) | Prochaine étape |
 |---|-------|------------|------------|------------------------------|------------------|
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épopée] Profil cible EufyMake – valider Height/Gloss/mm-DPI | 🟠 Élevée (justesse de la principale cible d'export) | 🔴 Élevée (5 sous-tickets, matériel physique requis) | – (épopée) | Préparation #687 à 16/18 CA ; I-06 et revue finale restent, tandis que #691 attend les tests réels #688–#690 |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventaire des hypothèses, sources fabricant, matrice de tests | 🟠 Élevée (base contraignante pour #688–#691) | 🔴 Élevée (préparation terminée ; le reste nécessite du matériel réel) | – (aucun agent ; matériel EufyMake réel requis) | Bloquée (externe) – 16/18 critères remplis ; restent I-06 dossier/manifeste et la revue finale après #688–#690 |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventaire des hypothèses, sources fabricant, matrice de tests | 🟠 Élevée (base contraignante pour #688–#691) | 🔴 Élevée (livrables propres terminés ; lacunes fixtures/cellules de #688–#690 ouvertes, le reste nécessite du matériel réel) | – (aucun agent ; matériel EufyMake réel requis) | Bloquée (externe) – 16/18 critères remplis ; restent I-06 dossier/manifeste et la revue finale après #688–#690 |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Valider la profondeur de bits/sémantique HEIGHT sur matériel réel | 🟠 Élevée (affecte directement la hauteur du relief) | 🔴 Élevée (imprimante physique, gabarits, journal de mesures) | – (aucun agent ; matériel EufyMake réel requis) | Bloqué (externe) + travail préparatoire incomplet – les fixtures/modèles de protocole de #687 sont disponibles, mais Alpha/couverture n'a ni fixture ni cellule de test (toutes les fixtures COLOR sont opaques) et il manque une paire COLOR/HEIGHT de mêmes dimensions en pixels (I-02/I-08 confondus) ; à compléter avant le jour des tests |
 | [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Valider le contrat mm/DPI, taille cible, positionnement | 🟠 Élevée (taille d'impression/registration) | 🔴 Élevée (mesures physiques, motifs de contrôle) | – (aucun agent ; matériel réel requis) | Bloqué (externe) + travail préparatoire incomplet – la taille de départ dérivée de `pHYs`/DPI dans la boîte de dialogue d'import de Studio reste non prouvée (N10, EM-F04) ; de plus, la cellule I-06 référence le manifeste des fixtures et non un véritable manifeste d'export, et les DPI non carrés ne sont ni testés ni exclus de façon motivée |
 | [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Valider la sémantique gloss/vernis | 🟡 Moyenne (gloss déjà marqué « expérimental » dans le code) | 🔴 Élevée (impressions physiques, consommation de matériau) | – (aucun agent ; matériel réel requis) | Bloqué (externe) + travail préparatoire incomplet – le travail préparatoire de #687 n'est que partiel : exactement une cellule gloss (I-10), aucune fixture Alpha/couverture, aucune dimension gloss divergente, gloss × HEIGHT non croisés |
@@ -105,9 +105,10 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 ### Recommandé ensuite
 
 1. **#692** (ADR) ouvre l'épopée COLOR #682.
-2. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée
-   les tests réels déjà préparés de #687 (reste, notamment I-06), #688, #689 et #690 – fixtures,
-   modèles de protocole et critères d'abandon approuvés sont déjà entièrement prêts.
+2. Avant la prochaine session Studio/imprimante, combler d'abord les lacunes de fixtures/cellules
+   documentées dans #688–#690 (alpha/couverture, une paire COLOR/HEIGHT de même taille, cellules
+   gloss, un vrai manifeste d'export pour I-06) ; ensuite exécuter #687 (reste), #688, #689 et
+   #690 en une seule session groupée.
 3. **#883** (stratégie de licence MAS) décide la voie Mac App Store #882 : sans
    cette décision de l'owner, toute la chaîne #884–#907 reste bloquée.
 
