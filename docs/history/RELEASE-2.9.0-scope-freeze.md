@@ -140,6 +140,11 @@ Recommendations-Archive sind dagegen als release-neutrale Statushistorie
 einzeln nachgewiesen. Die 15 mit #861 ergänzten, ebenfalls release-neutralen
 Doku-Pfade bleiben davon unberührt.
 
+Der **veröffentlichte** Kandidat v2.9.0 (`d31073c7495ae9fd55501f595e8bda6cbcf4007b`, Tag `v2.9.0`) wurde noch
+unter Policy-Version `6` gebaut, abgenommen und veröffentlicht; die
+unveränderliche Freeze-Provenienz jenes Kandidatenlaufs hält diesen Stand
+fest. Version `7` greift erst ab dem nächsten Kandidatenbau.
+
 ## Verbindliche Konsistenzprüfungen
 
 Das Gate prüft am Laufkopf:
