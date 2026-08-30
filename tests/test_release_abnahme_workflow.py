@@ -259,6 +259,24 @@ def test_workflow_watchdog_force_cancels_queued_preflights() -> None:
     assert "orce-cancel" in text
 
 
+def test_candidate_source_hard_aborts_on_a_foreign_dispatch_ref() -> None:
+    """#918: Der Release laeuft auf `release/vX.Y.Z` statt auf `main`.
+
+    Damit traegt der Ref-Name noch weniger als vorher – umso wichtiger ist,
+    dass der SHA-Vergleich in `candidate-source` das harte Gate bleibt: ein
+    Dispatch auf einem fremden Ref (versehentlich `main`, verwechselte
+    Version) bricht ab, statt eine Abnahme auf fremdem Code zu erzeugen.
+    """
+    text = _workflow_text()
+    assert "SOURCE_HEAD_SHA: ${{ steps.contract.outputs.head_sha }}" in text
+    guard = text.split("Abnahme-Workflow an exakt denselben Commit binden", maxsplit=1)[1]
+    guard = guard.split("- name:", maxsplit=1)[0]
+    assert 'test "$SOURCE_HEAD_SHA" = "$GITHUB_SHA"' in guard
+    assert "exit 1" in guard
+    # Kein Ref-Name als Ersatzkriterium: Der Vergleich laeuft ueber den SHA.
+    assert "github.ref" not in guard
+
+
 def test_both_arm64_jobs_fetch_the_predecessor_for_the_update_proof() -> None:
     """#917: Der macOS-Job spiegelt den Linux-Vorgängerbezug.
 

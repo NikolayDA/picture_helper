@@ -743,7 +743,8 @@ Entscheidung: ADR
 [`docs/history/ADR-2026-release-manifest-publish.md`](docs/history/ADR-2026-release-manifest-publish.md).
 
 - **Unterkommandos:** `prepare-candidate` / `create-approval` /
-  `verify-approval` / `verify-artifacts` / `plan-publish` sowie die
+  `verify-approval` / `verify-release-ref` / `verify-artifacts` /
+  `plan-publish` sowie die
   Checklisten-Seite `validate-checklist` / `extract-instance` /
   `set-criterion` / `validate-instance`. `release-abnahme.yml` ruft
   `prepare-candidate`, `create-approval` und `extract-instance` auf,
@@ -785,6 +786,21 @@ Entscheidung: ADR
   (#760). Bei Wiederholungsläufen wird der jüngste Freeze-Provenienz-Versuch
   gewählt, **alle** heruntergeladenen Versuche werden validiert, und
   mehrdeutige Versuchsnummern brechen ab (#761).
+- **Release-Ref statt `main`-Freeze (#918):** Ein Release läuft vollständig auf
+  dem unveränderlichen Branch `release/vX.Y.Z`, der exakt auf den
+  Kandidaten-Commit zeigt — `main` bleibt dabei mergebar (bei v2.9.0 war es
+  ~47,5 h eingefroren). Die Beweiskette hängt weiterhin am SHA, nicht am
+  Ref-Namen: `candidate-source` vergleicht `GITHUB_SHA` gegen den
+  Kandidaten-SHA und bleibt das harte Gate; der Publish-Job checkt den
+  Kandidaten aus dem **Manifest** aus, nicht aus dem Dispatch-Ref.
+  `release_contract.py verify-release-ref` ist die vorgelagerte, netzfreie
+  Kontrolle (Ref-Schema, Commit-Objekt, SHA-Gleichheit) vor **jedem** der vier
+  Dispatches — ein Kommando statt vier kopierter Shell-Blöcke. Eingekauft wird
+  damit, dass die Workflow-**Definition** vom Kandidaten-Commit stammt: ein
+  später auf `main` gemergter Prozessfix wirkt erst ab dem nächsten Kandidaten
+  (dieselbe bewusste Eigenschaft wie beim Aggregations-Job, RELEASE_AUTOMATION
+  §4.1). Entscheidung, Bedrohungsmodell und Ref-Lebenszyklus: ADR
+  [`docs/history/ADR-2026-release-ref-entkopplung.md`](docs/history/ADR-2026-release-ref-entkopplung.md).
 - **Kanonische Prozessquelle (#745):**
   [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md) ist das einzige Runbook
   (neun Schritte inkl. Hotfix/Rollback/Wiederanlauf), Übungsprotokoll unter

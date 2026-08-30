@@ -12,7 +12,7 @@ maschinenlesbare Provenienz außerhalb der Git-Historie gespeichert (siehe
 - **Basis-Tag:** `v2.8.0` (= `1bf95b08453b92a6d66cfc13622211bdf47cc5e2`)
 - **Kandidatenversion:** `2.9.0`
 - **Release-Scope:** `minor-release-2.9.0`
-- **Pfadpolicy:** `release/path-policy.json` (Version `7`)
+- **Pfadpolicy:** `release/path-policy.json` (Version `8`)
 
 Der volle Basis-SHA ist unveränderlich. Der Tagname allein genügt nicht: Das
 Gate weist ein verschobenes Tag zurück. Die Policy-Version bindet die Semantik,
@@ -140,10 +140,19 @@ Recommendations-Archive sind dagegen als release-neutrale Statushistorie
 einzeln nachgewiesen. Die 15 mit #861 ergänzten, ebenfalls release-neutralen
 Doku-Pfade bleiben davon unberührt.
 
+Version `8` klassifiziert die mit #918 entstandene
+[`ADR-2026-release-ref-entkopplung.md`](ADR-2026-release-ref-entkopplung.md)
+als kandidatenrelevant — dieselbe Vertragsklasse wie die übrigen
+Release-Prozess-ADRs (Freeze-Provenienz, Manifest-Publish, ClamAV-Cache): Sie
+legt fest, auf welchem Ref ein Release läuft und wie dessen Unveränderlichkeit
+erzwungen wird. Ohne Eintrag blieb der Pfad unbekannt und blockierte
+fail-closed — genau die vorgesehene Wirkung, hier im PR statt im
+Kandidatenbau.
+
 Der **veröffentlichte** Kandidat v2.9.0 (`d31073c7495ae9fd55501f595e8bda6cbcf4007b`, Tag `v2.9.0`) wurde noch
 unter Policy-Version `6` gebaut, abgenommen und veröffentlicht; die
 unveränderliche Freeze-Provenienz jenes Kandidatenlaufs hält diesen Stand
-fest. Version `7` greift erst ab dem nächsten Kandidatenbau.
+fest. Die Versionen `7` und `8` greifen erst ab dem nächsten Kandidatenbau.
 
 ## Verbindliche Konsistenzprüfungen
 

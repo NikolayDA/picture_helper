@@ -270,6 +270,17 @@ Checklisten-Version, ihren Dateihash und den Kandidaten-Commit. Veröffentlichun
 Wiederholung, Teilzustände und Rollback sind ausschließlich in Schritt 6 bis 9
 des [Release-Runbooks](RELEASE_PROCESS.md) beschrieben.
 
+**Release-Ref statt `main` (#918):** Alle vier Release-Dispatches
+(Kandidatenbau, Abnahme, Publish, Post-Release-Nachweis) laufen auf dem
+unveränderlichen Branch `release/vX.Y.Z`, der exakt auf den Kandidaten-Commit
+zeigt; `main` bleibt während des gesamten Releases mergebar. Vor jedem Dispatch
+prüft `release_contract.py verify-release-ref`, dass der Ref dem Namensschema
+folgt, auf ein Commit-Objekt zeigt und den erwarteten SHA trägt — vorgelagert
+zum harten SHA-Gate in `candidate-source`, nicht als dessen Ersatz.
+Entscheidung, Bedrohungsmodell und Lebenszyklus des Refs:
+[ADR](history/ADR-2026-release-ref-entkopplung.md); Prozedur im
+[Release-Runbook](RELEASE_PROCESS.md).
+
 **Ref-Bindung des Aggregations-Jobs (#829, Befund 2):** Keiner der
 `actions/checkout`-Schritte in `release-abnahme.yml` setzt `ref:` – auch der
 Aggregations-Job läuft damit auf dem Ref, gegen den der Workflow dispatcht

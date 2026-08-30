@@ -217,6 +217,94 @@ def test_manifest_schema_binds_runs_head_tag_provenance_platforms_and_five_hashe
     assert manifest["release_instance"]["candidate_sha"] == HEAD
 
 
+# ── Release-Ref statt main-Freeze (#918) ────────────────────────────────────
+
+
+def _ref_payload(sha: str = HEAD, *, ref: str = "refs/heads/release/v2.7.2",
+                 kind: str = "commit") -> dict:
+    """Antwort von ``gh api repos/OWNER/REPO/git/ref/heads/release/vX.Y.Z``."""
+    return {"ref": ref, "object": {"type": kind, "sha": sha}}
+
+
+def test_release_ref_must_point_at_the_candidate_commit() -> None:
+    assert rc.validate_release_ref(
+        _ref_payload(), expected_ref=f"release/{TAG}", expected_sha=HEAD
+    ) == HEAD
+
+
+def test_release_ref_rejects_a_ref_that_moved_off_the_candidate() -> None:
+    """Der Kernfall: ein nachtraeglich bewegter oder verwechselter Ref.
+
+    Ohne diese Pruefung liefe der Dispatch auf fremdem Code – erkannt erst im
+    ``candidate-source``-Gate der Abnahme, also nach dem Lauf.
+    """
+    with pytest.raises(rc.ContractError, match="zeigt auf b{40}"):
+        rc.validate_release_ref(
+            _ref_payload("b" * 40), expected_ref=f"release/{TAG}", expected_sha=HEAD
+        )
+
+
+def test_release_ref_rejects_another_ref_and_non_commit_targets() -> None:
+    # Verwechselter Ref: Die Antwort gehoert zu main statt zum Release-Ref.
+    with pytest.raises(rc.ContractError, match="refs/heads/main"):
+        rc.validate_release_ref(
+            _ref_payload(ref="refs/heads/main"),
+            expected_ref=f"release/{TAG}", expected_sha=HEAD,
+        )
+    # Annotiertes Tag: der SHA waere der des Tag-Objekts, nicht des Commits.
+    with pytest.raises(rc.ContractError, match="statt auf einen Commit"):
+        rc.validate_release_ref(
+            _ref_payload(kind="tag"), expected_ref=f"release/{TAG}", expected_sha=HEAD
+        )
+    with pytest.raises(rc.ContractError, match="ohne Objektangabe"):
+        rc.validate_release_ref(
+            {"ref": f"refs/heads/release/{TAG}"},
+            expected_ref=f"release/{TAG}", expected_sha=HEAD,
+        )
+
+
+@pytest.mark.parametrize(
+    "ref",
+    [
+        "main",
+        "hotfix/v2.7.2",
+        "release/2.7.2",
+        "release/v2.7",
+        # Dieselbe Versionsregel wie der uebrige Vertrag (_SEMVER_RE), nicht eine
+        # zweite, laxere: keine fuehrenden Nullen, keine 0-Hauptversion, kein
+        # Vorabsuffix. Der Ref entsteht aus RELEASE_TAG = "v${RELEASE_VERSION}".
+        "release/v01.2.3",
+        "release/v0.1.0",
+        "release/v2.7.2-rc1",
+    ],
+)
+def test_release_ref_enforces_the_naming_scheme(ref: str) -> None:
+    """Nur ``release/vX.Y.Z``: Das Ruleset schuetzt genau dieses Muster."""
+    with pytest.raises(rc.ContractError, match="Schema"):
+        rc.validate_release_ref(_ref_payload(), expected_ref=ref, expected_sha=HEAD)
+
+
+def test_release_ref_uses_the_same_version_rule_as_the_rest_of_the_contract() -> None:
+    """Zwei Versionsschemata in einer Datei waeren der Anfang der Drift."""
+    assert rc._SEMVER_RE.pattern.strip("^$") in rc._RELEASE_REF_RE.pattern
+
+
+def test_acceptance_run_on_a_foreign_ref_is_rejected() -> None:
+    """Das harte Gate bleibt der SHA-Vergleich, nicht der Ref-Name (#918).
+
+    Ein Lauf, der auf einem anderen Commit startete – etwa versehentlich auf
+    ``main`` dispatcht –, wird abgewiesen, auch wenn Run-ID und Workflow
+    stimmen.
+    """
+    with pytest.raises(rc.ContractError, match="gehoert zu"):
+        rc.validate_workflow_run(
+            _run(ACCEPTANCE_RUN_ID, rc.ACCEPTANCE_WORKFLOW, head="c" * 40),
+            expected_run_id=ACCEPTANCE_RUN_ID,
+            expected_workflow=rc.ACCEPTANCE_WORKFLOW,
+            expected_head_sha=HEAD,
+        )
+
+
 def test_versioned_checklist_has_exact_scope_stable_ids_and_required_fields() -> None:
     checklist = rc.load_release_checklist(CHECKLIST)
     assert checklist["checklist_version"] == "2.0.0"

@@ -50,6 +50,16 @@ _CHECKLIST_TABLE_ROW_RE = re.compile(
     r"\|\s*(?P<owner>[^|]+?)\s*\|"
 )
 _SEMVER_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+$")
+#: Namensschema des unveraenderlichen Release-Refs (#918). Ein Branch, damit
+#: Ruleset/Branch-Protection ihn gegen Force-Push und Nachschub schuetzen
+#: koennen - Tags tragen diesen Schutz nicht in gleicher Form.
+RELEASE_REF_PREFIX: Final = "release/"
+#: Bewusst dieselbe Versionsregel wie ueberall sonst im Vertrag: Der Ref wird
+#: aus RELEASE_TAG = "v${RELEASE_VERSION}" gebildet, zwei Versionsschemata in
+#: einer Datei waeren der Anfang genau der Drift, die dieses Repo festnagelt.
+_RELEASE_REF_RE = re.compile(
+    rf"^{RELEASE_REF_PREFIX}v(?:{_SEMVER_RE.pattern.strip('^$')})$"
+)
 
 CHECKLIST_STATES: Final = ("PASS", "FAIL", "WAIVED", "NOT_APPLICABLE", "PENDING")
 CHECKLIST_PHASES: Final = ("pre-release", "publish", "post-release")
@@ -618,6 +628,54 @@ def validate_workflow_run(
         "workflow": workflow,
         "head_sha": head_sha,
     }
+
+
+def validate_release_ref(
+    payload: dict[str, Any], *, expected_ref: str, expected_sha: str
+) -> str:
+    """Prueft eine ``git/ref``-Antwort gegen Ref-Namen und Kandidaten-SHA (#918).
+
+    Der Release laeuft seit #918 auf einem unveraenderlichen
+    ``release/vX.Y.Z``-Branch statt auf ``main``; ``main`` bleibt waehrenddessen
+    mergebar. Die Beweiskette traegt weiterhin der SHA, nicht der Ref-Name -
+    diese Pruefung ist die *vorgelagerte* Kontrolle, damit ein verwechselter
+    oder nachtraeglich bewegter Ref auffaellt, **bevor** ein Dispatch laeuft,
+    statt erst im ``candidate-source``-Gate der Abnahme.
+
+    Bewusst netzfrei: Der Aufrufer reicht die Antwort von
+    ``gh api repos/OWNER/REPO/git/ref/heads/release/vX.Y.Z`` als JSON herein -
+    dasselbe Muster wie bei den Run-Metadaten in ``verify-approval``. Damit ist
+    die Regel testbar, ohne GitHub zu befragen.
+
+    Liefert den bestaetigten SHA; jede Abweichung wirft.
+    """
+    if not _RELEASE_REF_RE.fullmatch(expected_ref):
+        raise ContractError(
+            f"Release-Ref muss dem Schema {RELEASE_REF_PREFIX}vX.Y.Z entsprechen: {expected_ref!r}"
+        )
+    expected_sha = _full_sha(expected_sha, "release_ref.expected_sha")
+    actual_ref = str(payload.get("ref") or "")
+    if actual_ref != f"refs/heads/{expected_ref}":
+        raise ContractError(
+            f"Ref-Antwort gehoert zu {actual_ref!r}, erwartet refs/heads/{expected_ref}"
+        )
+    obj = payload.get("object")
+    if not isinstance(obj, dict):
+        raise ContractError(f"Ref {expected_ref} ohne Objektangabe")
+    target = cast(dict[str, Any], obj)
+    # Ein annotiertes Tag-Objekt zeigt nur mittelbar auf den Commit; die
+    # Gleichheitspruefung waere dann gegen den Tag-SHA statt gegen den Commit.
+    if target.get("type") != "commit":
+        raise ContractError(
+            f"Ref {expected_ref} zeigt auf {target.get('type')!r} statt auf einen Commit"
+        )
+    actual_sha = _full_sha(target.get("sha"), "release_ref.object.sha")
+    if actual_sha != expected_sha:
+        raise ContractError(
+            f"Ref {expected_ref} zeigt auf {actual_sha}, erwartet ist {expected_sha} - "
+            "Kandidat verwerfen oder Ref korrigieren, nicht dispatchen."
+        )
+    return actual_sha
 
 
 def _release_files(directory: Path) -> dict[str, Path]:
@@ -1336,6 +1394,11 @@ def _parser() -> argparse.ArgumentParser:
     verify.add_argument("--tag-sha")
     verify.add_argument("--checklist", type=Path)
 
+    release_ref = commands.add_parser("verify-release-ref")
+    release_ref.add_argument("--ref-json", type=Path, required=True)
+    release_ref.add_argument("--ref", required=True)
+    release_ref.add_argument("--expected-sha", required=True)
+
     artifacts = commands.add_parser("verify-artifacts")
     artifacts.add_argument("--manifest", type=Path, required=True)
     artifacts.add_argument("--directory", type=Path, required=True)
@@ -1419,6 +1482,13 @@ def main(argv: list[str] | None = None) -> int:
                     "version": candidate["version"],
                 }
             )
+        elif args.command == "verify-release-ref":
+            sha = validate_release_ref(
+                _load_json(args.ref_json),
+                expected_ref=args.ref,
+                expected_sha=args.expected_sha,
+            )
+            print(f"Release-Ref {args.ref} zeigt auf {sha}.")
         elif args.command == "verify-artifacts":
             verify_artifact_directory(_load_json(args.manifest), args.directory)
         elif args.command == "plan-publish":

@@ -30,6 +30,8 @@ bestanden sind.
 - `main` enthält sämtliche Release-Änderungen und ist lokal aktuell.
 - `gh auth status` ist erfolgreich; Release-Owner darf Workflows starten und Releases verwalten.
 - Die selbst gehosteten Runner `macos-arm64` und `linux-arm64` sind online und haben eine grafische Sitzung.
+- Ein Repository-Ruleset schützt `release/*` gegen Force-Push, weitere Commits und Löschen durch Nicht-Owner (#918).
+- Die drei Release-Workflows bleiben während eines laufenden Releases unter ihren Pfaden auf `main` vorhanden: `workflow_dispatch` löst laut GitHub-Referenz nur aus, wenn die Workflow-Datei auf dem Default-Branch existiert („This event will only trigger a workflow run if the workflow file exists on the default branch"). Ausgeführt wird danach die Definition aus `$RELEASE_REF`. Ein Merge, der eine dieser Dateien auf `main` umbenennt oder entfernt, blockiert also die restlichen Dispatches — siehe Wiederanlaufmatrix.
 - Ein offenes Release-Issue dient als Entscheidungsprotokoll; seine Nummer wird als `RELEASE_ISSUE` verwendet.
 - Kandidaten-, Abnahme- und Publish-Run-ID, vollständiger Commit-SHA, Tag und Manifestname werden im Issue notiert.
 - Actions-Artefakte werden 90 Tage aufbewahrt. Ein abgelaufenes Artefakt darf nie durch einen anderen Lauf ersetzt werden.
@@ -40,6 +42,9 @@ GitHub-Ansicht übernehmen, nicht erraten:
 ```bash
 RELEASE_VERSION="X.Y.Z"
 RELEASE_TAG="v${RELEASE_VERSION}"
+# Unveraenderlicher Release-Ref (#918): traegt alle vier Dispatches, damit
+# main waehrend des Releases mergebar bleibt.
+RELEASE_REF="release/${RELEASE_TAG}"
 RELEASE_ISSUE="ISSUE_NUMMER"
 CANDIDATE_RUN_ID="RUN_ID"
 ACCEPTANCE_RUN_ID="RUN_ID"
@@ -97,24 +102,75 @@ Der Laufkopf ist der Kandidat. Unbekannte oder kandidatenrelevante Änderungen
 nach der abgeleiteten Basis blockieren fail-closed; ein manueller SHA-Ledger
 wird nicht gepflegt.
 
-**Output/Evidenz:** lokale Freeze-Provenienz als Vorprüfung; später die unveränderliche
-`release-freeze-provenance-<attempt>` aus dem Kandidatenlauf.
-**Erwartetes Ergebnis:** Policy, Basis, Pfade und Kandidaten-SHA sind widerspruchsfrei.
+Lege den Kandidaten jetzt auf dem unveränderlichen Release-Ref fest. Ab hier
+laufen **alle** Dispatches auf diesem Ref, und `main` bleibt mergebar (#918,
+[ADR](history/ADR-2026-release-ref-entkopplung.md)):
+
+```bash
+CANDIDATE_SHA="$(git rev-parse HEAD)"
+# Ein bereits existierender Ref bedeutet einen abgebrochenen frueheren Versuch.
+# Er wird bewusst entschieden (loeschen oder neue Patch-Version), nie ueberschrieben.
+# Fail-closed in alle drei Richtungen: nur Exit 2 ("Ref fehlt") legt an, Exit 0
+# ("existiert") und jeder andere Ausgang (Netz/Auth, 128) brechen ab. Ein bloss
+# vorangestellter Guard wuerde den Push ohne `set -e` nicht binden – dieselbe
+# Falle wie bei den Dispatches unten.
+git ls-remote --exit-code origin "refs/heads/${RELEASE_REF}" >/dev/null 2>&1
+case $? in
+  # Leerer Erwartungswert hinter dem Doppelpunkt heisst "der Ref darf nicht
+  # existieren": Der Push selbst ist damit anlege-only und kann einen
+  # vorhandenen Ref auch bei Fast-Forward nicht still bewegen.
+  2) git push origin --force-with-lease="refs/heads/${RELEASE_REF}:" \
+       "${CANDIDATE_SHA}:refs/heads/${RELEASE_REF}" ;;
+  0) echo "Release-Ref ${RELEASE_REF} existiert bereits – bewusst entscheiden, nicht ueberschreiben." >&2
+     false ;;
+  *) echo "Ref-Existenz nicht feststellbar (Netz/Auth) – Ref nicht anlegen." >&2
+     false ;;
+esac
+```
+
+Prüfe danach, dass das Ruleset für `release/*` tatsächlich greift — nicht in der
+Weboberfläche, sondern an den aktiven Regeln des konkreten Refs:
+
+```bash
+gh api "repos/NikolayDA/picture_helper/rules/branches/${RELEASE_REF}" \
+  --jq '[.[].type] | sort | unique'
+```
+
+Erwartet werden mindestens `non_fast_forward` (kein Force-Push), `update`
+(keine weiteren Commits) und `deletion`. Eine leere Liste bedeutet: Der Ref ist
+ungeschützt — dann nicht weitermachen, sondern das Ruleset in Ordnung bringen.
+Der Ref ist ein Branch und kein Tag, weil nur Branches diesen Schutz tragen.
+
+**Output/Evidenz:** lokale Freeze-Provenienz als Vorprüfung; Release-Ref mit aufgelöstem SHA im Issue;
+später die unveränderliche `release-freeze-provenance-<attempt>` aus dem Kandidatenlauf.
+**Erwartetes Ergebnis:** Policy, Basis, Kandidaten-SHA und Release-Ref sind widerspruchsfrei.
 **Fehler/Wiederanlauf:** Pfadklassifikation oder Dokumentation per PR korrigieren und bei Schritt 1 neu beginnen.
 Ein alter Kandidatenlauf bleibt historische Evidenz, wird aber nicht weiterverwendet.
+Ein Release-Ref auf dem verworfenen Kandidaten wird gelöscht, bevor der neue entsteht.
 
 ### 3. Unveränderlichen Kandidaten bauen
 
-**Trigger:** Freeze-Vorprüfung ist grün und der gewünschte SHA liegt auf `main`.
+**Trigger:** Freeze-Vorprüfung ist grün und der Release-Ref zeigt auf den Kandidaten.
 **Owner:** Release-Owner startet; CI baut.
-**Input:** `main`, `with_ai=true`.
+**Input:** `$RELEASE_REF`, `with_ai=true`.
 
 ```bash
-gh workflow run release-linux.yml --ref main -f with_ai=true
-gh run list --workflow release-linux.yml --branch main --event workflow_dispatch --limit 5
+gh api "repos/NikolayDA/picture_helper/git/ref/heads/${RELEASE_REF}" > /tmp/release-ref.json
+python scripts/release_contract.py verify-release-ref \
+  --ref-json /tmp/release-ref.json --ref "$RELEASE_REF" --expected-sha "$CANDIDATE_SHA" \
+  && gh workflow run release-linux.yml --ref "$RELEASE_REF" -f with_ai=true
+gh run list --workflow release-linux.yml --branch "$RELEASE_REF" --event workflow_dispatch --limit 5
 gh run watch "$CANDIDATE_RUN_ID" --exit-status
 gh run view "$CANDIDATE_RUN_ID" --json headSha,conclusion,url
 ```
+
+Die Ref-Prüfung **bedingt** jeden Dispatch (`&&`, nicht nur davorstehend): Sie
+fängt einen verwechselten oder nachträglich bewegten Ref ab, bevor ein Lauf
+startet, statt erst im `candidate-source`-Gate der Abnahme. `&&` statt
+`set -e`, damit ein Fehlschlag in einer interaktiven Shell diese nicht beendet.
+Ein leerer oder unvollständiger `CANDIDATE_SHA` scheitert dabei ebenfalls — die
+Prüfung verlangt einen vollständigen 40-stelligen Commit-SHA. Das harte Gate
+bleibt `candidate-source`; diese Prüfung ersetzt es nicht.
 
 Übernimm die Run-ID erst, nachdem `headSha` dem in Schritt 2 notierten Commit
 entspricht. Der Workflow führt Full CI aus, baut exakt fünf Dateien und legt
@@ -169,31 +225,31 @@ Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdr
 
 ```bash
 CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
-MAIN_SHA="$(gh api "repos/NikolayDA/picture_helper/commits/main" --jq .sha)"
-if [ -z "$CANDIDATE_SHA" ] || [ -z "$MAIN_SHA" ] || [ "$MAIN_SHA" != "$CANDIDATE_SHA" ]; then
-  echo "Kandidat oder main ist nicht verifizierbar beziehungsweise main ist weitergelaufen – Kandidat verwerfen, neu ab Schritt 1." >&2
-  false
-else
-  gh workflow run release-abnahme.yml --ref main \
-    -f run_id="$CANDIDATE_RUN_ID" \
-    -f platforms=alle \
-    -f dry_run=false \
-    -f target_issue="$RELEASE_ISSUE"
-  gh run list --workflow release-abnahme.yml --branch main --event workflow_dispatch --limit 5
-  gh run watch "$ACCEPTANCE_RUN_ID" --exit-status
-fi
+gh api "repos/NikolayDA/picture_helper/git/ref/heads/${RELEASE_REF}" > /tmp/release-ref.json
+python scripts/release_contract.py verify-release-ref \
+  --ref-json /tmp/release-ref.json --ref "$RELEASE_REF" --expected-sha "$CANDIDATE_SHA" \
+  && gh workflow run release-abnahme.yml --ref "$RELEASE_REF" \
+  -f run_id="$CANDIDATE_RUN_ID" \
+  -f platforms=alle \
+  -f dry_run=false \
+  -f target_issue="$RELEASE_ISSUE"
+gh run list --workflow release-abnahme.yml --branch "$RELEASE_REF" --event workflow_dispatch --limit 5
+gh run watch "$ACCEPTANCE_RUN_ID" --exit-status
 ```
 
-`CANDIDATE_SHA` ist der vollständige `headSha` aus Schritt 3. `MAIN_SHA` wird
-klonunabhängig direkt aus dem kanonischen GitHub-Repository gelesen. Ein
-leerer Wert oder eine Abweichung liefert mit `false` einen Fehlerstatus, ohne
-eine interaktive Shell zu beenden. In diesem Fall darf die Abnahme nicht auf
-`main` gestartet werden: Der Kandidat wird verworfen und der Ablauf beginnt
-mit dem aktuellen Stand bei Schritt 1. Ein temporärer Branch oder Tag auf dem
-alten Kandidaten ist in diesem Verfahren bewusst kein erlaubter Wiederanlauf;
-eine solche Optimierung braucht zuerst eine eigene, fail-closed abgesicherte
-Prozessentscheidung. Der Workflow erzwingt die SHA-Bindung zusätzlich, indem
-`candidate-source` den Workflow-SHA mit dem Kandidaten-SHA vergleicht.
+`CANDIDATE_SHA` ist der vollständige `headSha` aus Schritt 3. Die
+Ref-Prüfung liest den Ref klonunabhängig direkt aus dem kanonischen
+GitHub-Repository und bricht mit Exit 2 ab, wenn er nicht exakt auf diesen SHA
+zeigt oder auf ein Nicht-Commit-Objekt verweist. Ein Merge nach `main`
+verbrennt den Kandidaten seit #918 **nicht** mehr: Der Kandidat liegt auf dem
+geschützten Release-Ref, `main` darf weiterlaufen. Was weiterhin gilt: Auf den
+Release-Ref wird **nichts nachgeschoben** — er zeigt exakt auf den
+Kandidaten-SHA, oder der Lauf bricht ab; ein Fix bedeutet neuen Kandidaten ab
+Schritt 1. Der Workflow erzwingt die SHA-Bindung zusätzlich, indem
+`candidate-source` den Workflow-SHA mit dem Kandidaten-SHA vergleicht — das
+bleibt das harte technische Gate, die Ref-Prüfung ist ihm nur vorgelagert.
+Entscheidung und Bedrohungsmodell:
+[ADR](history/ADR-2026-release-ref-entkopplung.md).
 
 Vor den Hardware-Jobs lädt `candidate-source` exakt die Produktdateien und die
 Freeze-Provenienz aus dem Kandidatenlauf, validiert Anzahl, Namen, Größen,
@@ -280,13 +336,19 @@ und neu setzen. Sobald ein Release oder externer Download existiert, Tag nie ver
 **Input:** Tag, Kandidaten-Run-ID, Abnahme-Run-ID, exakter Manifestname und optional das Release-Issue.
 
 ```bash
-gh workflow run release-publish.yml --ref main \
+# Wie in Schritt 5 aus dem Kandidatenlauf abgeleitet: Schritt 8 liegt oft Tage
+# und eine neue Shell spaeter, in der CANDIDATE_SHA nicht mehr gesetzt ist.
+CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
+gh api "repos/NikolayDA/picture_helper/git/ref/heads/${RELEASE_REF}" > /tmp/release-ref.json
+python scripts/release_contract.py verify-release-ref \
+  --ref-json /tmp/release-ref.json --ref "$RELEASE_REF" --expected-sha "$CANDIDATE_SHA" \
+  && gh workflow run release-publish.yml --ref "$RELEASE_REF" \
   -f tag="$RELEASE_TAG" \
   -f candidate_run_id="$CANDIDATE_RUN_ID" \
   -f acceptance_run_id="$ACCEPTANCE_RUN_ID" \
   -f approval_artifact_name="$APPROVAL_ARTIFACT_NAME" \
   -f target_issue="$RELEASE_ISSUE"
-gh run list --workflow release-publish.yml --branch main --event workflow_dispatch --limit 5
+gh run list --workflow release-publish.yml --branch "$RELEASE_REF" --event workflow_dispatch --limit 5
 ```
 
 Der Publish-Workflow baut nichts neu. Er prüft Tag, Runs, Commit,
@@ -365,7 +427,11 @@ Lauf erbringt:
 
 ```bash
 # Beide Kanäle in einem Lauf (Regelfall seit #917):
-gh workflow run release-abnahme.yml --ref "$RELEASE_TAG" \
+CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
+gh api "repos/NikolayDA/picture_helper/git/ref/heads/${RELEASE_REF}" > /tmp/release-ref.json
+python scripts/release_contract.py verify-release-ref \
+  --ref-json /tmp/release-ref.json --ref "$RELEASE_REF" --expected-sha "$CANDIDATE_SHA" \
+  && gh workflow run release-abnahme.yml --ref "$RELEASE_REF" \
   -f run_id="$CANDIDATE_RUN_ID" \
   -f platforms=alle \
   -f dry_run=false \
@@ -391,9 +457,10 @@ auf `WAIVED` gesetzt.
 Für `workflow_dispatch` definiert GitHub `GITHUB_SHA` als den letzten Commit
 des ausgewählten Branches oder Tags
 ([Ereignisreferenz](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)).
-Der in Schritt 7 erzeugte annotierte Release-Tag löst hier deshalb auf den
-Kandidaten-Commit auf, nicht auf den separaten Tag-Objekt-SHA. Der zusätzliche
-Vergleich in `candidate-source` bleibt als fail-closed Sicherung bestehen.
+Der Release-Ref zeigt direkt auf den Kandidaten-Commit, `GITHUB_SHA` ist damit
+genau dieser SHA. Der zusätzliche Vergleich in `candidate-source` bleibt als
+fail-closed Sicherung bestehen. Der Release-Ref wird deshalb **erst nach
+diesem Schritt** entbehrlich; bis dahin bleibt er stehen.
 
 Der Lauf zieht das Vorgängerartefakt je Plattform anonym über
 `browser_download_url` und führt den Update-Check **aus dem gepackten Artefakt**
@@ -457,6 +524,14 @@ python scripts/release_contract.py validate-instance \
 gh issue comment "$RELEASE_ISSUE" --body-file /tmp/release-acceptance-instance.json
 ```
 
+Nach Abschluss ist der Release-Ref entbehrlich — der Tag hält denselben Commit
+unveränderlich fest. Ein Löschen ist **optional** und bleibt dem Release-Owner
+vorbehalten; ein stehengelassener, geschützter Ref ist harmlos:
+
+```bash
+git push origin --delete "$RELEASE_REF"   # optional, erst nach Schritt 9
+```
+
 **Output/Evidenz:** finale Kriterienmatrix mit URLs/Hashes im Release-Issue; geschlossenes #748-Folgeissue.
 **Erwartetes Ergebnis:** Publish- und Post-Release-Pflichten sind `PASS`; Release-Issue kann geschlossen werden.
 **Fehler/Wiederanlauf:** Öffentlicher Download-, Versions- oder Updatefehler ist ein Incident.
@@ -501,6 +576,9 @@ Ablauf; ältere Tag-basierte oder manuelle Veröffentlichungswege sind ungültig
 |---|---|---|
 | Build-Infrastruktur fällt aus, SHA unverändert | neuer Kandidatenlauf auf demselben SHA ab Schritt 3 | alte und neue Run-ID mischen |
 | Code, Doku oder Policy ändert sich | neuer Kandidat ab Schritt 1 | alte Abnahme weiterverwenden |
+| **Merge nach `main` während eines laufenden Releases** | **kein Wiederanlauf nötig — der Kandidat liegt auf dem geschützten Release-Ref und bleibt gültig (#918)** | auf den Release-Ref nachschieben, um `main` einzuholen |
+| Release-Ref zeigt nicht auf den Kandidaten-SHA (verwechselt, bewegt) | Ursache klären; bei falschem Ref den richtigen dispatchen, bei bewegtem Ref Kandidat verwerfen und ab Schritt 1 neu | Ref zurücksetzen und so tun, als sei nichts geschehen |
+| Merge nach `main` entfernt oder benennt eine der drei Release-Workflow-Dateien um | Pfad auf `main` per PR wiederherstellen (Datei muss dort existieren, damit `workflow_dispatch` überhaupt auslöst), danach denselben Dispatch auf `$RELEASE_REF` wiederholen — der Kandidat bleibt gültig | Workflow ersatzweise auf `main` starten oder den Ref anpassen |
 | Abnahme-Runner fällt aus oder der Watchdog bricht wegen Offline-Runner ab (#915) | Runner wieder online bringen, neuer Abnahmelauf mit derselben Kandidaten-Run-ID | fehlende Plattform als `PASS` markieren |
 | Fachlicher Hardware-Smoke schlägt fehl | Fix-PR und neuer Kandidat ab Schritt 1 | Waiver für nicht waiverfähiges `MUST` |
 | Kandidaten-/Manifestartefakt nach 90 Tagen abgelaufen | neuer Kandidat ab Schritt 1 | gleichnamiges Artefakt aus anderem Lauf einsetzen |
@@ -535,6 +613,7 @@ nur per PR zusammen mit Checklisten-/Workflow-Tests.
 
 | Datum | Änderung | Referenz |
 |---|---|---|
+| 2026-08-30 | Release läuft auf dem unveränderlichen `release/vX.Y.Z`-Ref statt auf `main`; `MAIN_SHA`-Gleichheitsprüfung durch `verify-release-ref` ersetzt, `main` bleibt mergebar; Ref-Anlage anlege-only, Ruleset-Prüfung maschinell, Default-Branch-Voraussetzung von `workflow_dispatch` dokumentiert | #918 |
 | 2026-08-30 | `UPDATE-01` in `UPDATE-LINUX-ARM-01`/`UPDATE-MACOS-ARM-01` geteilt; macOS-Nachweis über den In-Prozess-Hook, `platforms`-Wahl in Schritt 9 beschrieben (Checkliste 2.0.0) | #917 |
 | 2026-08-30 | `PUBLIC-DOWNLOAD-01` als anonymer Nachweis-Job im Publish-Workflow; Schritt 8/9 auf den Bericht umgestellt, Handprozedur bleibt Rückfallweg (Checkliste 1.1.0) | #916 |
 | 2026-08-30 | Runner-Readiness-Preflight und Queue-Watchdog in Schritt 5; Abschlussmatrix unvollständiger Läufe als Diagnose gekennzeichnet | #915 |
