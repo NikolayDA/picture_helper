@@ -54,7 +54,12 @@ _SEMVER_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+$")
 #: Ruleset/Branch-Protection ihn gegen Force-Push und Nachschub schuetzen
 #: koennen - Tags tragen diesen Schutz nicht in gleicher Form.
 RELEASE_REF_PREFIX: Final = "release/"
-_RELEASE_REF_RE = re.compile(r"^release/v(\d+\.\d+\.\d+(?:[.-][0-9A-Za-z.]+)?)$")
+#: Bewusst dieselbe Versionsregel wie ueberall sonst im Vertrag: Der Ref wird
+#: aus RELEASE_TAG = "v${RELEASE_VERSION}" gebildet, zwei Versionsschemata in
+#: einer Datei waeren der Anfang genau der Drift, die dieses Repo festnagelt.
+_RELEASE_REF_RE = re.compile(
+    rf"^{RELEASE_REF_PREFIX}v(?:{_SEMVER_RE.pattern.strip('^$')})$"
+)
 
 CHECKLIST_STATES: Final = ("PASS", "FAIL", "WAIVED", "NOT_APPLICABLE", "PENDING")
 CHECKLIST_PHASES: Final = ("pre-release", "publish", "post-release")

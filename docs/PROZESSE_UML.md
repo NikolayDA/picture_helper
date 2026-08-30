@@ -426,13 +426,13 @@ flowchart TD
   subgraph OWN["Partition: Release-Owner"]
     direction TB
     S1["Schritt 1 · Release vorbereiten<br/>main aktuell, Version aus pyproject, CHANGELOG und Release-Text prüfen<br/>release_contract.py validate-checklist · pytest tests/test_markdown_links.py"]
-    S2["Schritt 2 · Kandidatenstand einfrieren<br/>scripts/verify_release_freeze.py, Laufkopf ist der Kandidat"]
+    S2["Schritt 2 · Kandidatenstand einfrieren<br/>scripts/verify_release_freeze.py, Laufkopf ist der Kandidat<br/>Release-Ref release/vX.Y.Z anlegen, anlege-only, Ruleset prüfen"]
     SQ1{"Freeze konsistent?"}
     S2F["Pfadklassifikation oder Doku per PR korrigieren<br/>zurück zu Schritt 1, nicht taggen"]
-    S3["Schritt 3 · Kandidatenbau starten<br/>gh workflow run release-linux.yml -f with_ai=true"]
+    S3["Schritt 3 · Kandidatenbau starten<br/>verify-release-ref, dann gh workflow run release-linux.yml --ref RELEASE_REF -f with_ai=true"]
     S4["Schritt 4 · Kandidatenartefakte und Sicherheitsbefunde vorprüfen<br/>Build-Container, Freeze-Provenienz und Logs; noch kein Kandidatenvertrag"]
     SQ2{"Artefakte plausibel und kein Malware-Fund?"}
-    SQ4{"main zeigt noch auf den Kandidaten-SHA?"}
+    SQ4{"Zeigt der Release-Ref auf den Kandidaten-SHA?<br/>release_contract.py verify-release-ref"}
     S6["Schritt 6 · Freigabemanifest und Release-Instanz abnehmen<br/>extract-instance · validate-instance --through-phase pre-release"]
     SQ3{"Alle Pre-Release-MUST auf PASS?"}
   end
@@ -449,7 +449,7 @@ flowchart TD
 
   subgraph HW["Partition: Hardware-Abnahme · release-abnahme.yml"]
     direction TB
-    H0["Schritt 5 · Abnahme starten<br/>--ref main · run_id des Kandidaten · platforms=alle · dry_run=false · target_issue"]
+    H0["Schritt 5 · Abnahme starten<br/>--ref RELEASE_REF · run_id des Kandidaten · platforms=alle · dry_run=false · target_issue"]
     H1["candidate-source<br/>fünf Dateien laden, Hashes prüfen, release-candidate-contract-&lt;attempt&gt; erzeugen<br/>und Workflow-SHA hart an den Kandidaten binden"]
     HF["Fork"]:::bar
     H2["macOS arm64<br/>DMG-Start, Retina, natives 3D, E2E, GL-Suite"]
@@ -465,7 +465,7 @@ flowchart TD
   SQ1 -->|"ja"| S3 --> B1 --> B2 --> B3 --> B4 --> B5 --> B6 --> S4 --> SQ2
   SQ2 -->|"nein · Fund oder Artefaktfehler"| NOGO["No-Go protokollieren<br/>Kandidat verwerfen, Ursache per PR beheben, neu ab Schritt 1"]
   SQ2 -->|"ja"| SQ4
-  SQ4 -->|"nein · main ist weitergelaufen"| NOGO
+  SQ4 -->|"nein · Ref bewegt oder verwechselt"| NOGO
   SQ4 -->|"ja"| H0 --> H1 --> HF
   HF --> H2 --> HJ
   HF --> H3 --> HJ
@@ -488,9 +488,9 @@ flowchart TD
   subgraph OWN["Partition: Release-Owner"]
     direction TB
     T1["Schritt 7 · Tag setzen<br/>git tag -a auf candidate.head_sha aus dem Manifest, prüfen, pushen"]
-    T2["Schritt 8 · Veröffentlichung starten<br/>gh workflow run release-publish.yml mit tag, candidate_run_id, acceptance_run_id, approval_artifact_name"]
+    T2["Schritt 8 · Veröffentlichung starten<br/>verify-release-ref, dann gh workflow run release-publish.yml --ref RELEASE_REF<br/>mit tag, candidate_run_id, acceptance_run_id, approval_artifact_name"]
     T3["Schritt 9 · öffentliche Prüfung<br/>alle fünf Assets anonym über browser_download_url laden und Hashes vergleichen"]
-    T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>release-abnahme.yml --ref RELEASE_TAG, gleiche run_id,<br/>platforms=alle, predecessor_tag, target_issue"]
+    T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>release-abnahme.yml --ref RELEASE_REF, gleiche run_id,<br/>platforms=alle, predecessor_tag, target_issue"]
     T5["Instanz pflegen<br/>set-criterion für PUBLISH-01 bis 03, PUBLIC-DOWNLOAD-01, UPDATE-LINUX-ARM-01, UPDATE-MACOS-ARM-01<br/>validate-instance --through-phase post-release, Kommentar ins Release-Issue"]
   end
 
@@ -541,8 +541,10 @@ flowchart TD
   `candidate-source` am Anfang von `release-abnahme.yml` lädt die fünf Dateien,
   prüft ihre Metadaten und Hashes und veröffentlicht
   `release-candidate-contract-<attempt>`. Weil dieser Job außerdem
-  `GITHUB_SHA` hart mit dem Kandidaten-SHA vergleicht, darf Schritt 5 auf
-  `--ref main` nur starten, solange `main` noch exakt auf dem Kandidaten steht.
+  `GITHUB_SHA` hart mit dem Kandidaten-SHA vergleicht, muss Schritt 5 auf dem
+  unveränderlichen Release-Ref `release/vX.Y.Z` starten (#918). `main` darf
+  seit dieser Entscheidung während des Releases weiterlaufen; ein Dispatch auf
+  `main` bräche in `candidate-source` hart ab.
 - Der Publish-Lauf baut nichts. Seine einzige Dateiquelle ist die im Manifest
   gebundene Build-Run-ID; veröffentlicht werden genau die Bytes, deren SHA-256
   im Manifest stehen.
@@ -563,12 +565,19 @@ flowchart TD
   blockieren den Tag nicht, aber den Abschluss des Release-Issues;
   `CHECK_FAILED` gilt nie als „kein Update“. `platforms=alle` erbringt beide in
   einem Lauf; der macOS-Kanal setzt einen Vorgänger ab v2.7.3 voraus (#917). Der erneute
-  Abnahme-Lauf muss mit `--ref "$RELEASE_TAG"` auf dem Kandidaten-Commit laufen,
-  nicht auf einem möglicherweise weitergelaufenen `main`. Bei
+  Abnahme-Lauf muss mit `--ref "$RELEASE_REF"` auf dem Kandidaten-Commit laufen,
+  nicht auf `main`. Bei
   `workflow_dispatch` ist `GITHUB_SHA` laut
   [GitHub-Ereignisreferenz](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)
   der letzte Commit des ausgewählten Branches oder Tags; auch der annotierte
   Release-Tag bindet den Lauf daher an den Kandidaten-Commit statt an den
   Tag-Objekt-SHA.
+- Der Dispatch auf einen anderen Ref als `main` enthebt nicht der
+  Grundvoraussetzung: „This event will only trigger a workflow run if the
+  workflow file exists on the default branch"
+  ([GitHub-Ereignisreferenz](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)).
+  Die drei Workflow-Dateien müssen während eines laufenden Releases unter
+  ihren Pfaden auf `main` bestehen bleiben; ausgeführt wird danach die
+  Definition aus dem gewählten Ref.
 - Ein Hotfix überspringt keinen Schritt: neue Patch-Version, neuer Kandidat,
   neue Abnahme, neues Manifest, neuer Tag.

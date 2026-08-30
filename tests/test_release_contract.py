@@ -263,11 +263,30 @@ def test_release_ref_rejects_another_ref_and_non_commit_targets() -> None:
         )
 
 
-@pytest.mark.parametrize("ref", ["main", "hotfix/v2.7.2", "release/2.7.2", "release/v2.7"])
+@pytest.mark.parametrize(
+    "ref",
+    [
+        "main",
+        "hotfix/v2.7.2",
+        "release/2.7.2",
+        "release/v2.7",
+        # Dieselbe Versionsregel wie der uebrige Vertrag (_SEMVER_RE), nicht eine
+        # zweite, laxere: keine fuehrenden Nullen, keine 0-Hauptversion, kein
+        # Vorabsuffix. Der Ref entsteht aus RELEASE_TAG = "v${RELEASE_VERSION}".
+        "release/v01.2.3",
+        "release/v0.1.0",
+        "release/v2.7.2-rc1",
+    ],
+)
 def test_release_ref_enforces_the_naming_scheme(ref: str) -> None:
     """Nur ``release/vX.Y.Z``: Das Ruleset schuetzt genau dieses Muster."""
     with pytest.raises(rc.ContractError, match="Schema"):
         rc.validate_release_ref(_ref_payload(), expected_ref=ref, expected_sha=HEAD)
+
+
+def test_release_ref_uses_the_same_version_rule_as_the_rest_of_the_contract() -> None:
+    """Zwei Versionsschemata in einer Datei waeren der Anfang der Drift."""
+    assert rc._SEMVER_RE.pattern.strip("^$") in rc._RELEASE_REF_RE.pattern
 
 
 def test_acceptance_run_on_a_foreign_ref_is_rejected() -> None:

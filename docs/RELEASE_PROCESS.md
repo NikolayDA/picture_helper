@@ -31,6 +31,7 @@ bestanden sind.
 - `gh auth status` ist erfolgreich; Release-Owner darf Workflows starten und Releases verwalten.
 - Die selbst gehosteten Runner `macos-arm64` und `linux-arm64` sind online und haben eine grafische Sitzung.
 - Ein Repository-Ruleset schützt `release/*` gegen Force-Push, weitere Commits und Löschen durch Nicht-Owner (#918).
+- Die drei Release-Workflows bleiben während eines laufenden Releases unter ihren Pfaden auf `main` vorhanden: `workflow_dispatch` löst laut GitHub-Referenz nur aus, wenn die Workflow-Datei auf dem Default-Branch existiert („This event will only trigger a workflow run if the workflow file exists on the default branch"). Ausgeführt wird danach die Definition aus `$RELEASE_REF`. Ein Merge, der eine dieser Dateien auf `main` umbenennt oder entfernt, blockiert also die restlichen Dispatches — siehe Wiederanlaufmatrix.
 - Ein offenes Release-Issue dient als Entscheidungsprotokoll; seine Nummer wird als `RELEASE_ISSUE` verwendet.
 - Kandidaten-, Abnahme- und Publish-Run-ID, vollständiger Commit-SHA, Tag und Manifestname werden im Issue notiert.
 - Actions-Artefakte werden 90 Tage aufbewahrt. Ein abgelaufenes Artefakt darf nie durch einen anderen Lauf ersetzt werden.
@@ -127,9 +128,18 @@ case $? in
 esac
 ```
 
-Prüfe danach, dass das Ruleset für `release/*` greift (Force-Push, weitere
-Commits und Löschen durch Nicht-Owner sind blockiert). Der Ref ist ein Branch
-und kein Tag, weil nur Branches diesen Schutz tragen.
+Prüfe danach, dass das Ruleset für `release/*` tatsächlich greift — nicht in der
+Weboberfläche, sondern an den aktiven Regeln des konkreten Refs:
+
+```bash
+gh api "repos/NikolayDA/picture_helper/rules/branches/${RELEASE_REF}" \
+  --jq '[.[].type] | sort | unique'
+```
+
+Erwartet werden mindestens `non_fast_forward` (kein Force-Push), `update`
+(keine weiteren Commits) und `deletion`. Eine leere Liste bedeutet: Der Ref ist
+ungeschützt — dann nicht weitermachen, sondern das Ruleset in Ordnung bringen.
+Der Ref ist ein Branch und kein Tag, weil nur Branches diesen Schutz tragen.
 
 **Output/Evidenz:** lokale Freeze-Provenienz als Vorprüfung; Release-Ref mit aufgelöstem SHA im Issue;
 später die unveränderliche `release-freeze-provenance-<attempt>` aus dem Kandidatenlauf.
@@ -326,6 +336,9 @@ und neu setzen. Sobald ein Release oder externer Download existiert, Tag nie ver
 **Input:** Tag, Kandidaten-Run-ID, Abnahme-Run-ID, exakter Manifestname und optional das Release-Issue.
 
 ```bash
+# Wie in Schritt 5 aus dem Kandidatenlauf abgeleitet: Schritt 8 liegt oft Tage
+# und eine neue Shell spaeter, in der CANDIDATE_SHA nicht mehr gesetzt ist.
+CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
 gh api "repos/NikolayDA/picture_helper/git/ref/heads/${RELEASE_REF}" > /tmp/release-ref.json
 python scripts/release_contract.py verify-release-ref \
   --ref-json /tmp/release-ref.json --ref "$RELEASE_REF" --expected-sha "$CANDIDATE_SHA" \
@@ -414,6 +427,7 @@ Lauf erbringt:
 
 ```bash
 # Beide Kanäle in einem Lauf (Regelfall seit #917):
+CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
 gh api "repos/NikolayDA/picture_helper/git/ref/heads/${RELEASE_REF}" > /tmp/release-ref.json
 python scripts/release_contract.py verify-release-ref \
   --ref-json /tmp/release-ref.json --ref "$RELEASE_REF" --expected-sha "$CANDIDATE_SHA" \
@@ -564,6 +578,7 @@ Ablauf; ältere Tag-basierte oder manuelle Veröffentlichungswege sind ungültig
 | Code, Doku oder Policy ändert sich | neuer Kandidat ab Schritt 1 | alte Abnahme weiterverwenden |
 | **Merge nach `main` während eines laufenden Releases** | **kein Wiederanlauf nötig — der Kandidat liegt auf dem geschützten Release-Ref und bleibt gültig (#918)** | auf den Release-Ref nachschieben, um `main` einzuholen |
 | Release-Ref zeigt nicht auf den Kandidaten-SHA (verwechselt, bewegt) | Ursache klären; bei falschem Ref den richtigen dispatchen, bei bewegtem Ref Kandidat verwerfen und ab Schritt 1 neu | Ref zurücksetzen und so tun, als sei nichts geschehen |
+| Merge nach `main` entfernt oder benennt eine der drei Release-Workflow-Dateien um | Pfad auf `main` per PR wiederherstellen (Datei muss dort existieren, damit `workflow_dispatch` überhaupt auslöst), danach denselben Dispatch auf `$RELEASE_REF` wiederholen — der Kandidat bleibt gültig | Workflow ersatzweise auf `main` starten oder den Ref anpassen |
 | Abnahme-Runner fällt aus oder der Watchdog bricht wegen Offline-Runner ab (#915) | Runner wieder online bringen, neuer Abnahmelauf mit derselben Kandidaten-Run-ID | fehlende Plattform als `PASS` markieren |
 | Fachlicher Hardware-Smoke schlägt fehl | Fix-PR und neuer Kandidat ab Schritt 1 | Waiver für nicht waiverfähiges `MUST` |
 | Kandidaten-/Manifestartefakt nach 90 Tagen abgelaufen | neuer Kandidat ab Schritt 1 | gleichnamiges Artefakt aus anderem Lauf einsetzen |
@@ -598,7 +613,7 @@ nur per PR zusammen mit Checklisten-/Workflow-Tests.
 
 | Datum | Änderung | Referenz |
 |---|---|---|
-| 2026-08-30 | Release läuft auf dem unveränderlichen `release/vX.Y.Z`-Ref statt auf `main`; `MAIN_SHA`-Gleichheitsprüfung durch `verify-release-ref` ersetzt, `main` bleibt mergebar | #918 |
+| 2026-08-30 | Release läuft auf dem unveränderlichen `release/vX.Y.Z`-Ref statt auf `main`; `MAIN_SHA`-Gleichheitsprüfung durch `verify-release-ref` ersetzt, `main` bleibt mergebar; Ref-Anlage anlege-only, Ruleset-Prüfung maschinell, Default-Branch-Voraussetzung von `workflow_dispatch` dokumentiert | #918 |
 | 2026-08-30 | `UPDATE-01` in `UPDATE-LINUX-ARM-01`/`UPDATE-MACOS-ARM-01` geteilt; macOS-Nachweis über den In-Prozess-Hook, `platforms`-Wahl in Schritt 9 beschrieben (Checkliste 2.0.0) | #917 |
 | 2026-08-30 | `PUBLIC-DOWNLOAD-01` als anonymer Nachweis-Job im Publish-Workflow; Schritt 8/9 auf den Bericht umgestellt, Handprozedur bleibt Rückfallweg (Checkliste 1.1.0) | #916 |
 | 2026-08-30 | Runner-Readiness-Preflight und Queue-Watchdog in Schritt 5; Abschlussmatrix unvollständiger Läufe als Diagnose gekennzeichnet | #915 |

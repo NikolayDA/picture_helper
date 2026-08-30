@@ -71,7 +71,7 @@ Vier Fehlerbilder, jeweils mit dem Gate, das greift:
 | Bedrohung | Wirkung ohne Gate | Was greift |
 |---|---|---|
 | **Verwechselter Ref** (Dispatch auf `release/v2.9.0` statt `v2.9.1`) | Kandidat auf dem falschen Commit gebaut oder abgenommen | `verify-release-ref` vor dem Dispatch (Ref-Name **und** SHA); in der Abnahme zusätzlich `candidate-source`, das `GITHUB_SHA` gegen den Kandidaten-SHA des Vertrags prüft |
-| **Nachträglich mutierter Branch** (Force-Push oder Nachschub auf den Release-Ref) | Ein späterer Dispatch liefe auf anderem Code als der abgenommene | Ruleset verhindert es; zusätzlich fällt es bei der nächsten `verify-release-ref`-Prüfung und im `candidate-source`-Gate auf, weil der SHA nicht mehr passt |
+| **Nachträglich mutierter Branch** (Force-Push oder Nachschub auf den Release-Ref) | Ein späterer Dispatch liefe auf anderem Code als der abgenommene | Ruleset verhindert es (Schritt 2 prüft die aktiven Regeln maschinell über `gh api …/rules/branches/<ref>`, nicht per Augenschein); zusätzlich fällt es bei der nächsten `verify-release-ref`-Prüfung und im `candidate-source`-Gate auf, weil der SHA nicht mehr passt |
 | **Divergenz zu `main`** (`main` läuft weiter) | — (ausdrücklich erlaubt und der Zweck dieser Entscheidung) | Keins nötig: Der Kandidat ist der Ref-Commit. Die Freeze-Provenienz wurde an genau diesem Commit erzeugt und bleibt gültig, weil sie den Kandidaten aus der First-Parent-Historie ableitet, nicht aus dem `main`-Kopf |
 | **Versehentlicher Dispatch auf `main`** | Lauf auf einem Commit, der nicht der Kandidat ist | Kandidatenbau: die Freeze-Prüfung läuft auf dem falschen Kopf und der Operator sieht in Schritt 3 einen abweichenden `headSha`. Abnahme: `candidate-source` bricht hart ab. Publish: unkritisch für die Bytes (alle Bindungen kommen aus dem Manifest), aber die Workflow-**Definition** stammt dann von `main` statt vom Kandidaten — siehe Konsequenzen |
 
@@ -79,6 +79,31 @@ Was sich **nicht** ändert: Die SHA-Gleichheitsprüfung in `candidate-source`
 bleibt das technische Gate. `verify-release-ref` ist eine vorgelagerte
 Kontrolle, die den Fehler vor dem Dispatch sichtbar macht statt danach — sie
 ersetzt das Gate nicht und darf es nie ersetzen.
+
+**Bewusst akzeptiertes Restrisiko.** Zwischen `verify-release-ref` und dem
+Dispatch liegt ein TOCTOU-Fenster. Für den Abnahmelauf schließt es
+`candidate-source` (harter SHA-Vergleich im Lauf selbst). Für den
+Publish-Dispatch gibt es kein zweites Gate auf den Ref — dort betrifft eine
+Mutation aber nur noch die Workflow-**Definition**, nie die veröffentlichten
+Bytes: die kommen ausschließlich aus dem Freigabemanifest. Getragen wird das
+Fenster damit allein vom Ruleset, der einzigen Zusicherung dieser Kette, die
+nicht im Repository versioniert, sondern Repository-*Konfiguration* ist.
+Genau deshalb prüft Schritt 2 die aktiven Regeln maschinell und fordert
+mindestens `non_fast_forward`, `update` und `deletion` — eine leere Regelliste
+ist ein Abbruchgrund, kein Schönheitsfehler. Ein Ruleset, das den Owner selbst
+nicht bindet, bleibt eine bewusste Restlücke: Sie deckt sich mit der ohnehin
+menschlichen Go-/No-Go-Entscheidung und wird nicht technisch geschlossen.
+
+**Voraussetzung des Dispatch-Ereignisses.** Auch ein Dispatch auf
+`release/vX.Y.Z` setzt voraus, dass die Workflow-Datei auf dem Default-Branch
+existiert: „This event will only trigger a workflow run if the workflow file
+exists on the default branch"
+([GitHub-Ereignisreferenz](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)).
+`main` darf während eines Releases also weiterlaufen — aber kein Merge darf die
+drei Release-Workflows dort umbenennen oder entfernen. Der Wächter
+`test_release_workflow_paths_stay_dispatchable_from_the_default_branch` nagelt
+die Pfade fest, damit ein solcher Umbau schon im PR rot wird und nicht erst
+mitten im Release; die Wiederanlaufmatrix führt den Weg zurück.
 
 ## Lebenszyklus des Refs
 
@@ -152,7 +177,10 @@ Die Go-/No-Go-Entscheidung bleibt menschlich.
 - `scripts/release_contract.py verify-release-ref` — Ref-Schema, Commit-Objekt,
   SHA-Gleichheit; netzfrei über die `gh api`-Antwort.
 - `tests/test_release_contract.py` — Positiv- und Negativfälle der Prüfung.
-- `tests/test_release_governance.py` — das Runbook dispatcht auf den Release-Ref
-  und nicht mehr auf `main`; die `MAIN_SHA`-Konvention ist verschwunden.
+- `tests/test_release_governance.py` — das Runbook **und** die UML-Zeichnung
+  dispatchen auf den Release-Ref und nicht mehr auf `main`; die
+  `MAIN_SHA`-Konvention ist verschwunden; die Ref-Anlage ist fail-closed an die
+  Existenzprüfung gebunden; die drei Workflow-Dateien bleiben unter den
+  dispatchten Pfaden vorhanden.
 - `tests/test_release_abnahme_workflow.py` — das `candidate-source`-Gate bleibt
   als hartes SHA-Gate erhalten.

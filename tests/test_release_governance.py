@@ -9,6 +9,10 @@ ROOT = Path(__file__).resolve().parent.parent
 CLAUDE = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
 RUNBOOK = (ROOT / "docs" / "RELEASE_PROCESS.md").read_text(encoding="utf-8")
 CHECKLIST = (ROOT / "docs" / "RELEASE_ACCEPTANCE_CHECKLIST.md").read_text(encoding="utf-8")
+#: CLAUDE.md fuehrt die UML-Zeichnung als Darstellung derselben vier Ablaeufe.
+#: Sie ist damit eine handgepflegte Kopie des Runbooks und braucht denselben
+#: Waechter - sonst wandert der Widerspruch in die Hand des Operators.
+PROCESS_UML = (ROOT / "docs" / "PROZESSE_UML.md").read_text(encoding="utf-8")
 
 
 def test_claude_has_sources_instead_of_manual_release_state() -> None:
@@ -136,8 +140,14 @@ def test_release_runs_on_the_immutable_release_ref_not_on_main() -> None:
     # UPDATE-01 in #917).
     procedure = RUNBOOK.split("## Änderungsverlauf", maxsplit=1)[0]
     assert "MAIN_SHA" not in procedure
-    assert "--ref main" not in procedure
-    assert "--branch main" not in procedure
+    # Beide operativen Dokumente, nicht nur das Runbook: Die UML-Zeichnung
+    # beschrieb den main-Freeze noch, waehrend das Runbook ihn schon aufgab.
+    for name, text in (("RELEASE_PROCESS.md", procedure), ("PROZESSE_UML.md", PROCESS_UML)):
+        assert "--ref main" not in text, name
+        assert "--branch main" not in text, name
+        assert "main zeigt noch auf den Kandidaten" not in text, name
+    assert "RELEASE_REF" in PROCESS_UML
+    assert "verify-release-ref" in PROCESS_UML
     assert 'RELEASE_REF="release/${RELEASE_TAG}"' in RUNBOOK
     assert (ROOT / "docs" / "history" / "ADR-2026-release-ref-entkopplung.md").is_file()
     assert "ADR-2026-release-ref-entkopplung.md" in RUNBOOK
@@ -211,6 +221,31 @@ def test_release_ref_creation_is_guarded_as_strictly_as_the_dispatches() -> None
     #    Doppelpunkt heisst „der Ref darf nicht existieren" — ein vorhandener
     #    Ref liesse sich damit auch bei Fast-Forward nicht still bewegen.
     assert '--force-with-lease="refs/heads/${RELEASE_REF}:"' in arms["2"]
+
+
+def test_release_workflow_paths_stay_dispatchable_from_the_default_branch() -> None:
+    """`workflow_dispatch` braucht die Datei auf dem Default-Branch — auch beim Ref.
+
+    Belegt in der GitHub-Ereignisreferenz: „This event will only trigger a
+    workflow run if the workflow file exists on the default branch." Ausgeführt
+    wird danach die Definition aus dem gewählten Ref. `main` darf seit #918
+    weiterlaufen, aber ein Merge, der eine der drei Release-Workflow-Dateien
+    dort umbenennt oder entfernt, blockiert die restlichen Dispatches mitten im
+    Release. Dieser Wächter zieht den Fehler in den PR vor, in dem er entsteht.
+    """
+    dispatched = set(re.findall(r"gh workflow run (\S+\.yml)", RUNBOOK))
+    assert dispatched == {"release-linux.yml", "release-abnahme.yml", "release-publish.yml"}
+    for name in sorted(dispatched):
+        path = ROOT / ".github" / "workflows" / name
+        assert path.is_file(), (
+            f"{name} fehlt — ohne die Datei auf dem Default-Branch loest kein Dispatch aus"
+        )
+        assert "workflow_dispatch" in path.read_text(encoding="utf-8"), name
+
+    # Die Voraussetzung ist dokumentiert und hat einen Wiederanlaufweg.
+    assert "Default-Branch" in RUNBOOK
+    matrix = RUNBOOK.split("## Wiederanlaufmatrix", maxsplit=1)[1].split("## Eskalation", 1)[0]
+    assert "Release-Workflow-Dateien" in matrix
 
 
 def test_recovery_matrix_records_that_main_no_longer_burns_the_candidate() -> None:
