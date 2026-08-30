@@ -331,8 +331,11 @@ dem Publish von Hand nachgeholt wurde (#881).
 - **Fail-closed:** Hash-Abweichung, fehlendes oder zusätzliches Asset und jeder
   HTTP-Fehler lassen den Lauf sichtbar rot enden. Nur transiente Antworten
   (429/5xx, Netzabbruch) werden höchstens dreimal wiederholt; eine 404 oder ein
-  Hashunterschied nie. Der Incident-Pfad steht in Schritt 9 des
-  [Release-Runbooks](RELEASE_PROCESS.md).
+  Hashunterschied nie; eine abgeschnittene Antwort (`IncompleteRead`) zählt als
+  transient. Das Skript führt zusätzlich ein eigenes Zeitbudget und bricht von
+  innen ab, bevor das Job-Zeitlimit greift — ein vom Runner gekillter Schritt
+  schriebe keinen Bericht, und genau dann fehlte die Evidenz. Der Incident-Pfad
+  steht in Schritt 9 des [Release-Runbooks](RELEASE_PROCESS.md).
 - **Bekannte Grenze:** Auch die Release-Metadaten werden anonym geholt — erst
   das belegt die öffentliche Sichtbarkeit. Dafür zählt dieser eine Aufruf gegen
   das unauthentifizierte API-Kontingent (60/h je Quell-IP); auf einem geteilten

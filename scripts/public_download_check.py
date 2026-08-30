@@ -25,12 +25,18 @@ behaupten als das Verdikt, das den Lauf scheitern lässt.
 Fail-closed: Jede Hash-Abweichung, jedes fehlende oder zusätzliche Asset und
 jeder HTTP-Fehler beenden das Skript mit Exit-Code 2. Der Bericht wird
 **trotzdem** geschrieben, damit die Evidenz eines Fehlschlags erhalten bleibt
-(Incident-Pfad: Runbook Schritt 9, „Rollback und Teilzustände“).
+(Incident-Pfad: Runbook Schritt 9, „Rollback und Teilzustände“). Dazu gehört
+ein eigenes Zeitbudget: Der Nachweis bricht von innen ab, bevor das
+Job-Zeitlimit den Schritt killt – ein gekillter Schritt schreibt keinen
+Bericht. Die Nutzlast wird gestreamt, nie vollständig gepuffert; die Assets
+sind Bundles im dreistelligen MB-Bereich.
 """
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
+import shutil
 import sys
 import time
 import urllib.error
@@ -38,7 +44,7 @@ import urllib.request
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Final, cast
+from typing import Any, Final, TypeVar, cast
 
 try:  # Dateiaufruf: ``python scripts/public_download_check.py``
     import release_contract as rc
@@ -49,15 +55,29 @@ REPORT_SCHEMA: Final = 1
 REPORT_KIND: Final = "release-public-download"
 API_ROOT: Final = "https://api.github.com"
 USER_AGENT: Final = "bgremover-public-download-check"
-REQUEST_TIMEOUT_S: Final = 600.0
+#: Socket-Zeitlimit je Leseoperation, nicht fuer den ganzen Transfer.
+REQUEST_TIMEOUT_S: Final = 300.0
 #: Nur transiente Fehler werden wiederholt; eine 404 (Release fehlt/privat)
 #: oder ein Hash-Unterschied sind Befunde und werden nie weggepollt.
 RETRY_STATUS: Final = (429, 500, 502, 503, 504)
 DEFAULT_ATTEMPTS: Final = 3
 RETRY_DELAYS_S: Final = (5.0, 15.0)
+#: Gesamtbudget des Bezugs. Der Nachweis muss seinen FAIL-Bericht *selbst*
+#: schreiben koennen - laeuft stattdessen das Job-Zeitlimit ab, killt der
+#: Runner den Schritt und die Evidenz des Incidents geht verloren (die
+#: !cancelled()-Schritte laufen dann nicht mehr). Das Budget plus ein
+#: laufendes REQUEST_TIMEOUT_S muss deshalb sichtbar unter dem
+#: timeout-minutes des Nachweis-Jobs bleiben; genau diese Rechnung haelt
+#: tests/test_release_gate.py fest (Review-Befund PR #925).
+DEFAULT_BUDGET_S: Final = 1200.0
+#: Blockgroesse des gestreamten Downloads (siehe download_assets).
+STREAM_CHUNK_BYTES: Final = 1024 * 1024
 
 Fetcher = Callable[[urllib.request.Request], bytes]
+StreamFetcher = Callable[[urllib.request.Request, Path], None]
 Sleeper = Callable[[float], None]
+Clock = Callable[[], float]
+_T = TypeVar("_T")
 
 
 class PublicDownloadError(RuntimeError):
@@ -79,8 +99,82 @@ def anonymous_request(url: str, accept: str) -> urllib.request.Request:
 
 
 def _default_fetcher(request: urllib.request.Request) -> bytes:
+    """Kleine Antworten (Release-Metadaten) vollständig in den Speicher."""
     with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_S) as response:  # noqa: S310
         return cast(bytes, response.read())
+
+
+def _default_stream_fetcher(request: urllib.request.Request, destination: Path) -> None:
+    """Nutzlast blockweise auf die Platte, nie vollständig in den Speicher.
+
+    Die Assets sind Bundles im dreistelligen MB-Bereich (v2.9.0: 141–259 MB je
+    Datei, zusammen rund 1,1 GB). ``response.read()`` haette jede davon als ein
+    ``bytes``-Objekt gepuffert - unnoetiger Spitzenbedarf auf dem
+    release-kritischen Pfad, und bei jedem Wiederholungsversuch erneut
+    (Review-Befund PR #925). ``"wb"`` je Versuch schneidet eine angefangene
+    Datei ab, damit ein Retry nie an einen Teiltransfer anhaengt.
+    """
+    with (
+        urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_S) as response,  # noqa: S310
+        destination.open("wb") as handle,
+    ):
+        shutil.copyfileobj(response, handle, STREAM_CHUNK_BYTES)
+
+
+class Budget:
+    """Gesamtzeitbudget des Bezugs; die Uhr ist für Tests injizierbar."""
+
+    def __init__(self, seconds: float = DEFAULT_BUDGET_S, *, clock: Clock = time.monotonic) -> None:
+        self._clock = clock
+        self._deadline = clock() + seconds
+
+    def remaining(self) -> float:
+        return self._deadline - self._clock()
+
+    def check(self, what: str) -> None:
+        if self.remaining() <= 0:
+            raise PublicDownloadError(
+                f"{what}: Zeitbudget des Nachweises erschoepft - Bericht wird als FAIL "
+                "geschrieben, bevor das Job-Zeitlimit den Schritt beendet."
+            )
+
+
+def _with_retry(
+    operation: Callable[[], _T],
+    *,
+    what: str,
+    budget: Budget,
+    attempts: int = DEFAULT_ATTEMPTS,
+    sleeper: Sleeper = time.sleep,
+) -> _T:
+    """Eng begrenztes Wiederholungsfenster für transiente Fehler.
+
+    Wiederholt werden ausschließlich Antworten, die nichts über die Sache
+    aussagen (429/5xx, Netzabbruch, abgeschnittene Antwort). Eine 404 –
+    privates, fehlendes oder falsch getaggtes Release – ist ein Befund und wird
+    nie weggepollt. Vor jedem Versuch prüft das Zeitbudget: Ein Abbruch von
+    innen erzeugt noch den FAIL-Bericht, ein Runner-Kill nicht.
+    """
+    total = max(1, attempts)
+    last: Exception | None = None
+    for attempt in range(1, total + 1):
+        budget.check(what)
+        try:
+            return operation()
+        except urllib.error.HTTPError as exc:
+            if exc.code not in RETRY_STATUS:
+                raise PublicDownloadError(f"{what}: HTTP {exc.code} {exc.reason}") from exc
+            last = exc
+        except OSError as exc:  # URLError und Verbindungsabbruch im Transfer
+            last = exc
+        except http.client.HTTPException as exc:
+            # IncompleteRead & Co. erben von HTTPException, nicht von OSError:
+            # ein abgeschnittener Transfer waere sonst weder wiederholt noch
+            # als Befund protokolliert worden (Review-Befund PR #925).
+            last = exc
+        if attempt < total:
+            sleeper(RETRY_DELAYS_S[min(attempt - 1, len(RETRY_DELAYS_S) - 1)])
+    raise PublicDownloadError(f"{what}: {type(last).__name__}: {last}")
 
 
 def fetch(
@@ -88,29 +182,34 @@ def fetch(
     fetcher: Fetcher,
     *,
     what: str,
+    budget: Budget,
     attempts: int = DEFAULT_ATTEMPTS,
     sleeper: Sleeper = time.sleep,
 ) -> bytes:
-    """Anfrage mit eng begrenztem Wiederholungsfenster für transiente Fehler.
+    """Kleine Antwort mit Wiederholungsfenster beziehen."""
+    return _with_retry(
+        lambda: fetcher(request), what=what, budget=budget, attempts=attempts, sleeper=sleeper
+    )
 
-    Wiederholt werden ausschließlich Antworten, die nichts über die Sache
-    aussagen (429/5xx, Netzabbruch). Eine 404 – privates, fehlendes oder falsch
-    getaggtes Release – ist ein Befund und wird nie weggepollt.
-    """
-    total = max(1, attempts)
-    last: Exception | None = None
-    for attempt in range(1, total + 1):
-        try:
-            return fetcher(request)
-        except urllib.error.HTTPError as exc:
-            if exc.code not in RETRY_STATUS:
-                raise PublicDownloadError(f"{what}: HTTP {exc.code} {exc.reason}") from exc
-            last = exc
-        except OSError as exc:  # URLError und Verbindungsabbruch im Transfer
-            last = exc
-        if attempt < total:
-            sleeper(RETRY_DELAYS_S[min(attempt - 1, len(RETRY_DELAYS_S) - 1)])
-    raise PublicDownloadError(f"{what}: {last}")
+
+def fetch_to_file(
+    request: urllib.request.Request,
+    stream_fetcher: StreamFetcher,
+    destination: Path,
+    *,
+    what: str,
+    budget: Budget,
+    attempts: int = DEFAULT_ATTEMPTS,
+    sleeper: Sleeper = time.sleep,
+) -> None:
+    """Nutzlast gestreamt beziehen, mit demselben Wiederholungsfenster."""
+    _with_retry(
+        lambda: stream_fetcher(request, destination),
+        what=what,
+        budget=budget,
+        attempts=attempts,
+        sleeper=sleeper,
+    )
 
 
 def fetch_release(
@@ -118,6 +217,7 @@ def fetch_release(
     tag: str,
     fetcher: Fetcher,
     *,
+    budget: Budget,
     sleeper: Sleeper = time.sleep,
 ) -> dict[str, Any]:
     """Release-Metadaten anonym beziehen; ein Draft ist hier nicht sichtbar.
@@ -134,6 +234,7 @@ def fetch_release(
             ),
             fetcher,
             what=f"Release {tag} anonym abrufen",
+            budget=budget,
             sleeper=sleeper,
         )
     except PublicDownloadError as exc:
@@ -184,23 +285,30 @@ def public_asset_urls(release: dict[str, Any], expected_names: set[str]) -> dict
 def download_assets(
     urls: dict[str, str],
     directory: Path,
-    fetcher: Fetcher,
+    stream_fetcher: StreamFetcher,
     *,
+    timestamps: dict[str, str],
+    budget: Budget,
     sleeper: Sleeper = time.sleep,
-) -> dict[str, str]:
-    """Alle Assets anonym laden; liefert je Datei den Zeitstempel des Abrufs."""
+) -> None:
+    """Alle Assets anonym und gestreamt laden.
+
+    ``timestamps`` gehört dem Aufrufer und wird fortlaufend gefüllt: Bricht ein
+    späteres Asset ab, behält der FAIL-Bericht die Zeitstempel der bereits
+    geladenen Dateien, statt sie als leeres Feld auszuweisen (Review-Befund
+    PR #925).
+    """
     directory.mkdir(parents=True, exist_ok=True)
-    timestamps: dict[str, str] = {}
     for name in sorted(urls):
-        payload = fetch(
+        fetch_to_file(
             anonymous_request(urls[name], "application/octet-stream"),
-            fetcher,
+            stream_fetcher,
+            directory / name,
             what=f"Asset {name} anonym laden",
+            budget=budget,
             sleeper=sleeper,
         )
-        (directory / name).write_bytes(payload)
         timestamps[name] = _utc_now()
-    return timestamps
 
 
 def build_report(
@@ -336,16 +444,20 @@ def run(
     markdown_path: Path | None = None,
     run_url: str = "",
     fetcher: Fetcher | None = None,
+    stream_fetcher: StreamFetcher | None = None,
     sleeper: Sleeper | None = None,
+    budget: Budget | None = None,
 ) -> dict[str, Any]:
     """Nachweis führen; wirft ``PublicDownloadError``, wenn er nicht hält.
 
-    ``fetcher``/``sleeper`` werden erst hier aufgelöst (nicht als
-    Default-Argument gebunden), damit Tests den echten Netzpfad zuverlässig
+    ``fetcher``/``stream_fetcher``/``sleeper`` werden erst hier aufgelöst (nicht
+    als Default-Argument gebunden), damit Tests den echten Netzpfad zuverlässig
     ersetzen können.
     """
     fetch_with = fetcher if fetcher is not None else _default_fetcher
+    stream_with = stream_fetcher if stream_fetcher is not None else _default_stream_fetcher
     wait = sleeper if sleeper is not None else time.sleep
+    time_budget = budget if budget is not None else Budget()
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -375,9 +487,16 @@ def run(
     timestamps: dict[str, str] = {}
     error = ""
     try:
-        release = fetch_release(repo, tag, fetch_with, sleeper=wait)
+        release = fetch_release(repo, tag, fetch_with, budget=time_budget, sleeper=wait)
         urls = public_asset_urls(release, expected_names)
-        timestamps = download_assets(urls, download_dir, fetch_with, sleeper=wait)
+        download_assets(
+            urls,
+            download_dir,
+            stream_with,
+            timestamps=timestamps,
+            budget=time_budget,
+            sleeper=wait,
+        )
     except PublicDownloadError as exc:
         error = str(exc)
 

@@ -325,10 +325,18 @@ Nachweis-Job aus Schritt 8 hat alle fünf Assets bereits anonym über ihre
 Lies den Bericht und verwende ihn als Evidenz:
 
 ```bash
-gh run view "$PUBLISH_RUN_ID" --log --job "Oeffentlicher Download-Nachweis (PUBLIC-DOWNLOAD-01)" | tail -20
-gh run download "$PUBLISH_RUN_ID" --name "public-download-report-1" --dir /tmp/public-download
-jq '.verdict, .assets[] | {name, result, sha256}' /tmp/public-download/public-download-report.json
+gh run view "$PUBLISH_RUN_ID"
+gh run download "$PUBLISH_RUN_ID" --pattern 'public-download-report-*' --dir /tmp/public-download
+PUBLIC_DOWNLOAD_REPORT="$(find /tmp/public-download -name public-download-report.json | head -1)"
+jq '.verdict, (.assets[] | {name, result, sha256})' "$PUBLIC_DOWNLOAD_REPORT"
 ```
+
+Der Artefaktname trägt die Versuchsnummer des Laufs
+(`public-download-report-<run_attempt>`), deshalb `--pattern` statt `--name`:
+Ein Wiederanlauf desselben Laufs legt den Bericht unter `-2` ab. `find` statt
+eines festen Pfads, weil `gh run download` je nach Trefferzahl flach oder in
+einem Unterverzeichnis je Artefaktnamen ablegt (dieselbe Doppeldeutigkeit, die
+`release_contract.py` beim Manifest-Download abfängt).
 
 Erwartet ist `"verdict": "PASS"` und je Asset `"result": "PASS"`. Die URL des
 Publish-Laufs allein genügt weiterhin **nicht** als Nachweis: Die Downloads des

@@ -9,6 +9,7 @@ geschrieben wird.
 from __future__ import annotations
 
 import hashlib
+import http.client
 import http.server
 import importlib.util
 import json
@@ -117,6 +118,10 @@ class _Github:
                 return payload
         raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)  # type: ignore[arg-type]
 
+    def stream(self, request: urllib.request.Request, destination: Path) -> None:
+        """Gegenstueck zu ``_default_stream_fetcher`` (Nutzlast auf Platte)."""
+        destination.write_bytes(self(request))
+
 
 def _run(
     tmp_path: Path,
@@ -125,6 +130,7 @@ def _run(
     manifest: dict[str, Any] | None = None,
     tag: str = TAG,
     sleeps: list[float] | None = None,
+    budget: Any = None,
 ) -> dict[str, Any]:
     manifest_path = tmp_path / "release-approval-manifest.json"
     manifest_path.write_text(
@@ -140,7 +146,9 @@ def _run(
         markdown_path=tmp_path / "evidence" / "public-download-report.md",
         run_url="https://github.com/run/1",
         fetcher=fetcher,
+        stream_fetcher=fetcher.stream,
         sleeper=(sleeps.append if sleeps is not None else lambda _seconds: None),
+        budget=budget,
     )
 
 
@@ -288,6 +296,85 @@ def test_persistent_transient_failure_still_ends_the_run(tmp_path: Path) -> None
     assert len(fetcher.requests) == pdc.DEFAULT_ATTEMPTS
 
 
+def test_truncated_transfer_is_retried_and_still_reported(tmp_path: Path) -> None:
+    """#925: ``IncompleteRead`` erbt von ``HTTPException``, nicht von ``OSError``.
+
+    Ohne eigenen Zweig waere ein abgeschnittener Transfer weder wiederholt noch
+    als Befund protokolliert worden - er waere roh aus ``run()`` geflogen.
+    """
+    assert not issubclass(http.client.IncompleteRead, OSError)
+    payloads = _payloads()
+    fetcher = _Github(
+        _release(), payloads, failures=[http.client.IncompleteRead(b"halbe-antwort")]
+    )
+    report = _run(tmp_path, fetcher)
+    assert report["verdict"] == "PASS"
+
+    persistent = _Github(
+        _release(),
+        payloads,
+        failures=[http.client.IncompleteRead(b"halbe-antwort") for _ in range(9)],
+    )
+    other = tmp_path / "abbruch"
+    other.mkdir()
+    with pytest.raises(pdc.PublicDownloadError, match="IncompleteRead"):
+        _run(other, persistent)
+    assert _report(other)["verdict"] == "FAIL"
+
+
+def test_partial_download_keeps_the_timestamps_it_already_earned(tmp_path: Path) -> None:
+    """#925: Ein spaeter Abbruch darf die Evidenz der geladenen Dateien nicht schlucken."""
+    payloads = _payloads()
+    names = sorted(NAMES)
+    broken = dict(payloads)
+    del broken[names[2]]  # drittes Asset ist oeffentlich nicht abrufbar
+    fetcher = _Github(_release(), broken)
+
+    with pytest.raises(pdc.PublicDownloadError, match="HTTP 404"):
+        _run(tmp_path, fetcher, manifest=_manifest(payloads))
+
+    report = _report(tmp_path)
+    assert report["verdict"] == "FAIL"
+    by_name = {item["name"]: item for item in report["assets"]}
+    for done in names[:2]:
+        assert by_name[done]["result"] == "PASS"
+        assert by_name[done]["downloaded_at"], f"Zeitstempel fuer {done} fehlt"
+    assert by_name[names[2]]["result"] == "MISSING"
+
+
+def test_time_budget_ends_the_run_from_inside_with_a_written_report(tmp_path: Path) -> None:
+    """#925: Der Nachweis muss seinen FAIL-Bericht vor dem Job-Zeitlimit schreiben.
+
+    Laeuft stattdessen ``timeout-minutes`` ab, killt der Runner den Schritt und
+    die ``!cancelled()``-Schritte laufen nicht mehr - die Evidenz des Incidents
+    waere weg.
+    """
+    clock = iter([0.0] + [10_000.0] * 50)
+    budget = pdc.Budget(pdc.DEFAULT_BUDGET_S, clock=lambda: next(clock))
+    fetcher = _Github(_release(), _payloads())
+
+    with pytest.raises(pdc.PublicDownloadError, match="Zeitbudget"):
+        _run(tmp_path, fetcher, budget=budget)
+
+    assert fetcher.requests == []
+    report = _report(tmp_path)
+    assert report["verdict"] == "FAIL"
+    assert "Zeitbudget" in report["error"]
+
+
+def test_budget_fits_into_the_proof_job_deadline() -> None:
+    """Budget plus ein laufendes Socket-Zeitlimit muss unter dem Job-Limit bleiben."""
+    yaml = pytest.importorskip("yaml")
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "workflows" / "release-publish.yml").read_text(encoding="utf-8")
+    )
+    job_limit_s = workflow["jobs"]["public-download"]["timeout-minutes"] * 60
+    assert job_limit_s > pdc.DEFAULT_BUDGET_S + pdc.REQUEST_TIMEOUT_S, (
+        "Der Nachweis koennte vom Runner gekillt werden, bevor er seinen "
+        "FAIL-Bericht schreibt."
+    )
+
+
 def test_tag_must_match_the_pinned_manifest_before_any_request(tmp_path: Path) -> None:
     fetcher = _Github(_release(), _payloads())
     with pytest.raises(pdc.PublicDownloadError, match="weicht vom Freigabemanifest ab"):
@@ -328,7 +415,9 @@ def test_cli_reports_exit_code_two_on_a_failed_proof(
     manifest_path.write_text(json.dumps(_manifest(payloads)), encoding="utf-8")
     tampered = dict(payloads)
     tampered[sorted(NAMES)[0]] = b"ersetzt"
-    monkeypatch.setattr(pdc, "_default_fetcher", _Github(_release(), tampered))
+    github = _Github(_release(), tampered)
+    monkeypatch.setattr(pdc, "_default_fetcher", github)
+    monkeypatch.setattr(pdc, "_default_stream_fetcher", github.stream)
     monkeypatch.setattr(pdc.time, "sleep", lambda _seconds: None)
 
     argv = [
@@ -350,7 +439,9 @@ def test_cli_succeeds_on_a_clean_public_release(
     payloads = _payloads()
     manifest_path = tmp_path / "release-approval-manifest.json"
     manifest_path.write_text(json.dumps(_manifest(payloads)), encoding="utf-8")
-    monkeypatch.setattr(pdc, "_default_fetcher", _Github(_release(), payloads))
+    github = _Github(_release(), payloads)
+    monkeypatch.setattr(pdc, "_default_fetcher", github)
+    monkeypatch.setattr(pdc, "_default_stream_fetcher", github.stream)
 
     assert (
         pdc.main(
@@ -418,3 +509,52 @@ def test_real_transport_puts_no_authorization_on_the_wire(
     assert payload == b"echte-bytes-ueber-die-leitung"
     assert "authorization" not in _RecordingServer.received
     assert _RecordingServer.received["user-agent"] == pdc.USER_AGENT
+
+
+def test_retry_after_a_partial_write_never_appends_to_the_stump(tmp_path: Path) -> None:
+    """Gestreamte Downloads: ein Wiederholungsversuch muss die Datei abschneiden.
+
+    Sonst haenge der zweite Versuch an den Rumpf des ersten an und der Hash
+    waere falsch - ausgerechnet in dem Fall, den der Retry retten soll.
+    """
+    payload = b"vollstaendige-nutzlast"
+    destination = tmp_path / "asset.bin"
+    attempts = iter([True, False])
+
+    def stream(_request: urllib.request.Request, target: Path) -> None:
+        with target.open("wb") as handle:
+            handle.write(payload[:5])
+            if next(attempts):
+                raise urllib.error.URLError("Verbindung mitten im Transfer verloren")
+            handle.write(payload[5:])
+
+    pdc.fetch_to_file(
+        pdc.anonymous_request("https://example.invalid/asset.bin", "application/octet-stream"),
+        stream,
+        destination,
+        what="Asset asset.bin anonym laden",
+        budget=pdc.Budget(),
+        sleeper=lambda _seconds: None,
+    )
+    assert destination.read_bytes() == payload
+
+
+def test_real_transport_streams_the_payload_to_disk(
+    _local_server: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Nutzlast geht blockweise auf die Platte, nicht als ein bytes-Objekt.
+
+    Die Release-Assets sind dreistellige MB (v2.9.0: 141-259 MB je Datei);
+    ``response.read()`` haette jede davon komplett gepuffert (#925).
+    """
+    monkeypatch.setenv("no_proxy", "127.0.0.1,localhost")
+    monkeypatch.setenv("NO_PROXY", "127.0.0.1,localhost")
+    _RecordingServer.received = {}
+    destination = tmp_path / "asset.bin"
+
+    pdc._default_stream_fetcher(
+        pdc.anonymous_request(_local_server, "application/octet-stream"), destination
+    )
+
+    assert destination.read_bytes() == b"echte-bytes-ueber-die-leitung"
+    assert "authorization" not in _RecordingServer.received

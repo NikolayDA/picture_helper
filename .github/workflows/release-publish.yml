@@ -46,9 +46,6 @@ jobs:
     permissions:
       contents: write
       actions: read
-    outputs:
-      version: ${{ steps.approval.outputs.version }}
-      candidate_sha: ${{ steps.approval.outputs.candidate_sha }}
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
