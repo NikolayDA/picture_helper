@@ -73,6 +73,20 @@ def test_public_download_requires_separate_anonymous_evidence() -> None:
     assert '--evidence "$PUBLIC_DOWNLOAD_EVIDENCE_URL"' in public_command
 
 
+def test_public_download_evidence_is_automated_with_a_documented_fallback() -> None:
+    """#916: Schritt 9 liest den Bericht; die Handprozedur bleibt Rueckfallweg."""
+    step_nine = RUNBOOK.split("### 9. ", maxsplit=1)[1].split("## Hotfix-Pfad", maxsplit=1)[0]
+    assert "public-download-report.json" in step_nine
+    assert "Rückfallweg" in step_nine
+    # Der authentifizierte Draft-Download bleibt ausdruecklich kein Nachweis.
+    assert "authentifiziert aus dem Draft" in step_nine
+    publish = (ROOT / ".github" / "workflows" / "release-publish.yml").read_text(encoding="utf-8")
+    assert "public_download_check.py" in publish
+    # Ein roter Nachweis ist ein Incident, keine stille Wiederholung.
+    assert "Öffentlicher Download-Nachweis rot" in RUNBOOK
+    assert "PUBLIC-DOWNLOAD-01" in CHECKLIST
+
+
 def test_secondary_docs_only_point_to_canonical_release_sources() -> None:
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     automation = (ROOT / "docs" / "RELEASE_AUTOMATION.md").read_text(encoding="utf-8")

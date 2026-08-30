@@ -257,6 +257,82 @@ def test_publish_artifact_download_is_rerun_resilient() -> None:
     )
 
 
+# ── #916: anonymer Öffentlichkeitsnachweis PUBLIC-DOWNLOAD-01 ──────────
+
+
+def test_public_download_proof_runs_after_the_release_is_public() -> None:
+    """Ein Draft-Asset ist anonym nicht erreichbar – der Nachweis muss deshalb
+    ein eigener, dem publish-Job nachgelagerter Job sein. Liefe er im
+    publish-Job, könnte er nur den authentifizierten Draft-Pfad belegen (#916).
+    """
+    jobs = _load(_PUBLISH)["jobs"]
+    assert "public-download" in jobs, jobs.keys()
+    proof = jobs["public-download"]
+    assert _needs_list(proof) == ["publish"], proof.get("needs")
+    assert "public_download_check.py" in _publish_text()
+
+
+def test_only_the_proof_job_may_comment_and_publish_keeps_least_privilege() -> None:
+    jobs = _load(_PUBLISH)["jobs"]
+    proof_perms = jobs["public-download"].get("permissions", {})
+    publish_perms = jobs["publish"].get("permissions", {})
+    assert proof_perms.get("issues") == "write", proof_perms
+    assert proof_perms.get("contents") == "read", proof_perms
+    assert "issues" not in publish_perms, publish_perms
+    assert publish_perms.get("contents") == "write", publish_perms
+
+
+def _proof_steps() -> list[dict]:
+    return list(_load(_PUBLISH)["jobs"]["public-download"]["steps"])
+
+
+def test_anonymous_download_step_carries_no_github_token() -> None:
+    """Der Nachweis ist wertlos, wenn ein Token mitläuft: weder Job- noch
+    Schritt-Environment dürfen eines tragen, und das Skript prüft es selbst."""
+    job = _load(_PUBLISH)["jobs"]["public-download"]
+    assert "GH_TOKEN" not in job.get("env", {})
+    assert "GITHUB_TOKEN" not in job.get("env", {})
+    download = [
+        step for step in _proof_steps() if "public_download_check.py" in str(step.get("run", ""))
+    ]
+    assert len(download) == 1, download
+    assert "GH_TOKEN" not in download[0].get("env", {})
+    assert 'if [ -n "${GH_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then' in download[0]["run"]
+
+
+def test_proof_verdict_uses_the_same_contract_gate_as_the_upload() -> None:
+    """Sollwertquelle bleibt das Freigabemanifest, nicht der GitHub-Digest."""
+    runs = "\n".join(str(step.get("run", "")) for step in _proof_steps())
+    assert "release_contract.py verify-artifacts" in runs
+    assert "release_contract.py verify-approval" in runs
+    assert "$DOWNLOAD_DIR" in runs
+
+
+def test_proof_is_archived_ninety_days_and_rendered_as_summary() -> None:
+    steps = _proof_steps()
+    uploads = [step for step in steps if "upload-artifact" in str(step.get("uses", ""))]
+    assert len(uploads) == 1, uploads
+    with_ = uploads[0]["with"]
+    assert with_["name"] == "public-download-report-${{ github.run_attempt }}"
+    assert with_["retention-days"] == 90
+    assert any("GITHUB_STEP_SUMMARY" in str(step.get("run", "")) for step in steps)
+
+
+def test_proof_comment_is_opt_in_and_also_posted_on_failure() -> None:
+    comment = [
+        step for step in _proof_steps() if "gh issue comment" in str(step.get("run", ""))
+    ]
+    assert len(comment) == 1, comment
+    condition = str(comment[0].get("if", ""))
+    assert "inputs.target_issue != ''" in condition
+    # Ein gescheiterter Nachweis gehoert sichtbar ins Release-Issue.
+    assert "!cancelled()" in condition
+    doc = _load(_PUBLISH)
+    inputs = doc.get(True, doc.get("on"))["workflow_dispatch"]["inputs"]
+    assert inputs["target_issue"].get("required") is not True
+    assert inputs["target_issue"].get("default") == ""
+
+
 # ── #311: Release-Body aus dem CHANGELOG ───────────────────────────────
 #
 # Der Release-Body wurde frueher mit einem fest verdrahteten „Automated build…"-

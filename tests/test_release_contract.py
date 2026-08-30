@@ -6,6 +6,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -218,7 +219,7 @@ def test_manifest_schema_binds_runs_head_tag_provenance_platforms_and_five_hashe
 
 def test_versioned_checklist_has_exact_scope_stable_ids_and_required_fields() -> None:
     checklist = rc.load_release_checklist(CHECKLIST)
-    assert checklist["checklist_version"] == "1.0.0"
+    assert checklist["checklist_version"] == "1.1.0"
     assert tuple(item["id"] for item in checklist["artifacts"]) == rc.CHECKLIST_ARTIFACTS
     assert not any("windows" in json.dumps(item).lower() for item in checklist["artifacts"])
     criteria = checklist["criteria"]
@@ -228,6 +229,32 @@ def test_versioned_checklist_has_exact_scope_stable_ids_and_required_fields() ->
         for item in criteria
         for field in ("id", "phase", "requirement", "owner", "evidence_source")
     )
+
+
+def test_checklist_version_header_matches_the_machine_contract() -> None:
+    """Die Kopfzeile ist eine handgepflegte Kopie ihrer eigenen JSON-Quelle."""
+    checklist = rc.load_release_checklist(CHECKLIST)
+    header = re.search(
+        r"(?m)^\*\*Checklisten-Version:\*\* `([0-9]+\.[0-9]+\.[0-9]+)`$",
+        CHECKLIST.read_text(encoding="utf-8"),
+    )
+    assert header is not None, "Kopfzeile mit Checklisten-Version fehlt"
+    assert header.group(1) == checklist["checklist_version"]
+
+
+def test_public_download_is_machine_generated_evidence_since_1_1_0() -> None:
+    """#916: `PUBLIC-DOWNLOAD-01` darf nicht auf die Handprozedur zurueckfallen."""
+    checklist = rc.load_release_checklist(CHECKLIST)
+    criterion = next(
+        item for item in checklist["criteria"] if item["id"] == "PUBLIC-DOWNLOAD-01"
+    )
+    assert criterion["verification"] == "publish"
+    assert criterion["requirement"] == "MUST"
+    assert criterion["waiver_allowed"] is False
+    assert "public-download-report.json" in criterion["evidence_source"]
+    assert set(criterion["artifacts"]) == set(rc.CHECKLIST_ARTIFACTS)
+    # Der Nachweis entsteht erst nach dem Publish; die Instanz startet PENDING.
+    assert criterion["phase"] == "publish"
 
 
 def test_checklist_rejects_a_second_machine_contract_block(tmp_path: Path) -> None:
@@ -525,6 +552,73 @@ def test_approval_creation_rejects_wrong_summary_or_extra_evidence(tmp_path: Pat
     )
     with pytest.raises(rc.ContractError, match="Evidenzmenge"):
         create(summary)
+
+
+def test_per_file_comparison_is_the_single_rule_behind_the_publish_gate(
+    tmp_path: Path,
+) -> None:
+    """#916: Bericht und Verdikt duerfen nie auseinanderlaufen."""
+    manifest, files = _manifest(tmp_path)
+    assert [item["status"] for item in rc.compare_artifact_directory(manifest, files)] == [
+        "PASS"
+    ] * 5
+
+    names = sorted(path.name for path in files.iterdir())
+    (files / names[0]).write_bytes(b"andere-bytes-gleiche-datei")
+    (files / names[1]).unlink()
+    (files / "unerwartet.bin").write_bytes(b"nicht im manifest")
+    results = {item["name"]: item for item in rc.compare_artifact_directory(manifest, files)}
+
+    assert results[names[0]]["status"] == "FAIL"
+    assert results[names[0]]["sha256"] != results[names[0]]["expected_sha256"]
+    assert results[names[1]]["status"] == "MISSING"
+    assert results[names[1]]["sha256"] is None
+    assert results["unerwartet.bin"]["status"] == "UNEXPECTED"
+    assert results["unerwartet.bin"]["expected_sha256"] is None
+    with pytest.raises(rc.ContractError, match="Artefaktmenge weicht ab"):
+        rc.verify_artifact_directory(manifest, files)
+
+
+def test_a_foreign_file_is_named_but_never_hashed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#925: Ein Lesefehler auf einer Fremddatei darf das Gate nicht entgleisen.
+
+    Ihr Hash ist keine Evidenz ueber den Release; wuerde er trotzdem berechnet,
+    ersetzte ein ``OSError`` die klare ``Artefaktmenge weicht ab``-Meldung.
+    """
+    manifest, files = _manifest(tmp_path)
+    (files / "unerwartet.bin").write_bytes(b"nicht im manifest")
+    hashed: list[str] = []
+    original = rc._sha256_file
+
+    def recording(path: Path) -> str:
+        hashed.append(path.name)
+        if path.name == "unerwartet.bin":
+            raise OSError(5, "Input/output error")
+        return str(original(path))
+
+    monkeypatch.setattr(rc, "_sha256_file", recording)
+    results = {item["name"]: item for item in rc.compare_artifact_directory(manifest, files)}
+    assert results["unerwartet.bin"]["sha256"] is None
+    assert results["unerwartet.bin"]["bytes"] == len(b"nicht im manifest")
+    assert "unerwartet.bin" not in hashed
+
+    with pytest.raises(rc.ContractError, match="Artefaktmenge weicht ab"):
+        rc.verify_artifact_directory(manifest, files)
+
+
+def test_hash_only_divergence_still_blocks_the_publish_gate(tmp_path: Path) -> None:
+    manifest, files = _manifest(tmp_path)
+    victim = sorted(path.name for path in files.iterdir())[0]
+    original = (files / victim).read_bytes()
+    (files / victim).write_bytes(b"x" * len(original))
+
+    results = {item["name"]: item for item in rc.compare_artifact_directory(manifest, files)}
+    assert results[victim]["detail"] == "SHA-256 weicht ab"
+    assert results[victim]["bytes"] == results[victim]["expected_bytes"]
+    with pytest.raises(rc.ContractError, match="SHA-256 weicht ab"):
+        rc.verify_artifact_directory(manifest, files)
 
 
 def test_successful_publish_verification_proves_byte_equality(tmp_path: Path) -> None:

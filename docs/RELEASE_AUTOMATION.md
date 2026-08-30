@@ -300,6 +300,52 @@ Secrets):
 |---|---|
 | `ANTHROPIC_VISION_API_KEY` | aktiviert die Vision-Vorbewertung der Screenshots; fehlt es, bleibt die Screenshot-Zeile `unbewertet` (fail-safe, kein Fehler). Bewusst getrennt vom Secret der interaktiven Claude-Workflows (`CLAUDE_CODE_OAUTH_TOKEN`, #656) – nur der Aggregations-Job liest dieses Secret |
 
+#### 4.1.1 Öffentlicher Download-Nachweis `PUBLIC-DOWNLOAD-01` (#916)
+
+`release-publish.yml` trägt nach dem `publish`-Job einen zweiten Job
+**Öffentlicher Download-Nachweis (PUBLIC-DOWNLOAD-01)**. Er läuft
+GitHub-hosted und erbringt maschinell, was bei v2.9.0 rund sieben Stunden nach
+dem Publish von Hand nachgeholt wurde (#881).
+
+- **Warum erst nach dem Publish:** Der Verifikationsschritt im `publish`-Job
+  lädt die Assets **vor** der Veröffentlichung authentifiziert aus dem Draft.
+  Draft-Assets sind anonym gar nicht erreichbar; dieser Pfad belegt den
+  Anwenderweg also nie. Der Nachweis läuft deshalb nach
+  `gh release edit --draft=false`.
+- **Anonym, nachweislich:** `scripts/public_download_check.py` kennt keinen
+  Token-Parameter — weder die Release-Metadaten noch die Nutzlast tragen einen
+  `Authorization`-Header. Der Job setzt kein `GH_TOKEN` im Environment des
+  Download-Schritts und prüft das mit einer Guard-Zeile im Joblog. Ein
+  versehentlich privat gebliebenes Release fällt damit auf.
+- **Referenz bleibt das Freigabemanifest,** nicht der von GitHub gemeldete
+  Asset-Digest; sonst würde dieselbe Quelle zweimal befragt. Das bindende
+  Verdikt liefert derselbe Aufruf `release_contract.py verify-artifacts`, mit
+  dem der `publish`-Job die hochgeladenen Bytes geprüft hat.
+- **Evidenz:** `public-download-report.json` (Schema 1,
+  `release-public-download`) hält je Datei Name, URL, Größe, SHA-256,
+  Zeitstempel und Ergebnis sowie das Gesamtverdikt; er wird 90 Tage als
+  Artefakt `public-download-report-<run_attempt>` gesichert, als Job-Summary
+  gerendert und bei gesetztem `target_issue` als Issue-Kommentar gepostet.
+  Auch ein Fehlschlag wird geschrieben — die Evidenz eines Incidents darf nicht
+  nur im Joblog stehen.
+- **Fail-closed:** Hash-Abweichung, fehlendes oder zusätzliches Asset und jeder
+  HTTP-Fehler lassen den Lauf sichtbar rot enden. Nur transiente Antworten
+  (429/5xx, Netzabbruch) werden höchstens dreimal wiederholt; eine 404 oder ein
+  Hashunterschied nie; eine abgeschnittene Antwort (`IncompleteRead`) zählt als
+  transient. Das Skript führt zusätzlich ein eigenes Zeitbudget und bricht von
+  innen ab, bevor das Job-Zeitlimit greift — ein vom Runner gekillter Schritt
+  schriebe keinen Bericht, und genau dann fehlte die Evidenz. Der Incident-Pfad
+  steht in Schritt 9 des [Release-Runbooks](RELEASE_PROCESS.md).
+- **Bekannte Grenze:** Auch die Release-Metadaten werden anonym geholt — erst
+  das belegt die öffentliche Sichtbarkeit. Dafür zählt dieser eine Aufruf gegen
+  das unauthentifizierte API-Kontingent (60/h je Quell-IP); auf einem geteilten
+  GitHub-Runner ist ein Treffer unwahrscheinlich, aber möglich. Der Fehlertext
+  nennt deshalb beide Ursachen (nicht öffentlich vs. Kontingent), und der
+  Wiederanlauf ist ein erneuter Publish-Lauf mit denselben gebundenen Inputs —
+  er ist idempotent und meldet `already-complete`.
+- **Berechtigung:** `issues: write` trägt ausschließlich dieser Job; der
+  `publish`-Job bleibt bei `contents: write` und `actions: read`.
+
 ### 4.2 Post-Release-Update-Nachweis `UPDATE-01` (#748)
 
 `UPDATE-01` ist das einzige **Post-Release**-Kriterium. Vor dem Tag kann kein
