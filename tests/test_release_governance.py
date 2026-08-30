@@ -124,6 +124,73 @@ def test_retired_update_criterion_survives_only_next_to_its_migration_note() -> 
         assert "UPDATE-MACOS-ARM-01" in text, name
 
 
+def test_release_runs_on_the_immutable_release_ref_not_on_main() -> None:
+    """#918: Ein Release friert `main` nicht mehr ein.
+
+    Alle vier Dispatches laufen auf `release/vX.Y.Z`; die alte
+    `MAIN_SHA`-Gleichheitsprüfung (die die Konvention prüfte, nicht die
+    Bindung) ist ersatzlos verschwunden.
+    """
+    # Nur der Prozedurteil zaehlt: Der Aenderungsverlauf darf und soll
+    # benennen, was ersetzt wurde (dasselbe Muster wie beim zurueckgezogenen
+    # UPDATE-01 in #917).
+    procedure = RUNBOOK.split("## Änderungsverlauf", maxsplit=1)[0]
+    assert "MAIN_SHA" not in procedure
+    assert "--ref main" not in procedure
+    assert "--branch main" not in procedure
+    assert 'RELEASE_REF="release/${RELEASE_TAG}"' in RUNBOOK
+    assert (ROOT / "docs" / "history" / "ADR-2026-release-ref-entkopplung.md").is_file()
+    assert "ADR-2026-release-ref-entkopplung.md" in RUNBOOK
+
+    dispatches = re.findall(r"gh workflow run (\S+) --ref (\S+)", RUNBOOK)
+    assert len(dispatches) == 4, dispatches
+    assert {workflow for workflow, _ in dispatches} == {
+        "release-linux.yml", "release-abnahme.yml", "release-publish.yml",
+    }
+    assert {ref for _, ref in dispatches} == {'"$RELEASE_REF"'}
+
+
+def test_every_dispatch_is_conditional_on_the_ref_check() -> None:
+    """Die Prüfung muss den Dispatch **bedingen**, nicht ihm nur vorangehen.
+
+    Der ersetzte `MAIN_SHA`-Block umschloss den Dispatch mit `if/else`, damit
+    ein Fehlschlag ihn verhindert, ohne eine interaktive Shell zu beenden.
+    Stünde die Prüfung nur davor, liefe der Dispatch in einer Shell ohne
+    `set -e` trotz Exit 2 weiter — und genau das war beim Umbau kurzzeitig der
+    Fall (auch ein leerer `CANDIDATE_SHA` wäre so durchgerutscht).
+    """
+    dispatches = [m.start() for m in re.finditer(r"gh workflow run \S+ --ref", RUNBOOK)]
+    assert len(dispatches) == 4
+    assert RUNBOOK.count("&& gh workflow run") == 4, (
+        "jeder Dispatch muss per && an die Ref-Prüfung gekoppelt sein"
+    )
+    for start in dispatches:
+        # Unmittelbar davor die Pruefung, im selben Kommando.
+        head = RUNBOOK[:start]
+        assert head.rstrip().endswith("&&"), "Dispatch nicht an die Prüfung gekoppelt"
+        block_start = head.rfind("```bash")
+        assert "verify-release-ref" in head[block_start:], (
+            "Ref-Prüfung steht nicht im selben Codeblock wie der Dispatch"
+        )
+    # Das harte Gate bleibt der SHA-Vergleich in candidate-source.
+    assert "candidate-source" in RUNBOOK
+    assert "verify-release-ref" in (
+        ROOT / "scripts" / "release_contract.py"
+    ).read_text(encoding="utf-8")
+
+
+def test_recovery_matrix_records_that_main_no_longer_burns_the_candidate() -> None:
+    matrix = RUNBOOK.split("## Wiederanlaufmatrix", maxsplit=1)[1].split("## Eskalation", 1)[0]
+    assert "Merge nach `main` während eines laufenden Releases" in matrix
+    # Die alte Aussage „Jeder Merge nach main verbrennt diesen Kandidaten"
+    # darf nirgends mehr unnegiert stehen.
+    for line in RUNBOOK.splitlines():
+        if "verbrennt" in line:
+            assert "nicht" in line, f"unnegierte Freeze-Aussage: {line}"
+    # Nachschieben auf den Release-Ref bleibt ausdruecklich unzulaessig.
+    assert "nachschieben" in matrix.lower()
+
+
 def test_secondary_docs_only_point_to_canonical_release_sources() -> None:
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     automation = (ROOT / "docs" / "RELEASE_AUTOMATION.md").read_text(encoding="utf-8")
