@@ -538,14 +538,34 @@ def build_acceptance_summary(
 
 
 def render_markdown(rows: list[MatrixRow], *, commit_sha: str = "unbekannt") -> str:
-    """Abschlussmatrix als Markdown-Protokoll rendern."""
+    """Abschlussmatrix als Markdown-Protokoll rendern.
+
+    Eine Matrix mit blockierenden Lücken (fehlgeschlagene Pflichtzeile,
+    fehlende Evidenz) trägt Titel und Warnhinweis „Diagnose" (#915): sie
+    entsteht auch bei abgebrochenen, fehlgeschlagenen oder bewusst auf
+    einzelne Plattformen begrenzten Läufen (z. B. UPDATE-01, Runbook-Schritt
+    9) und darf nie wie ein Abnahmeergebnis lesbar sein – Lauf 33071408111
+    brauchte dafür eine manuelle Klarstellung im Release-Issue.
+    """
     icon = {
         "erfuellt": "✅", "fehlgeschlagen": "❌", "fehlt": "⚠️",
         "pausiert": "⏸️", "unbewertet": "❓",
     }
-    lines = [
-        "## Release-Abnahme – Abschlussmatrix",
-        "",
+    diagnose = has_blocking_gaps(rows)
+    title = "## Release-Abnahme – Abschlussmatrix"
+    if diagnose:
+        title += " (Diagnose – kein Abnahmeergebnis)"
+    lines = [title, ""]
+    if diagnose:
+        lines += [
+            "> ⚠️ **Diagnose-Stand, kein Abnahmeergebnis:** Mindestens eine "
+            "Pflichtzeile ist fehlgeschlagen oder ohne Evidenz – der Lauf war "
+            "abgebrochen, unvollständig oder bewusst auf einzelne Plattformen "
+            "begrenzt (z. B. UPDATE-01, Runbook-Schritt 9). Ein "
+            "Freigabemanifest entsteht aus diesem Stand nicht.",
+            "",
+        ]
+    lines += [
         f"Commit: `{commit_sha}`. Automatisiert aus den Evidenz-Artefakten (Epic #639).",
         "",
         "| Kriterium | Status | Nachweis | GL-Provenance | Gerät/OS | Datum | "

@@ -782,7 +782,16 @@ höchstens einmal),
 `abnahme_probe.py` / `abnahme_scale_probe.py` (GL- bzw. devicePixelRatio-Probe,
 native Qt-Plattform), `abnahme_vision_check.py` (**fail-safe** Vision-Vorbewertung
 der Screenshots; ohne API-Key/SDK oder bei Fehlern → `unbewertet`, blockiert
-nie) und `abnahme_aggregate.py` (Evidenz-Aggregation + Abschlussmatrix).
+nie), `abnahme_aggregate.py` (Evidenz-Aggregation + Abschlussmatrix;
+kennzeichnet Stände mit blockierenden Lücken seit #915 selbst als „Diagnose –
+kein Abnahmeergebnis") sowie `abnahme_preflight.py`/`abnahme_watchdog.py`
+(#915): je Plattform ein schneller Readiness-Preflight vor den schweren
+Jobs (Session/GL/Speicher/venv/Netz/sudo, ohne venv-Installation) und ein
+GitHub-hosted Queue-Watchdog, der den Lauf nach zehn Minuten ohne
+Runner-Zuweisung per force-cancel beendet (GitHub bräche erst nach 24 h ab;
+ein regulärer Cancel ließe die `!cancelled()`-Aggregation weiterlaufen –
+nur der Watchdog trägt das Abbruch-Schreibrecht, ohne Beobachtung fällt er
+kein Verdikt).
 Seit #686/#734 lädt `release_abnahme.py` die Artefakte eines veröffentlichten
 Releases **anonym** über `browser_download_url` (ein versehentlich privates
 Release fällt dadurch auf) und weist je Artefakt aus, ob der SHA256 gegen einen
