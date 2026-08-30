@@ -17,8 +17,12 @@ die missverständliche Abschlussmatrix des abgebrochenen Laufs.
 
 Fail-safe für den Wächter selbst: Kann die Job-Liste nicht beobachtet werden
 (API-Fehler), wird **nicht** abgebrochen – ein Wächter ohne Beobachtung fällt
-nie ein Verdikt. Abgebrochen wird nur, wenn die letzte erfolgreiche
-Beobachtung nach Fristablauf weiterhin wartende Preflights zeigt.
+nie ein Verdikt. Das gilt auch für **veraltete** Beobachtungen
+(Review-Befund PR #924): Abgebrochen wird nur, wenn eine *frische*
+Beobachtung (jünger als zwei Poll-Intervalle) zum Fristablauf weiterhin
+wartende Preflights zeigt – eine minutenalte Queue-Beobachtung kann längst
+überholt sein, und ein fälschlicher Abbruch kostet den gesamten
+Hardware-Abnahmelauf.
 """
 from __future__ import annotations
 
@@ -30,7 +34,7 @@ import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 JOB_NAME_PREFIX = "Preflight "
@@ -125,12 +129,18 @@ def watch(
 
     Rückgabe ist die letzte erfolgreiche Beobachtung; gab es nie eine,
     trägt sie ``observed=False`` (kein Verdikt, siehe Modul-Docstring).
+    Ein Queue-Verdikt zum Fristablauf braucht eine **frische** Beobachtung
+    (jünger als ``2 * poll_s``): War die letzte erfolgreiche Abfrage älter
+    (API-Ausfall dazwischen), wird sie zu ``observed=False`` degradiert,
+    statt auf veralteter Grundlage abzubrechen – der Runner kann den Job
+    längst übernommen haben (Review-Befund PR #924).
     Eine leere Preflight-Jobliste direkt nach Laufstart kann ein API-Race
     sein – erst zwei aufeinanderfolgende Leer-Beobachtungen gelten als
     „nichts zu überwachen".
     """
     start = clock()
     last = QueueState(known=(), queued=(), observed=False)
+    last_success: float | None = None
     empty_known_streak = 0
     while True:
         try:
@@ -138,6 +148,7 @@ def watch(
         except (urllib.error.URLError, OSError, ValueError) as exc:
             print(f"::warning::Watchdog: Jobabfrage fehlgeschlagen ({exc}).")
         else:
+            last_success = clock()
             if last.known:
                 empty_known_streak = 0
                 if not last.queued:
@@ -147,6 +158,9 @@ def watch(
                 if empty_known_streak >= 2:
                     return last
         if clock() - start >= deadline_s:
+            stale = last_success is None or clock() - last_success > 2 * poll_s
+            if last.queued and stale:
+                return replace(last, observed=False)
             return last
         sleep(poll_s)
 
@@ -177,8 +191,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     if not state.observed:
         print(
-            "::warning::Watchdog: Preflight-Queue war nicht beobachtbar "
-            "(API-Fehler) – kein Verdikt, Lauf bleibt unangetastet."
+            "::warning::Watchdog: Preflight-Queue war zum Fristablauf nicht "
+            "frisch beobachtbar (API-Fehler) – kein Verdikt, Lauf bleibt "
+            "unangetastet."
         )
         return 0
     if not state.known:

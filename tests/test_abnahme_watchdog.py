@@ -77,7 +77,33 @@ def test_watch_reports_still_queued_at_deadline() -> None:
         observe, deadline_s=60, poll_s=20, clock=clock, sleep=clock.sleep,
     )
     assert state.queued == ("Preflight Linux aarch64",)
+    # Frische Beobachtung zum Fristablauf: das Verdikt gilt.
+    assert state.observed
     assert clock.now >= 60
+
+
+def test_watch_stale_queue_observation_gives_no_verdict() -> None:
+    """Review-Befund PR #924: Eine bei t=0 beobachtete Queue, danach nur noch
+    API-Fehler bis zum Fristablauf – der Runner kann den Job laengst
+    uebernommen haben. Ein Verdikt auf minutenalter Grundlage wuerde einen
+    gesunden Abnahmelauf force-canceln; stattdessen wird zu observed=False
+    degradiert (kein Verdikt, kein Abbruch)."""
+    clock = _Clock()
+    attempts: list[int] = []
+
+    def observe() -> Any:
+        attempts.append(1)
+        if len(attempts) == 1:
+            return watchdog.queue_state([_job("Preflight Linux aarch64", "queued")])
+        raise urllib.error.URLError("api ab jetzt weg")
+
+    state = watchdog.watch(
+        observe, deadline_s=100, poll_s=20, clock=clock, sleep=clock.sleep,
+    )
+    assert not state.observed
+    # Die veraltete Beobachtung bleibt als Diagnose sichtbar, traegt aber
+    # kein Verdikt mehr.
+    assert state.queued == ("Preflight Linux aarch64",)
 
 
 def test_watch_recovers_after_transient_api_error() -> None:
