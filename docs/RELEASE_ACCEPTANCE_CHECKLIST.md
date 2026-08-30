@@ -2,7 +2,7 @@
 
 **Owner:** Repository-Owner
 **Schema:** `1`
-**Checklisten-Version:** `1.1.0`
+**Checklisten-Version:** `2.0.0`
 **Gültigkeit:** für alle Releases, deren Freigabemanifest diese Version und den
 vollständigen Commit-SHA sowie den SHA-256 dieser Datei pinnt.
 
@@ -83,7 +83,18 @@ neue Checklisten-Version und eigene, stabile IDs.
 | `PUBLISH-03` | Publish | MUST | CI | Draft-first; partielle oder abweichende Zustände blockieren ohne Clobber |
 | `PUBLIC-DOWNLOAD-01` | Publish | MUST | CI | `public-download-report.json` des Publish-Laufs: alle fünf Assets anonym über `browser_download_url` geladen und gegen Manifesthash geprüft |
 | `ROLLBACK-01` | Publish | SHOULD | Release-Owner | Go/No-Go, Yank/Rollback oder Hotfix-Entscheidung ist protokolliert |
-| `UPDATE-01` | Post-Release | POST_RELEASE | Hardware-Abnahme | echtes Vorgängerartefakt meldet `UPDATE_AVAILABLE`, aktuelles Artefakt `UP_TO_DATE`, Fehler = `CHECK_FAILED` |
+| `UPDATE-LINUX-ARM-01` | Post-Release | POST_RELEASE | Hardware-Abnahme | Linux arm64: echtes Vorgänger-AppImage meldet `UPDATE_AVAILABLE`, Kandidat `UP_TO_DATE`, Fehler = `CHECK_FAILED`; das `.deb` ist mit abgedeckt, weil es byteidentisch dieselbe AppImage installiert |
+| `UPDATE-MACOS-ARM-01` | Post-Release | POST_RELEASE | Hardware-Abnahme | macOS arm64: derselbe Nachweis aus dem gepackten DMG-Bundle über den In-Prozess-Hook `BGREMOVER_UPDATE_CHECK_PROBE`; setzt einen Vorgänger ≥ 2.7.3 voraus |
+
+`UPDATE-01` ist seit Checklisten-Version 2.0.0 (#917) in zwei
+Plattformkriterien geteilt. Der reale v2.9.0-Nachweis prüfte nur den
+Linux-arm64-Kanal, während die eine gemeinsame ID drei Artefakte deklarierte —
+die maschinenlesbare Deklaration behauptete also mehr, als nachgewiesen wurde.
+Getrennte IDs machen jetzt sichtbar, welcher Kanal geprüft ist: Linux arm64
+über den in der AppImage gebündelten Interpreter (rückwirkend gegen jedes
+Artefakt), macOS arm64 über den In-Prozess-Hook des DMG-Bundles, der erst ab
+v2.7.3 existiert. Beide tragen dieselbe Bewertungsreihenfolge; ein
+`CHECK_FAILED` gilt nirgends als „kein Update".
 
 `PUBLIC-DOWNLOAD-01` entsteht seit Checklisten-Version 1.1.0 (#916) als
 `public-download-report.json` im Nachweis-Job von `release-publish.yml`: Der
@@ -110,7 +121,7 @@ müssen dieselben IDs beschreiben; Tests verhindern Drift.
 {
   "schema": 1,
   "kind": "release-acceptance-checklist",
-  "checklist_version": "1.1.0",
+  "checklist_version": "2.0.0",
   "allowed_states": ["PASS", "FAIL", "WAIVED", "NOT_APPLICABLE", "PENDING"],
   "phases": ["pre-release", "publish", "post-release"],
   "requirements": ["MUST", "SHOULD", "POST_RELEASE"],
@@ -145,7 +156,8 @@ müssen dieselben IDs beschreiben; Tests verhindern Drift.
     {"id": "PUBLISH-03", "phase": "publish", "requirement": "MUST", "owner": "ci", "evidence_source": "publish state plan", "description": "Draft-first promotion blocks partial or divergent state without clobber.", "artifacts": [], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
     {"id": "PUBLIC-DOWNLOAD-01", "phase": "publish", "requirement": "MUST", "owner": "ci", "evidence_source": "public-download-report.json (release-publish.yml)", "description": "All five public assets are downloaded anonymously and match their manifest hashes.", "artifacts": ["linux-x86_64-appimage", "linux-x86_64-deb", "linux-arm64-appimage", "linux-arm64-deb", "macos-arm64-dmg"], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
     {"id": "ROLLBACK-01", "phase": "publish", "requirement": "SHOULD", "owner": "release-owner", "evidence_source": "release decision log", "description": "Go/no-go and any yank, rollback or hotfix decision are recorded.", "artifacts": [], "verification": "manual", "waiver_allowed": true, "not_applicable_allowed": true},
-    {"id": "UPDATE-01", "phase": "post-release", "requirement": "POST_RELEASE", "owner": "hardware-acceptance", "evidence_source": "real predecessor update evidence (#748)", "description": "Predecessor reports UPDATE_AVAILABLE, current bundle UP_TO_DATE, failures CHECK_FAILED.", "artifacts": ["linux-arm64-appimage", "linux-arm64-deb", "macos-arm64-dmg"], "verification": "post-release", "waiver_allowed": false, "not_applicable_allowed": false}
+    {"id": "UPDATE-LINUX-ARM-01", "phase": "post-release", "requirement": "POST_RELEASE", "owner": "hardware-acceptance", "evidence_source": "linux-arm64 update_check/update_check.json (#748)", "description": "Linux arm64: predecessor AppImage reports UPDATE_AVAILABLE, candidate UP_TO_DATE, failures CHECK_FAILED. The deb is covered by the same run because it installs the byte-identical AppImage.", "artifacts": ["linux-arm64-appimage", "linux-arm64-deb"], "verification": "post-release", "waiver_allowed": false, "not_applicable_allowed": false},
+    {"id": "UPDATE-MACOS-ARM-01", "phase": "post-release", "requirement": "POST_RELEASE", "owner": "hardware-acceptance", "evidence_source": "macos-arm64 update_check/update_check.json (#917)", "description": "macOS arm64: the same proof from the packaged DMG bundle via the in-process BGREMOVER_UPDATE_CHECK_PROBE hook; requires a predecessor of 2.7.3 or newer.", "artifacts": ["macos-arm64-dmg"], "verification": "post-release", "waiver_allowed": false, "not_applicable_allowed": false}
   ]
 }
 ```
@@ -177,5 +189,6 @@ Ein vollständiger Waiver-Datensatz hat dieses Format:
 
 | Version | Datum | Änderung | Referenz |
 |---|---|---|---|
+| `2.0.0` | 2026-08-30 | `UPDATE-01` in `UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` geteilt (stabile ID entfällt ⇒ Major); Deklaration und Nachweis je Plattform deckungsgleich, `.deb`-Identitätsbegründung im Kriteriumstext | #917 |
 | `1.1.0` | 2026-08-30 | `PUBLIC-DOWNLOAD-01` auf automatisierte Evidenz umgestellt (`verification: publish`, Owner CI, `public-download-report.json`) | #916 |
 | `1.0.0` | 2026-08-01 | Erste versionierte Fassung mit stabilen IDs, Phasen, Pflichtgraden und Artefaktumfang | #746 |

@@ -24,9 +24,10 @@ Interpreters (#740 – derselbe Fund wie beim App-Start selbst).
 Für die PyInstaller-gebündelte macOS-.app existiert kein vergleichbarer
 Weg: PyInstaller bettet Python-Bytecode in ein Archiv im Bootloader ein,
 statt einen eigenständig aufrufbaren Interpreter mit normalem Site-Packages
-bereitzustellen. Der Vorgänger-Teil von UPDATE-01 bleibt für macOS deshalb
-bis zu einem Release offen, dessen VORGÄNGER bereits den In-Prozess-Hook
-mitbringt.
+bereitzustellen. macOS nutzt deshalb seit #917 den In-Prozess-Hook
+``BGREMOVER_UPDATE_CHECK_PROBE`` (``bgremover.update_check_probe``), verdrahtet
+in ``abnahme_smoke._update_check_macos_probe``. Das setzt einen Vorgänger
+voraus, der den Hook schon mitbringt – also mindestens v2.7.3.
 """
 from __future__ import annotations
 

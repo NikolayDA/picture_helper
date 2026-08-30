@@ -561,8 +561,8 @@ def render_markdown(rows: list[MatrixRow], *, commit_sha: str = "unbekannt") -> 
     Eine Matrix mit Lücken in den technischen Pflichtzeilen (fehlgeschlagen,
     fehlende Evidenz) trägt Titel und Warnhinweis „Diagnose" (#915): sie
     entsteht auch bei abgebrochenen, fehlgeschlagenen oder bewusst auf
-    einzelne Plattformen begrenzten Läufen (z. B. UPDATE-01, Runbook-Schritt
-    9) und darf nie wie ein Abnahmeergebnis lesbar sein – Lauf 33071408111
+    einzelne Plattformen begrenzten Läufen (z. B. der Update-Nachweis aus
+    Runbook-Schritt 9) und darf nie wie ein Abnahmeergebnis lesbar sein – Lauf 33071408111
     brauchte dafür eine manuelle Klarstellung im Release-Issue. Maßgeblich
     ist ``has_technical_gaps`` (dieselbe Basis wie das Manifest-Gate); die
     beratende Vision-Zeile löst den Banner nicht aus.
@@ -581,7 +581,7 @@ def render_markdown(rows: list[MatrixRow], *, commit_sha: str = "unbekannt") -> 
             "> ⚠️ **Diagnose-Stand, kein Abnahmeergebnis:** Mindestens eine "
             "Pflichtzeile ist fehlgeschlagen oder ohne Evidenz – der Lauf war "
             "abgebrochen, unvollständig oder bewusst auf einzelne Plattformen "
-            "begrenzt (z. B. UPDATE-01, Runbook-Schritt 9). Ein "
+            "begrenzt (z. B. der Update-Nachweis aus Runbook-Schritt 9). Ein "
             "Freigabemanifest entsteht aus diesem Stand nicht.",
             "",
         ]

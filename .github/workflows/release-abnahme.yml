@@ -37,9 +37,11 @@ on:
         default: '595'
       predecessor_tag:
         description: >-
-          Vorgaenger-Release-Tag (z. B. v2.7.1) fuer den echten UPDATE-01-
-          Nachweis (#748) auf Linux arm64. Leer = Update-Check wird
-          uebersprungen (bleibt PENDING statt fabriziert PASS).
+          Vorgaenger-Release-Tag (z. B. v2.9.0) fuer den echten
+          UPDATE-LINUX-ARM-01-/UPDATE-MACOS-ARM-01-Nachweis (#748/#917) auf
+          Linux arm64 und macOS arm64. macOS setzt einen Vorgaenger >= 2.7.3
+          voraus (In-Prozess-Hook). Leer = Update-Check wird uebersprungen
+          (bleibt PENDING statt fabriziert PASS).
         type: string
         default: ''
 
@@ -254,16 +256,48 @@ jobs:
             --platform macos-arm64 --source-run-id "$RUN_ID" \
             --commit-sha "$SOURCE_HEAD_SHA" \
             --output "${RUNNER_TEMP}/abnahme-macos-arm64"
-      - name: DMG-Smoke inkl. Retina- und nativem 3D-Nachweis (#643/#648)
+      # Spiegelbild des Linux-Schritts (#917): erst mit einem bezogenen
+      # Vorgaenger-DMG kann der macOS-Kanal UPDATE-MACOS-ARM-01 real erbringen.
+      # Der Bezug laeuft anonym ueber browser_download_url (release_abnahme.py),
+      # ein versehentlich privates Release faellt dadurch auf.
+      - name: 'Echten Vorgaenger-Release beziehen (UPDATE-MACOS-ARM-01, #917)'
+        if: inputs.predecessor_tag != ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PREDECESSOR_TAG: ${{ inputs.predecessor_tag }}
+          SOURCE_HEAD_SHA: ${{ needs.candidate-source.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
+            --platform macos-arm64 --release-tag "$PREDECESSOR_TAG" \
+            --commit-sha "$SOURCE_HEAD_SHA" \
+            --output "${RUNNER_TEMP}/abnahme-macos-arm64-predecessor"
+      - name: DMG-Smoke inkl. Retina-, nativem 3D- und Update-Check-Nachweis (#643/#648/#917)
+        env:
+          PREDECESSOR_TAG: ${{ inputs.predecessor_tag }}
+          CANDIDATE_VERSION: ${{ needs.candidate-source.outputs.version }}
         run: |
           set -euo pipefail
           unset QT_QPA_PLATFORM
+          # ${arr[@]+"${arr[@]}"} statt "${arr[@]}": In Bash < 4.4 gilt ein
+          # leeres Array unter `set -u` als unbound variable. Das stock-Bash
+          # von macOS ist 3.2.57, und der Regelfall ist genau das leere Array
+          # (jeder Abnahmelauf ohne predecessor_tag) - der Smoke braeche dann
+          # ab, bevor irgendein Nachweis entsteht (Review-Befund PR #926).
+          predecessor_args=()
+          if [ -n "${PREDECESSOR_TAG}" ]; then
+            predecessor_args=(
+              --predecessor-evidence-dir "${RUNNER_TEMP}/abnahme-macos-arm64-predecessor"
+              --candidate-version "${CANDIDATE_VERSION}"
+            )
+          fi
           # devicePixelRatio des Hauptfensters ermitteln (nativer Qt-Kontext).
           scale="$("${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_scale_probe.py)"
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform macos-arm64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-macos-arm64" \
-            --scale-factor "$scale"
+            --scale-factor "$scale" \
+            ${predecessor_args[@]+"${predecessor_args[@]}"}
       - name: Native E2E-Regression inkl. 3D-Ready-Nachweis (#644)
         env:
           ABNAHME_EVIDENCE_DIR: ${{ runner.temp }}/abnahme-macos-arm64
@@ -329,7 +363,7 @@ jobs:
             --platform linux-arm64 --source-run-id "$RUN_ID" \
             --commit-sha "$SOURCE_HEAD_SHA" \
             --output "${RUNNER_TEMP}/abnahme-linux-arm64"
-      - name: Echten Vorgaenger-Release beziehen (UPDATE-01, #748)
+      - name: 'Echten Vorgaenger-Release beziehen (UPDATE-LINUX-ARM-01, #748)'
         if: inputs.predecessor_tag != ''
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -348,6 +382,11 @@ jobs:
         run: |
           set -euo pipefail
           unset QT_QPA_PLATFORM
+          # ${arr[@]+"${arr[@]}"} statt "${arr[@]}": In Bash < 4.4 gilt ein
+          # leeres Array unter `set -u` als unbound variable. Das stock-Bash
+          # von macOS ist 3.2.57, und der Regelfall ist genau das leere Array
+          # (jeder Abnahmelauf ohne predecessor_tag) - der Smoke braeche dann
+          # ab, bevor irgendein Nachweis entsteht (Review-Befund PR #926).
           predecessor_args=()
           if [ -n "${PREDECESSOR_TAG}" ]; then
             predecessor_args=(
@@ -358,7 +397,7 @@ jobs:
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform linux-arm64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-linux-arm64" \
-            "${predecessor_args[@]}"
+            ${predecessor_args[@]+"${predecessor_args[@]}"}
       - name: Native E2E-Regression inkl. 3D-Ready-Nachweis (#644)
         env:
           ABNAHME_EVIDENCE_DIR: ${{ runner.temp }}/abnahme-linux-arm64
@@ -573,7 +612,7 @@ jobs:
         # Nur ein voller Drei-Plattform-Lauf (platforms=alle) darf ein
         # Freigabemanifest erzeugen - das verlangt zurecht macOS UND
         # Linux-arm64 als "approved" (siehe release_contract.py). Ein
-        # bewusster Einzelplattform-Lauf (z. B. der UPDATE-01-Nachlauf aus
+        # bewusster Einzelplattform-Lauf (z. B. der Update-Nachlauf aus
         # Runbook-Schritt 9, #741) fehlt an genau dieser Vollstaendigkeit,
         # ist aber kein Fehlschlag, sondern ausserhalb des Vertrags dieses
         # Schritts - ohne dieses Gate schlug create-approval hier hart fehl
@@ -615,10 +654,11 @@ jobs:
         # pausierten x86_64-Pfad oben): dieser Lauf deckt bewusst nur
         # ${{ inputs.platforms }} ab und kann daher kein Freigabemanifest
         # erzeugen - die Abschlussmatrix oben bleibt trotzdem als
-        # Diagnose-Nachweis erhalten (z. B. fuer UPDATE-01, #741/#748).
+        # Diagnose-Nachweis erhalten (z. B. fuer den Update-Nachweis,
+        # #741/#748/#917).
         if: inputs.platforms != 'alle'
         run: |
-          echo "::notice title=Kein Freigabemanifest::Dieser Lauf deckt bewusst nur '${{ inputs.platforms }}' ab (z. B. Runbook-Schritt 9/UPDATE-01) statt der vollen Drei-Plattform-Matrix und erzeugt daher kein Freigabemanifest. Fuer eine Veroeffentlichung ist ein separater Lauf mit platforms=alle noetig."
+          echo "::notice title=Kein Freigabemanifest::Dieser Lauf deckt bewusst nur '${{ inputs.platforms }}' ab (z. B. Runbook-Schritt 9/Update-Nachweis) statt der vollen Drei-Plattform-Matrix und erzeugt daher kein Freigabemanifest. Fuer eine Veroeffentlichung ist ein separater Lauf mit platforms=alle noetig."
       - name: Matrix als Issue-Kommentar posten
         if: always()
         env:

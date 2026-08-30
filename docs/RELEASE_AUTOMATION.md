@@ -246,7 +246,8 @@ Performance als getrennte Pflichtzeilen; fehlende/inkonsistente Evidenz kann
 dadurch nicht von einem anderen Kriterium verdeckt werden. Der pausierte
 x86_64-Pfad erscheint explizit als „pausiert", fehlende Evidenz als „fehlt" –
 keine stillen Lücken. Eine Matrix mit blockierenden Lücken (fehlgeschlagener,
-unvollständiger oder bewusster Einzelplattform-Lauf, z. B. UPDATE-01)
+unvollständiger oder bewusster Einzelplattform-Lauf, z. B. der
+Update-Nachweis aus Runbook-Schritt 9)
 kennzeichnet sich seit #915 selbst in Titel und Einleitung als „Diagnose –
 kein Abnahmeergebnis"; bei einem **abgebrochenen** Lauf entfällt der
 Kommentar ganz (`!cancelled()` statt `always()` am Aggregations-Job).
@@ -346,9 +347,9 @@ dem Publish von Hand nachgeholt wurde (#881).
 - **Berechtigung:** `issues: write` trägt ausschließlich dieser Job; der
   `publish`-Job bleibt bei `contents: write` und `actions: read`.
 
-### 4.2 Post-Release-Update-Nachweis `UPDATE-01` (#748)
+### 4.2 Post-Release-Update-Nachweis (#748/#917)
 
-`UPDATE-01` ist das einzige **Post-Release**-Kriterium. Vor dem Tag kann kein
+`UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` sind die einzigen **Post-Release**-Kriterien. Vor dem Tag kann kein
 Vorgängerartefakt die neue Version am produktiven Endpunkt `/releases/latest`
 sehen; als Pre-Release-Gate wäre der Nachweis logisch unmöglich. Er läuft
 deshalb **nach** Schritt 8 des [Release-Runbooks](RELEASE_PROCESS.md), blockiert
@@ -360,8 +361,8 @@ gesetztem `predecessor_tag`:
 | Eingabe | Wert |
 |---|---|
 | `run_id` | Run-ID **desselben** `release-linux.yml`-Kandidatenlaufs wie in der Hardware-Abnahme |
-| `platforms` | `linux-arm64` |
-| `predecessor_tag` | Tag des zuletzt veröffentlichten Vorgängers, z. B. `v2.7.1` |
+| `platforms` | `alle` für beide Kriterien in einem Lauf; `linux-arm64` bzw. `macos-arm64` für einen einzelnen Kanal (das jeweils andere Kriterium bleibt dann `PENDING`) |
+| `predecessor_tag` | Tag des zuletzt veröffentlichten Vorgängers, z. B. `v2.9.0` |
 
 Leerer `predecessor_tag` lässt den Nachweis aus; er bleibt dann `PENDING` und
 wird nie als `PASS` fabriziert.
@@ -369,11 +370,19 @@ wird nie als `PASS` fabriziert.
 **Was der Lauf tut.** `release_abnahme.py --release-tag` lädt die Artefakte des
 Vorgängers anonym über `browser_download_url` — derselbe öffentliche
 Anwenderpfad wie in `PUBLIC-DOWNLOAD-01` — und schreibt Hash und Herkunft in ein
-eigenes Evidenzverzeichnis. `abnahme_smoke.py` entpackt danach beide AppImages
-und ruft `scripts/update_probe_cli.py` **unter dem im jeweiligen Artefakt
-gebündelten CPython** auf. Der Update-Check importiert damit
-`bgremover.app_update`/`bgremover._version` aus dem ausgelieferten Bundle statt
-aus dem Checkout — genau der Punkt, an dem #740 zuvor danebenlag.
+eigenes Evidenzverzeichnis. Wie `abnahme_smoke.py` daraus einen Nachweis macht,
+unterscheidet sich je Plattform — bewertet wird danach identisch:
+
+| Plattform | Weg ins gepackte Artefakt |
+|---|---|
+| Linux arm64 | beide AppImages entpacken und `scripts/update_probe_cli.py` **unter dem darin gebündelten CPython** aufrufen; funktioniert rückwirkend gegen jedes veröffentlichte Artefakt, weil nur `bgremover.app_update`/`bgremover._version` importiert werden |
+| macOS arm64 | DMG mounten, App-Bundle in eine Wegwerfkopie je Rolle, Binary mit `BGREMOVER_UPDATE_CHECK_PROBE=<Ziel-JSON>` starten; der Hook läuft in `bgremover/app.py` **vor** `QApplication` und existiert erst ab v2.7.3 |
+
+In beiden Fällen kommt der geprüfte Code aus dem ausgelieferten Bundle statt aus
+dem Checkout — genau der Punkt, an dem #740 zuvor danebenlag. Der macOS-Start
+läuft bewusst **ohne** `--native` durch `smoke_launch.py`: Fehlt der Hook wider
+Erwarten, beendet `BGREMOVER_SMOKE_TEST` die dann startende GUI nach dem ersten
+Event-Loop-Tick, statt den Job bis zum Zeitlimit hängen zu lassen.
 
 **Bewertet wird in dieser Reihenfolge**, der erste Verstoß gewinnt:
 
@@ -402,22 +411,25 @@ Runner die Ausgabe der Teilschritte abfängt. Die Evidenz enthält ausschließli
 
 **Reichweite und Grenzen.**
 
-- Getragen wird der Nachweis von der **Linux-arm64-AppImage**. Das `.deb`
-  installiert per `packaging/linux/build_deb.sh` genau dieselbe AppImage nach
-  `/opt/BgRemover/BgRemover.AppImage`; ein zweiter Durchlauf prüfte dieselben
-  Bytes und ist deshalb bewusst nicht verdrahtet.
-- **macOS** ist rückwirkend nicht abdeckbar: PyInstaller bettet den Bytecode in
-  den Bootloader ein und liefert keinen generisch aufrufbaren Interpreter. Der
-  In-Prozess-Hook `BGREMOVER_UPDATE_CHECK_PROBE` schließt die Lücke erst, wenn
-  ein Release, das ihn bereits mitbringt, selbst zum **Vorgänger** geworden ist
-  — der Hook kam nach `v2.7.2`, also frühestens beim übernächsten Release.
+- `UPDATE-LINUX-ARM-01` wird von der **Linux-arm64-AppImage** getragen. Das
+  `.deb` installiert per `packaging/linux/build_deb.sh` genau dieselbe AppImage
+  nach `/opt/BgRemover/BgRemover.AppImage`; ein zweiter Durchlauf prüfte
+  dieselben Bytes und ist deshalb bewusst nicht verdrahtet. Seit #917 steht
+  diese Begründung im Kriteriumstext der Checkliste statt nur hier — die
+  Deklaration behauptet damit nicht mehr, als der Lauf erbringt.
+- `UPDATE-MACOS-ARM-01` braucht einen **Vorgänger ≥ v2.7.3**: Erst ab da bringt
+  ein Release den In-Prozess-Hook mit. Ein älterer Vorgänger führt zum benannten
+  Befund `HOOK_FEHLT` — kein leeres Ergebnis und keine kaputte Sonde, sondern
+  die dokumentierte historische Grenze. Das Kriterium bleibt dann `PENDING`.
+  Rückwirkend ist die Lücke nicht schließbar: PyInstaller bettet den Bytecode in
+  den Bootloader ein und liefert keinen generisch aufrufbaren Interpreter.
 - Der Vorgänger muss ein **öffentliches** Release sein; ein versehentlich
   privates fällt beim anonymen Download auf.
 - Steht kein Runner bereit, ersetzt die manuelle Prozedur in
   [`PACKAGING_SMOKE.md`](PACKAGING_SMOKE.md) §4.1 den Workflow-Lauf.
 
-**Fehlschlag.** Kein stiller Wiederanlauf: Ein fehlgeschlagener `UPDATE-01` ist
-ein Incident nach Schritt 9 des Runbooks und löst den dort beschriebenen
+**Fehlschlag.** Kein stiller Wiederanlauf: Ein fehlgeschlagenes Update-Kriterium
+ist ein Incident nach Schritt 9 des Runbooks und löst den dort beschriebenen
 Rollback-/Hotfix-Entscheid aus.
 
 ## 5. Pausiert: Linux x86_64 (GPU)

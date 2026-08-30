@@ -369,20 +369,30 @@ Ein Paket, `bgremover/`:
   `check_for_update` echt (unauthentifizierter Netzwerk-Roundtrip) auf und
   schreibt strukturierte Evidenz; in `bgremover.app.main` über
   `BGREMOVER_UPDATE_CHECK_PROBE` (Ziel-JSON-Pfad) noch vor `QApplication`
-  ausgelöst, analog `BGREMOVER_AI_SELFCHECK`. Da der Hook erst ab dem
-  Kandidaten existiert, der ihn zuerst mitbaut, deckt er den echten
-  `UPDATE_AVAILABLE`-Vorgängernachweis für bereits veröffentlichte Artefakte
-  nicht rückwirkend ab – dafür läuft `scripts/update_probe_cli.py` direkt
-  unter dem im jeweiligen Artefakt gebündelten Interpreter (nur Linux/
-  python-appimage bietet dafür einen generisch aufrufbaren Interpreter;
-  PyInstaller-macOS nicht), verdrahtet in `scripts/abnahme_smoke.py`
-  (`_update_check_linux`, `--predecessor-evidence-dir`/`--candidate-version`)
-  und optional per `predecessor_tag`-Eingabe in `release-abnahme.yml`.
+  ausgelöst, analog `BGREMOVER_AI_SELFCHECK`. **Zwei Wege ins gepackte
+  Artefakt, eine Bewertung (#917):** Linux entpackt die AppImage und ruft
+  `scripts/update_probe_cli.py` unter dem darin gebündelten Interpreter auf –
+  rückwirkend gegen *jedes* veröffentlichte Artefakt, weil nur
+  `bgremover.app_update`/`bgremover._version` importiert werden. macOS hat
+  keinen solchen Interpreter (PyInstaller bettet Bytecode in den Bootloader
+  ein) und nutzt stattdessen den In-Prozess-Hook, der erst **ab v2.7.3**
+  existiert (`UPDATE_CHECK_MACOS_MIN_VERSION`); ein älterer Vorgänger erzeugt
+  den benannten Befund `HOOK_FEHLT` statt eines leeren Ergebnisses. Verdrahtet
+  in `scripts/abnahme_smoke.py` (`_update_check_pair` als geteilter Rahmen,
+  `_update_check_linux`/`_update_check_macos` als Plattformwege,
+  `--predecessor-evidence-dir`/`--candidate-version`) und optional per
+  `predecessor_tag`-Eingabe in `release-abnahme.yml` – seit #917 in **beiden**
+  arm64-Jobs. Die Checkliste führt dazu getrennte Kriterien
+  `UPDATE-LINUX-ARM-01` (das `.deb` ist über die Byte-Identität mit der
+  installierten AppImage abgedeckt) und `UPDATE-MACOS-ARM-01`.
   `build_update_check_subject` baut je Rolle
   (`vorgaenger`/`kandidat`) ein `UpdateCheckSubject` aus der Bezugs-Evidenz
   von `release_abnahme.py` – Quellart (`release-tag` vs. `run-id`, gegen die
   Rolle geprüft), SHA-256, Digest-Bestätigung, Plattform und die *erwartete*
-  Ausgangsversion. Bewertet wird fail-closed in dieser Reihenfolge:
+  Ausgangsversion; die tragende Artefaktklasse folgt aus der Plattform
+  (`UPDATE_CHECK_ARTIFACT_SUFFIX`: Linux `.AppImage`, macOS `.dmg`), die
+  „genau eine"-Regel gilt für beide, und eine übergebene Plattform muss zur
+  Evidenz passen. Bewertet wird fail-closed in dieser Reihenfolge:
   `CHECK_FAILED` (eigener harter Befund), die vom Artefakt **selbst**
   gemeldete Version gegen die Herkunft (erst damit steht fest, dass das
   vorgesehene Bundle lief und nicht der Checkout, #740), der Status
