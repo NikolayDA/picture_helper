@@ -90,6 +90,28 @@ UPDATE_CHECK_OUTPUT_NAMES = {
     UPDATE_CHECK_ROLE_PREDECESSOR: "predecessor.json",
     UPDATE_CHECK_ROLE_CANDIDATE: "current.json",
 }
+# Artefaktklasse, die je Plattform den Update-Nachweis traegt (#917). Genau
+# eine je Rolle - mehrere (oder keine) waeren eine stille Auswahl.
+#
+# Linux: die AppImage. Das .deb installiert byteidentisch dieselbe AppImage
+# nach /opt/BgRemover/BgRemover.AppImage (packaging/linux), ein zweiter
+# Durchlauf pruefte also dieselben Bytes ein zweites Mal.
+# macOS: das DMG. Ein Interpreter-Weg wie unter Linux existiert dort nicht
+# (PyInstaller bettet Bytecode in den Bootloader ein), deshalb laeuft der
+# Nachweis ueber den In-Prozess-Hook BGREMOVER_UPDATE_CHECK_PROBE.
+UPDATE_CHECK_ARTIFACT_SUFFIX = {
+    "linux-x86_64": ".AppImage",
+    "linux-arm64": ".AppImage",
+    "macos-arm64": ".dmg",
+}
+# Erste Version mit dem In-Prozess-Hook (bgremover/app.py, #748). Ein aelterer
+# macOS-Vorgaenger ignoriert BGREMOVER_UPDATE_CHECK_PROBE und startet die GUI;
+# ohne diese Schranke sieht das aus wie "Sonde lieferte nichts" statt wie die
+# dokumentierte historische Grenze (#917).
+UPDATE_CHECK_MACOS_MIN_VERSION = "2.7.3"
+# Der Hook kehrt vor QApplication zurueck; das Zeitlimit deckt nur Prozessstart
+# und den einen Netzwerk-Roundtrip ab.
+UPDATE_CHECK_MACOS_TIMEOUT = 120
 # Zusammenfassende UPDATE-01-Evidenz: verbindet die Sonden-Nutzlast beider
 # Rollen mit der Herkunft der geprüften Artefakte (#748 verlangt Artefaktquelle,
 # Hash, Plattform, Ausgangs- und Zielversion sowie Antwortstatus an EINER
@@ -106,6 +128,11 @@ UPDATE_CHECK_VERDICT_NO_EVIDENCE = "KEINE_EVIDENZ"
 UPDATE_CHECK_VERDICT_SOURCE_VERSION = "AUSGANGSVERSION_ABWEICHEND"
 UPDATE_CHECK_VERDICT_STATUS = "STATUS_UNERWARTET"
 UPDATE_CHECK_VERDICT_TARGET_VERSION = "ZIELVERSION_ABWEICHEND"
+# Eigener Befund statt KEINE_EVIDENZ (#917): Ein macOS-Vorgaenger vor v2.7.3
+# kann den Nachweis prinzipbedingt nicht tragen. Das ist die dokumentierte
+# historische Grenze und keine kaputte Sonde - die Evidenz muss den
+# Unterschied benennen.
+UPDATE_CHECK_VERDICT_NO_HOOK = "HOOK_FEHLT"
 
 # Nativer 3D-Screenshot-Nachweis (#648): großzügigeres Timeout als der
 # Headless-Start – Shader-Compile + erster Mesh-Build auf echter (ggf.
@@ -663,8 +690,31 @@ def normalize_version(value: str | None) -> str:
     return str(value or "").strip().lstrip("vV")
 
 
+def version_at_least(value: str, minimum: str) -> bool:
+    """Numerischer Versionsvergleich (``2.7.10`` > ``2.7.3``), Suffixe ignoriert.
+
+    Nur fuer die Hook-Mindestversion des macOS-Nachweises gedacht; ein nicht
+    parsbarer Wert gilt als *nicht* ausreichend (fail-closed).
+    """
+    def parts(text: str) -> tuple[int, ...]:
+        numbers: list[int] = []
+        for chunk in normalize_version(text).split("."):
+            digits = ""
+            for char in chunk:
+                if not char.isdigit():
+                    break
+                digits += char
+            if not digits:
+                break
+            numbers.append(int(digits))
+        return tuple(numbers)
+
+    actual, wanted = parts(value), parts(minimum)
+    return bool(actual) and actual >= wanted
+
+
 def build_update_check_subject(
-    evidence_dir: Path, role: str, *, expected_version: str = "",
+    evidence_dir: Path, role: str, *, expected_version: str = "", platform: str = "",
 ) -> UpdateCheckSubject:
     """Baut aus einem ``release_abnahme.py``-Evidenzverzeichnis das Subjekt für
     eine Rolle des Vorgängernachweises (#748).
@@ -679,6 +729,13 @@ def build_update_check_subject(
     ``expected_version`` leer heißt beim Vorgänger: aus dem Release-Tag
     ableiten. Beim Kandidaten muss sie der Aufrufer setzen (die Version steht
     nicht in der Evidenz).
+
+    ``platform`` leer heißt: aus der Evidenz ableiten. Übergibt der Aufrufer
+    sie (der Smoke kennt sie aus ``--platform``), muss die Evidenz dieselbe
+    Plattform tragen – sonst hätte ein macOS-Lauf mit versehentlich
+    übergebener Linux-Vorgängerevidenz stillschweigend weitergeprüft (#917).
+    Die tragende Artefaktklasse folgt daraus (Linux ``.AppImage``, macOS
+    ``.dmg``); die „genau eine"-Regel gilt für beide unverändert.
     """
     evidence = json.loads((evidence_dir / "evidenz.json").read_text(encoding="utf-8"))
     source = evidence.get("quelle") or {}
@@ -688,17 +745,30 @@ def build_update_check_subject(
             f"Update-Check ({role}): Evidenzquelle {source.get('art')!r} statt "
             f"{expected_source!r} – {evidence_dir}"
         )
-    appimages = [
-        a for a in evidence.get("artefakte", []) if str(a.get("name", "")).endswith(".AppImage")
+    evidence_platform = str(evidence.get("platform", ""))
+    if platform and evidence_platform != platform:
+        raise ValueError(
+            f"Update-Check ({role}): Evidenz gehört zu Plattform "
+            f"{evidence_platform!r}, geprüft wird {platform!r} – {evidence_dir}"
+        )
+    target_platform = platform or evidence_platform
+    suffix = UPDATE_CHECK_ARTIFACT_SUFFIX.get(target_platform)
+    if suffix is None:
+        raise ValueError(
+            f"Update-Check ({role}): keine Nachweis-Artefaktklasse für Plattform "
+            f"{target_platform!r} definiert – {evidence_dir}"
+        )
+    matching = [
+        a for a in evidence.get("artefakte", []) if str(a.get("name", "")).endswith(suffix)
     ]
-    if len(appimages) != 1:
+    if len(matching) != 1:
         # Genau eine: nur so ist eindeutig, welches Artefakt den Nachweis
         # getragen hat. Mehrere (oder keine) wären eine stille Auswahl.
         raise ValueError(
-            f"Update-Check ({role}): genau eine AppImage erwartet, gefunden "
-            f"{[a.get('name') for a in appimages]} – {evidence_dir}"
+            f"Update-Check ({role}): genau eine {suffix}-Datei erwartet, gefunden "
+            f"{[a.get('name') for a in matching]} – {evidence_dir}"
         )
-    artefact = appimages[0]
+    artefact = matching[0]
     version = expected_version
     if not version and role == UPDATE_CHECK_ROLE_PREDECESSOR:
         # Nur beim Vorgänger steht die Sollversion in der Quelle – der Tag ist
@@ -718,7 +788,7 @@ def build_update_check_subject(
         digest_verified=bool(artefact.get("digest_geprueft")),
         source_kind=str(source.get("art", "")),
         source_value=str(source.get("wert", "")),
-        platform=str(evidence.get("platform", "")),
+        platform=evidence_platform,
     )
 
 
@@ -762,6 +832,7 @@ def _extract_appimage(runner: Runner, appimage_path: str, label: str, report: Sm
 
 def _update_check_record(
     subject: UpdateCheckSubject, *, verdict: str, payload: dict[str, Any] | None = None,
+    interpreter: str | None = None,
 ) -> dict[str, Any]:
     """Herkunft + Sondenantwort einer Rolle zu einem Evidenzeintrag verbinden.
 
@@ -770,6 +841,10 @@ def _update_check_record(
     er handelte, ist im Fehlerfall wertlos.
     """
     payload = payload or {}
+    # ``interpreter`` = was den Nachweis wirklich ausgefuehrt hat: unter Linux
+    # der gebuendelte Interpreter (die Sonde meldet ihn selbst), unter macOS
+    # das gestartete App-Binary (der In-Prozess-Hook kennt keinen separaten
+    # Interpreter). Der Aufrufer setzt ihn, sonst gilt die Selbstauskunft.
     return {
         "rolle": subject.role,
         "artefakt": Path(subject.path).name,
@@ -783,7 +858,7 @@ def _update_check_record(
         "status": payload.get("status"),
         "zielversion": payload.get("latest_version"),
         "release_url": payload.get("release_url"),
-        "interpreter": payload.get("interpreter"),
+        "interpreter": interpreter or payload.get("interpreter"),
         "fehler": payload.get("error"),
         "befund": verdict,
     }
@@ -818,6 +893,7 @@ def _update_check(
         return _update_check_record(subject, verdict=UPDATE_CHECK_VERDICT_NO_EVIDENCE)
     evidence_dir.mkdir(parents=True, exist_ok=True)
     target = (evidence_dir / UPDATE_CHECK_OUTPUT_NAMES[subject.role]).resolve()
+    target.unlink(missing_ok=True)  # kein Rest eines frueheren Versuchs (#917)
     result = runner([
         interpreter, str(UPDATE_CHECK_PROBE), "--output", str(target),
     ])
@@ -883,16 +959,25 @@ def _update_check_verdict(
     return UPDATE_CHECK_VERDICT_OK
 
 
-def _update_check_linux(
+#: Sondenaufruf einer Rolle: (Subjekt, Evidenzverzeichnis, Sollzielversion)
+#: -> Evidenzeintrag. Plattformspezifisch, Rahmen und Bewertung sind geteilt.
+UpdateCheckProbe = Callable[[UpdateCheckSubject, Path, str], dict[str, Any]]
+
+
+def _update_check_pair(
     predecessor: UpdateCheckSubject, candidate: UpdateCheckSubject,
-    report: SmokeReport, runner: Runner, evidence_root: Path,
+    report: SmokeReport, evidence_root: Path, *, probe: UpdateCheckProbe,
 ) -> None:
-    """Echter Vorgänger-Nachweis für ``UPDATE-01`` (#748): ein bereits
-    veröffentlichtes Vorgänger-Release muss ``UPDATE_AVAILABLE`` melden, der
-    aktuell geprüfte Kandidat ``UP_TO_DATE`` – beide über den echten,
-    unauthentifizierten GitHub-Releases-API-Roundtrip aus
-    ``bgremover.app_update``, ausgeführt unter dem jeweils im Artefakt
-    gebündelten Interpreter (siehe ``_update_check``).
+    """Geteilter Rahmen des Vorgängernachweises ``UPDATE-01`` (#748/#917).
+
+    Ein bereits veröffentlichtes Vorgänger-Release muss ``UPDATE_AVAILABLE``
+    melden, der aktuell geprüfte Kandidat ``UP_TO_DATE`` – beide über den
+    echten, unauthentifizierten GitHub-Releases-API-Roundtrip aus
+    ``bgremover.app_update``, ausgeführt aus dem jeweils **gepackten**
+    Artefakt. Wie der Aufruf ins Artefakt kommt, ist plattformabhängig
+    (``probe``); Vorbedingung, Bewertungsreihenfolge und Evidenzform sind es
+    ausdrücklich nicht – sonst driftete der macOS-Nachweis vom Linux-Nachweis
+    weg, obwohl beide dasselbe Kriterium tragen.
 
     Schreibt anschließend die zusammenfassende Evidenz mit Artefaktquelle,
     Hash, Plattform, Ausgangs- und Zielversion sowie Antwortstatus je Rolle.
@@ -908,16 +993,124 @@ def _update_check_linux(
         return
 
     records = [
-        _update_check(
-            runner, predecessor, report=report, evidence_dir=evidence_dir,
-            expected_latest_version=candidate.expected_version,
-        ),
-        _update_check(
-            runner, candidate, report=report, evidence_dir=evidence_dir,
-            expected_latest_version=candidate.expected_version,
-        ),
+        probe(predecessor, evidence_dir, candidate.expected_version),
+        probe(candidate, evidence_dir, candidate.expected_version),
     ]
     _write_update_check_summary(evidence_dir, records, candidate.expected_version)
+
+
+def _update_check_linux(
+    predecessor: UpdateCheckSubject, candidate: UpdateCheckSubject,
+    report: SmokeReport, runner: Runner, evidence_root: Path,
+) -> None:
+    """UPDATE-01 auf Linux: Sonde unter dem gebündelten Interpreter der
+    AppImage (siehe ``_update_check``)."""
+    _update_check_pair(
+        predecessor, candidate, report, evidence_root,
+        probe=lambda subject, evidence_dir, latest: _update_check(
+            runner, subject, report=report, evidence_dir=evidence_dir,
+            expected_latest_version=latest,
+        ),
+    )
+
+
+def _update_check_macos(
+    predecessor: UpdateCheckSubject, candidate: UpdateCheckSubject,
+    report: SmokeReport, runner: Runner, evidence_root: Path,
+) -> None:
+    """UPDATE-01 auf macOS: Sonde über den In-Prozess-Hook des DMG-Bundles."""
+    _update_check_pair(
+        predecessor, candidate, report, evidence_root,
+        probe=lambda subject, evidence_dir, latest: _update_check_macos_probe(
+            runner, subject, report=report, evidence_dir=evidence_dir,
+            expected_latest_version=latest,
+        ),
+    )
+
+
+def _update_check_macos_probe(
+    runner: Runner, subject: UpdateCheckSubject, *,
+    report: SmokeReport, evidence_dir: Path, expected_latest_version: str,
+) -> dict[str, Any]:
+    """UPDATE-01-Nachweis aus dem gepackten DMG-Bundle (#917).
+
+    Der Linux-Weg (``scripts/update_probe_cli.py`` unter dem gebündelten
+    Interpreter) existiert hier nicht: PyInstaller bettet den Bytecode in ein
+    Archiv im Bootloader ein, statt einen eigenständig aufrufbaren Interpreter
+    mit normalem Site-Packages bereitzustellen. Stattdessen läuft der
+    In-Prozess-Hook ``BGREMOVER_UPDATE_CHECK_PROBE``, den ``bgremover.app.main``
+    noch **vor** ``QApplication`` auswertet – derselbe echte Roundtrip, nur
+    anders angestoßen. Bewertet wird danach mit exakt derselben Reihenfolge wie
+    unter Linux (``_update_check_verdict``).
+
+    Der Start läuft bewusst **ohne** ``--native`` durch ``smoke_launch.py``:
+    Bringt ein Artefakt den Hook wider Erwarten doch nicht mit, beendet
+    ``BGREMOVER_SMOKE_TEST`` die dann startende GUI nach dem ersten
+    Event-Loop-Tick, statt den Job bis zum Zeitlimit hängen zu lassen. Der
+    fehlende Bericht ist dann trotzdem ein Fehlschlag – nur ein schneller.
+    """
+    if not version_at_least(subject.expected_version, UPDATE_CHECK_MACOS_MIN_VERSION):
+        # Benannter Befund statt „Sonde lieferte nichts": Vor v2.7.3 gibt es
+        # den Hook schlicht nicht, und kein Wiederholungslauf ändert das.
+        report.fail(
+            f"Update-Check ({subject.label}): Version {subject.expected_version!r} "
+            f"bringt den In-Prozess-Hook nicht mit (erst ab "
+            f"{UPDATE_CHECK_MACOS_MIN_VERSION}) – für ältere macOS-Vorgänger "
+            "existiert kein Nachweisweg (dokumentierte historische Grenze, #917)."
+        )
+        return _update_check_record(subject, verdict=UPDATE_CHECK_VERDICT_NO_HOOK)
+
+    app = _mount_dmg_app_copy(
+        subject.path, subject.label, report, runner,
+        dest_root=f"{TEMP_DMG_ROOT}-update-check/{subject.role}",
+    )
+    if app is None:
+        return _update_check_record(subject, verdict=UPDATE_CHECK_VERDICT_NO_EVIDENCE)
+    binary = f"{app}/Contents/MacOS/{Path(app).stem}"
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    target = (evidence_dir / UPDATE_CHECK_OUTPUT_NAMES[subject.role]).resolve()
+    # Ein Rest aus einem frueheren Versuch wuerde sonst als Ergebnis DIESES
+    # Laufs gewertet - auf einem Self-hosted Runner mit wiederverwendetem
+    # RUNNER_TEMP genau der Fall, den der Nachweis ausschliessen soll.
+    target.unlink(missing_ok=True)
+    try:
+        result = runner([
+            sys.executable, str(SMOKE_LAUNCH),
+            "--match", Path(app).name,
+            "--max-instances", str(_fork_limit(Path(subject.path).name)),
+            "--timeout", str(UPDATE_CHECK_MACOS_TIMEOUT),
+            "--workdir", str(neutral_workdir()),  # nicht im Checkout starten (#740)
+            "--env", f"BGREMOVER_UPDATE_CHECK_PROBE={target}",
+            "--", binary,
+        ])
+    finally:
+        runner(["rm", "-rf", app])
+    _record_guard(report, result, phase="update_check", artifact_class=subject.label)
+    if not target.is_file():
+        report.fail(
+            f"Update-Check ({subject.label}): keine Evidenz erzeugt – der Hook "
+            f"{'lief nicht' if result.returncode == 0 else 'brach ab'}: "
+            f"{_command_detail(result)}"
+        )
+        return _update_check_record(
+            subject, verdict=UPDATE_CHECK_VERDICT_NO_EVIDENCE, interpreter=binary,
+        )
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        report.fail(f"Update-Check ({subject.label}): Evidenz-JSON unlesbar: {exc}")
+        return _update_check_record(
+            subject, verdict=UPDATE_CHECK_VERDICT_NO_EVIDENCE, interpreter=binary,
+        )
+
+    verdict = _update_check_verdict(
+        subject, payload, report, expected_latest_version=expected_latest_version,
+    )
+    if verdict == UPDATE_CHECK_VERDICT_OK:
+        report.ok(f"Update-Check ok ({subject.label}): {payload.get('status')}")
+    return _update_check_record(
+        subject, verdict=verdict, payload=payload, interpreter=binary,
+    )
 
 
 def _write_update_check_summary(
@@ -1120,9 +1313,19 @@ def parse_disk_identifier(hdiutil_stdout: str) -> str | None:
 
 def run_macos_smoke(
     artefacts: list[str], report: SmokeReport, runner: Runner, prober: Prober, scale_factor: float,
-    screenshot_dir: Path,
+    screenshot_dir: Path, *,
+    predecessor: UpdateCheckSubject | None = None,
+    candidate: UpdateCheckSubject | None = None,
 ) -> SmokeReport:
-    """DMG-Smoke inkl. Retina-Nachweis auf einem macOS-Runner (#643)."""
+    """DMG-Smoke inkl. Retina-Nachweis auf einem macOS-Runner (#643).
+
+    ``predecessor``/``candidate`` (optional, #917): dieselben beiden Rollen des
+    UPDATE-01-Vorgängernachweises wie unter Linux, hier über den
+    In-Prozess-Hook des DMG-Bundles. Beide gesetzt ⇒ der Nachweis läuft; beide
+    ``None`` ⇒ er entfällt ausdrücklich (bleibt ``PENDING`` statt fabriziert
+    ``PASS``). Nur eine Seite gesetzt ist ein Konfigurationsfehler und
+    scheitert, statt still die halbe Prüfung zu machen.
+    """
     _require_extensions(artefacts, {".dmg"}, report)
 
     verdict = ra.evaluate_gl_provenance(prober())
@@ -1141,30 +1344,52 @@ def run_macos_smoke(
         if artefact.endswith(".dmg"):
             _macos_dmg(artefact, report, runner, screenshot_dir)
 
+    if predecessor is not None and candidate is not None:
+        _update_check_macos(predecessor, candidate, report, runner, screenshot_dir.parent)
+    elif predecessor is not None or candidate is not None:
+        report.fail(
+            "Update-Check: nur eine der beiden Rollen (Vorgänger/Kandidat) übergeben – "
+            "der Nachweis braucht beide."
+        )
+
     return report
 
 
-def _macos_dmg(path: str, report: SmokeReport, runner: Runner, screenshot_dir: Path) -> None:
-    name = Path(path).name
+def _mount_dmg_app_copy(
+    path: str, label: str, report: SmokeReport, runner: Runner, *,
+    dest_root: str = TEMP_DMG_ROOT,
+) -> str | None:
+    """Mountet ein DMG, kopiert das App-Bundle heraus und detacht wieder.
+
+    Geteilt vom DMG-Smoke und vom macOS-Update-Nachweis (#917): Beide brauchen
+    exakt dieselbe Behandlung (Mount, Kopie, Quarantaene entfernen, sofort
+    detachen) – zwei Fassungen davon wuerden auseinanderlaufen.
+
+    Cleanup-Trap: ``attach`` war erfolgreich, also ist ein Volume gemountet –
+    detach in jedem Fall versuchen, auch wenn der Mount-Pfad nicht geparst
+    werden konnte (sonst bleibt es haengen, #643-Fund). Detach laeuft
+    bewusst nur um die Kopie herum (#651-Review-Fund): der eigentliche
+    App-Start darf das DMG nicht mehr gemountet halten, sonst bleibt bei einem
+    abgebrochenen/gekillten Job ein Volume unnoetig lange haengen – die
+    Temp-Kopie existiert ja genau dafuer.
+    """
     attach = runner(["hdiutil", "attach", "-nobrowse", "-readonly", path])
     if attach.returncode != 0:
-        report.fail(f"DMG-Mount fehlgeschlagen: {name}: {_command_detail(attach)}")
-        return
+        report.fail(f"DMG-Mount fehlgeschlagen: {label}: {_command_detail(attach)}")
+        return None
     mount = parse_mount_point(attach.stdout)
     disk_id = parse_disk_identifier(attach.stdout)
-    # Cleanup-Trap: ``attach`` war erfolgreich, also ist ein Volume gemountet –
-    # detach in jedem Fall versuchen, auch wenn der Mount-Pfad nicht geparst
-    # werden konnte (sonst bleibt es haengen, #643-Fund). Detach laeuft HIER
-    # bewusst nur um die Kopie herum (#651-Review-Fund): der eigentliche
-    # App-Start (120s Guard-Timeout, _guard-Default) darf das DMG nicht mehr gemountet
-    # halten, sonst bleibt bei einem abgebrochenen/gekillten Job ein Volume
-    # unnoetig lange haengen – die Temp-Kopie existiert ja genau dafuer.
     try:
-        temp_app = _macos_dmg_copy(name, mount, report, runner)
+        return _macos_dmg_copy(label, mount, report, runner, dest_root=dest_root)
     finally:
         detach_target = mount or disk_id
         if detach_target:
             runner(["hdiutil", "detach", detach_target])
+
+
+def _macos_dmg(path: str, report: SmokeReport, runner: Runner, screenshot_dir: Path) -> None:
+    name = Path(path).name
+    temp_app = _mount_dmg_app_copy(path, name, report, runner)
     if temp_app is None:
         return
     try:
@@ -1174,7 +1399,8 @@ def _macos_dmg(path: str, report: SmokeReport, runner: Runner, screenshot_dir: P
 
 
 def _macos_dmg_copy(
-    dmg_name: str, mount: str | None, report: SmokeReport, runner: Runner,
+    dmg_name: str, mount: str | None, report: SmokeReport, runner: Runner, *,
+    dest_root: str = TEMP_DMG_ROOT,
 ) -> str | None:
     """Findet das App-Bundle auf dem Mount und kopiert es in eine Temp-Kopie.
 
@@ -1189,22 +1415,28 @@ def _macos_dmg_copy(
     if not app:
         report.fail(f"Keine .app im DMG gefunden: {dmg_name}")
         return None
-    return _copy_app_to_temp(app, report, runner)
+    return _copy_app_to_temp(app, report, runner, dest_root=dest_root)
 
 
-def _copy_app_to_temp(app: str, report: SmokeReport, runner: Runner) -> str | None:
+def _copy_app_to_temp(
+    app: str, report: SmokeReport, runner: Runner, *, dest_root: str = TEMP_DMG_ROOT,
+) -> str | None:
     """Kopiert das App-Bundle vom read-only DMG-Mount in eine Temp-Wegwerfkopie.
 
     Noetig aus zwei Gruenden: (1) Quarantaene laesst sich auf einem read-only
     Mount nicht entfernen, (2) der DMG-Mount kann sofort danach detacht werden,
     statt waehrend des ganzen App-Laufs belegt zu bleiben (#643-Fund).
+
+    ``dest_root`` trennt die Kopien des Update-Nachweises nach Rolle (#917):
+    Vorgaenger- und Kandidaten-DMG enthalten beide ``BgRemover.app``, und ein
+    Nachweis, der versehentlich zweimal dasselbe Bundle startet, waere keiner.
     """
-    temp_app = f"{TEMP_DMG_ROOT}/{Path(app).name}"
+    temp_app = f"{dest_root}/{Path(app).name}"
     if runner(["rm", "-rf", temp_app]).returncode != 0:
         report.fail(f"Temp-Verzeichnis konnte nicht bereinigt werden: {temp_app}")
         return None
-    if runner(["mkdir", "-p", TEMP_DMG_ROOT]).returncode != 0:
-        report.fail(f"Temp-Verzeichnis konnte nicht angelegt werden: {TEMP_DMG_ROOT}")
+    if runner(["mkdir", "-p", dest_root]).returncode != 0:
+        report.fail(f"Temp-Verzeichnis konnte nicht angelegt werden: {dest_root}")
         return None
     if runner(["cp", "-R", app, temp_app]).returncode != 0:
         report.fail(f"App-Bundle konnte nicht in Temp kopiert werden: {app}")
@@ -1262,8 +1494,10 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "Evidenzverzeichnis eines bereits veröffentlichten Vorgänger-"
             "Releases (release_abnahme.py --release-tag), für den echten "
-            "UPDATE-01-Vorgängernachweis (#748). Nur Linux unterstützt das "
-            "rückwirkend gegen ein bereits gebautes Artefakt."
+            "UPDATE-01-Vorgängernachweis (#748/#917). Linux prüft über den "
+            "gebündelten Interpreter der AppImage und damit rückwirkend gegen "
+            "jedes Artefakt; macOS über den In-Prozess-Hook des DMG-Bundles "
+            f"und damit erst ab Vorgängerversion {UPDATE_CHECK_MACOS_MIN_VERSION}."
         ),
     )
     parser.add_argument(
@@ -1290,12 +1524,16 @@ def main(argv: list[str] | None = None) -> int:
     candidate: UpdateCheckSubject | None = None
     if args.predecessor_evidence_dir:
         try:
+            # ``platform`` explizit: Eine Vorgängerevidenz der falschen
+            # Plattform (z. B. Linux-Verzeichnis im macOS-Job) wäre sonst still
+            # durchgelaufen und hätte das falsche Artefakt geprüft (#917).
             predecessor = build_update_check_subject(
                 args.predecessor_evidence_dir, UPDATE_CHECK_ROLE_PREDECESSOR,
+                platform=args.platform,
             )
             candidate = build_update_check_subject(
                 args.evidence_dir, UPDATE_CHECK_ROLE_CANDIDATE,
-                expected_version=args.candidate_version,
+                expected_version=args.candidate_version, platform=args.platform,
             )
         except (OSError, KeyError, ValueError, json.JSONDecodeError) as exc:
             parser.error(f"Update-Check-Vorgängernachweis nicht aufsetzbar: {exc}")
@@ -1310,7 +1548,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         run_macos_smoke(
             artefacts, report, _default_runner, _default_prober, args.scale_factor,
-            screenshot_dir,
+            screenshot_dir, predecessor=predecessor, candidate=candidate,
         )
 
     finalized = ra.finalize_evidence(

@@ -219,7 +219,7 @@ Zusätzlich je Artefakt prüfen:
 - Paketgröße und Startzeit gegen die #591-Baseline messen; Überschreitung
   begründen.
 
-### 4.1 Post-Release-Update-Nachweis `UPDATE-01` (#748, manuell)
+### 4.1 Post-Release-Update-Nachweis (#748/#917, manuell)
 
 Der Nachweis läuft normalerweise als `release-abnahme.yml`-Dispatch mit
 `predecessor_tag` (Bedienung: [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md)
@@ -229,6 +229,8 @@ zugleich die Beschreibung dessen, was der Workflow tut.
 **Erst nach der Veröffentlichung ausführen**: Vor dem Tag meldet
 `/releases/latest` die neue Version nicht, der Vorgänger könnte sie gar nicht
 sehen.
+
+#### Linux arm64 (`UPDATE-LINUX-ARM-01`)
 
 Auf einem Linux-aarch64-Gerät, beide AppImages öffentlich beziehen — Vorgänger
 und neu veröffentlichter Kandidat:
@@ -273,10 +275,40 @@ sonstige Geheimnisse. Ein Fehlschlag ist ein Incident nach Schritt 9 des
 Entscheid aus.
 
 Für das `.deb` ist kein eigener Durchlauf nötig: es installiert dieselbe
-AppImage nach `/opt/BgRemover/BgRemover.AppImage`. Für die macOS-`.app` gibt es
-keinen entsprechenden Weg — PyInstaller liefert keinen generisch aufrufbaren
-Interpreter; dort greift der In-Prozess-Hook `BGREMOVER_UPDATE_CHECK_PROBE`
-erst, sobald ein Release mit diesem Hook selbst zum Vorgänger geworden ist.
+AppImage nach `/opt/BgRemover/BgRemover.AppImage`.
+
+#### macOS arm64 (`UPDATE-MACOS-ARM-01`)
+
+PyInstaller liefert keinen generisch aufrufbaren Interpreter, der Weg oben
+funktioniert hier also nicht. Stattdessen läuft der **In-Prozess-Hook**
+`BGREMOVER_UPDATE_CHECK_PROBE`, den `bgremover/app.py` noch vor `QApplication`
+auswertet — vorhanden **ab v2.7.3**. Ein älterer Vorgänger kann den Nachweis
+prinzipbedingt nicht tragen; das Kriterium bleibt dann `PENDING` mit Verweis auf
+diese Grenze (nicht `WAIVED`).
+
+Je Rolle einmal, mit getrennten Zielverzeichnissen — Vorgänger- und
+Kandidaten-DMG enthalten beide `BgRemover.app`:
+
+```sh
+# Öffentlicher Anwenderpfad: anonym, ohne GitHub-Anmeldung.
+curl -fL -o predecessor.dmg "<browser_download_url des Vorgängers>"
+shasum -a 256 predecessor.dmg          # in die Evidenz übernehmen
+
+hdiutil attach -nobrowse -readonly predecessor.dmg      # Mount merken
+mkdir -p /tmp/update-check/predecessor
+cp -R "/Volumes/<Mount>/BgRemover.app" /tmp/update-check/predecessor/
+hdiutil detach "/Volumes/<Mount>"
+# Quarantäne nur auf der Wegwerfkopie entfernen (ad-hoc signiertes Artefakt).
+xattr -r -d com.apple.quarantine /tmp/update-check/predecessor/BgRemover.app
+BGREMOVER_UPDATE_CHECK_PROBE=/tmp/update-check/predecessor.json \
+  /tmp/update-check/predecessor/BgRemover.app/Contents/MacOS/BgRemover
+cat /tmp/update-check/predecessor.json
+```
+
+Denselben Ablauf mit dem neu veröffentlichten Kandidaten-DMG wiederholen und
+beide Ergebnisse nach derselben Tabelle oben auswerten. Aus einem Verzeichnis
+**außerhalb** des Checkouts starten (#740). Erscheint statt der JSON-Datei ein
+Fenster, bringt das Artefakt den Hook nicht mit — dann ist es älter als v2.7.3.
 
 ## 5. Screenshots
 

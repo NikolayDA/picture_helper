@@ -46,7 +46,7 @@ ACCEPTANCE_RUN_ID="RUN_ID"
 APPROVAL_ARTIFACT_NAME="release-approval-manifest-1"
 # Erst nach Schritt 8 bekannt – Quelle des PUBLIC-DOWNLOAD-01-Berichts.
 PUBLISH_RUN_ID="RUN_ID"
-# Zuletzt veroeffentlichter Release – Vorgaenger fuer UPDATE-01 (Schritt 9).
+# Zuletzt veroeffentlichter Release – Vorgaenger fuer die Update-Kriterien (Schritt 9).
 PREDECESSOR_TAG="vX.Y.Z"
 ```
 
@@ -356,20 +356,37 @@ gh api "repos/NikolayDA/picture_helper/releases/tags/${RELEASE_TAG}" \
   --jq '.assets[] | [.name, .browser_download_url] | @tsv'
 ```
 
-Führe danach `UPDATE-01` gemäß #748 mit einem echten Vorgängerartefakt aus.
-Erst jetzt ist das möglich: vor dem Tag meldet `/releases/latest` die neue
-Version nicht. Starte dazu `release-abnahme.yml` erneut — mit **derselben**
-`run_id` wie in Schritt 5, `platforms = linux-arm64` und dem Tag des
-Vorgängers:
+Führe danach `UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` gemäß #748/#917
+mit einem echten Vorgängerartefakt aus. Erst jetzt ist das möglich: vor dem Tag
+meldet `/releases/latest` die neue Version nicht. Starte dazu
+`release-abnahme.yml` erneut — mit **derselben** `run_id` wie in Schritt 5 und
+dem Tag des Vorgängers. `platforms` bestimmt, welche der beiden Kriterien der
+Lauf erbringt:
 
 ```bash
+# Beide Kanäle in einem Lauf (Regelfall seit #917):
 gh workflow run release-abnahme.yml --ref "$RELEASE_TAG" \
   -f run_id="$CANDIDATE_RUN_ID" \
-  -f platforms=linux-arm64 \
+  -f platforms=alle \
   -f dry_run=false \
   -f predecessor_tag="$PREDECESSOR_TAG" \
   -f target_issue="$RELEASE_ISSUE"
 ```
+
+`platforms=alle` deckt beide Post-Release-Kriterien in einem Lauf ab (der
+pausierte x86_64-Job bleibt übersprungen). Ist nur ein Runner verfügbar, geht
+auch `platforms=linux-arm64` beziehungsweise `platforms=macos-arm64` — dann
+bleibt aber das jeweils andere Kriterium `PENDING` und muss in einem zweiten
+Lauf nachgezogen werden. Ein Einzelplattform-Lauf erzeugt bewusst **kein**
+Freigabemanifest; die Abschlussmatrix kennzeichnet sich selbst als Diagnose.
+
+**macOS-Grenze:** Der macOS-Nachweis läuft über den In-Prozess-Hook
+`BGREMOVER_UPDATE_CHECK_PROBE`, den `bgremover/app.py` noch vor `QApplication`
+auswertet. Er existiert erst ab **v2.7.3**; ein älterer Vorgänger lässt
+`UPDATE-MACOS-ARM-01` mit dem benannten Befund `HOOK_FEHLT` fehlschlagen (keine
+kaputte Sonde, sondern die dokumentierte historische Grenze). In diesem Fall
+bleibt das Kriterium `PENDING` mit Verweis auf diese Grenze — es wird **nicht**
+auf `WAIVED` gesetzt.
 
 Für `workflow_dispatch` definiert GitHub `GITHUB_SHA` als den letzten Commit
 des ausgewählten Branches oder Tags
@@ -378,10 +395,12 @@ Der in Schritt 7 erzeugte annotierte Release-Tag löst hier deshalb auf den
 Kandidaten-Commit auf, nicht auf den separaten Tag-Objekt-SHA. Der zusätzliche
 Vergleich in `candidate-source` bleibt als fail-closed Sicherung bestehen.
 
-Der Lauf zieht das Vorgängerartefakt anonym über `browser_download_url` und
-führt den Update-Check unter dem **im Artefakt gebündelten** Interpreter aus:
-Vorgänger meldet `UPDATE_AVAILABLE` mit exakt der neuen Version, das aktuelle
-Artefakt `UP_TO_DATE`, und beide müssen sich selbst als die erwartete Version
+Der Lauf zieht das Vorgängerartefakt je Plattform anonym über
+`browser_download_url` und führt den Update-Check **aus dem gepackten Artefakt**
+aus — Linux unter dem darin gebündelten Interpreter der AppImage, macOS über den
+In-Prozess-Hook des DMG-Bundles. Bewertet wird beidseitig identisch: Vorgänger
+meldet `UPDATE_AVAILABLE` mit exakt der neuen Version, das aktuelle Artefakt
+`UP_TO_DATE`, und beide müssen sich selbst als die erwartete Version
 ausweisen. `CHECK_FAILED` ist ein eigener harter Fehlerzustand und gilt nie als
 „kein Update". Die Evidenz (Artefaktquelle, SHA-256, Plattform, Ausgangs- und
 Zielversion, Antwortstatus je Rolle) liegt als `update_check/update_check.json`
@@ -393,12 +412,14 @@ Grenzen und die manuelle Ersatzprozedur ohne Runner:
 Pflege die separate Instanz mit `set-criterion`. Setze zuerst die drei
 automatisierten Publish-Pflichten auf die verknüpfte Publish-Evidenz,
 `PUBLIC-DOWNLOAD-01` auf das anonyme Download- und Hashprotokoll und danach
-`UPDATE-01` auf den #748-Nachweis:
+`UPDATE-LINUX-ARM-01`/`UPDATE-MACOS-ARM-01` auf den jeweiligen
+Plattform-Nachweis:
 
 ```bash
 PUBLISH_EVIDENCE_URL="URL_DES_PUBLISH_LAUFS"
 PUBLIC_DOWNLOAD_EVIDENCE_URL="URL_DES_ANONYMEN_DOWNLOAD_UND_HASH_PROTOKOLLS"  # Artefakt public-download-report-N des Publish-Laufs
-UPDATE_EVIDENCE_URL="URL_DES_748_NACHWEISES"
+UPDATE_LINUX_EVIDENCE_URL="URL_DER_LINUX_UPDATE_CHECK_EVIDENZ"
+UPDATE_MACOS_EVIDENCE_URL="URL_DER_MACOS_UPDATE_CHECK_EVIDENZ"
 for RELEASE_CRITERION in PUBLISH-01 PUBLISH-02 PUBLISH-03; do
   python scripts/release_contract.py set-criterion \
     --checklist docs/RELEASE_ACCEPTANCE_CHECKLIST.md \
@@ -418,9 +439,16 @@ python scripts/release_contract.py set-criterion \
 python scripts/release_contract.py set-criterion \
   --checklist docs/RELEASE_ACCEPTANCE_CHECKLIST.md \
   --instance /tmp/release-acceptance-instance.json \
-  --criterion UPDATE-01 \
+  --criterion UPDATE-LINUX-ARM-01 \
   --status PASS \
-  --evidence "$UPDATE_EVIDENCE_URL" \
+  --evidence "$UPDATE_LINUX_EVIDENCE_URL" \
+  --output /tmp/release-acceptance-instance.json
+python scripts/release_contract.py set-criterion \
+  --checklist docs/RELEASE_ACCEPTANCE_CHECKLIST.md \
+  --instance /tmp/release-acceptance-instance.json \
+  --criterion UPDATE-MACOS-ARM-01 \
+  --status PASS \
+  --evidence "$UPDATE_MACOS_EVIDENCE_URL" \
   --output /tmp/release-acceptance-instance.json
 python scripts/release_contract.py validate-instance \
   --checklist docs/RELEASE_ACCEPTANCE_CHECKLIST.md \
@@ -433,15 +461,16 @@ gh issue comment "$RELEASE_ISSUE" --body-file /tmp/release-acceptance-instance.j
 **Erwartetes Ergebnis:** Publish- und Post-Release-Pflichten sind `PASS`; Release-Issue kann geschlossen werden.
 **Fehler/Wiederanlauf:** Öffentlicher Download-, Versions- oder Updatefehler ist ein Incident.
 Release nicht als abgeschlossen markieren; nach „Rollback und Teilzustände“ entscheiden.
-Das gilt ausdrücklich auch für `UPDATE-01`: Ein `CHECK_FAILED` oder ein
+Das gilt ausdrücklich auch für die beiden Update-Kriterien: Ein `CHECK_FAILED` oder ein
 Vorgänger, der die neue Version nicht sieht, wird **nicht** auf `WAIVED`
 gesetzt — der Fund betrifft alle bereits ausgelieferten Installationen. Kläre
 zuerst, ob der Fehler am Release liegt (falscher/fehlender Tag, privates
 Release, kaputter Asset-Satz) oder am Prüfpfad (Netz, Runner). Am Release ⇒
 „Rollback und Teilzustände“ oder der Hotfix-Pfad mit neuer Patch-Version. Am
 Prüfpfad ⇒ Nachweis wiederholen und den Fehlversuch mitprotokollieren.
-`UPDATE-01` bleibt bis zum bestandenen Lauf `PENDING`; da es post-release ist,
-blockiert es den Tag nicht, aber den Abschluss des Release-Issues.
+`UPDATE-LINUX-ARM-01`/`UPDATE-MACOS-ARM-01` bleiben bis zum bestandenen Lauf
+`PENDING`; da sie post-release sind, blockieren sie den Tag nicht, aber den
+Abschluss des Release-Issues.
 
 ## Hotfix-Pfad
 
@@ -506,6 +535,7 @@ nur per PR zusammen mit Checklisten-/Workflow-Tests.
 
 | Datum | Änderung | Referenz |
 |---|---|---|
+| 2026-08-30 | `UPDATE-01` in `UPDATE-LINUX-ARM-01`/`UPDATE-MACOS-ARM-01` geteilt; macOS-Nachweis über den In-Prozess-Hook, `platforms`-Wahl in Schritt 9 beschrieben (Checkliste 2.0.0) | #917 |
 | 2026-08-30 | `PUBLIC-DOWNLOAD-01` als anonymer Nachweis-Job im Publish-Workflow; Schritt 8/9 auf den Bericht umgestellt, Handprozedur bleibt Rückfallweg (Checkliste 1.1.0) | #916 |
 | 2026-08-30 | Runner-Readiness-Preflight und Queue-Watchdog in Schritt 5; Abschlussmatrix unvollständiger Läufe als Diagnose gekennzeichnet | #915 |
 | 2026-08-01 | Kanonisches Runbook, versionierter Checklisten-Pin, Wiederanlauf-, Hotfix- und Rollback-Pfade | #745, #746 |

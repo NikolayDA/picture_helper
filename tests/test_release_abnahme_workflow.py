@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = ROOT / ".github" / "workflows" / "release-abnahme.yml"
 
@@ -109,9 +111,10 @@ def test_workflow_binds_acceptance_to_candidate_run_and_head() -> None:
     assert '--run-id "$SOURCE_RUN_ID"' in text
     assert '--run-id "${{ inputs.run_id }}"' not in text
     assert "SOURCE_HEAD_SHA: ${{ needs.candidate-source.outputs.head_sha }}" in text
-    # Drei Plattform-Evidenzabrufe plus der optionale Vorgänger-Abruf für den
-    # echten UPDATE-01-Nachweis (#748) binden sich alle an denselben Commit.
-    assert text.count('--commit-sha "$SOURCE_HEAD_SHA"') == 4
+    # Drei Plattform-Evidenzabrufe plus die beiden optionalen Vorgänger-Abrufe
+    # für den echten Update-Nachweis (Linux #748, macOS #917) binden sich alle
+    # an denselben Commit.
+    assert text.count('--commit-sha "$SOURCE_HEAD_SHA"') == 5
     assert "inputs.release_tag" not in text
 
 
@@ -254,6 +257,34 @@ def test_workflow_watchdog_force_cancels_queued_preflights() -> None:
     assert "--acceptance-deadline-seconds" in watchdog_block
     # Begruendung force-cancel statt cancel ist im Workflow dokumentiert.
     assert "orce-cancel" in text
+
+
+def test_both_arm64_jobs_fetch_the_predecessor_for_the_update_proof() -> None:
+    """#917: Der macOS-Job spiegelt den Linux-Vorgängerbezug.
+
+    Vorher lud nur der Linux-Job das Vorgängerartefakt – die Checkliste
+    deklarierte macOS trotzdem mit.
+    """
+    yaml = pytest.importorskip("yaml")
+    jobs = yaml.safe_load(_workflow_text())["jobs"]
+    for job_id, platform in (
+        ("abnahme-linux-arm64", "linux-arm64"),
+        ("abnahme-macos-arm64", "macos-arm64"),
+    ):
+        steps = jobs[job_id]["steps"]
+        fetch = [
+            s for s in steps
+            if "--release-tag" in str(s.get("run", ""))
+        ]
+        assert len(fetch) == 1, f"{job_id}: kein Vorgängerbezug"
+        assert fetch[0].get("if") == "inputs.predecessor_tag != ''"
+        assert f"--platform {platform} --release-tag" in fetch[0]["run"]
+        smoke = [s for s in steps if "abnahme_smoke.py" in str(s.get("run", ""))]
+        assert len(smoke) == 1, f"{job_id}: kein Smoke-Aufruf"
+        run = smoke[0]["run"]
+        assert "--predecessor-evidence-dir" in run
+        assert "--candidate-version" in run
+        assert f'"{"${RUNNER_TEMP}"}/abnahme-{platform}-predecessor"' in run
 
 
 def test_workflow_supports_optional_update_check_predecessor() -> None:

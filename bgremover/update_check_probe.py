@@ -16,10 +16,10 @@ mitbaut – er kann keine bereits veröffentlichten Artefakte rückwirkend
 erreichen. Der Vorgänger-Nachweis (echtes älteres Artefakt meldet
 ``UPDATE_AVAILABLE``) läuft für Linux stattdessen über
 ``scripts/update_probe_cli.py`` direkt mit dem im Artefakt gebündelten
-Interpreter (siehe dortige Modul-Dokumentation); für die PyInstaller-
-gebündelte macOS-.app existiert kein vergleichbarer Weg, deshalb bleibt der
-Vorgänger-Teil von ``UPDATE-01`` dort bis zu einem hook-tragenden
-Vorgänger-Release offen.
+Interpreter (siehe dortige Modul-Dokumentation). Für die PyInstaller-gebündelte
+macOS-.app existiert kein vergleichbarer Weg – dort trägt seit #917 genau
+dieser Hook den Vorgängernachweis (``UPDATE-MACOS-ARM-01``), was einen
+Vorgänger ab v2.7.3 voraussetzt.
 """
 from __future__ import annotations
 

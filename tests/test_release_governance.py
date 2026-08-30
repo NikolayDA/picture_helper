@@ -42,7 +42,11 @@ def test_runbook_has_nine_complete_steps_and_operational_paths() -> None:
         "RELEASE_ACCEPTANCE_CHECKLIST.md",
         "ADR-2026-release-manifest-publish.md",
         "PUBLIC-DOWNLOAD-01",
-        "UPDATE-01",
+        # Seit #917 zwei getrennte Plattform-IDs statt des gemeinsamen
+        # UPDATE-01 – die alte ID darf hier nicht als Treffer durchgehen
+        # (der Aenderungsverlauf nennt sie weiterhin).
+        "UPDATE-LINUX-ARM-01",
+        "UPDATE-MACOS-ARM-01",
     ):
         assert required in RUNBOOK
 

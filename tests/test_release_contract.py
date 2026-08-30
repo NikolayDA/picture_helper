@@ -219,7 +219,7 @@ def test_manifest_schema_binds_runs_head_tag_provenance_platforms_and_five_hashe
 
 def test_versioned_checklist_has_exact_scope_stable_ids_and_required_fields() -> None:
     checklist = rc.load_release_checklist(CHECKLIST)
-    assert checklist["checklist_version"] == "1.1.0"
+    assert checklist["checklist_version"] == "2.0.0"
     assert tuple(item["id"] for item in checklist["artifacts"]) == rc.CHECKLIST_ARTIFACTS
     assert not any("windows" in json.dumps(item).lower() for item in checklist["artifacts"])
     criteria = checklist["criteria"]
@@ -255,6 +255,35 @@ def test_public_download_is_machine_generated_evidence_since_1_1_0() -> None:
     assert set(criterion["artifacts"]) == set(rc.CHECKLIST_ARTIFACTS)
     # Der Nachweis entsteht erst nach dem Publish; die Instanz startet PENDING.
     assert criterion["phase"] == "publish"
+
+
+def test_update_criteria_declare_exactly_what_each_platform_proves() -> None:
+    """#917: Die Deklaration darf nicht mehr behaupten als der Lauf erbringt.
+
+    Vorher deckte ein gemeinsames ``UPDATE-01`` drei Artefakte ab, während der
+    reale Nachweis nur den Linux-arm64-Kanal prüfte.
+    """
+    checklist = rc.load_release_checklist(CHECKLIST)
+    criteria = {str(item["id"]): item for item in checklist["criteria"]}
+    assert "UPDATE-01" not in criteria
+    linux = criteria["UPDATE-LINUX-ARM-01"]
+    macos = criteria["UPDATE-MACOS-ARM-01"]
+
+    assert set(linux["artifacts"]) == {"linux-arm64-appimage", "linux-arm64-deb"}
+    assert set(macos["artifacts"]) == {"macos-arm64-dmg"}
+    # Kein macOS-Artefakt mehr im Linux-Kriterium und umgekehrt.
+    assert not set(linux["artifacts"]) & set(macos["artifacts"])
+    # Die .deb-Identitaetsbegruendung steht im Kriteriumstext, nicht nur in
+    # der Betriebsdoku.
+    assert "byte-identical" in linux["description"].lower()
+    # Die macOS-Hook-Grenze ist Teil des Vertrags.
+    assert "2.7.3" in macos["description"]
+    for item in (linux, macos):
+        assert item["phase"] == "post-release"
+        assert item["requirement"] == "POST_RELEASE"
+        assert item["verification"] == "post-release"
+        assert item["waiver_allowed"] is False
+        assert item["not_applicable_allowed"] is False
 
 
 def test_checklist_rejects_a_second_machine_contract_block(tmp_path: Path) -> None:

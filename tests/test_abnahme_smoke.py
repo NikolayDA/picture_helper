@@ -1434,7 +1434,7 @@ def test_update_check_subject_requires_exactly_one_appimage(tmp_path: Path) -> N
         source={"art": "release-tag", "wert": f"v{_PREDECESSOR_VERSION}"},
         artefact_names=["BgRemover-2.7.1-linux-raspberrypi-arm64-ai.deb"],
     )
-    with pytest.raises(ValueError, match="genau eine AppImage"):
+    with pytest.raises(ValueError, match=r"genau eine \.AppImage-Datei"):
         smoke.build_update_check_subject(directory, smoke.UPDATE_CHECK_ROLE_PREDECESSOR)
 
 
@@ -1590,6 +1590,336 @@ def test_linux_smoke_update_check_fails_without_bundled_interpreter(tmp_path: Pa
     record = _summary(tmp_path)["pruefungen"][0]
     assert record["befund"] == smoke.UPDATE_CHECK_VERDICT_NO_EVIDENCE
     assert record["sha256"].startswith("sha256-of-")
+
+
+# ── macOS-Nachweis über den In-Prozess-Hook (#917) ─────────────────────────
+
+# Bewusst neuer als UPDATE_CHECK_MACOS_MIN_VERSION: Der macOS-Nachweis setzt
+# den In-Prozess-Hook voraus, den es erst ab v2.7.3 gibt. Das Linux-Paar
+# (2.7.1/2.7.2) bleibt davon unberuehrt - dort greift der Interpreter-Weg
+# rueckwirkend gegen jedes Artefakt.
+_MACOS_PREDECESSOR_VERSION = "2.9.0"
+_MACOS_CANDIDATE_VERSION = "2.9.1"
+_MACOS_ARTEFACTS = [f"/tmp/BgRemover-{_MACOS_CANDIDATE_VERSION}-macos-arm64-ai.dmg"]
+
+
+def _macos_evidence_dir(
+    root: Path, name: str, *, source: dict[str, str], version: str,
+) -> Path:
+    return _evidence_dir(
+        root, name, source=source, version=version, platform="macos-arm64",
+        artefact_names=[f"BgRemover-{version}-macos-arm64-ai.dmg"],
+    )
+
+
+def _macos_predecessor_subject(root: Path, version: str = _MACOS_PREDECESSOR_VERSION) -> Any:
+    return smoke.build_update_check_subject(
+        _macos_evidence_dir(
+            root, "predecessor-macos", version=version,
+            source={"art": "release-tag", "wert": f"v{version}"},
+        ),
+        smoke.UPDATE_CHECK_ROLE_PREDECESSOR, platform="macos-arm64",
+    )
+
+
+def _macos_candidate_subject(root: Path, version: str = _MACOS_CANDIDATE_VERSION) -> Any:
+    return smoke.build_update_check_subject(
+        _macos_evidence_dir(
+            root, "candidate-macos", version=version,
+            source={"art": "run-id", "wert": "4711"},
+        ),
+        smoke.UPDATE_CHECK_ROLE_CANDIDATE, expected_version=version, platform="macos-arm64",
+    )
+
+
+def _macos_update_runner(
+    statuses: dict[str, str],
+    latest_versions: dict[str, str | None] | None = None,
+    *,
+    versions: dict[str, str] | None = None,
+    hook_writes: bool = True,
+):
+    """Fake-Runner für den macOS-Nachweis: der In-Prozess-Hook wird über
+    ``smoke_launch.py --env BGREMOVER_UPDATE_CHECK_PROBE=…`` gestartet.
+
+    ``hook_writes=False`` simuliert ein Artefakt ohne Hook: Der Start endet
+    sauber (``BGREMOVER_SMOKE_TEST`` beendet die dann startende GUI), schreibt
+    aber keine Evidenz.
+    """
+    base = _runner_factory(_MACOS_MOUNT)
+    latest_versions = latest_versions or {}
+    versions = versions or {
+        _PREDECESSOR_OUT: _MACOS_PREDECESSOR_VERSION,
+        _CANDIDATE_OUT: _MACOS_CANDIDATE_VERSION,
+    }
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        probe_env = next(
+            (a for a in cmd if a.startswith("BGREMOVER_UPDATE_CHECK_PROBE=")), None
+        )
+        if probe_env is not None:
+            if not hook_writes:
+                return smoke.CommandResult(0, stdout="kein Hook, GUI beendet")
+            target = Path(probe_env.split("=", 1)[1])
+            key = target.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(
+                json.dumps({
+                    "schema": 1, "kind": "abnahme-update-check-probe",
+                    "current_version": versions.get(key, "unbekannt"),
+                    "status": statuses.get(key, "CHECK_FAILED"),
+                    "latest_version": latest_versions.get(key),
+                    "release_url": None, "error": None,
+                }),
+                encoding="utf-8",
+            )
+            return smoke.CommandResult(0)
+        return base(cmd)
+
+    return runner
+
+
+def _run_macos_update_check(
+    tmp_path: Path, runner, *, predecessor: Any = _SENTINEL, candidate: Any = _SENTINEL,
+) -> smoke.SmokeReport:
+    report = smoke.SmokeReport()
+    return smoke.run_macos_smoke(
+        _MACOS_ARTEFACTS, report, runner,
+        prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
+        screenshot_dir=tmp_path / "shots",
+        predecessor=(
+            _macos_predecessor_subject(tmp_path) if predecessor is _SENTINEL else predecessor
+        ),
+        candidate=_macos_candidate_subject(tmp_path) if candidate is _SENTINEL else candidate,
+    )
+
+
+def test_macos_subject_accepts_dmg_evidence(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Die tragende Artefaktklasse folgt der Plattform – auf macOS das DMG."""
+    subject = _macos_predecessor_subject(tmp_path)
+    assert subject.path.endswith(".dmg")
+    assert subject.platform == "macos-arm64"
+    assert subject.expected_version == _MACOS_PREDECESSOR_VERSION
+
+
+def test_linux_subject_still_demands_exactly_one_appimage(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """#917 darf die Linux-Regel nicht aufweichen: ein DMG in einer
+    Linux-Evidenz trägt den Nachweis nicht."""
+    directory = _evidence_dir(
+        tmp_path, "linux-ohne-appimage", version=_PREDECESSOR_VERSION,
+        source={"art": "release-tag", "wert": f"v{_PREDECESSOR_VERSION}"},
+        artefact_names=[f"BgRemover-{_PREDECESSOR_VERSION}-macos-arm64-ai.dmg"],
+    )
+    with pytest.raises(ValueError, match=r"genau eine \.AppImage-Datei"):
+        smoke.build_update_check_subject(
+            directory, smoke.UPDATE_CHECK_ROLE_PREDECESSOR, platform="linux-arm64",
+        )
+
+
+def test_subject_rejects_evidence_of_another_platform(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Eine Linux-Vorgängerevidenz im macOS-Job wäre still weitergelaufen und
+    hätte das falsche Artefakt geprüft."""
+    directory = _evidence_dir(
+        tmp_path, "linux-evidenz", version=_PREDECESSOR_VERSION,
+        source={"art": "release-tag", "wert": f"v{_PREDECESSOR_VERSION}"},
+    )
+    with pytest.raises(ValueError, match="gehört zu Plattform"):
+        smoke.build_update_check_subject(
+            directory, smoke.UPDATE_CHECK_ROLE_PREDECESSOR, platform="macos-arm64",
+        )
+
+
+def test_macos_smoke_update_check_passes_with_real_predecessor(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Derselbe Nachweis wie unter Linux, nur über den In-Prozess-Hook."""
+    result = _run_macos_update_check(
+        tmp_path,
+        _macos_update_runner(
+            {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+            {_PREDECESSOR_OUT: _MACOS_CANDIDATE_VERSION},
+        ),
+    )
+    assert result.passed, result.notes
+    summary = _summary(tmp_path)
+    assert summary["ok"] is True
+    predecessor, candidate = summary["pruefungen"]
+    assert predecessor["artefakt"].endswith(".dmg")
+    assert predecessor["plattform"] == "macos-arm64"
+    # Traeger des Nachweises: das gestartete App-Binary, nicht ein Interpreter.
+    assert str(predecessor["interpreter"]).endswith("/Contents/MacOS/BgRemover")
+    assert candidate["status"] == "UP_TO_DATE"
+
+
+def test_macos_smoke_update_check_starts_each_role_from_its_own_copy(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """Beide DMGs enthalten ``BgRemover.app`` – ein Nachweis, der zweimal
+    dasselbe Bundle startet, wäre keiner."""
+    calls: list[list[str]] = []
+    inner = _macos_update_runner(
+        {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+        {_PREDECESSOR_OUT: _MACOS_CANDIDATE_VERSION},
+    )
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        calls.append(cmd)
+        return inner(cmd)
+
+    assert _run_macos_update_check(tmp_path, runner).passed
+    started = [
+        c[-1] for c in calls
+        if any(str(a).startswith("BGREMOVER_UPDATE_CHECK_PROBE=") for a in c)
+    ]
+    assert len(started) == 2
+    assert started[0] != started[1]
+    assert smoke.UPDATE_CHECK_ROLE_PREDECESSOR in started[0]
+    assert smoke.UPDATE_CHECK_ROLE_CANDIDATE in started[1]
+
+
+def test_macos_smoke_update_check_names_a_predecessor_without_the_hook(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """Ein Vorgänger vor v2.7.3 kennt ``BGREMOVER_UPDATE_CHECK_PROBE`` nicht.
+
+    Das ist die dokumentierte historische Grenze und muss als solche benannt
+    werden – nicht als leeres Ergebnis oder kaputte Sonde. Geprüft wird
+    **vor** dem Start: ein Lauf, der die GUI startet, wäre reine Zeitverschwendung.
+    """
+    calls: list[list[str]] = []
+    inner = _macos_update_runner(
+        {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+        {_PREDECESSOR_OUT: _MACOS_CANDIDATE_VERSION},
+        versions={_PREDECESSOR_OUT: "2.6.0", _CANDIDATE_OUT: _MACOS_CANDIDATE_VERSION},
+    )
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        calls.append(cmd)
+        return inner(cmd)
+
+    result = _run_macos_update_check(
+        tmp_path, runner, predecessor=_macos_predecessor_subject(tmp_path, version="2.6.0"),
+    )
+    assert not result.passed
+    assert any("bringt den In-Prozess-Hook nicht mit" in n for n in result.notes)
+    assert any(smoke.UPDATE_CHECK_MACOS_MIN_VERSION in n for n in result.notes)
+    record = _summary(tmp_path)["pruefungen"][0]
+    assert record["befund"] == smoke.UPDATE_CHECK_VERDICT_NO_HOOK
+    # Herkunft steht trotzdem in der Evidenz.
+    assert record["artefakt"].endswith(".dmg")
+    assert record["sha256"].startswith("sha256-of-")
+    # Kein Start des Vorgaengers: die Grenze steht vor der Sonde.
+    predecessor_starts = [
+        c for c in calls
+        if any(str(a).startswith("BGREMOVER_UPDATE_CHECK_PROBE=") for a in c)
+        and smoke.UPDATE_CHECK_ROLE_PREDECESSOR in c[-1]
+    ]
+    assert predecessor_starts == []
+
+
+def test_macos_smoke_update_check_fails_without_written_evidence(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Startet die App sauber, ohne Evidenz zu schreiben, ist der Nachweis
+    nicht erbracht – nicht bestanden."""
+    result = _run_macos_update_check(
+        tmp_path,
+        _macos_update_runner(
+            {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+            hook_writes=False,
+        ),
+    )
+    assert not result.passed
+    assert any("keine Evidenz erzeugt" in n for n in result.notes)
+    assert _summary(tmp_path)["pruefungen"][0]["befund"] == smoke.UPDATE_CHECK_VERDICT_NO_EVIDENCE
+
+
+def test_update_check_never_reuses_a_stale_probe_result(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Ein Rest aus einem früheren Versuch darf nicht als Ergebnis dieses Laufs
+    durchgehen – auf Self-hosted Runnern mit wiederverwendetem ``RUNNER_TEMP``
+    genau der Fall, den der Nachweis ausschließen soll."""
+    stale = tmp_path / smoke.UPDATE_CHECK_EVIDENCE_DIR_NAME / _PREDECESSOR_OUT
+    stale.parent.mkdir(parents=True, exist_ok=True)
+    stale.write_text(
+        json.dumps({
+            "schema": 1, "kind": "abnahme-update-check-probe",
+            "current_version": _MACOS_PREDECESSOR_VERSION, "status": "UPDATE_AVAILABLE",
+            "latest_version": _MACOS_CANDIDATE_VERSION, "release_url": None, "error": None,
+        }),
+        encoding="utf-8",
+    )
+
+    result = _run_macos_update_check(
+        tmp_path,
+        _macos_update_runner(
+            {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+            hook_writes=False,
+        ),
+    )
+    assert not result.passed
+    assert any("keine Evidenz erzeugt" in n for n in result.notes)
+    assert not stale.exists()
+
+
+def test_macos_smoke_update_check_fails_on_check_failed(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """``CHECK_FAILED`` gilt auch auf macOS nie als „kein Update"."""
+    result = _run_macos_update_check(
+        tmp_path,
+        _macos_update_runner({_PREDECESSOR_OUT: "CHECK_FAILED", _CANDIDATE_OUT: "UP_TO_DATE"}),
+    )
+    assert not result.passed
+    assert any("Netzwerk-Roundtrip fehlgeschlagen" in n for n in result.notes)
+    assert (
+        _summary(tmp_path)["pruefungen"][0]["befund"] == smoke.UPDATE_CHECK_VERDICT_CHECK_FAILED
+    )
+
+
+def test_macos_smoke_update_check_fails_on_identical_versions(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Dieselbe Vorbedingung wie unter Linux – der geteilte Rahmen darf nicht
+    plattformweise auseinanderlaufen."""
+    result = _run_macos_update_check(
+        tmp_path,
+        _macos_update_runner(
+            {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"}
+        ),
+        predecessor=_macos_predecessor_subject(tmp_path, version=_MACOS_CANDIDATE_VERSION),
+    )
+    assert not result.passed
+    assert any("dieselbe Version" in n for n in result.notes)
+
+
+def test_macos_smoke_update_check_requires_both_roles(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    result = _run_macos_update_check(
+        tmp_path, _runner_factory(_MACOS_MOUNT), candidate=None,
+    )
+    assert not result.passed
+    assert any("nur eine der beiden Rollen" in n for n in result.notes)
+
+
+def test_macos_smoke_update_check_skipped_without_predecessor(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Ohne Rollen bleibt das Kriterium PENDING statt fabriziert PASS."""
+    report = smoke.SmokeReport()
+    result = smoke.run_macos_smoke(
+        _MACOS_ARTEFACTS, report, _runner_factory(_MACOS_MOUNT),
+        prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
+        screenshot_dir=tmp_path / "shots",
+    )
+    assert result.passed
+    assert not any("Update-Check" in n for n in result.notes)
+
+
+@pytest.mark.parametrize(
+    ("value", "minimum", "expected"),
+    [
+        ("2.7.3", "2.7.3", True),
+        ("2.7.10", "2.7.3", True),
+        ("2.9.0", "2.7.3", True),
+        ("v2.7.3", "2.7.3", True),
+        ("2.7.2", "2.7.3", False),
+        ("2.6.0", "2.7.3", False),
+        ("", "2.7.3", False),
+        ("unbekannt", "2.7.3", False),
+    ],
+)
+def test_version_at_least_compares_numerically(value: str, minimum: str, expected: bool) -> None:
+    """``2.7.10`` ist neuer als ``2.7.3`` – ein Textvergleich sagte das Gegenteil."""
+    assert smoke.version_at_least(value, minimum) is expected
 
 
 # ── Evidenzvertrag (#748: Quelle, Hash, Plattform, Versionen, Status) ───────
