@@ -28,6 +28,7 @@ EXPECTED_PLATFORMS: dict[str, str] = {
     "macos-arm64": "macOS arm64: DMG-Smoke + Retina",
     "linux-arm64": "Linux aarch64: AppImage/.deb-Smoke",
 }
+VISION_LABEL = "Screenshots (Vision-Vorbewertung)"
 PAUSED_PLATFORM = "linux-x86_64"
 PAUSED_LABEL = "Linux x86_64: Hardware-Smoke"
 LIVE_GL_SCENARIOS = ("HEIGHT16-1MP", "HEIGHT16-16MP", "HEIGHT16-40MP")
@@ -193,7 +194,7 @@ def _vision_row(verdicts: list[dict[str, Any]]) -> MatrixRow:
         # Vision ist fail-safe/beratend: keine Verdikte blockiert nie (kein GPU/
         # kein API-Zugang ist zulässig). Nur ``nicht_erfuellt`` blockiert (s. u.).
         return MatrixRow(
-            "Screenshots (Vision-Vorbewertung)", "unbewertet", "—", "—",
+            VISION_LABEL, "unbewertet", "—", "—",
             "Keine bewertbaren Screenshots (beratend, nicht blockierend).",
         )
     counts = {"erfuellt": 0, "nicht_erfuellt": 0, "unsicher": 0, "unbewertet": 0}
@@ -223,7 +224,7 @@ def _vision_row(verdicts: list[dict[str, Any]]) -> MatrixRow:
     ]
     if details:
         note += " — " + "; ".join(details)
-    return MatrixRow("Screenshots (Vision-Vorbewertung)", status, f"{len(verdicts)} Kriterien",
+    return MatrixRow(VISION_LABEL, status, f"{len(verdicts)} Kriterien",
                      "—", note)
 
 
@@ -477,8 +478,25 @@ def has_blocking_gaps(rows: list[MatrixRow]) -> bool:
         r.status in ("fehlgeschlagen", "fehlt")
         or (
             r.status == "unbewertet"
-            and r.kriterium != "Screenshots (Vision-Vorbewertung)"
+            and r.kriterium != VISION_LABEL
         )
+        for r in rows
+    )
+
+
+def has_technical_gaps(rows: list[MatrixRow]) -> bool:
+    """Lücken in den **technischen** Pflichtzeilen – dieselbe Basis wie
+    ``build_acceptance_summary``/``create-approval``.
+
+    Die beratende Vision-Zeile zählt hier bewusst nicht (Codex-Review
+    PR #924): eine rein beratende ``nicht_erfuellt``-Vorbewertung verhindert
+    das Freigabemanifest nicht und darf die Matrix deshalb nicht als
+    „kein Abnahmeergebnis" kennzeichnen – sonst widersprächen sich
+    Matrix-Banner und tatsächlich erzeugtes Manifest.
+    """
+    return any(
+        r.status in ("fehlgeschlagen", "fehlt", "unbewertet")
+        and r.kriterium != VISION_LABEL
         for r in rows
     )
 
@@ -540,18 +558,20 @@ def build_acceptance_summary(
 def render_markdown(rows: list[MatrixRow], *, commit_sha: str = "unbekannt") -> str:
     """Abschlussmatrix als Markdown-Protokoll rendern.
 
-    Eine Matrix mit blockierenden Lücken (fehlgeschlagene Pflichtzeile,
+    Eine Matrix mit Lücken in den technischen Pflichtzeilen (fehlgeschlagen,
     fehlende Evidenz) trägt Titel und Warnhinweis „Diagnose" (#915): sie
     entsteht auch bei abgebrochenen, fehlgeschlagenen oder bewusst auf
     einzelne Plattformen begrenzten Läufen (z. B. UPDATE-01, Runbook-Schritt
     9) und darf nie wie ein Abnahmeergebnis lesbar sein – Lauf 33071408111
-    brauchte dafür eine manuelle Klarstellung im Release-Issue.
+    brauchte dafür eine manuelle Klarstellung im Release-Issue. Maßgeblich
+    ist ``has_technical_gaps`` (dieselbe Basis wie das Manifest-Gate); die
+    beratende Vision-Zeile löst den Banner nicht aus.
     """
     icon = {
         "erfuellt": "✅", "fehlgeschlagen": "❌", "fehlt": "⚠️",
         "pausiert": "⏸️", "unbewertet": "❓",
     }
-    diagnose = has_blocking_gaps(rows)
+    diagnose = has_technical_gaps(rows)
     title = "## Release-Abnahme – Abschlussmatrix"
     if diagnose:
         title += " (Diagnose – kein Abnahmeergebnis)"

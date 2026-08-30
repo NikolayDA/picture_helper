@@ -249,6 +249,9 @@ def test_workflow_watchdog_force_cancels_queued_preflights() -> None:
     assert "PLATFORMS: ${{ inputs.platforms }}" in watchdog_block
     assert '--platforms "$PLATFORMS"' in watchdog_block
     assert "--x86-64-enabled" in watchdog_block
+    # Phase 2 (Codex-Review PR #924): auch die schweren Abnahme-Jobs werden
+    # bis zu ihrem Start bewacht; die Frist deckt candidate-source ab.
+    assert "--acceptance-deadline-seconds" in watchdog_block
     # Begruendung force-cancel statt cancel ist im Workflow dokumentiert.
     assert "orce-cancel" in text
 

@@ -267,6 +267,30 @@ def test_render_markdown_marks_incomplete_run_as_diagnose(tmp_path: Path) -> Non
     assert "Freigabemanifest entsteht aus diesem Stand nicht" in md
 
 
+def test_render_markdown_vision_advisory_failure_is_not_a_diagnosis(tmp_path: Path) -> None:
+    """Codex-Review PR #924: Eine rein beratende nicht_erfuellt-Vorbewertung
+    verhindert das Freigabemanifest nicht (build_acceptance_summary zaehlt nur
+    die technischen Pflichtzeilen) und darf die Matrix deshalb nicht als
+    „kein Abnahmeergebnis" kennzeichnen – sonst widerspraechen sich Banner
+    und tatsaechlich erzeugtes Manifest."""
+    _write(tmp_path, "macos-arm64", _evidence("macos-arm64"))
+    _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
+    e2e, live_gl = _complete_aux("macos-arm64", "linux-arm64")
+    vision = [{
+        "screenshot": "a.png", "criterion": "x", "verdict": "nicht_erfuellt",
+        "begruendung": "zu dunkel",
+    }]
+    rows = agg.build_matrix(
+        agg.load_evidence(tmp_path), e2e=e2e, live_gl=live_gl, vision=vision,
+    )
+    assert agg.has_blocking_gaps(rows)
+    assert not agg.has_technical_gaps(rows)
+    summary = agg.build_acceptance_summary(rows, commit_sha="abc")
+    assert summary["blocking"] is False
+    md = agg.render_markdown(rows, commit_sha="abc")
+    assert "Diagnose" not in md
+
+
 def test_render_markdown_complete_run_has_no_diagnose_marker(tmp_path: Path) -> None:
     _write(tmp_path, "macos-arm64", _evidence("macos-arm64"))
     _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))

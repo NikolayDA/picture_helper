@@ -175,7 +175,10 @@ jobs:
   # Runner erst nach 24 h ab, und timeout-minutes zaehlt erst ab Jobstart –
   # gegen die Queue-Phase schuetzt es nicht (beobachtet: 7:58 h Warteschlange
   # in Lauf 33071408111, v2.9.0/#881). Dieser GitHub-hosted Job beendet den
-  # Lauf deshalb selbst, wenn ein Preflight nach zehn Minuten noch queued ist.
+  # Lauf deshalb selbst: Phase 1, wenn ein Preflight nach zehn Minuten noch
+  # queued ist; Phase 2 (Codex-Review PR #924), wenn danach ein schwerer
+  # Abnahme-Job nicht binnen 25 Minuten startet (die laengere Frist deckt die
+  # candidate-source-Laufzeit ab, nach der er erst einplanbar wird).
   # Force-cancel statt cancel: ein regulaerer Cancel liesse !cancelled()-Jobs
   # (die Aggregation) weiterlaufen und erneut eine als Abnahmeergebnis lesbare
   # Matrix posten. Das Schreibrecht zum Run-Abbruch traegt im gesamten
@@ -184,7 +187,7 @@ jobs:
   runner-watchdog:
     name: Runner-Watchdog (Queue-Abbruch)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     permissions:
       contents: read
       actions: write
@@ -208,6 +211,7 @@ jobs:
             --run-id "$GITHUB_RUN_ID" \
             --platforms "$PLATFORMS" \
             --deadline-seconds 600 \
+            --acceptance-deadline-seconds 1500 \
             --poll-seconds 20 \
             $x86flag
 

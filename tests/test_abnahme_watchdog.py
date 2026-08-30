@@ -21,6 +21,8 @@ _SPEC.loader.exec_module(watchdog)
 MACOS = watchdog.PREFLIGHT_JOB_NAMES["macos-arm64"]
 LINUX = watchdog.PREFLIGHT_JOB_NAMES["linux-arm64"]
 X86 = watchdog.PREFLIGHT_JOB_NAMES["linux-x86_64"]
+HEAVY_MACOS = watchdog.ACCEPTANCE_JOB_NAMES["macos-arm64"]
+HEAVY_LINUX = watchdog.ACCEPTANCE_JOB_NAMES["linux-arm64"]
 
 
 def _job(name: str, status: str = "queued", conclusion: str | None = None) -> dict[str, Any]:
@@ -50,14 +52,36 @@ def test_expected_preflights_mirror_job_gating() -> None:
     assert watchdog.expected_preflights("linux-x86_64", x86_enabled=True) == (X86,)
 
 
+def test_expected_acceptance_mirrors_job_gating() -> None:
+    """Phase 2 (Codex-Review PR #924) erwartet dieselben aktiven Plattformen."""
+    assert watchdog.expected_acceptance("alle", x86_enabled=False) == (
+        HEAVY_MACOS, HEAVY_LINUX,
+    )
+    assert watchdog.expected_acceptance("linux-x86_64", x86_enabled=False) == ()
+
+
 def test_preflight_job_names_match_workflow() -> None:
-    """Namensdrift zwischen Skript-Tabelle und Workflow-Anzeigenamen faellt auf."""
+    """Namensdrift zwischen Skript-Tabellen und Workflow-Anzeigenamen faellt auf."""
     workflow = (ROOT / ".github" / "workflows" / "release-abnahme.yml").read_text(
         encoding="utf-8"
     )
     for name in watchdog.PREFLIGHT_JOB_NAMES.values():
         assert f"name: {name}" in workflow, name
         assert name.startswith(watchdog.JOB_NAME_PREFIX)
+    for name in watchdog.ACCEPTANCE_JOB_NAMES.values():
+        assert f"name: {name}" in workflow, name
+
+
+def test_tracked_state_reports_named_jobs() -> None:
+    jobs = [
+        _job(HEAVY_MACOS, "in_progress"),
+        _job(HEAVY_LINUX, "queued"),
+        _job("Abschlussmatrix", "queued"),
+    ]
+    state = watchdog.tracked_state(jobs, (HEAVY_MACOS, HEAVY_LINUX, X86))
+    # X86-Job existiert nicht im Lauf: bekannt sind nur die vorhandenen.
+    assert state.known == (HEAVY_MACOS, HEAVY_LINUX)
+    assert state.queued == (HEAVY_LINUX,)
 
 
 def test_queue_state_filters_by_prefix_and_status() -> None:
@@ -209,7 +233,8 @@ def _run_main(
     rc = watchdog.main(
         [
             "--repo", "o/r", "--run-id", "42", "--platforms", platforms,
-            "--deadline-seconds", "0", "--poll-seconds", "1", *extra_args,
+            "--deadline-seconds", "0", "--acceptance-deadline-seconds", "0",
+            "--poll-seconds", "1", *extra_args,
         ],
     )
     return rc, cancelled
@@ -227,15 +252,57 @@ def test_main_force_cancels_when_preflight_stays_queued(
     assert "force-cancel" in out
 
 
-def test_main_passes_when_all_expected_preflights_started(
+def test_main_passes_when_preflights_and_acceptance_jobs_started(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
 ) -> None:
     rc, cancelled = _run_main(
-        monkeypatch, [_job(MACOS, "in_progress"), _job(LINUX, "in_progress")],
+        monkeypatch,
+        [
+            _job(MACOS, "in_progress"), _job(LINUX, "in_progress"),
+            _job(HEAVY_MACOS, "in_progress"), _job(HEAVY_LINUX, "in_progress"),
+        ],
+    )
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert cancelled == []
+    assert "Preflights gestartet" in out
+    assert "haben einen Runner" in out
+
+
+def test_main_force_cancels_when_acceptance_job_stays_queued(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Phase 2 (Codex-Review PR #924): Faellt der Runner zwischen Preflight-
+    Ende und Zuweisung des schweren Abnahme-Jobs aus, bricht der Waechter den
+    Lauf ebenfalls ab, statt ihn unbewacht queuen zu lassen."""
+    rc, cancelled = _run_main(
+        monkeypatch,
+        [
+            _job(MACOS, "completed", "success"), _job(LINUX, "completed", "success"),
+            _job(HEAVY_MACOS, "in_progress"), _job(HEAVY_LINUX, "queued"),
+        ],
+    )
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert cancelled == ["42"]
+    assert HEAVY_LINUX in out
+    assert "::error title=Self-hosted Runner nicht verfügbar::" in out
+
+
+def test_main_treats_skipped_acceptance_job_as_terminal(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Ein wegen fehlgeschlagenem Preflight geskippter Abnahme-Job beendet die
+    # Ueberwachung (der Lauf wird ohnehin rot), statt sie festzuhalten.
+    rc, cancelled = _run_main(
+        monkeypatch,
+        [
+            _job(MACOS, "completed", "success"), _job(LINUX, "completed", "failure"),
+            _job(HEAVY_MACOS, "in_progress"), _job(HEAVY_LINUX, "completed", "skipped"),
+        ],
     )
     assert rc == 0
     assert cancelled == []
-    assert "haben einen Runner" in capsys.readouterr().out
 
 
 def test_main_warns_when_expected_job_never_appears(
