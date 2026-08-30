@@ -11,17 +11,17 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-08-29, v2.9.0 published, open inventory fully audited)
+## Current Status (2026-08-30, v2.9.0 published, open inventory fully audited)
 
-**Addendum 2026-08-29 (full audit of the open issues):** All 40 open issues
-were checked against `main` (HEAD `411d47c`), and the findings were
-adversarially cross-checked. #878 is fully resolved through PR #908; the
-descriptions of #681, #882, #905, and #906 have been brought up to date. The most important finding: the EufyMake real-world
-tests #688–#690 are **not** only waiting on hardware – alpha/coverage has
-neither a fixture nor a test cell, a COLOR/HEIGHT pair with the same pixel
-dimensions is missing, gloss has exactly one test cell (I-10), and cell I-06
-references the fixture manifest instead of a real export manifest. The four
-rows have been corrected accordingly. No new 🔴 finding.
+**Routine check 2026-08-30 (delta after the full audit):** The 39 open issues
+fully and adversarially checked against `main` (product state `411d47c`) on
+2026-08-29 are unchanged; HEAD `1d31f2a` only adds documentation afterward.
+The updated descriptions #681/#882/#905/#906 and the fixture/test-cell gaps in
+the EufyMake real-world tests #688–#690 therefore remain correctly visible.
+New #912 was checked separately against the Qt advisory and the pinned
+artifact: CVSS 4.0 is 6.3, not 6.8, and vulnerable `QtCore5Compat` is not
+shipped. #912 was corrected and closed as “not affected”; no false accepted-
+risk entry and no new 🔴 finding.
 
 **Addendum 2026-08-29:** v2.9.0 is published. Hardware acceptance passed on
 macOS arm64 and Linux arm64 with real GPU renderers, tag and publication are

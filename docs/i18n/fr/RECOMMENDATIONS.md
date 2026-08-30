@@ -11,16 +11,17 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-08-29, v2.9.0 publiée, inventaire ouvert entièrement audité)
+## État actuel (2026-08-30, v2.9.0 publiée, inventaire ouvert entièrement audité)
 
-**Addendum 2026-08-29 (audit complet des issues ouvertes) :** Les 40 issues
-ouvertes vérifiées contre `main` (HEAD `411d47c`), constats contre-vérifiés de
-manière adversariale. #878 est réglé par la PR #908 ; les descriptions de #681,
-#882, #905 et #906 sont mises à jour. Constat clé : les tests réels EufyMake
-#688–#690 n'attendent **pas** seulement le matériel – Alpha/couverture n'a ni
-fixture ni cellule de test, il manque une paire COLOR/HEIGHT de même taille,
-gloss n'a qu'une cellule de test (I-10), et la cellule I-06 référence le
-manifeste des fixtures, non un vrai manifeste d'export. Aucun nouveau constat 🔴.
+**Contrôle périodique 2026-08-30 (delta après l'audit complet) :** Les 39
+issues ouvertes entièrement vérifiées et contre-vérifiées contre `main` (état
+produit `411d47c`) le 2026-08-29 sont inchangées ; HEAD `1d31f2a` n'ajoute
+ensuite que de la documentation. Les descriptions corrigées de
+#681/#882/#905/#906 et les lacunes de fixtures/cellules des tests réels
+EufyMake #688–#690 restent donc bien visibles. Le nouveau #912 a été vérifié
+séparément contre l'avis Qt et l'artefact épinglé : CVSS 4.0 vaut 6,3, non
+6,8, et le `QtCore5Compat` vulnérable n'est pas livré. #912 a été corrigé et
+clos « non affecté » ; aucun faux risque accepté ni nouveau constat 🔴.
 
 **Addendum 2026-08-29 :** v2.9.0 est publiée. L'acceptation matérielle est verte
 sur macOS arm64 et Linux arm64 avec de vrais moteurs de rendu GPU, le tag et la

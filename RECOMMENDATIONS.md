@@ -11,17 +11,17 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-08-29, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
+## Aktueller Stand (2026-08-30, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
 
-**Nachtrag 2026-08-29 (Vollaudit der offenen Issues):** Alle 40 offenen Issues
-gegen `main` (HEAD `411d47c`) geprüft, die Befunde adversariell gegengeprüft.
-#878 ist durch PR #908 vollständig erledigt; die Beschreibungen von #681,
-#882, #905 und #906 sind nachgezogen. Wichtigster
-Befund: Die EufyMake-Realtests #688–#690 warten **nicht** nur auf Hardware –
-Alpha/Coverage hat weder Fixture noch Testzelle, ein COLOR/HEIGHT-Paar mit
-gleichem Pixelmaß fehlt, Gloss hat genau eine Testzelle (I-10), und Zelle I-06
-referenziert das Fixture- statt eines echten Export-Manifests. Die vier Zeilen
-sind entsprechend korrigiert. Kein neuer 🔴-Befund.
+**Turnusprüfung 2026-08-30 (Delta nach Vollaudit):** Die 39 bereits am
+2026-08-29 gegen `main` (Produktstand `411d47c`) vollständig und adversariell
+geprüften offenen Issues sind unverändert; HEAD `1d31f2a` ergänzt danach nur
+Dokumentation. Die nachgezogenen Beschreibungen #681/#882/#905/#906 und die
+Fixture-/Zelllücken der EufyMake-Realtests #688–#690 bleiben korrekt sichtbar.
+Neu hinzugekommenes #912 wurde separat gegen das Qt-Advisory und das gepinnte
+Artefakt geprüft: CVSS 4.0 ist 6,3 statt 6,8, und das verwundbare
+`QtCore5Compat` wird nicht ausgeliefert. #912 ist korrigiert und als „nicht
+betroffen“ geschlossen; kein falscher Accepted-Risk-Eintrag, kein neuer 🔴-Befund.
 
 **Nachtrag 2026-08-29:** v2.9.0 ist veröffentlicht. Die Hardware-Abnahme lief
 auf macOS arm64 und Linux arm64 mit echten GPU-Renderern grün, Tag und
