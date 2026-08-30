@@ -82,11 +82,17 @@ ersetzt das Gate nicht und darf es nie ersetzen.
 
 ## Lebenszyklus des Refs
 
-1. **Anlage** (Schritt 2): `git push origin "$CANDIDATE_SHA:refs/heads/release/vX.Y.Z"`
-   auf den Freeze-Kandidaten. Vor der Anlage darf der Ref nicht existieren; ein
-   vorhandener Ref derselben Version bedeutet einen abgebrochenen früheren
+1. **Anlage** (Schritt 2): Push des Freeze-Kandidaten auf
+   `refs/heads/release/vX.Y.Z`. Vor der Anlage darf der Ref nicht existieren;
+   ein vorhandener Ref derselben Version bedeutet einen abgebrochenen früheren
    Versuch und wird bewusst entschieden (löschen oder neue Patch-Version), nie
-   überschrieben.
+   überschrieben. Diese Zusicherung wird **erzwungen**, nicht nur behauptet:
+   Die Existenzprüfung ist fail-closed in alle drei Ausgänge (`ls-remote
+   --exit-code` liefert 0/2/128 — nur 2 legt an), und der Push trägt
+   `--force-with-lease="refs/heads/release/vX.Y.Z:"` mit leerem
+   Erwartungswert, ist also anlege-only. Ohne beides würde ein vorhandener Ref
+   bei einem Fast-Forward still bewegt — genau die Unveränderlichkeit, auf der
+   diese Entscheidung ruht.
 2. **Schutz** (Schritt 2): Ruleset auf `release/*` aktiv, bevor der erste
    Dispatch läuft.
 3. **Nutzung** (Schritte 3, 5, 8, 9): jeder Dispatch mit vorheriger

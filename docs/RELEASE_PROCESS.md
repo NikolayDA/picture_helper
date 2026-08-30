@@ -109,9 +109,22 @@ laufen **alle** Dispatches auf diesem Ref, und `main` bleibt mergebar (#918,
 CANDIDATE_SHA="$(git rev-parse HEAD)"
 # Ein bereits existierender Ref bedeutet einen abgebrochenen frueheren Versuch.
 # Er wird bewusst entschieden (loeschen oder neue Patch-Version), nie ueberschrieben.
-git ls-remote --exit-code origin "refs/heads/${RELEASE_REF}" \
-  && { echo "Release-Ref ${RELEASE_REF} existiert bereits – bewusst entscheiden, nicht ueberschreiben." >&2; false; }
-git push origin "${CANDIDATE_SHA}:refs/heads/${RELEASE_REF}"
+# Fail-closed in alle drei Richtungen: nur Exit 2 ("Ref fehlt") legt an, Exit 0
+# ("existiert") und jeder andere Ausgang (Netz/Auth, 128) brechen ab. Ein bloss
+# vorangestellter Guard wuerde den Push ohne `set -e` nicht binden – dieselbe
+# Falle wie bei den Dispatches unten.
+git ls-remote --exit-code origin "refs/heads/${RELEASE_REF}" >/dev/null 2>&1
+case $? in
+  # Leerer Erwartungswert hinter dem Doppelpunkt heisst "der Ref darf nicht
+  # existieren": Der Push selbst ist damit anlege-only und kann einen
+  # vorhandenen Ref auch bei Fast-Forward nicht still bewegen.
+  2) git push origin --force-with-lease="refs/heads/${RELEASE_REF}:" \
+       "${CANDIDATE_SHA}:refs/heads/${RELEASE_REF}" ;;
+  0) echo "Release-Ref ${RELEASE_REF} existiert bereits – bewusst entscheiden, nicht ueberschreiben." >&2
+     false ;;
+  *) echo "Ref-Existenz nicht feststellbar (Netz/Auth) – Ref nicht anlegen." >&2
+     false ;;
+esac
 ```
 
 Prüfe danach, dass das Ruleset für `release/*` greift (Force-Push, weitere

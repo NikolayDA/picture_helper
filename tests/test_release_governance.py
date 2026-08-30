@@ -179,6 +179,40 @@ def test_every_dispatch_is_conditional_on_the_ref_check() -> None:
     ).read_text(encoding="utf-8")
 
 
+def test_release_ref_creation_is_guarded_as_strictly_as_the_dispatches() -> None:
+    """Auch die **Anlage** des Refs braucht einen Wächter, nicht nur die Dispatches.
+
+    Die Unveränderlichkeit des Refs ist die Grundannahme dieser Entscheidung —
+    trägt die Anlage sie nicht, hängt alles Weitere in der Luft. Ein bloß
+    vorangestellter Existenz-Guard bindet den `git push` in einer Shell ohne
+    `set -e` nicht: gegen ein lokales Remote geprüft, meldete sich der Guard,
+    gab `false` zurück, und der Push bewegte den vorhandenen Ref trotzdem per
+    Fast-Forward. Dieselbe Falle wie bei den vier Dispatches.
+    """
+    blocks = re.findall(r"```bash\n(.*?)```", RUNBOOK, flags=re.DOTALL)
+    writes = [b for b in blocks if re.search(r"git push[^\n]*(\n[^\n]*)?refs/heads/\$\{RELEASE_REF\}", b)]
+    assert len(writes) == 1, f"genau ein schreibender Push auf den Release-Ref erwartet: {len(writes)}"
+    creation = writes[0]
+
+    # 1. Existenz wird ueberhaupt geprueft, und zwar mit auswertbarem Exit-Code.
+    assert 'git ls-remote --exit-code origin "refs/heads/${RELEASE_REF}"' in creation
+    assert "case $?" in creation, "Exit-Code der Existenzpruefung wird nicht ausgewertet"
+
+    # 2. Fail-closed in alle drei Ausgaenge: nur „Ref fehlt" (2) legt an,
+    #    „existiert" (0) und jeder andere Ausgang (Netz/Auth, 128) brechen ab.
+    arms = dict(re.findall(r"(?ms)^\s*([0-9*]+)\)\s*(.*?);;", creation))
+    assert set(arms) == {"2", "0", "*"}, f"unerwartete case-Zweige: {sorted(arms)}"
+    assert "git push" in arms["2"]
+    for code in ("0", "*"):
+        assert "git push" not in arms[code], f"Zweig {code} legt den Ref an"
+        assert arms[code].rstrip().endswith("false"), f"Zweig {code} bricht nicht ab"
+
+    # 3. Der Push selbst ist anlege-only: leerer Erwartungswert hinter dem
+    #    Doppelpunkt heisst „der Ref darf nicht existieren" — ein vorhandener
+    #    Ref liesse sich damit auch bei Fast-Forward nicht still bewegen.
+    assert '--force-with-lease="refs/heads/${RELEASE_REF}:"' in arms["2"]
+
+
 def test_recovery_matrix_records_that_main_no_longer_burns_the_candidate() -> None:
     matrix = RUNBOOK.split("## Wiederanlaufmatrix", maxsplit=1)[1].split("## Eskalation", 1)[0]
     assert "Merge nach `main` während eines laufenden Releases" in matrix
