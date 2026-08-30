@@ -151,6 +151,27 @@ Runnerpflege sind die Eingaben des Abnahme-Jobs:
   Abschlussmatrix; Standard ist `595`. Ungültige Werte brechen nur den
   nachgelagerten Kommentar-Schritt kontrolliert ab.
 
+**Preflight und Runner-Watchdog (#915).** Vor den schweren Plattform-Jobs
+läuft je angeforderter Plattform ein Preflight-Job
+(`scripts/abnahme_preflight.py`) auf dem Self-hosted Runner: grafische
+Sitzung, ladbare GL-Bibliothek, freier Speicher (≥ 2 GB), `python3` ≥ 3.10
+mit venv, Netzzugang zu `api.github.com` und unter Linux das eng begrenzte
+`sudo` für den `.deb`-Zyklus (§3) — bewusst ohne venv-Installation, in
+Sekunden; die vollständige Qt-/GL-Probe bleibt Teil der Plattform-Jobs.
+Parallel überwacht ein GitHub-hosted Watchdog (`scripts/abnahme_watchdog.py`)
+die Queue: Steht ein Preflight nach zehn Minuten ohne Runner-Zuweisung,
+beendet er den gesamten Lauf per **force-cancel** mit einer Fehlermeldung,
+die die wartende Plattform und den Abhilfeweg benennt — GitHub selbst bräche
+erst nach 24 Stunden ab, und `timeout-minutes` zählt erst ab Jobstart.
+Force-cancel statt Cancel, weil ein regulärer Abbruch die
+`!cancelled()`-Aggregation weiterlaufen ließe (die missverständliche Matrix
+des abgebrochenen Laufs 33071408111). Das Schreibrecht zum Run-Abbruch trägt
+im gesamten Workflow nur der Watchdog; ohne erfolgreiche Beobachtung
+(API-Fehler) fällt er bewusst kein Verdikt. Ein manueller Probelauf nur zur
+Runner-Prüfung vor der bindenden Abnahme ist damit nicht mehr nötig; ein
+Watchdog-Abbruch ist ein reiner Runnerfehler im Sinne der
+Wiederanlaufmatrix des Runbooks.
+
 Ein GitHub-hosted Vorjob prüft zuerst Run-ID, Workflow-Pfad, Abschlussstatus,
 Quell-Commit, Freeze-Provenienz, die drei Actions-Artefaktreferenzen und die
 exakte Menge aus zwei AppImages, zwei DEBs und einem DMG. Jeder Plattform-Job
@@ -224,7 +245,12 @@ Plattform erscheinen Hardware-Smoke, nativer Source-E2E und Live-GL-
 Performance als getrennte Pflichtzeilen; fehlende/inkonsistente Evidenz kann
 dadurch nicht von einem anderen Kriterium verdeckt werden. Der pausierte
 x86_64-Pfad erscheint explizit als „pausiert", fehlende Evidenz als „fehlt" –
-keine stillen Lücken. Die Vision-Vorbewertung ist **beratend**:
+keine stillen Lücken. Eine Matrix mit blockierenden Lücken (fehlgeschlagener,
+unvollständiger oder bewusster Einzelplattform-Lauf, z. B. UPDATE-01)
+kennzeichnet sich seit #915 selbst in Titel und Einleitung als „Diagnose –
+kein Abnahmeergebnis"; bei einem **abgebrochenen** Lauf entfällt der
+Kommentar ganz (`!cancelled()` statt `always()` am Aggregations-Job).
+Die Vision-Vorbewertung ist **beratend**:
 `nicht_erfuellt` markiert eine Zeile als fehlgeschlagen, aber die Go-/No-Go-
 Entscheidung bleibt der menschliche Schritt. Sind alle technischen
 Pflichtzeilen erfüllt (Linux x86_64 darf entsprechend §5 explizit pausiert

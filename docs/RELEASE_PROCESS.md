@@ -3,7 +3,7 @@
 **Owner:** Repository-Owner
 **Ausführende Rollen:** Release-Owner, CI, Hardware-Abnahme, Security-Owner
 **Anwendungsfall:** regulärer Release, Hotfix und Wiederanlauf eines fehlgeschlagenen Releases
-**Letzte Aktualisierung:** 2026-08-01
+**Letzte Aktualisierung:** 2026-08-30
 **Letzte Übung:** [lokaler Dry-Run vom 2026-08-01](history/RELEASE-RUNBOOK-DRY-RUN-2026-08-01.md)
 
 ## Zweck und verbindliche Quellen
@@ -200,6 +200,17 @@ SHA-256 und GitHub-Artefaktmetadaten und lädt den erzeugten Vertrag als
 dieser Schritt liefert die formale Evidenz für `VERSION-01`, `FREEZE-01`,
 `BUILD-01`, `BUILD-02` und `PROVENANCE-01` und schließt damit die
 Kandidatenvertragsprüfung ab.
+
+Je Zielplattform prüft außerdem ein schneller Preflight-Job die
+Einsatzbereitschaft des Self-hosted Runners (grafische Sitzung, ladbare
+GL-Bibliothek, freier Speicher, `python3` mit venv, Netzzugang, unter Linux
+das eng begrenzte `sudo`), bevor der schwere Abnahme-Job startet. Ein
+GitHub-hosted Watchdog beendet den Lauf per force-cancel, wenn ein Preflight
+nach zehn Minuten keinen Runner erhalten hat, statt der GitHub-Vorgabe von
+bis zu 24 Stunden Queue-Wartezeit (#915). Ein separater Probelauf nur zur
+Runner-Prüfung ist nicht nötig; ein Watchdog-Abbruch ist ein reiner
+Runnerfehler im Sinne der Wiederanlaufregel unten. Details:
+[RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md) §4.
 
 Die genaue Geräteprozedur steht in `PACKAGING_SMOKE.md`. Verbindlich sind die
 stabilen IDs in `RELEASE_ACCEPTANCE_CHECKLIST.md`, darunter echter Start aus
@@ -421,7 +432,7 @@ Ablauf; ältere Tag-basierte oder manuelle Veröffentlichungswege sind ungültig
 |---|---|---|
 | Build-Infrastruktur fällt aus, SHA unverändert | neuer Kandidatenlauf auf demselben SHA ab Schritt 3 | alte und neue Run-ID mischen |
 | Code, Doku oder Policy ändert sich | neuer Kandidat ab Schritt 1 | alte Abnahme weiterverwenden |
-| Abnahme-Runner fällt aus | neuer Abnahmelauf mit derselben Kandidaten-Run-ID | fehlende Plattform als `PASS` markieren |
+| Abnahme-Runner fällt aus oder der Watchdog bricht wegen Offline-Runner ab (#915) | Runner wieder online bringen, neuer Abnahmelauf mit derselben Kandidaten-Run-ID | fehlende Plattform als `PASS` markieren |
 | Fachlicher Hardware-Smoke schlägt fehl | Fix-PR und neuer Kandidat ab Schritt 1 | Waiver für nicht waiverfähiges `MUST` |
 | Kandidaten-/Manifestartefakt nach 90 Tagen abgelaufen | neuer Kandidat ab Schritt 1 | gleichnamiges Artefakt aus anderem Lauf einsetzen |
 | ClamAV-Signaturcache leer/veraltet (`MALWARE-01` `UNAVAILABLE` oder Alterswarnung) | `clamav-db-refresh.yml` manuell per `workflow_dispatch` anstoßen, danach Kandidatenlauf ab Schritt 3 neu starten | `MALWARE-01` stillschweigend als bestanden werten |
@@ -454,4 +465,5 @@ nur per PR zusammen mit Checklisten-/Workflow-Tests.
 
 | Datum | Änderung | Referenz |
 |---|---|---|
+| 2026-08-30 | Runner-Readiness-Preflight und Queue-Watchdog in Schritt 5; Abschlussmatrix unvollständiger Läufe als Diagnose gekennzeichnet | #915 |
 | 2026-08-01 | Kanonisches Runbook, versionierter Checklisten-Pin, Wiederanlauf-, Hotfix- und Rollback-Pfade | #745, #746 |

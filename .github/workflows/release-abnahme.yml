@@ -7,7 +7,9 @@ name: Release-Abnahme (Self-hosted Hardware)
 # Sicherheitsmodell (verbindlich): ausschliesslich workflow_dispatch – nie
 # push/pull_request/Fork; Least-Privilege-Permissions (nur Lesen); keine
 # Secrets in den Smoke-Steps (persist-credentials: false, Dispatch-Inputs nur
-# ueber env). Schreibrechte erst im Aggregations-Job (#646).
+# ueber env). Schreibrechte nur dort, wo sie unvermeidbar sind: der
+# Issue-Kommentar im Aggregations-Job (#646) und der Run-Abbruch im
+# Runner-Watchdog (#915).
 
 on:
   workflow_dispatch:
@@ -124,9 +126,98 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+  # Preflight (#915): schneller Readiness-Nachweis je Zielplattform, BEVOR die
+  # schweren Abnahme-Jobs starten. Prueft die realen Einsatzvoraussetzungen
+  # (grafische Session, GL-Bibliothek, freier Speicher, python3+venv, Netz,
+  # eng begrenztes sudo fuer den .deb-Zyklus) ohne venv-Installation –
+  # Sekunden statt Minuten. Ersetzt den frueher noetigen manuellen Probelauf
+  # vor der bindenden Abnahme. Der Runner-Watchdog unten bricht den Lauf ab,
+  # wenn ein Preflight mangels Online-Runner in der Queue haengen bleibt.
+  preflight-macos-arm64:
+    name: Preflight macOS arm64
+    if: inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64'
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Einsatzbereitschaft pruefen
+        run: python3 scripts/abnahme_preflight.py --platform macos-arm64
+
+  preflight-linux-arm64:
+    name: Preflight Linux aarch64
+    if: inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64'
+    runs-on: [self-hosted, Linux, ARM64]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Einsatzbereitschaft pruefen
+        run: python3 scripts/abnahme_preflight.py --platform linux-arm64
+
+  preflight-linux-x86_64:
+    name: Preflight Linux x86_64
+    if: >-
+      (inputs.platforms == 'alle' || inputs.platforms == 'linux-x86_64')
+      && vars.ABNAHME_X86_64_ENABLED == 'true'
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Einsatzbereitschaft pruefen
+        run: python3 scripts/abnahme_preflight.py --platform linux-x86_64
+
+  # Runner-Watchdog (#915): GitHub bricht Jobs ohne zugewiesenen Self-hosted-
+  # Runner erst nach 24 h ab, und timeout-minutes zaehlt erst ab Jobstart –
+  # gegen die Queue-Phase schuetzt es nicht (beobachtet: 7:58 h Warteschlange
+  # in Lauf 33071408111, v2.9.0/#881). Dieser GitHub-hosted Job beendet den
+  # Lauf deshalb selbst: Phase 1, wenn ein Preflight nach zehn Minuten noch
+  # queued ist; Phase 2 (Codex-Review PR #924), wenn danach ein schwerer
+  # Abnahme-Job nicht binnen 25 Minuten startet (die laengere Frist deckt die
+  # candidate-source-Laufzeit ab, nach der er erst einplanbar wird).
+  # Force-cancel statt cancel: ein regulaerer Cancel liesse !cancelled()-Jobs
+  # (die Aggregation) weiterlaufen und erneut eine als Abnahmeergebnis lesbare
+  # Matrix posten. Das Schreibrecht zum Run-Abbruch traegt im gesamten
+  # Workflow NUR dieser Job; faellt die Beobachtung aus (API-Fehler), bricht
+  # der Watchdog bewusst nichts ab (fail-safe, scripts/abnahme_watchdog.py).
+  runner-watchdog:
+    name: Runner-Watchdog (Queue-Abbruch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Preflight-Queue ueberwachen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          set -euo pipefail
+          # Erwartete Preflight-Menge aus den Dispatch-Eingaben ableiten
+          # (Review PR #924): eine direkt nach Laufstart unvollstaendige
+          # Jobliste darf den Waechter nicht vorzeitig beenden.
+          x86flag=""
+          [ "${{ vars.ABNAHME_X86_64_ENABLED }}" = "true" ] && x86flag="--x86-64-enabled"
+          python3 scripts/abnahme_watchdog.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --run-id "$GITHUB_RUN_ID" \
+            --platforms "$PLATFORMS" \
+            --deadline-seconds 600 \
+            --acceptance-deadline-seconds 1500 \
+            --poll-seconds 20 \
+            $x86flag
+
   abnahme-macos-arm64:
     name: Abnahme macOS arm64
-    needs: candidate-source
+    needs: [candidate-source, preflight-macos-arm64]
     if: inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64'
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
@@ -201,7 +292,7 @@ jobs:
 
   abnahme-linux-arm64:
     name: Abnahme Linux aarch64
-    needs: candidate-source
+    needs: [candidate-source, preflight-linux-arm64]
     if: inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64'
     runs-on: [self-hosted, Linux, ARM64]
     timeout-minutes: 30
@@ -300,7 +391,7 @@ jobs:
   # Reaktivierung ohne Code-Aenderung: siehe docs/RELEASE_AUTOMATION.md §5.
   abnahme-linux-x86_64:
     name: Abnahme Linux x86_64
-    needs: candidate-source
+    needs: [candidate-source, preflight-linux-x86_64]
     if: >-
       (inputs.platforms == 'alle' || inputs.platforms == 'linux-x86_64')
       && vars.ABNAHME_X86_64_ENABLED == 'true'
@@ -394,7 +485,12 @@ jobs:
   aggregation:
     name: Abschlussmatrix
     needs: [candidate-source, abnahme-macos-arm64, abnahme-linux-arm64, abnahme-linux-x86_64]
-    if: always() && !inputs.dry_run
+    # !cancelled() statt always() (#915): Ein abgebrochener Lauf postet keine
+    # als Abnahmeergebnis lesbare Matrix mehr (Lauf 33071408111 brauchte dafuer
+    # eine manuelle Klarstellung im Release-Issue). Bei fehlgeschlagenen, aber
+    # nicht abgebrochenen Plattform-Jobs laeuft die Aggregation weiter und
+    # kennzeichnet die Matrix selbst als Diagnose (abnahme_aggregate.py).
+    if: ${{ !cancelled() && !inputs.dry_run }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

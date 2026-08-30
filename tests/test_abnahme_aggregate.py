@@ -254,6 +254,56 @@ def test_render_markdown_contains_all_states(tmp_path: Path) -> None:
     assert "Go/No-Go entscheidet ein Mensch" in md
 
 
+def test_render_markdown_marks_incomplete_run_as_diagnose(tmp_path: Path) -> None:
+    """#915: Eine Matrix mit blockierenden Lücken (abgebrochener,
+    fehlgeschlagener oder Einzelplattform-Lauf) darf nie wie ein
+    Abnahmeergebnis lesbar sein (Lauf 33071408111)."""
+    _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
+    rows = agg.build_matrix(agg.load_evidence(tmp_path))
+    assert agg.has_blocking_gaps(rows)
+    md = agg.render_markdown(rows, commit_sha="deadbeef")
+    assert "Abschlussmatrix (Diagnose – kein Abnahmeergebnis)" in md
+    assert "Diagnose-Stand, kein Abnahmeergebnis" in md
+    assert "Freigabemanifest entsteht aus diesem Stand nicht" in md
+
+
+def test_render_markdown_vision_advisory_failure_is_not_a_diagnosis(tmp_path: Path) -> None:
+    """Codex-Review PR #924: Eine rein beratende nicht_erfuellt-Vorbewertung
+    verhindert das Freigabemanifest nicht (build_acceptance_summary zaehlt nur
+    die technischen Pflichtzeilen) und darf die Matrix deshalb nicht als
+    „kein Abnahmeergebnis" kennzeichnen – sonst widerspraechen sich Banner
+    und tatsaechlich erzeugtes Manifest."""
+    _write(tmp_path, "macos-arm64", _evidence("macos-arm64"))
+    _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
+    e2e, live_gl = _complete_aux("macos-arm64", "linux-arm64")
+    vision = [{
+        "screenshot": "a.png", "criterion": "x", "verdict": "nicht_erfuellt",
+        "begruendung": "zu dunkel",
+    }]
+    rows = agg.build_matrix(
+        agg.load_evidence(tmp_path), e2e=e2e, live_gl=live_gl, vision=vision,
+    )
+    assert agg.has_blocking_gaps(rows)
+    assert not agg.has_technical_gaps(rows)
+    summary = agg.build_acceptance_summary(rows, commit_sha="abc")
+    assert summary["blocking"] is False
+    md = agg.render_markdown(rows, commit_sha="abc")
+    assert "Diagnose" not in md
+
+
+def test_render_markdown_complete_run_has_no_diagnose_marker(tmp_path: Path) -> None:
+    _write(tmp_path, "macos-arm64", _evidence("macos-arm64"))
+    _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
+    e2e, live_gl = _complete_aux("macos-arm64", "linux-arm64")
+    rows = agg.build_matrix(
+        agg.load_evidence(tmp_path), e2e=e2e, live_gl=live_gl,
+    )
+    assert not agg.has_blocking_gaps(rows)
+    md = agg.render_markdown(rows, commit_sha="deadbeef")
+    assert "Diagnose" not in md
+    assert md.startswith("## Release-Abnahme – Abschlussmatrix\n")
+
+
 def test_matrix_rows_carry_geraet_os_datum_testperson_and_link(tmp_path: Path) -> None:
     """#685-Review: Testperson/Datum/Gerät-OS/Link fehlten bisher in der Matrix."""
     _write(tmp_path, "linux-arm64", _evidence(

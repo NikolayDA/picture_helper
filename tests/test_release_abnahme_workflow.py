@@ -37,6 +37,9 @@ def test_workflow_is_least_privilege() -> None:
     assert "pull-requests: write" not in text
     # issues: write existiert genau einmal – ausschließlich im Aggregations-Job.
     assert text.count("issues: write") == 1
+    # actions: write existiert genau einmal – ausschließlich im Runner-Watchdog
+    # (#915), der den Lauf bei haengender Preflight-Queue force-cancelt.
+    assert text.count("actions: write") == 1
 
 
 def test_aggregation_job_scoped_and_posts() -> None:
@@ -48,7 +51,10 @@ def test_aggregation_job_scoped_and_posts() -> None:
         "needs: [candidate-source, abnahme-macos-arm64, abnahme-linux-arm64, "
         "abnahme-linux-x86_64]" in text
     )
-    assert "if: always() && !inputs.dry_run" in text
+    # !cancelled() statt always() (#915): ein abgebrochener Lauf postet keine
+    # als Abnahmeergebnis lesbare Matrix mehr.
+    assert "if: ${{ !cancelled() && !inputs.dry_run }}" in text
+    assert "if: always() && !inputs.dry_run" not in text
     assert "scripts/abnahme_aggregate.py" in text
     assert "scripts/abnahme_vision_check.py" in text
     assert "target_issue:" in text
@@ -204,6 +210,50 @@ def test_approval_manifest_gated_to_full_platform_matrix() -> None:
     assert "if: inputs.platforms != 'alle'" in notice_block
     assert "Kein Freigabemanifest" in notice_block
     assert "platforms=alle" in notice_block
+
+
+def test_workflow_preflight_gates_platform_jobs() -> None:
+    """#915: Je Zielplattform läuft ein schneller Readiness-Preflight auf dem
+    Self-hosted-Runner, bevor der schwere Abnahme-Job startet."""
+    text = _workflow_text()
+
+    for platform in ("macos-arm64", "linux-arm64", "linux-x86_64"):
+        assert f"preflight-{platform}:" in text
+        assert f"python3 scripts/abnahme_preflight.py --platform {platform}" in text
+    assert (ROOT / "scripts" / "abnahme_preflight.py").is_file()
+    # Schwere Jobs starten erst nach erfolgreichem Preflight derselben Plattform.
+    assert "needs: [candidate-source, preflight-macos-arm64]" in text
+    assert "needs: [candidate-source, preflight-linux-arm64]" in text
+    assert "needs: [candidate-source, preflight-linux-x86_64]" in text
+    # Der pausierte x86_64-Pfad gilt auch fuer seinen Preflight (kein Job, der
+    # ewig auf einen nicht existierenden Runner wartet).
+    assert text.count("vars.ABNAHME_X86_64_ENABLED == 'true'") == 2
+
+
+def test_workflow_watchdog_force_cancels_queued_preflights() -> None:
+    """#915: Ein GitHub-hosted Watchdog beendet den Lauf per force-cancel,
+    statt stundenlang auf einen Offline-Runner zu warten (Lauf 33071408111)."""
+    text = _workflow_text()
+
+    assert "runner-watchdog:" in text
+    assert "scripts/abnahme_watchdog.py" in text
+    assert (ROOT / "scripts" / "abnahme_watchdog.py").is_file()
+    watchdog_block = text.split("runner-watchdog:", 1)[1].split("abnahme-macos-arm64:", 1)[0]
+    # Der Watchdog laeuft GitHub-hosted (nie selbst auf den ueberwachten
+    # Runnern) und ist der einzige Traeger von actions: write.
+    assert "runs-on: ubuntu-latest" in watchdog_block
+    assert "actions: write" in watchdog_block
+    assert "--deadline-seconds" in watchdog_block
+    # Erwartete Preflight-Menge kommt aus den Dispatch-Eingaben (Review
+    # PR #924): eine unvollstaendige Jobliste beendet den Waechter nicht.
+    assert "PLATFORMS: ${{ inputs.platforms }}" in watchdog_block
+    assert '--platforms "$PLATFORMS"' in watchdog_block
+    assert "--x86-64-enabled" in watchdog_block
+    # Phase 2 (Codex-Review PR #924): auch die schweren Abnahme-Jobs werden
+    # bis zu ihrem Start bewacht; die Frist deckt candidate-source ab.
+    assert "--acceptance-deadline-seconds" in watchdog_block
+    # Begruendung force-cancel statt cancel ist im Workflow dokumentiert.
+    assert "orce-cancel" in text
 
 
 def test_workflow_supports_optional_update_check_predecessor() -> None:
