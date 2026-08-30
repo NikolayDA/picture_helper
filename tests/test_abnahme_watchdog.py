@@ -18,6 +18,10 @@ watchdog = importlib.util.module_from_spec(_SPEC)
 sys.modules["abnahme_watchdog"] = watchdog
 _SPEC.loader.exec_module(watchdog)
 
+MACOS = watchdog.PREFLIGHT_JOB_NAMES["macos-arm64"]
+LINUX = watchdog.PREFLIGHT_JOB_NAMES["linux-arm64"]
+X86 = watchdog.PREFLIGHT_JOB_NAMES["linux-x86_64"]
+
 
 def _job(name: str, status: str = "queued", conclusion: str | None = None) -> dict[str, Any]:
     return {"name": name, "status": status, "conclusion": conclusion}
@@ -34,52 +38,128 @@ class _Clock:
         self.now += seconds
 
 
+def test_expected_preflights_mirror_job_gating() -> None:
+    """Die erwartete Menge spiegelt die if-Bedingungen der Preflight-Jobs."""
+    assert watchdog.expected_preflights("alle", x86_enabled=False) == (MACOS, LINUX)
+    assert watchdog.expected_preflights("alle", x86_enabled=True) == (MACOS, LINUX, X86)
+    assert watchdog.expected_preflights("macos-arm64", x86_enabled=False) == (MACOS,)
+    assert watchdog.expected_preflights("linux-arm64", x86_enabled=False) == (LINUX,)
+    # Pausierter x86_64-Pfad: der Preflight-Job wird uebersprungen und darf
+    # nicht erwartet werden.
+    assert watchdog.expected_preflights("linux-x86_64", x86_enabled=False) == ()
+    assert watchdog.expected_preflights("linux-x86_64", x86_enabled=True) == (X86,)
+
+
+def test_preflight_job_names_match_workflow() -> None:
+    """Namensdrift zwischen Skript-Tabelle und Workflow-Anzeigenamen faellt auf."""
+    workflow = (ROOT / ".github" / "workflows" / "release-abnahme.yml").read_text(
+        encoding="utf-8"
+    )
+    for name in watchdog.PREFLIGHT_JOB_NAMES.values():
+        assert f"name: {name}" in workflow, name
+        assert name.startswith(watchdog.JOB_NAME_PREFIX)
+
+
 def test_queue_state_filters_by_prefix_and_status() -> None:
     jobs = [
-        _job("Preflight macOS arm64", "queued"),
-        _job("Preflight Linux aarch64", "in_progress"),
-        _job("Preflight Linux x86_64", "completed", "skipped"),
+        _job(MACOS, "queued"),
+        _job(LINUX, "in_progress"),
+        _job(X86, "completed", "skipped"),
         _job("Abnahme macOS arm64", "queued"),
         _job("Runner-Watchdog (Queue-Abbruch)", "in_progress"),
     ]
     state = watchdog.queue_state(jobs)
-    assert state.known == (
-        "Preflight macOS arm64", "Preflight Linux aarch64", "Preflight Linux x86_64",
-    )
+    assert state.known == (MACOS, LINUX, X86)
     # Nur der wartende Preflight zaehlt; schwere Jobs und Skips nicht.
-    assert state.queued == ("Preflight macOS arm64",)
+    assert state.queued == (MACOS,)
     assert state.observed
 
 
-def test_watch_returns_immediately_when_nothing_queued() -> None:
+def test_watch_returns_immediately_when_all_expected_started() -> None:
     clock = _Clock()
     calls: list[int] = []
 
     def observe() -> Any:
         calls.append(1)
-        return watchdog.queue_state([_job("Preflight macOS arm64", "in_progress")])
+        return watchdog.queue_state([_job(MACOS, "in_progress")])
 
     state = watchdog.watch(
-        observe, deadline_s=600, poll_s=20, clock=clock, sleep=clock.sleep,
+        observe, (MACOS,), deadline_s=600, poll_s=20, clock=clock, sleep=clock.sleep,
     )
     assert state.queued == ()
     assert len(calls) == 1
     assert clock.now == 0.0
 
 
+def test_watch_waits_for_partially_populated_job_list() -> None:
+    """Review-Befund PR #924: Zeigt die erste Antwort nur einen Teil der
+    erwarteten Preflights (API-Race direkt nach Laufstart), darf der Waechter
+    nicht mit „alles gestartet" enden – sonst bliebe der fehlende Job wieder
+    unbewacht in der Queue haengen (Lauf 33071408111)."""
+    clock = _Clock()
+    attempts: list[int] = []
+
+    def observe() -> Any:
+        attempts.append(1)
+        if len(attempts) == 1:
+            # Linux-Eintrag existiert noch nicht.
+            return watchdog.queue_state([_job(MACOS, "in_progress")])
+        return watchdog.queue_state(
+            [_job(MACOS, "in_progress"), _job(LINUX, "in_progress")]
+        )
+
+    state = watchdog.watch(
+        observe, (MACOS, LINUX), deadline_s=600, poll_s=20,
+        clock=clock, sleep=clock.sleep,
+    )
+    assert state.known == (MACOS, LINUX)
+    assert len(attempts) == 2
+    assert clock.now == 20.0
+
+
 def test_watch_reports_still_queued_at_deadline() -> None:
     clock = _Clock()
 
     def observe() -> Any:
-        return watchdog.queue_state([_job("Preflight Linux aarch64", "queued")])
+        return watchdog.queue_state([_job(LINUX, "queued")])
 
     state = watchdog.watch(
-        observe, deadline_s=60, poll_s=20, clock=clock, sleep=clock.sleep,
+        observe, (LINUX,), deadline_s=60, poll_s=20, clock=clock, sleep=clock.sleep,
     )
-    assert state.queued == ("Preflight Linux aarch64",)
+    assert state.queued == (LINUX,)
     # Frische Beobachtung zum Fristablauf: das Verdikt gilt.
     assert state.observed
     assert clock.now >= 60
+
+
+def test_watch_recovers_after_transient_api_error() -> None:
+    clock = _Clock()
+    attempts: list[int] = []
+
+    def observe() -> Any:
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise urllib.error.URLError("api kurz weg")
+        return watchdog.queue_state([_job(MACOS, "in_progress")])
+
+    state = watchdog.watch(
+        observe, (MACOS,), deadline_s=600, poll_s=20, clock=clock, sleep=clock.sleep,
+    )
+    assert state.queued == ()
+    assert len(attempts) == 2
+
+
+def test_watch_without_any_observation_gives_no_verdict() -> None:
+    clock = _Clock()
+
+    def observe() -> Any:
+        raise urllib.error.URLError("api dauerhaft weg")
+
+    state = watchdog.watch(
+        observe, (MACOS,), deadline_s=40, poll_s=20, clock=clock, sleep=clock.sleep,
+    )
+    assert not state.observed
+    assert state.queued == ()
 
 
 def test_watch_stale_queue_observation_gives_no_verdict() -> None:
@@ -94,69 +174,24 @@ def test_watch_stale_queue_observation_gives_no_verdict() -> None:
     def observe() -> Any:
         attempts.append(1)
         if len(attempts) == 1:
-            return watchdog.queue_state([_job("Preflight Linux aarch64", "queued")])
+            return watchdog.queue_state([_job(LINUX, "queued")])
         raise urllib.error.URLError("api ab jetzt weg")
 
     state = watchdog.watch(
-        observe, deadline_s=100, poll_s=20, clock=clock, sleep=clock.sleep,
+        observe, (LINUX,), deadline_s=100, poll_s=20, clock=clock, sleep=clock.sleep,
     )
     assert not state.observed
     # Die veraltete Beobachtung bleibt als Diagnose sichtbar, traegt aber
     # kein Verdikt mehr.
-    assert state.queued == ("Preflight Linux aarch64",)
-
-
-def test_watch_recovers_after_transient_api_error() -> None:
-    clock = _Clock()
-    attempts: list[int] = []
-
-    def observe() -> Any:
-        attempts.append(1)
-        if len(attempts) == 1:
-            raise urllib.error.URLError("api kurz weg")
-        return watchdog.queue_state([_job("Preflight macOS arm64", "in_progress")])
-
-    state = watchdog.watch(
-        observe, deadline_s=600, poll_s=20, clock=clock, sleep=clock.sleep,
-    )
-    assert state.queued == ()
-    assert len(attempts) == 2
-
-
-def test_watch_gives_empty_job_list_a_second_chance() -> None:
-    # Direkt nach Laufstart kann die Jobliste noch unvollstaendig sein (API-
-    # Race): erst zwei aufeinanderfolgende Leer-Beobachtungen beenden die
-    # Ueberwachung als "nichts zu ueberwachen".
-    clock = _Clock()
-    attempts: list[int] = []
-
-    def observe() -> Any:
-        attempts.append(1)
-        return watchdog.queue_state([])
-
-    state = watchdog.watch(
-        observe, deadline_s=600, poll_s=20, clock=clock, sleep=clock.sleep,
-    )
-    assert state.known == ()
-    assert len(attempts) == 2
-    assert clock.now == 20.0
-
-
-def test_watch_without_any_observation_gives_no_verdict() -> None:
-    clock = _Clock()
-
-    def observe() -> Any:
-        raise urllib.error.URLError("api dauerhaft weg")
-
-    state = watchdog.watch(
-        observe, deadline_s=40, poll_s=20, clock=clock, sleep=clock.sleep,
-    )
-    assert not state.observed
-    assert state.queued == ()
+    assert state.queued == (LINUX,)
 
 
 def _run_main(
-    monkeypatch: pytest.MonkeyPatch, jobs: list[dict[str, Any]] | Exception,
+    monkeypatch: pytest.MonkeyPatch,
+    jobs: list[dict[str, Any]] | Exception,
+    *,
+    platforms: str = "alle",
+    extra_args: tuple[str, ...] = (),
 ) -> tuple[int, list[str]]:
     monkeypatch.setenv("GH_TOKEN", "token")
     cancelled: list[str] = []
@@ -172,7 +207,10 @@ def _run_main(
     monkeypatch.setattr(watchdog, "fetch_jobs", _fetch)
     monkeypatch.setattr(watchdog, "force_cancel", _cancel)
     rc = watchdog.main(
-        ["--repo", "o/r", "--run-id", "42", "--deadline-seconds", "0", "--poll-seconds", "1"],
+        [
+            "--repo", "o/r", "--run-id", "42", "--platforms", platforms,
+            "--deadline-seconds", "0", "--poll-seconds", "1", *extra_args,
+        ],
     )
     return rc, cancelled
 
@@ -180,7 +218,7 @@ def _run_main(
 def test_main_force_cancels_when_preflight_stays_queued(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
 ) -> None:
-    rc, cancelled = _run_main(monkeypatch, [_job("Preflight Linux aarch64", "queued")])
+    rc, cancelled = _run_main(monkeypatch, [_job(LINUX, "queued")])
     out = capsys.readouterr().out
     assert rc == 1
     assert cancelled == ["42"]
@@ -189,13 +227,28 @@ def test_main_force_cancels_when_preflight_stays_queued(
     assert "force-cancel" in out
 
 
-def test_main_passes_when_all_preflights_started(
+def test_main_passes_when_all_expected_preflights_started(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
 ) -> None:
-    rc, cancelled = _run_main(monkeypatch, [_job("Preflight macOS arm64", "in_progress")])
+    rc, cancelled = _run_main(
+        monkeypatch, [_job(MACOS, "in_progress"), _job(LINUX, "in_progress")],
+    )
     assert rc == 0
     assert cancelled == []
     assert "haben einen Runner" in capsys.readouterr().out
+
+
+def test_main_warns_when_expected_job_never_appears(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Ein erwarteter Preflight, der bis Fristablauf nie in der Jobliste
+    erscheint, ist nicht beurteilbar: Warnung statt Verdikt (fail-safe)."""
+    rc, cancelled = _run_main(monkeypatch, [_job(MACOS, "in_progress")])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert cancelled == []
+    assert "nie in der Jobliste erschienen" in out
+    assert LINUX in out
 
 
 def test_main_is_failsafe_without_observation(
@@ -208,13 +261,26 @@ def test_main_is_failsafe_without_observation(
     assert "kein Verdikt" in out
 
 
-def test_main_without_preflight_jobs_is_a_noop(
+def test_main_paused_x86_only_run_is_a_noop(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
 ) -> None:
-    rc, cancelled = _run_main(monkeypatch, [_job("Abnahme macOS arm64", "queued")])
+    # platforms=linux-x86_64 ohne --x86-64-enabled: der Preflight-Job ist
+    # uebersprungen, es gibt nichts zu ueberwachen (und nichts abzubrechen).
+    rc, cancelled = _run_main(monkeypatch, [], platforms="linux-x86_64")
     assert rc == 0
     assert cancelled == []
     assert "nichts zu überwachen" in capsys.readouterr().out
+
+
+def test_main_expects_x86_preflight_when_enabled(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    rc, cancelled = _run_main(
+        monkeypatch, [_job(X86, "queued")],
+        platforms="linux-x86_64", extra_args=("--x86-64-enabled",),
+    )
+    assert rc == 1
+    assert cancelled == ["42"]
 
 
 def test_main_requires_token(
@@ -222,6 +288,6 @@ def test_main_requires_token(
 ) -> None:
     monkeypatch.delenv("GH_TOKEN", raising=False)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    rc = watchdog.main(["--repo", "o/r", "--run-id", "42"])
+    rc = watchdog.main(["--repo", "o/r", "--run-id", "42", "--platforms", "alle"])
     assert rc == 1
     assert "GH_TOKEN" in capsys.readouterr().out

@@ -43,6 +43,35 @@ DEFAULT_DEADLINE_S = 600
 DEFAULT_POLL_S = 20
 REQUEST_TIMEOUT_S = 30.0
 
+# Anzeige-Namen der Preflight-Jobs in release-abnahme.yml. Die erwartete
+# Menge wird aus den Dispatch-Eingaben abgeleitet (Review-Befund PR #924):
+# eine direkt nach Laufstart noch unvollstaendige Jobliste darf den Wächter
+# nicht vorzeitig mit „alles gestartet" beenden. Namensdrift zwischen dieser
+# Tabelle und dem Workflow faengt tests/test_abnahme_watchdog.py ab.
+PREFLIGHT_JOB_NAMES: dict[str, str] = {
+    "macos-arm64": "Preflight macOS arm64",
+    "linux-arm64": "Preflight Linux aarch64",
+    "linux-x86_64": "Preflight Linux x86_64",
+}
+
+
+def expected_preflights(platforms: str, *, x86_enabled: bool) -> tuple[str, ...]:
+    """Erwartete Preflight-Jobnamen eines Laufs aus den Dispatch-Eingaben.
+
+    Spiegelt die ``if``-Bedingungen der Preflight-Jobs: ``alle`` umfasst
+    macOS und Linux arm64, x86_64 nur bei gesetzter Repository-Variable
+    (sonst ist der Job übersprungen und darf nicht erwartet werden).
+    """
+    if platforms == "alle":
+        wanted = ["macos-arm64", "linux-arm64"]
+        if x86_enabled:
+            wanted.append("linux-x86_64")
+    elif platforms == "linux-x86_64" and not x86_enabled:
+        wanted = []
+    else:
+        wanted = [platforms]
+    return tuple(PREFLIGHT_JOB_NAMES[platform] for platform in wanted)
+
 
 @dataclass(frozen=True)
 class QueueState:
@@ -119,13 +148,20 @@ def force_cancel(
 
 def watch(
     observe: Callable[[], QueueState],
+    expected: tuple[str, ...],
     *,
     deadline_s: float,
     poll_s: float,
     clock: Callable[[], float] = time.monotonic,
     sleep: Callable[[float], None] = time.sleep,
 ) -> QueueState:
-    """Preflight-Queue bis Start aller Jobs oder Fristablauf beobachten.
+    """Preflight-Queue bis Start aller **erwarteten** Jobs oder Fristablauf
+    beobachten.
+
+    Der Erfolgs-Exit verlangt, dass jeder erwartete Job in der Liste
+    erschienen **und** nicht mehr ``queued`` ist – eine direkt nach
+    Laufstart noch unvollständige Jobliste (API-Race) beendet die
+    Überwachung nicht vorzeitig (Review-Befund PR #924).
 
     Rückgabe ist die letzte erfolgreiche Beobachtung; gab es nie eine,
     trägt sie ``observed=False`` (kein Verdikt, siehe Modul-Docstring).
@@ -133,15 +169,11 @@ def watch(
     (jünger als ``2 * poll_s``): War die letzte erfolgreiche Abfrage älter
     (API-Ausfall dazwischen), wird sie zu ``observed=False`` degradiert,
     statt auf veralteter Grundlage abzubrechen – der Runner kann den Job
-    längst übernommen haben (Review-Befund PR #924).
-    Eine leere Preflight-Jobliste direkt nach Laufstart kann ein API-Race
-    sein – erst zwei aufeinanderfolgende Leer-Beobachtungen gelten als
-    „nichts zu überwachen".
+    längst übernommen haben.
     """
     start = clock()
     last = QueueState(known=(), queued=(), observed=False)
     last_success: float | None = None
-    empty_known_streak = 0
     while True:
         try:
             last = observe()
@@ -149,14 +181,8 @@ def watch(
             print(f"::warning::Watchdog: Jobabfrage fehlgeschlagen ({exc}).")
         else:
             last_success = clock()
-            if last.known:
-                empty_known_streak = 0
-                if not last.queued:
-                    return last
-            else:
-                empty_known_streak += 1
-                if empty_known_streak >= 2:
-                    return last
+            if not last.queued and set(expected).issubset(last.known):
+                return last
         if clock() - start >= deadline_s:
             stale = last_success is None or clock() - last_success > 2 * poll_s
             if last.queued and stale:
@@ -169,6 +195,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True, help="owner/repo des laufenden Workflows")
     parser.add_argument("--run-id", required=True, help="GITHUB_RUN_ID des laufenden Workflows")
+    parser.add_argument(
+        "--platforms", required=True,
+        choices=("alle", *PREFLIGHT_JOB_NAMES),
+        help="platforms-Dispatch-Eingabe des Laufs (bestimmt die erwarteten Preflights)",
+    )
+    parser.add_argument("--x86-64-enabled", action="store_true")
     parser.add_argument("--deadline-seconds", type=float, default=DEFAULT_DEADLINE_S)
     parser.add_argument("--poll-seconds", type=float, default=DEFAULT_POLL_S)
     parser.add_argument("--job-prefix", default=JOB_NAME_PREFIX)
@@ -180,6 +212,14 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     api_url = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
 
+    expected = expected_preflights(args.platforms, x86_enabled=args.x86_64_enabled)
+    if not expected:
+        print(
+            f"[watchdog] Für platforms={args.platforms!r} läuft kein Preflight "
+            "(x86_64 pausiert) – nichts zu überwachen."
+        )
+        return 0
+
     def observe() -> QueueState:
         return queue_state(
             fetch_jobs(args.repo, args.run_id, token, api_url=api_url),
@@ -187,7 +227,8 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     state = watch(
-        observe, deadline_s=args.deadline_seconds, poll_s=args.poll_seconds,
+        observe, expected,
+        deadline_s=args.deadline_seconds, poll_s=args.poll_seconds,
     )
     if not state.observed:
         print(
@@ -196,12 +237,21 @@ def main(argv: list[str] | None = None) -> int:
             "unangetastet."
         )
         return 0
-    if not state.known:
-        print("[watchdog] Keine Preflight-Jobs in diesem Lauf – nichts zu überwachen.")
-        return 0
     if not state.queued:
+        missing = tuple(name for name in expected if name not in state.known)
+        if missing:
+            # Fail-safe: ein erwarteter Job, der bis Fristablauf nie in der
+            # Jobliste erschien, laesst sich nicht beurteilen (API-Anomalie
+            # oder Namensdrift; Letzteres faengt der Paritaets-Test ab).
+            print(
+                f"::warning::Watchdog: erwartete Preflight-Jobs nie in der "
+                f"Jobliste erschienen: {', '.join(missing)} – keine "
+                "Überwachung möglich, Lauf bleibt unangetastet."
+            )
+            return 0
         print(
-            f"[watchdog] Alle Preflight-Jobs haben einen Runner: {', '.join(state.known)}"
+            f"[watchdog] Alle erwarteten Preflight-Jobs haben einen Runner: "
+            f"{', '.join(expected)}"
         )
         return 0
     names = ", ".join(state.queued)

@@ -244,6 +244,11 @@ def test_workflow_watchdog_force_cancels_queued_preflights() -> None:
     assert "runs-on: ubuntu-latest" in watchdog_block
     assert "actions: write" in watchdog_block
     assert "--deadline-seconds" in watchdog_block
+    # Erwartete Preflight-Menge kommt aus den Dispatch-Eingaben (Review
+    # PR #924): eine unvollstaendige Jobliste beendet den Waechter nicht.
+    assert "PLATFORMS: ${{ inputs.platforms }}" in watchdog_block
+    assert '--platforms "$PLATFORMS"' in watchdog_block
+    assert "--x86-64-enabled" in watchdog_block
     # Begruendung force-cancel statt cancel ist im Workflow dokumentiert.
     assert "orce-cancel" in text
 

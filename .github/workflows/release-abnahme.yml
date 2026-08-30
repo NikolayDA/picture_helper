@@ -195,13 +195,21 @@ jobs:
       - name: Preflight-Queue ueberwachen
         env:
           GH_TOKEN: ${{ github.token }}
+          PLATFORMS: ${{ inputs.platforms }}
         run: |
           set -euo pipefail
+          # Erwartete Preflight-Menge aus den Dispatch-Eingaben ableiten
+          # (Review PR #924): eine direkt nach Laufstart unvollstaendige
+          # Jobliste darf den Waechter nicht vorzeitig beenden.
+          x86flag=""
+          [ "${{ vars.ABNAHME_X86_64_ENABLED }}" = "true" ] && x86flag="--x86-64-enabled"
           python3 scripts/abnahme_watchdog.py \
             --repo "$GITHUB_REPOSITORY" \
             --run-id "$GITHUB_RUN_ID" \
+            --platforms "$PLATFORMS" \
             --deadline-seconds 600 \
-            --poll-seconds 20
+            --poll-seconds 20 \
+            $x86flag
 
   abnahme-macos-arm64:
     name: Abnahme macOS arm64

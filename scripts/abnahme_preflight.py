@@ -29,6 +29,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import Protocol
 
 MIN_PYTHON = (3, 10)
 MIN_FREE_GB = 2.0
@@ -66,15 +67,21 @@ def check_venv() -> str | None:
     )
 
 
+class DiskUsage(Protocol):
+    """Strukturvertrag für ``shutil.disk_usage``-artige Ergebnisse."""
+
+    @property
+    def free(self) -> int: ...
+
+
 def check_disk(
     path: Path,
     min_free_gb: float = MIN_FREE_GB,
     *,
-    usage: Callable[[Path], object] = shutil.disk_usage,
+    usage: Callable[[Path], DiskUsage] = shutil.disk_usage,
 ) -> str | None:
     """Freier Speicher im Runner-Arbeitsverzeichnis (Artefakte ≥ 2 GB)."""
-    free_bytes = int(getattr(usage(path), "free", 0))
-    free_gb = free_bytes / 1024**3
+    free_gb = usage(path).free / 1024**3
     if free_gb >= min_free_gb:
         return None
     return (
