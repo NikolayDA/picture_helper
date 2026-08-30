@@ -23,6 +23,13 @@ on:
         description: 'Exakter Name des Manifests, z. B. release-approval-manifest-1.'
         type: string
         required: true
+      target_issue:
+        description: >-
+          Optional: Issue-Nummer fuer den Kommentar mit dem oeffentlichen
+          Download-Protokoll (PUBLIC-DOWNLOAD-01). Leer = nur Artefakt und
+          Job-Summary.
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -39,6 +46,9 @@ jobs:
     permissions:
       contents: write
       actions: read
+    outputs:
+      version: ${{ steps.approval.outputs.version }}
+      candidate_sha: ${{ steps.approval.outputs.candidate_sha }}
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -46,6 +56,7 @@ jobs:
       CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
       ACCEPTANCE_RUN_ID: ${{ inputs.acceptance_run_id }}
       APPROVAL_ARTIFACT_NAME: ${{ inputs.approval_artifact_name }}
+      TARGET_ISSUE: ${{ inputs.target_issue }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -62,6 +73,8 @@ jobs:
             || { echo "::error::acceptance_run_id muss eine positive Ganzzahl sein."; exit 1; }
           [[ "$APPROVAL_ARTIFACT_NAME" =~ ^release-approval-manifest-[1-9][0-9]*$ ]] \
             || { echo "::error::approval_artifact_name ist ungueltig."; exit 1; }
+          [[ -z "$TARGET_ISSUE" || "$TARGET_ISSUE" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::target_issue muss leer oder eine positive Issue-Nummer sein."; exit 1; }
           mkdir -p "${RUNNER_TEMP}/run-metadata"
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN_ID}" \
             > "${RUNNER_TEMP}/run-metadata/candidate.json"
@@ -212,3 +225,135 @@ jobs:
           --notes-file "${RUNNER_TEMP}/release-notes.md"
           --draft=false
           --latest
+
+  # PUBLIC-DOWNLOAD-01 (#916, Epic #914): Der Nachweis, dass die
+  # veroeffentlichten Bytes OHNE GitHub-Anmeldung erreichbar sind, kann erst
+  # NACH "gh release edit --draft=false" entstehen - Draft-Assets sind anonym
+  # gar nicht abrufbar, der Verifikationsschritt im publish-Job oben laedt
+  # deshalb authentifiziert und belegt genau diesen Anwenderpfad nicht.
+  # Eigener Job aus zwei Gruenden: Nur er traegt "issues: write" (der
+  # publish-Job bleibt bei contents/actions), und sein Asset-Download laeuft
+  # nachweislich ohne Token im Environment.
+  public-download:
+    name: Oeffentlicher Download-Nachweis (PUBLIC-DOWNLOAD-01)
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+      ACCEPTANCE_RUN_ID: ${{ inputs.acceptance_run_id }}
+      APPROVAL_ARTIFACT_NAME: ${{ inputs.approval_artifact_name }}
+      MANIFEST: ${{ runner.temp }}/approval/release-approval-manifest.json
+      DOWNLOAD_DIR: ${{ runner.temp }}/public-download
+      REPORT: ${{ runner.temp }}/public-download-evidence/public-download-report.json
+      REPORT_MD: ${{ runner.temp }}/public-download-evidence/public-download-report.md
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      # Sollwerte kommen ausschliesslich aus dem Freigabemanifest, nie aus den
+      # von GitHub gemeldeten Asset-Digests - sonst wuerde dieselbe Quelle
+      # zweimal befragt.
+      - name: Freigabemanifest nur aus dem Abnahme-Run laden
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.approval_artifact_name }}
+          path: ${{ runner.temp }}/approval
+          run-id: ${{ inputs.acceptance_run_id }}
+          github-token: ${{ github.token }}
+
+      # Der Nachweis-Job prueft die Bindung selbst nach, statt dem publish-Job
+      # zu vertrauen: ein eigener Job faengt sonst ein untergeschobenes
+      # Manifest nicht ab.
+      - name: Manifestbindung im Nachweis-Job erneut pruefen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/run-metadata"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN_ID}" \
+            > "${RUNNER_TEMP}/run-metadata/candidate.json"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${ACCEPTANCE_RUN_ID}" \
+            > "${RUNNER_TEMP}/run-metadata/acceptance.json"
+          python3 scripts/release_contract.py verify-approval \
+            --manifest "$MANIFEST" \
+            --candidate-run-json "${RUNNER_TEMP}/run-metadata/candidate.json" \
+            --acceptance-run-json "${RUNNER_TEMP}/run-metadata/acceptance.json" \
+            --candidate-run-id "$CANDIDATE_RUN_ID" \
+            --acceptance-run-id "$ACCEPTANCE_RUN_ID" \
+            --approval-artifact-name "$APPROVAL_ARTIFACT_NAME" \
+            --tag "$RELEASE_TAG"
+
+      # Bewusst ohne GH_TOKEN/GITHUB_TOKEN im Environment: Der Nachweis ist nur
+      # so viel wert wie die Zusage, dass kein Authorization-Header mitlief.
+      # Die Guard-Zeile macht das im Joblog sichtbar statt nur behauptet.
+      - name: Fuenf Assets anonym laden und Protokoll erzeugen
+        run: |
+          set -euo pipefail
+          if [ -n "${GH_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+            echo "::error::Der anonyme Nachweis darf kein GitHub-Token im Environment haben."
+            exit 1
+          fi
+          python3 scripts/public_download_check.py \
+            --manifest "$MANIFEST" \
+            --repo "$GITHUB_REPOSITORY" \
+            --tag "$RELEASE_TAG" \
+            --download-dir "$DOWNLOAD_DIR" \
+            --report "$REPORT" \
+            --markdown "$REPORT_MD" \
+            --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      # Bindendes Verdikt: derselbe Vertragsaufruf, mit dem der publish-Job die
+      # hochgeladenen Bytes geprueft hat - jetzt auf den anonym geladenen.
+      - name: Anonym geladene Bytes gegen das Manifest verifizieren
+        run: |
+          set -euo pipefail
+          python3 scripts/release_contract.py verify-artifacts \
+            --manifest "$MANIFEST" \
+            --directory "$DOWNLOAD_DIR"
+
+      - name: Protokoll als Job-Summary rendern
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          if [ -f "$REPORT_MD" ]; then
+            cat "$REPORT_MD" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Kein Download-Protokoll erzeugt; Ursache steht im vorherigen Schritt."
+          fi
+
+      - name: Download-Protokoll als Actions-Artefakt sichern
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-download-report-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/public-download-evidence/
+          # warn statt error: Bricht schon der Manifest- oder Bezugsschritt ab,
+          # ist der Lauf bereits rot - ein zweiter roter Schritt verdeckt die
+          # eigentliche Ursache nur.
+          if-no-files-found: warn
+          retention-days: 90
+
+      # Optionaler Protokoll-Kommentar. Bewusst auch im Fehlerfall: Ein
+      # gescheiterter Nachweis gehoert sichtbar ins Release-Issue.
+      - name: Protokoll als Issue-Kommentar posten
+        if: ${{ !cancelled() && inputs.target_issue != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ISSUE: ${{ inputs.target_issue }}
+        run: |
+          set -euo pipefail
+          [[ "$TARGET_ISSUE" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::target_issue muss eine positive Issue-Nummer sein."; exit 1; }
+          test -f "$REPORT_MD" || {
+            echo "::warning::Kein Download-Protokoll zum Posten vorhanden."
+            exit 0
+          }
+          gh issue comment "$TARGET_ISSUE" --repo "${GITHUB_REPOSITORY}" \
+            --body-file "$REPORT_MD"

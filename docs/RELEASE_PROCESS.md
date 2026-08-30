@@ -44,6 +44,8 @@ RELEASE_ISSUE="ISSUE_NUMMER"
 CANDIDATE_RUN_ID="RUN_ID"
 ACCEPTANCE_RUN_ID="RUN_ID"
 APPROVAL_ARTIFACT_NAME="release-approval-manifest-1"
+# Erst nach Schritt 8 bekannt – Quelle des PUBLIC-DOWNLOAD-01-Berichts.
+PUBLISH_RUN_ID="RUN_ID"
 # Zuletzt veroeffentlichter Release – Vorgaenger fuer UPDATE-01 (Schritt 9).
 PREDECESSOR_TAG="vX.Y.Z"
 ```
@@ -275,14 +277,15 @@ und neu setzen. Sobald ein Release oder externer Download existiert, Tag nie ver
 
 **Trigger:** Schritt 7 ist verifiziert.
 **Owner:** Release-Owner startet; CI veröffentlicht.
-**Input:** Tag, Kandidaten-Run-ID, Abnahme-Run-ID und exakter Manifestname.
+**Input:** Tag, Kandidaten-Run-ID, Abnahme-Run-ID, exakter Manifestname und optional das Release-Issue.
 
 ```bash
 gh workflow run release-publish.yml --ref main \
   -f tag="$RELEASE_TAG" \
   -f candidate_run_id="$CANDIDATE_RUN_ID" \
   -f acceptance_run_id="$ACCEPTANCE_RUN_ID" \
-  -f approval_artifact_name="$APPROVAL_ARTIFACT_NAME"
+  -f approval_artifact_name="$APPROVAL_ARTIFACT_NAME" \
+  -f target_issue="$RELEASE_ISSUE"
 gh run list --workflow release-publish.yml --branch main --event workflow_dispatch --limit 5
 ```
 
@@ -291,30 +294,59 @@ Checklisten-Pin und SHA-256, lädt ausschließlich die fünf Kandidatendateien i
 einen Draft und lädt sie danach öffentlich erneut. Erst Bytegleichheit erlaubt
 die Veröffentlichung.
 
-**Output/Evidenz:** Publish-Run-URL, Release-URL und Ergebnis der erneuten Hashprüfung.
-**Erwartetes Ergebnis:** veröffentlichter, nicht als Draft markierter Release mit exakt fünf Manifestdateien.
+Direkt danach läuft im selben Workflow der Nachweis-Job **Öffentlicher
+Download-Nachweis (PUBLIC-DOWNLOAD-01)** (#916): Er lädt alle fünf Assets
+**ohne** Authorization-Header über ihre `browser_download_url`, verifiziert sie
+mit demselben `verify-artifacts` gegen das Freigabemanifest und sichert
+`public-download-report.json` (je Datei Name, Größe, SHA-256, URL, Zeitstempel
+und Ergebnis plus Gesamtverdikt) 90 Tage als Actions-Artefakt, gerendert als
+Job-Summary und – bei gesetztem `target_issue` – als Issue-Kommentar. Er ist
+ein eigener Job, weil ein Draft-Asset anonym gar nicht erreichbar ist: Der
+Nachweis kann erst nach `--draft=false` entstehen.
+
+**Output/Evidenz:** Publish-Run-URL, Release-URL, Ergebnis der erneuten Hashprüfung und
+`public-download-report.json` des Nachweis-Jobs.
+**Erwartetes Ergebnis:** veröffentlichter, nicht als Draft markierter Release mit exakt fünf Manifestdateien;
+Nachweis-Job grün mit Gesamtverdikt `PASS`.
 **Fehler/Wiederanlauf:** Nicht mit `--clobber` reparieren. Bei leerem Draft darf derselbe Run erneut starten;
 bei partiellem oder abweichendem Draft stoppt der Vertrag. Abschnitt „Rollback und Teilzustände“ anwenden.
+Ein roter Nachweis-Job (Hash-Abweichung, fehlendes Asset, HTTP-Fehler) ist ein Incident: Zuerst den Bericht
+lesen, dann nach „Rollback und Teilzustände“ entscheiden — nie stillschweigend wiederholen.
 
 ### 9. Öffentliche und nachgelagerte Prüfung abschließen
 
 **Trigger:** Schritt 8 ist erfolgreich und der Release ist öffentlich.
 **Owner:** Release-Owner; Update-E2E durch Hardware-Abnahme.
-**Input:** Release-URL, fünf `browser_download_url`-Links und Vorgängerartefakt.
+**Input:** `public-download-report.json` aus Schritt 8, Release-URL und Vorgängerartefakt.
+
+`PUBLIC-DOWNLOAD-01` wird seit #916 nicht mehr von Hand erbracht: Der
+Nachweis-Job aus Schritt 8 hat alle fünf Assets bereits anonym über ihre
+`browser_download_url` geladen und gegen das Freigabemanifest verifiziert.
+Lies den Bericht und verwende ihn als Evidenz:
+
+```bash
+gh run view "$PUBLISH_RUN_ID" --log --job "Oeffentlicher Download-Nachweis (PUBLIC-DOWNLOAD-01)" | tail -20
+gh run download "$PUBLISH_RUN_ID" --name "public-download-report-1" --dir /tmp/public-download
+jq '.verdict, .assets[] | {name, result, sha256}' /tmp/public-download/public-download-report.json
+```
+
+Erwartet ist `"verdict": "PASS"` und je Asset `"result": "PASS"`. Die URL des
+Publish-Laufs allein genügt weiterhin **nicht** als Nachweis: Die Downloads des
+`publish`-Jobs erfolgen vor der Veröffentlichung authentifiziert aus dem Draft.
+Maßgeblich ist ausschließlich der Bericht des Nachweis-Jobs. Prüfe auf den
+aktiven Plattformen zusätzlich die sichtbare Produktversion.
+
+**Rückfallweg (nur wenn der Nachweis-Job nicht gelaufen ist, z. B. nach einem
+Wiederanlauf ohne ihn):** Lade alle fünf Assets ohne GitHub-Anmeldung über ihre
+`browser_download_url` und vergleiche jeden Hash mit dem Manifest.
+Protokolliere für jedes Asset URL, Ergebnis und SHA-256 in einem verlinkbaren
+Issue-Kommentar oder einem unveränderlichen Laufprotokoll.
 
 ```bash
 gh release view "$RELEASE_TAG" --json url,isDraft,isPrerelease,assets
 gh api "repos/NikolayDA/picture_helper/releases/tags/${RELEASE_TAG}" \
   --jq '.assets[] | [.name, .browser_download_url] | @tsv'
 ```
-
-Lade alle fünf Assets ohne GitHub-Anmeldung über ihre `browser_download_url`
-und vergleiche jeden Hash mit dem Manifest. Protokolliere für jedes Asset URL,
-Ergebnis und SHA-256 in einem verlinkbaren Issue-Kommentar oder einem
-unveränderlichen Laufprotokoll. Die URL des Publish-Laufs allein genügt dafür
-nicht, weil dessen Downloads vor der Veröffentlichung authentifiziert
-erfolgen. Prüfe auf den aktiven Plattformen zusätzlich die sichtbare
-Produktversion.
 
 Führe danach `UPDATE-01` gemäß #748 mit einem echten Vorgängerartefakt aus.
 Erst jetzt ist das möglich: vor dem Tag meldet `/releases/latest` die neue
@@ -357,7 +389,7 @@ automatisierten Publish-Pflichten auf die verknüpfte Publish-Evidenz,
 
 ```bash
 PUBLISH_EVIDENCE_URL="URL_DES_PUBLISH_LAUFS"
-PUBLIC_DOWNLOAD_EVIDENCE_URL="URL_DES_ANONYMEN_DOWNLOAD_UND_HASH_PROTOKOLLS"
+PUBLIC_DOWNLOAD_EVIDENCE_URL="URL_DES_ANONYMEN_DOWNLOAD_UND_HASH_PROTOKOLLS"  # Artefakt public-download-report-N des Publish-Laufs
 UPDATE_EVIDENCE_URL="URL_DES_748_NACHWEISES"
 for RELEASE_CRITERION in PUBLISH-01 PUBLISH-02 PUBLISH-03; do
   python scripts/release_contract.py set-criterion \
@@ -439,6 +471,7 @@ Ablauf; ältere Tag-basierte oder manuelle Veröffentlichungswege sind ungültig
 | ClamAV-EICAR-Test, Payload-Scan, Limitprüfung oder Nichtnull-Evidenz schlägt bei vorhandenem Cache fehl | Ursache per PR beheben und neuen Kandidaten ab Schritt 1 bauen | Exit 0 oder `Data read` als ausreichenden PASS-Nachweis werten |
 | Publish-Draft leer | Publish-Workflow mit denselben gebundenen Inputs neu starten | Dateien lokal neu bauen |
 | Publish-Draft partiell oder Hash abweichend | No-Go, dokumentierte Bereinigung, neuer Publish- oder Hotfix-Pfad | `--clobber` oder stiller Asset-Tausch |
+| Öffentlicher Download-Nachweis rot (Hash-Abweichung, fehlendes Asset, HTTP-Fehler) | Bericht lesen; Netz-/API-Fehler des Prüfpfads: Publish-Workflow mit denselben gebundenen Inputs erneut starten (er ist idempotent, `already-complete`) | Abweichung als Prüfpfad-Störung abtun oder `PUBLIC-DOWNLOAD-01` ohne grünen Bericht auf `PASS` setzen |
 | Öffentlicher Release fehlerhaft | Yank-Hinweis und neue Hotfix-Version | Tag verschieben oder Asset überschreiben |
 
 ## Eskalation und Waiver
@@ -465,5 +498,6 @@ nur per PR zusammen mit Checklisten-/Workflow-Tests.
 
 | Datum | Änderung | Referenz |
 |---|---|---|
+| 2026-08-30 | `PUBLIC-DOWNLOAD-01` als anonymer Nachweis-Job im Publish-Workflow; Schritt 8/9 auf den Bericht umgestellt, Handprozedur bleibt Rückfallweg (Checkliste 1.1.0) | #916 |
 | 2026-08-30 | Runner-Readiness-Preflight und Queue-Watchdog in Schritt 5; Abschlussmatrix unvollständiger Läufe als Diagnose gekennzeichnet | #915 |
 | 2026-08-01 | Kanonisches Runbook, versionierter Checklisten-Pin, Wiederanlauf-, Hotfix- und Rollback-Pfade | #745, #746 |

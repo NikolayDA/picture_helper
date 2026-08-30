@@ -1184,25 +1184,81 @@ def validate_approval_manifest(
     return candidate, records
 
 
-def verify_artifact_directory(manifest: dict[str, Any], directory: Path) -> None:
-    """Require exact filename, size, and SHA-256 equality with the manifest."""
+def manifest_artifacts(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return the validated artifact list of an approval manifest."""
     records_raw = manifest.get("artifacts")
     if not isinstance(records_raw, list) or not all(isinstance(item, dict) for item in records_raw):
         raise ContractError("Manifest ohne gueltige Artefaktliste")
-    records = cast(list[dict[str, Any]], records_raw)
-    expected = {str(item["name"]): item for item in records}
+    return cast(list[dict[str, Any]], records_raw)
+
+
+def compare_artifact_directory(
+    manifest: dict[str, Any], directory: Path
+) -> list[dict[str, Any]]:
+    """Compare every manifest entry against the directory, file by file.
+
+    Einzige Vergleichsregel des Vertrags: ``verify_artifact_directory`` (das
+    Publish-Gate) und der oeffentliche Download-Nachweis (#916) werten
+    dasselbe Ergebnis aus. Ein Bericht kann so nie etwas anderes behaupten
+    als das Verdikt, das den Lauf scheitern laesst.  Anders als das Gate
+    bricht diese Funktion nicht beim ersten Fund ab, sondern beschreibt jede
+    Datei: ``PASS``, ``FAIL`` (Groesse oder SHA-256 weichen ab), ``MISSING``
+    (im Manifest, nicht im Verzeichnis) oder ``UNEXPECTED`` (umgekehrt).
+    """
+    expected = {str(item["name"]): item for item in manifest_artifacts(manifest)}
     actual = _release_files(directory)
-    if set(actual) != set(expected):
-        missing = sorted(set(expected) - set(actual))
-        extra = sorted(set(actual) - set(expected))
+    results: list[dict[str, Any]] = []
+    for name in sorted(set(expected) | set(actual)):
+        record = expected.get(name)
+        path = actual.get(name)
+        if record is None:
+            results.append(
+                {
+                    "name": name,
+                    "status": "UNEXPECTED",
+                    "detail": "Datei ist nicht Teil des Freigabemanifests",
+                    "expected_bytes": None,
+                    "expected_sha256": None,
+                    "bytes": path.stat().st_size if path is not None else None,
+                    "sha256": _sha256_file(path) if path is not None else None,
+                }
+            )
+            continue
+        entry: dict[str, Any] = {
+            "name": name,
+            "status": "PASS",
+            "detail": "",
+            "expected_bytes": int(record["bytes"]),
+            "expected_sha256": str(record["sha256"]),
+            "bytes": None,
+            "sha256": None,
+        }
+        if path is None:
+            entry["status"] = "MISSING"
+            entry["detail"] = "Datei fehlt"
+        else:
+            entry["bytes"] = path.stat().st_size
+            entry["sha256"] = _sha256_file(path)
+            if entry["bytes"] != entry["expected_bytes"]:
+                entry["status"] = "FAIL"
+                entry["detail"] = "Dateigroesse weicht ab"
+            elif entry["sha256"] != entry["expected_sha256"]:
+                entry["status"] = "FAIL"
+                entry["detail"] = "SHA-256 weicht ab"
+        results.append(entry)
+    return results
+
+
+def verify_artifact_directory(manifest: dict[str, Any], directory: Path) -> None:
+    """Require exact filename, size, and SHA-256 equality with the manifest."""
+    results = compare_artifact_directory(manifest, directory)
+    missing = sorted(item["name"] for item in results if item["status"] == "MISSING")
+    extra = sorted(item["name"] for item in results if item["status"] == "UNEXPECTED")
+    if missing or extra:
         raise ContractError(f"Artefaktmenge weicht ab: fehlend={missing}, zusaetzlich={extra}")
-    for name, path in actual.items():
-        record = expected[name]
-        if path.stat().st_size != int(record["bytes"]):
-            raise ContractError(f"Dateigroesse weicht ab: {name}")
-        digest = _sha256_file(path)
-        if digest != record["sha256"]:
-            raise ContractError(f"SHA-256 weicht ab: {name}")
+    for item in results:
+        if item["status"] == "FAIL":
+            raise ContractError(f"{item['detail']}: {item['name']}")
 
 
 def plan_publish(

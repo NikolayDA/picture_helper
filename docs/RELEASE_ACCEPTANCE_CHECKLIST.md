@@ -2,7 +2,7 @@
 
 **Owner:** Repository-Owner
 **Schema:** `1`
-**Checklisten-Version:** `1.0.0`
+**Checklisten-Version:** `1.1.0`
 **Gültigkeit:** für alle Releases, deren Freigabemanifest diese Version und den
 vollständigen Commit-SHA sowie den SHA-256 dieser Datei pinnt.
 
@@ -81,9 +81,17 @@ neue Checklisten-Version und eigene, stabile IDs.
 | `PUBLISH-01` | Publish | MUST | Release-Owner | Tag zeigt auf Manifest-`head_sha`; Publish verwendet Kandidaten- und Abnahme-Run |
 | `PUBLISH-02` | Publish | MUST | CI | erneut geladene öffentliche Assets sind exakt die fünf Manifestdateien und byteidentisch |
 | `PUBLISH-03` | Publish | MUST | CI | Draft-first; partielle oder abweichende Zustände blockieren ohne Clobber |
-| `PUBLIC-DOWNLOAD-01` | Publish | MUST | Release-Owner | alle fünf Assets anonym über `browser_download_url` geladen und gegen Manifesthash geprüft |
+| `PUBLIC-DOWNLOAD-01` | Publish | MUST | CI | `public-download-report.json` des Publish-Laufs: alle fünf Assets anonym über `browser_download_url` geladen und gegen Manifesthash geprüft |
 | `ROLLBACK-01` | Publish | SHOULD | Release-Owner | Go/No-Go, Yank/Rollback oder Hotfix-Entscheidung ist protokolliert |
 | `UPDATE-01` | Post-Release | POST_RELEASE | Hardware-Abnahme | echtes Vorgängerartefakt meldet `UPDATE_AVAILABLE`, aktuelles Artefakt `UP_TO_DATE`, Fehler = `CHECK_FAILED` |
+
+`PUBLIC-DOWNLOAD-01` entsteht seit Checklisten-Version 1.1.0 (#916) als
+`public-download-report.json` im Nachweis-Job von `release-publish.yml`: Der
+Job lädt alle fünf Assets **nach** dem Veröffentlichen anonym über ihre
+`browser_download_url` und vergleicht sie mit demselben `verify-artifacts`
+gegen das Freigabemanifest wie der Publish-Job zuvor. Der Release-Owner liest
+den Bericht und setzt das Kriterium; die frühere Handprozedur bleibt in
+[RELEASE_PROCESS.md](RELEASE_PROCESS.md) als Rückfallweg dokumentiert.
 
 Die detaillierten Hardware-Prozeduren stehen in
 [PACKAGING_SMOKE.md](PACKAGING_SMOKE.md). Der vollständige Ablauf, Wiederanlauf,
@@ -102,7 +110,7 @@ müssen dieselben IDs beschreiben; Tests verhindern Drift.
 {
   "schema": 1,
   "kind": "release-acceptance-checklist",
-  "checklist_version": "1.0.0",
+  "checklist_version": "1.1.0",
   "allowed_states": ["PASS", "FAIL", "WAIVED", "NOT_APPLICABLE", "PENDING"],
   "phases": ["pre-release", "publish", "post-release"],
   "requirements": ["MUST", "SHOULD", "POST_RELEASE"],
@@ -135,7 +143,7 @@ müssen dieselben IDs beschreiben; Tests verhindern Drift.
     {"id": "PUBLISH-01", "phase": "publish", "requirement": "MUST", "owner": "release-owner", "evidence_source": "release-publish.yml run metadata", "description": "Tag and both recorded runs refer to the accepted candidate head.", "artifacts": [], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
     {"id": "PUBLISH-02", "phase": "publish", "requirement": "MUST", "owner": "ci", "evidence_source": "post-upload download + manifest verification", "description": "Public release contains exactly the five byte-identical manifest files.", "artifacts": ["linux-x86_64-appimage", "linux-x86_64-deb", "linux-arm64-appimage", "linux-arm64-deb", "macos-arm64-dmg"], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
     {"id": "PUBLISH-03", "phase": "publish", "requirement": "MUST", "owner": "ci", "evidence_source": "publish state plan", "description": "Draft-first promotion blocks partial or divergent state without clobber.", "artifacts": [], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
-    {"id": "PUBLIC-DOWNLOAD-01", "phase": "publish", "requirement": "MUST", "owner": "release-owner", "evidence_source": "anonymous browser_download_url smoke", "description": "All five public assets are downloaded anonymously and match their manifest hashes.", "artifacts": ["linux-x86_64-appimage", "linux-x86_64-deb", "linux-arm64-appimage", "linux-arm64-deb", "macos-arm64-dmg"], "verification": "manual", "waiver_allowed": false, "not_applicable_allowed": false},
+    {"id": "PUBLIC-DOWNLOAD-01", "phase": "publish", "requirement": "MUST", "owner": "ci", "evidence_source": "public-download-report.json (release-publish.yml)", "description": "All five public assets are downloaded anonymously and match their manifest hashes.", "artifacts": ["linux-x86_64-appimage", "linux-x86_64-deb", "linux-arm64-appimage", "linux-arm64-deb", "macos-arm64-dmg"], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
     {"id": "ROLLBACK-01", "phase": "publish", "requirement": "SHOULD", "owner": "release-owner", "evidence_source": "release decision log", "description": "Go/no-go and any yank, rollback or hotfix decision are recorded.", "artifacts": [], "verification": "manual", "waiver_allowed": true, "not_applicable_allowed": true},
     {"id": "UPDATE-01", "phase": "post-release", "requirement": "POST_RELEASE", "owner": "hardware-acceptance", "evidence_source": "real predecessor update evidence (#748)", "description": "Predecessor reports UPDATE_AVAILABLE, current bundle UP_TO_DATE, failures CHECK_FAILED.", "artifacts": ["linux-arm64-appimage", "linux-arm64-deb", "macos-arm64-dmg"], "verification": "post-release", "waiver_allowed": false, "not_applicable_allowed": false}
   ]
@@ -164,3 +172,10 @@ Ein vollständiger Waiver-Datensatz hat dieses Format:
 `NOT_APPLICABLE` ist nur zulässig, wenn das Kriterium
 `not_applicable_allowed: true` trägt. Die pausierten x86_64-Kriterien bleiben
 `PENDING`; sie dürfen nicht als `NOT_APPLICABLE` oder `PASS` umgedeutet werden.
+
+## Änderungsverlauf
+
+| Version | Datum | Änderung | Referenz |
+|---|---|---|---|
+| `1.1.0` | 2026-08-30 | `PUBLIC-DOWNLOAD-01` auf automatisierte Evidenz umgestellt (`verification: publish`, Owner CI, `public-download-report.json`) | #916 |
+| `1.0.0` | 2026-08-01 | Erste versionierte Fassung mit stabilen IDs, Phasen, Pflichtgraden und Artefaktumfang | #746 |

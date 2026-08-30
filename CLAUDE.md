@@ -547,13 +547,14 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **neun** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **zehn** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
   (#699/#742), `scripts/gl_stress_probe.py` (#684),
   `scripts/release_path_policy.py` (#743), `scripts/release_contract.py`
-  (#744/#747) und `scripts/recommendations_live_check.py` (#752) – als
+  (#744/#747), `scripts/public_download_check.py` (#916) und
+  `scripts/recommendations_live_check.py` (#752) – als
   eigenständige Dateien ohne `scripts/__init__.py` explizit per Dateipfad in
   `files` sowie per Modul-Override (Modulname = Dateibasisname) erfasst.
 - **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit) plus
@@ -738,10 +739,29 @@ Entscheidung: ADR
   `prepare-candidate`, `create-approval` und `extract-instance` auf,
   `release-publish.yml` ausschließlich `verify-approval`, `verify-artifacts`
   und `plan-publish` (kein Neubau, kein Clobber).
+- **Öffentlicher Download-Nachweis (#916):** `release-publish.yml` trägt nach
+  dem Publish einen zweiten Job, der `PUBLIC-DOWNLOAD-01` maschinell erbringt.
+  `scripts/public_download_check.py` (Qt-frei, streng getypt, nur
+  Standardbibliothek) lädt alle fünf Assets **ohne** `Authorization`-Header
+  über ihre `browser_download_url` — der Nachweis kann erst **nach**
+  `--draft=false` entstehen, weil Draft-Assets anonym gar nicht erreichbar sind
+  und der Verifikationsschritt im `publish`-Job authentifiziert aus dem Draft
+  lädt. Sollwertquelle bleibt das Freigabemanifest (nicht der GitHub-Digest);
+  das bindende Verdikt liefert derselbe `verify-artifacts`-Aufruf, und
+  `release_contract.compare_artifact_directory` ist die geteilte
+  Per-Datei-Vergleichsregel hinter Gate und Bericht — der Bericht kann nie
+  etwas anderes behaupten als das Verdikt. Evidenz:
+  `public-download-report.json` (Schema 1, `release-public-download`; je Datei
+  Name, URL, Größe, SHA-256, Zeitstempel, Ergebnis plus Gesamtverdikt), 90 Tage
+  als Artefakt, als Job-Summary gerendert und bei gesetztem `target_issue` als
+  Issue-Kommentar — auch im Fehlerfall. `issues: write` trägt ausschließlich
+  dieser Job. Betrieb: [`RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md)
+  §4.1.1, Ablauf: Runbook Schritt 8/9 (die Handprozedur bleibt Rückfallweg).
 - **Versionierte Abnahme-Checkliste (#746):**
   [`docs/RELEASE_ACCEPTANCE_CHECKLIST.md`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md)
-  ist der release-**unabhängige** Vertrag (Schema `1`, Checklisten-Version
-  `1.0.0`, stabile Kriteriums-IDs, Zustände
+  ist der release-**unabhängige** Vertrag (Schema `1`, eigene semantische
+  Checklisten-Version — der Stand steht in der Datei und im dortigen
+  Änderungsverlauf, nicht hier; stabile Kriteriums-IDs, Zustände
   `PASS`/`FAIL`/`WAIVED`/`NOT_APPLICABLE`/`PENDING`, Pflichtgrade
   `MUST`/`SHOULD`/`POST_RELEASE`). Die konkrete Release-**Instanz** entsteht im
   Freigabemanifest und pinnt Pfad, Checklisten-Version, Kandidaten-SHA und den
