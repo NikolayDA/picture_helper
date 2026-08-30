@@ -248,14 +248,26 @@ jobs:
       CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
       ACCEPTANCE_RUN_ID: ${{ inputs.acceptance_run_id }}
       APPROVAL_ARTIFACT_NAME: ${{ inputs.approval_artifact_name }}
-      MANIFEST: ${{ runner.temp }}/approval/release-approval-manifest.json
-      DOWNLOAD_DIR: ${{ runner.temp }}/public-download
-      REPORT: ${{ runner.temp }}/public-download-evidence/public-download-report.json
-      REPORT_MD: ${{ runner.temp }}/public-download-evidence/public-download-report.md
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+
+      # Die Pfade entstehen hier im Shell und nicht im Job-"env": Dort ist der
+      # runner-Kontext nicht verfuegbar (erlaubt sind nur github, needs,
+      # strategy, matrix, vars, secrets, inputs), und GitHub wuerde den
+      # gesamten Workflow-Lauf mit "Unrecognized named-value: 'runner'"
+      # ablehnen. Der publish-Job oben nutzt aus demselben Grund durchgehend
+      # das Shell-${RUNNER_TEMP}.
+      - name: Pfade der Nachweis-Evidenz festlegen
+        run: |
+          set -euo pipefail
+          {
+            echo "MANIFEST=${RUNNER_TEMP}/approval/release-approval-manifest.json"
+            echo "DOWNLOAD_DIR=${RUNNER_TEMP}/public-download"
+            echo "REPORT=${RUNNER_TEMP}/public-download-evidence/public-download-report.json"
+            echo "REPORT_MD=${RUNNER_TEMP}/public-download-evidence/public-download-report.md"
+          } >> "$GITHUB_ENV"
 
       # Sollwerte kommen ausschliesslich aus dem Freigabemanifest, nie aus den
       # von GitHub gemeldeten Asset-Digests - sonst wuerde dieselbe Quelle
