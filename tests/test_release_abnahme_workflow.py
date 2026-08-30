@@ -287,6 +287,27 @@ def test_both_arm64_jobs_fetch_the_predecessor_for_the_update_proof() -> None:
         assert f'"{"${RUNNER_TEMP}"}/abnahme-{platform}-predecessor"' in run
 
 
+def test_optional_arguments_survive_bash_3_2_under_set_u() -> None:
+    """Ein leeres Array unter ``set -u`` bricht in Bash < 4.4 ab.
+
+    Das stock-Bash von macOS ist 3.2.57, und der Regelfall ist genau das leere
+    Array: **jeder** Abnahmelauf ohne `predecessor_tag` (Runbook-Schritt 5 –
+    die bindende Abnahme). Der Smoke wäre abgebrochen, bevor irgendein Nachweis
+    entsteht. Die ``${arr[@]+"${arr[@]}"}``-Form ist versionsunabhängig
+    (Review-Befund PR #926).
+    """
+    text = _workflow_text()
+    guarded = '${predecessor_args[@]+"${predecessor_args[@]}"}'
+    assert text.count(guarded) == 2, "beide arm64-Jobs brauchen die geschützte Form"
+    # Die ungeschützte Form darf nirgends zurückkehren – auch nicht in einem
+    # dritten Job, der das Muster später kopiert.
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        assert '"${predecessor_args[@]}"' not in stripped or guarded in stripped, stripped
+
+
 def test_workflow_supports_optional_update_check_predecessor() -> None:
     """UPDATE-01 (#748): ein optionaler Vorgänger-Tag löst den echten
     Update-Check-Nachweis auf Linux arm64 aus; leer lässt ihn PENDING statt

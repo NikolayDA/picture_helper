@@ -279,6 +279,11 @@ jobs:
         run: |
           set -euo pipefail
           unset QT_QPA_PLATFORM
+          # ${arr[@]+"${arr[@]}"} statt "${arr[@]}": In Bash < 4.4 gilt ein
+          # leeres Array unter `set -u` als unbound variable. Das stock-Bash
+          # von macOS ist 3.2.57, und der Regelfall ist genau das leere Array
+          # (jeder Abnahmelauf ohne predecessor_tag) - der Smoke braeche dann
+          # ab, bevor irgendein Nachweis entsteht (Review-Befund PR #926).
           predecessor_args=()
           if [ -n "${PREDECESSOR_TAG}" ]; then
             predecessor_args=(
@@ -292,7 +297,7 @@ jobs:
             --platform macos-arm64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-macos-arm64" \
             --scale-factor "$scale" \
-            "${predecessor_args[@]}"
+            ${predecessor_args[@]+"${predecessor_args[@]}"}
       - name: Native E2E-Regression inkl. 3D-Ready-Nachweis (#644)
         env:
           ABNAHME_EVIDENCE_DIR: ${{ runner.temp }}/abnahme-macos-arm64
@@ -377,6 +382,11 @@ jobs:
         run: |
           set -euo pipefail
           unset QT_QPA_PLATFORM
+          # ${arr[@]+"${arr[@]}"} statt "${arr[@]}": In Bash < 4.4 gilt ein
+          # leeres Array unter `set -u` als unbound variable. Das stock-Bash
+          # von macOS ist 3.2.57, und der Regelfall ist genau das leere Array
+          # (jeder Abnahmelauf ohne predecessor_tag) - der Smoke braeche dann
+          # ab, bevor irgendein Nachweis entsteht (Review-Befund PR #926).
           predecessor_args=()
           if [ -n "${PREDECESSOR_TAG}" ]; then
             predecessor_args=(
@@ -387,7 +397,7 @@ jobs:
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform linux-arm64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-linux-arm64" \
-            "${predecessor_args[@]}"
+            ${predecessor_args[@]+"${predecessor_args[@]}"}
       - name: Native E2E-Regression inkl. 3D-Ready-Nachweis (#644)
         env:
           ABNAHME_EVIDENCE_DIR: ${{ runner.temp }}/abnahme-linux-arm64
