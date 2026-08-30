@@ -579,6 +579,35 @@ def test_per_file_comparison_is_the_single_rule_behind_the_publish_gate(
         rc.verify_artifact_directory(manifest, files)
 
 
+def test_a_foreign_file_is_named_but_never_hashed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#925: Ein Lesefehler auf einer Fremddatei darf das Gate nicht entgleisen.
+
+    Ihr Hash ist keine Evidenz ueber den Release; wuerde er trotzdem berechnet,
+    ersetzte ein ``OSError`` die klare ``Artefaktmenge weicht ab``-Meldung.
+    """
+    manifest, files = _manifest(tmp_path)
+    (files / "unerwartet.bin").write_bytes(b"nicht im manifest")
+    hashed: list[str] = []
+    original = rc._sha256_file
+
+    def recording(path: Path) -> str:
+        hashed.append(path.name)
+        if path.name == "unerwartet.bin":
+            raise OSError(5, "Input/output error")
+        return str(original(path))
+
+    monkeypatch.setattr(rc, "_sha256_file", recording)
+    results = {item["name"]: item for item in rc.compare_artifact_directory(manifest, files)}
+    assert results["unerwartet.bin"]["sha256"] is None
+    assert results["unerwartet.bin"]["bytes"] == len(b"nicht im manifest")
+    assert "unerwartet.bin" not in hashed
+
+    with pytest.raises(rc.ContractError, match="Artefaktmenge weicht ab"):
+        rc.verify_artifact_directory(manifest, files)
+
+
 def test_hash_only_divergence_still_blocks_the_publish_gate(tmp_path: Path) -> None:
     manifest, files = _manifest(tmp_path)
     victim = sorted(path.name for path in files.iterdir())[0]

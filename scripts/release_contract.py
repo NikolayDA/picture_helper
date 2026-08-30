@@ -1204,6 +1204,15 @@ def compare_artifact_directory(
     bricht diese Funktion nicht beim ersten Fund ab, sondern beschreibt jede
     Datei: ``PASS``, ``FAIL`` (Groesse oder SHA-256 weichen ab), ``MISSING``
     (im Manifest, nicht im Verzeichnis) oder ``UNEXPECTED`` (umgekehrt).
+
+    Eine ``UNEXPECTED``-Datei wird bewusst **nicht** gehasht (Review-Befund
+    PR #925): Der Hash einer Fremddatei ist keine Evidenz ueber den Release,
+    und ein Lesefehler darauf wuerde den sauberen ``ContractError`` des
+    Publish-Gates durch einen rohen ``OSError`` ersetzen. Name und Groesse
+    benennen den Fund vollstaendig.  Die im Manifest *erwarteten* Dateien
+    hasht das Gate dagegen auch dann, wenn die Menge ohnehin schon abweicht -
+    der Preis dafuer, dass Bericht und Verdikt aus demselben Aufruf stammen.
+    Reihenfolge und Wortlaut der Gate-Meldungen bleiben unveraendert.
     """
     expected = {str(item["name"]): item for item in manifest_artifacts(manifest)}
     actual = _release_files(directory)
@@ -1220,7 +1229,7 @@ def compare_artifact_directory(
                     "expected_bytes": None,
                     "expected_sha256": None,
                     "bytes": path.stat().st_size if path is not None else None,
-                    "sha256": _sha256_file(path) if path is not None else None,
+                    "sha256": None,
                 }
             )
             continue
