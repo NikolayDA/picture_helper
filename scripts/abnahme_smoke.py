@@ -133,6 +133,12 @@ UPDATE_CHECK_VERDICT_TARGET_VERSION = "ZIELVERSION_ABWEICHEND"
 # historische Grenze und keine kaputte Sonde - die Evidenz muss den
 # Unterschied benennen.
 UPDATE_CHECK_VERDICT_NO_HOOK = "HOOK_FEHLT"
+# Der Waechter (_record_guard) protokolliert nur; die Pass/Fail-Entscheidung
+# liegt laut seinem Docstring beim Aufrufer. Ohne eigenen Befund waere ein Lauf
+# gruen, dessen Sonde zwar eine Nutzlast schrieb, dessen Start aber als
+# verletzt protokolliert wurde (Fork-Bomb-Limit, Timeout-Kill, Ziel-Exit != 0)
+# - Review-Befund PR #926.
+UPDATE_CHECK_VERDICT_LAUNCH = "START_VERLETZT"
 
 # Nativer 3D-Screenshot-Nachweis (#648): großzügigeres Timeout als der
 # Headless-Start – Shader-Compile + erster Mesh-Build auf echter (ggf.
@@ -909,12 +915,45 @@ def _update_check(
         report.fail(f"Update-Check ({subject.label}): Evidenz-JSON unlesbar: {exc}")
         return _update_check_record(subject, verdict=UPDATE_CHECK_VERDICT_NO_EVIDENCE)
 
+    return _update_check_result(
+        subject, payload, report=report, result=result,
+        expected_latest_version=expected_latest_version,
+    )
+
+
+def _update_check_result(
+    subject: UpdateCheckSubject, payload: dict[str, Any], *,
+    report: SmokeReport, result: CommandResult, expected_latest_version: str,
+    interpreter: str | None = None,
+) -> dict[str, Any]:
+    """Verdikt bilden – und ein verletztes Startergebnis nie als ``ok`` werten.
+
+    ``_record_guard`` schreibt Exit-Code und Wächterstatus nur in die Evidenz;
+    die Pass/Fail-Entscheidung liegt ausdrücklich beim Aufrufer. Schrieb die
+    Sonde ihre Nutzlast und schlug der Wächter *danach* zu (Fork-Bomb-Limit,
+    Timeout-Kill, Ziel-Exit ≠ 0), wäre der Nachweis sonst grün, obwohl der
+    Start als verletzt protokolliert ist (Review-Befund PR #926). Geteilt von
+    beiden Plattformen – genau das soll ``_update_check_pair`` zusammenhalten.
+
+    Ein bereits gefundener inhaltlicher Verstoß bleibt stehen: Er ist die
+    genauere Aussage als „Start verletzt".
+    """
     verdict = _update_check_verdict(
         subject, payload, report, expected_latest_version=expected_latest_version,
     )
-    if verdict == UPDATE_CHECK_VERDICT_OK:
+    if result.returncode != 0:
+        report.fail(
+            f"Update-Check ({subject.label}): Startergebnis verletzt "
+            f"(Exit {result.returncode}): {_command_detail(result)} – der Nachweis "
+            "gilt nicht als erbracht, auch wenn die Sonde eine Nutzlast schrieb."
+        )
+        if verdict == UPDATE_CHECK_VERDICT_OK:
+            verdict = UPDATE_CHECK_VERDICT_LAUNCH
+    elif verdict == UPDATE_CHECK_VERDICT_OK:
         report.ok(f"Update-Check ok ({subject.label}): {payload.get('status')}")
-    return _update_check_record(subject, verdict=verdict, payload=payload)
+    return _update_check_record(
+        subject, verdict=verdict, payload=payload, interpreter=interpreter,
+    )
 
 
 def _update_check_verdict(
@@ -1103,13 +1142,9 @@ def _update_check_macos_probe(
             subject, verdict=UPDATE_CHECK_VERDICT_NO_EVIDENCE, interpreter=binary,
         )
 
-    verdict = _update_check_verdict(
-        subject, payload, report, expected_latest_version=expected_latest_version,
-    )
-    if verdict == UPDATE_CHECK_VERDICT_OK:
-        report.ok(f"Update-Check ok ({subject.label}): {payload.get('status')}")
-    return _update_check_record(
-        subject, verdict=verdict, payload=payload, interpreter=binary,
+    return _update_check_result(
+        subject, payload, report=report, result=result,
+        expected_latest_version=expected_latest_version, interpreter=binary,
     )
 
 

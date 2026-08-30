@@ -91,6 +91,39 @@ def test_public_download_evidence_is_automated_with_a_documented_fallback() -> N
     assert "PUBLIC-DOWNLOAD-01" in CHECKLIST
 
 
+#: Betriebsdokumente, aus denen jemand Kommandos abtippt. Ein Resttreffer der
+#: zurueckgezogenen ID ist hier nicht Kosmetik: ``set-criterion --criterion
+#: UPDATE-01`` scheitert dann mit "Kriterium fehlt", statt auf die Nachfolger
+#: zu zeigen (Review-Befund PR #926).
+_OPERATIONAL_DOCS = (
+    "CLAUDE.md",
+    "docs/RELEASE_PROCESS.md",
+    "docs/RELEASE_AUTOMATION.md",
+    "docs/RELEASE_ACCEPTANCE_CHECKLIST.md",
+    "docs/PACKAGING_SMOKE.md",
+    "docs/PROZESSE_UML.md",
+)
+
+
+def test_retired_update_criterion_survives_only_next_to_its_migration_note() -> None:
+    """#917: Die stabile ID `UPDATE-01` entfaellt (deshalb der Major-Bump).
+
+    Sie darf in den Betriebsdokumenten nur noch dort stehen, wo auch die
+    Migration benannt ist – sonst fuehrt sie jemanden in ein Kommando, das
+    fehlschlaegt. Historie unter ``docs/history/`` bleibt unangetastet.
+    """
+    retired = re.compile(r"(?<![A-Z0-9-])UPDATE-01\b")
+    for name in _OPERATIONAL_DOCS:
+        for number, line in enumerate((ROOT / name).read_text(encoding="utf-8").splitlines(), 1):
+            if retired.search(line):
+                assert "#917" in line, f"{name}:{number} nennt UPDATE-01 ohne Migrationshinweis"
+    # Die Nachfolger muessen ueberall dort stehen, wo der Ablauf beschrieben ist.
+    for name in ("docs/RELEASE_PROCESS.md", "docs/PROZESSE_UML.md"):
+        text = (ROOT / name).read_text(encoding="utf-8")
+        assert "UPDATE-LINUX-ARM-01" in text, name
+        assert "UPDATE-MACOS-ARM-01" in text, name
+
+
 def test_secondary_docs_only_point_to_canonical_release_sources() -> None:
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     automation = (ROOT / "docs" / "RELEASE_AUTOMATION.md").read_text(encoding="utf-8")

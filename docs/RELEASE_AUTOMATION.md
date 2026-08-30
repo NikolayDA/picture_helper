@@ -246,7 +246,8 @@ Performance als getrennte Pflichtzeilen; fehlende/inkonsistente Evidenz kann
 dadurch nicht von einem anderen Kriterium verdeckt werden. Der pausierte
 x86_64-Pfad erscheint explizit als „pausiert", fehlende Evidenz als „fehlt" –
 keine stillen Lücken. Eine Matrix mit blockierenden Lücken (fehlgeschlagener,
-unvollständiger oder bewusster Einzelplattform-Lauf, z. B. UPDATE-01)
+unvollständiger oder bewusster Einzelplattform-Lauf, z. B. der
+Update-Nachweis aus Runbook-Schritt 9)
 kennzeichnet sich seit #915 selbst in Titel und Einleitung als „Diagnose –
 kein Abnahmeergebnis"; bei einem **abgebrochenen** Lauf entfällt der
 Kommentar ganz (`!cancelled()` statt `always()` am Aggregations-Job).

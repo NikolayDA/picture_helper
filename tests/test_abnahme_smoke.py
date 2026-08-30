@@ -1857,6 +1857,57 @@ def test_update_check_never_reuses_a_stale_probe_result(tmp_path: Path) -> None:
     assert not stale.exists()
 
 
+def test_update_check_is_not_green_when_the_guard_was_violated(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Sonde schreibt eine saubere Nutzlast, der Wächter schlägt danach zu.
+
+    ``_record_guard`` protokolliert nur; ohne eigenen Befund wäre der Nachweis
+    grün, obwohl Fork-Bomb-Limit, Timeout-Kill oder ein Ziel-Exit ≠ 0
+    protokolliert sind (Review-Befund PR #926).
+    """
+    inner = _macos_update_runner(
+        {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+        {_PREDECESSOR_OUT: _MACOS_CANDIDATE_VERSION},
+    )
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        result = inner(cmd)
+        if any(str(a).startswith("BGREMOVER_UPDATE_CHECK_PROBE=") for a in cmd):
+            # Nutzlast ist geschrieben, der Waechter meldet trotzdem Verletzung.
+            return smoke.CommandResult(1, stdout=result.stdout, stderr="fork_bombe")
+        return result
+
+    result = _run_macos_update_check(tmp_path, runner)
+    assert not result.passed
+    assert any("Startergebnis verletzt" in n for n in result.notes)
+    assert not any("Update-Check ok" in n for n in result.notes)
+    summary = _summary(tmp_path)
+    assert summary["ok"] is False
+    assert summary["pruefungen"][0]["befund"] == smoke.UPDATE_CHECK_VERDICT_LAUNCH
+    # Die Nutzlast bleibt trotzdem in der Evidenz – der Fund ist erklaerbar.
+    assert summary["pruefungen"][0]["status"] == "UPDATE_AVAILABLE"
+
+
+def test_update_check_keeps_the_more_specific_finding_over_a_guard_violation(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """Ein inhaltlicher Verstoß ist die genauere Aussage als „Start verletzt"."""
+    inner = _macos_update_runner(
+        {_PREDECESSOR_OUT: "CHECK_FAILED", _CANDIDATE_OUT: "UP_TO_DATE"},
+    )
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        result = inner(cmd)
+        if any(str(a).startswith("BGREMOVER_UPDATE_CHECK_PROBE=") for a in cmd):
+            return smoke.CommandResult(1, stdout=result.stdout)
+        return result
+
+    result = _run_macos_update_check(tmp_path, runner)
+    assert not result.passed
+    assert (
+        _summary(tmp_path)["pruefungen"][0]["befund"] == smoke.UPDATE_CHECK_VERDICT_CHECK_FAILED
+    )
+
+
 def test_macos_smoke_update_check_fails_on_check_failed(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     """``CHECK_FAILED`` gilt auch auf macOS nie als „kein Update"."""
     result = _run_macos_update_check(
