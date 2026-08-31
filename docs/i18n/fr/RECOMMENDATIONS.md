@@ -13,20 +13,16 @@
 
 ## État actuel (2026-08-31, v2.9.0 publiée, inventaire ouvert entièrement audité)
 
-**Audit quotidien du 2026-08-31 :** Les douze PR fusionnées aujourd'hui
-(#927–#932, #935–#938, #940 et #941) et les issues qu'elles ont fermées
-(#918–#923, #933 et #934) ont été contrôlées à partir des diffs de fusion, des
-corrections de revue et des tests associés. L'automatisation de publication
-reste entièrement fail-closed ; sont notamment couverts la référence de
-publication, les reprises, le rapport de sécurité, le heartbeat/dry run des
-runners, le squelette de préparation et le vrai préflight Qt/GL avec provenance
-également en cas de succès. Chaque constat de revue a été fermé avec un test de
-régression avant fusion. Les preuves de fusion consignent 2 908 tests pytest ;
-Ruff passe localement, tandis que pytest est indisponible faute de `libGL.so.1`
-et mypy à cause de Python 3.14 au lieu d'une version prise en charge.
-Aucun constat résiduel démontrable ne subsiste ; aucune issue de suivi n'est
-donc nécessaire. L'inventaire ouvert et les trois recommandations suivantes
-restent inchangés.
+**Audit quotidien du 2026-08-31 (état `551d055`) :** Les douze PR fusionnées
+aujourd'hui (#927–#932, #935–#938, #940 et #941) et les issues qu'elles ont
+fermées (#918–#923, #933 et #934) ont été contrôlées. L'audit a couvert les
+diffs de fusion complets, les corrections de revue incluses et leurs tests de
+régression. La référence de publication et les reprises, le rapport de
+sécurité, le heartbeat/dry run des runners, le squelette de préparation et le
+vrai préflight Qt/GL avec provenance sont mis en œuvre de façon cohérente.
+Aucun constat résiduel concret et reproductible ne subsiste ; aucune issue de
+suivi n'était donc nécessaire. Les sujets terminés ne modifient ni l'inventaire
+ouvert ni les trois recommandations suivantes.
 
 **Contrôle périodique 2026-08-30 (delta après l'audit complet) :** Les 39
 issues ouvertes entièrement vérifiées et contre-vérifiées contre `main` (état

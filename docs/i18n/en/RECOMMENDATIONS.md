@@ -13,18 +13,15 @@
 
 ## Current Status (2026-08-31, v2.9.0 published, open inventory fully audited)
 
-**Daily audit 2026-08-31:** The twelve PRs merged today (#927–#932,
-#935–#938, #940, and #941) and the issues they closed (#918–#923, #933, and
-#934) were checked against their merge diffs, review follow-ups, and associated
-tests. The release automation remains fail-closed throughout; in particular,
-the release ref, retry paths, security report, runner heartbeat/dry run,
-preparation scaffold, and real Qt/GL preflight with successful provenance
-output are covered. Every review finding was closed with regression coverage
-before merge. The merge evidence records 2,908 pytest tests; Ruff passes
-locally, while pytest is unavailable because `libGL.so.1` is missing and mypy
-because Python 3.14 is active instead of a supported project version. No substantiated residual
-finding remains, so no follow-up issue is required. The open inventory and the
-three next recommendations below remain unchanged.
+**Daily audit 2026-08-31 (state `551d055`):** The twelve PRs merged today
+(#927–#932, #935–#938, #940, and #941) and the issues they closed (#918–#923,
+#933, and #934) were reviewed. The review covered the complete merge diffs,
+review follow-ups included in those merges, and their regression tests. The
+release ref and retry paths, security report, runner heartbeat/dry run,
+preparation scaffold, and real Qt/GL preflight including provenance output are
+implemented consistently. No concrete, reproducible residual finding remained,
+so no follow-up issue was required. The completed topics do not change the open
+inventory or the three next recommendations below.
 
 **Routine check 2026-08-30 (delta after the full audit):** The 39 open issues
 fully and adversarially checked against `main` (product state `411d47c`) on

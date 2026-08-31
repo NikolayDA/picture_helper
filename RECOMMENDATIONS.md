@@ -13,19 +13,16 @@
 
 ## Aktueller Stand (2026-08-31, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
 
-**Tagesaudit 2026-08-31:** Die zwölf heute gemergten PRs #927–#932,
-#935–#938, #940 und #941 sowie die dadurch geschlossenen Issues #918–#923,
-#933 und #934 wurden anhand der Merge-Diffs, Review-Nachbesserungen und
-zugehörigen Tests geprüft. Die Release-Automatisierung ist durchgehend
-fail-closed ausgeführt; insbesondere sind Release-Ref, Wiederanlaufpfade,
-Security-Bericht, Runner-Heartbeat/Dry-Run, Vorbereitungsgerüst und der echte
-Qt-/GL-Preflight samt erfolgreicher Provenienzausgabe abgedeckt. Die
-Review-Befunde wurden jeweils noch vor dem Merge mit Regressionstests
-geschlossen. Die Merge-Evidenz bestätigt zuletzt 2.908 Pytests; lokal ist Ruff
-grün, während Pytest wegen der fehlenden `libGL.so.1` und mypy wegen des aktiven
-Python 3.14 statt der unterstützten Projektversionen nicht ausführbar sind. Es bleibt kein belegbarer
-Restbefund, daher ist kein Folge-Issue erforderlich. Offener Bestand und die
-drei nächsten Empfehlungen unten bleiben unverändert.
+**Tagesaudit 2026-08-31 (Stand `551d055`):** Geprüft wurden die zwölf heute
+gemergten PRs #927–#932, #935–#938, #940 und #941 sowie die dadurch
+geschlossenen Issues #918–#923, #933 und #934. Die Prüfung umfasste die
+vollständigen Merge-Diffs, die im Merge enthaltenen Review-Nachbesserungen und
+deren Regressionstests. Release-Ref und Wiederanlaufpfade, Security-Bericht,
+Runner-Heartbeat/Dry-Run, Vorbereitungsgerüst sowie der echte Qt-/GL-Preflight
+einschließlich Provenienzausgabe sind konsistent umgesetzt. Es blieb kein
+konkreter, reproduzierbarer Restbefund; daher war kein Folge-Issue anzulegen.
+Der offene Bestand und die drei nächsten Empfehlungen unten ändern sich durch
+die abgeschlossenen Themen nicht.
 
 **Turnusprüfung 2026-08-30 (Delta nach Vollaudit):** Die 39 bereits am
 2026-08-29 gegen `main` (Produktstand `411d47c`) vollständig und adversariell
