@@ -1153,3 +1153,68 @@ def test_clamav_target_labels_are_shared_between_scan_and_summary() -> None:
         )
     assert scan_release_artifacts._LABEL_RAW == "Rohdatei"
     assert scan_release_artifacts._LABEL_PAYLOAD == "entpackte Nutzlast"
+
+
+# ── #920-Review: greift der Registereintrag am echten Waechter-Output? ──
+
+def test_the_watchdog_passes_a_child_traceback_through_to_the_phase_log(
+    tmp_path: Path,
+) -> None:
+    """Der erste Registereintrag haengt an einer Annahme ueber ``smoke_launch``.
+
+    Er kann nur greifen, wenn der Waechter die Ausnahmezeile des Kindprozesses
+    unveraendert und ohne Praefix durchreicht (er startet es ohne
+    ``stdout=``/``stderr=``, das Kind erbt also die Deskriptoren) und die Zeile
+    am Zeilenanfang steht. Das ist aus dem Diff des Scanners heraus nicht
+    belegbar – hier laeuft deshalb der echte ``scripts/smoke_launch.py`` gegen
+    ein Kind, das die reale Warmup-Kette nachstellt, und danach der echte
+    Scanner ueber genau dieses Log.
+    """
+    package = tmp_path / "bgremover"
+    package.mkdir()
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    # Qualifizierter Name im Traceback: Python druckt "<modul>.<Klasse>", und
+    # genau darauf zeigt der Fingerprint des Registereintrags.
+    (package / "ai_process.py").write_text(
+        "class InferenceError(RuntimeError):\n    pass\n", encoding="utf-8"
+    )
+    child = tmp_path / "FakeBundle.py"
+    child.write_text(
+        "import sys, traceback\n"
+        f"sys.path.insert(0, {str(tmp_path)!r})\n"
+        "from bgremover.ai_process import InferenceError\n"
+        "try:\n"
+        "    raise InferenceError('Inferenzprozess hat die Verbindung geschlossen: ')\n"
+        "except InferenceError:\n"
+        "    traceback.print_exc()\n"
+        "sys.exit(0)\n",
+        encoding="utf-8",
+    )
+
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    phase_log = log_dir / "smoke-launch-macos-app.log"
+    completed = subprocess.run(
+        [sys.executable, str(_ROOT / "scripts" / "smoke_launch.py"),
+         "--match", "FakeBundle", "--max-instances", "3", "--timeout", "60",
+         "--", sys.executable, str(child)],
+        check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    assert completed.returncode == 0, completed.stdout
+    phase_log.write_text(completed.stdout, encoding="utf-8")
+    assert "smoke_launch OK" in completed.stdout, "der Start selbst muss sauber sein"
+
+    report = tmp_path / "report.json"
+    assert scan_release_artifacts.main([
+        "--logs-only", "--anomaly-register", str(_REGISTER_PATH),
+        "--platform", "macos-arm64", "--build-log-dir", str(log_dir),
+        "--report", str(report), str(tmp_path / "kein-dist"),
+    ]) == 0
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert [item["entry_id"] for item in payload["anomalies"]["known"]] == [
+        "rembg-warmup-connection-closed"
+    ]
+    assert payload["anomalies"]["unknown"] == [], (
+        "die Quellzeile des Tracebacks ist eingerueckt und darf nicht zusaetzlich "
+        "als eigene Auffaelligkeit zaehlen"
+    )
