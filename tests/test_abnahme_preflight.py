@@ -95,6 +95,221 @@ def test_check_gl_macos_checks_framework(tmp_path: Path) -> None:
     assert error is not None and "OpenGL-Framework" in error
 
 
+# ── Echter Qt-/GL-Probeaufruf (#934) ───────────────────────────────────
+
+
+def _probe_result(stdout: str = "", stderr: str = "", code: int = 0):
+    return subprocess.CompletedProcess(["probe"], code, stdout, stderr)
+
+
+def _probe_runner(payload: dict | None, *, stderr: str = "", code: int = 0):
+    """Runner, der die Sonde durch ihre JSON-Zeile ersetzt."""
+    import json as _json
+
+    stdout = "" if payload is None else _json.dumps(payload)
+    return lambda *_a, **_kw: _probe_result(stdout, stderr, code)
+
+
+def _check(runner, *, runtime: Path | None = None, **kwargs) -> str | None:
+    return preflight.check_qt_gl(
+        "linux-arm64",
+        ensure_runtime=(lambda: runtime or Path("/usr/bin/python3")),
+        runner=runner,
+        **kwargs,
+    )
+
+
+def test_qt_probe_success_needs_a_real_renderer() -> None:
+    ok = _check(_probe_runner({
+        "ok": True, "platform": "cocoa",
+        "vendor": "Apple", "renderer": "Apple M2", "version": "2.1 Metal",
+    }))
+    assert ok is None
+
+
+def test_qt_probe_reports_a_missing_runtime_by_name() -> None:
+    """Fehlende PyQt-/Qt-Runtime ist ein benannter Befund, kein stiller Skip."""
+    def _no_runtime() -> Path:
+        raise preflight.PreflightError("pip install fehlgeschlagen: no wheel")
+
+    error = preflight.check_qt_gl("linux-arm64", ensure_runtime=_no_runtime)
+    assert error is not None
+    assert "PyQt6/Qt-Runtime nicht ladbar" in error and "no wheel" in error
+
+
+def test_qt_probe_names_each_failing_stage() -> None:
+    """Jede Stufe der Sonde wird als eigener Befund gemeldet."""
+    cases = {
+        "import": "PyQt6/Qt-Runtime nicht ladbar",
+        "plugin": "Natives Qt-Platform-Plugin startet nicht",
+        "kontext": "Kein gueltiger OpenGL-Kontext",
+        "renderer": "Unerwuenschter Software-Renderer",
+    }
+    assert set(cases) == set(preflight.PROBE_STAGE_HINTS)
+    for stage, hint in cases.items():
+        error = _check(_probe_runner(
+            {"ok": False, "stage": stage, "detail": f"detail-{stage}"}, code=1
+        ))
+        assert error is not None and error.startswith(hint), stage
+        assert f"detail-{stage}" in error
+
+
+def test_qt_probe_treats_a_hard_qt_abort_as_a_plugin_failure() -> None:
+    """Qt ruft bei fehlendem Platform-Plugin ``qFatal`` – es gibt kein JSON.
+
+    Real beobachtet (Exit 134/SIGABRT): Ohne diesen Zweig sähe der
+    schwerwiegendste Ausfallmodus wie „keine Ausgabe, also nichts gefunden" aus.
+    """
+    stderr = (
+        'qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in ""\n'
+        "This application failed to start because no Qt platform plugin could "
+        "be initialized.\n"
+        "Available platform plugins are: offscreen, xcb, wayland.\n"
+    )
+    error = _check(_probe_runner(None, stderr=stderr, code=134))
+    assert error is not None
+    assert error.startswith("Natives Qt-Platform-Plugin startet nicht")
+    # Die tragende Zeile darf nicht von der Plugin-Liste verdrängt werden.
+    assert "no Qt platform plugin could be initialized" in error
+
+
+def test_qt_probe_reports_a_timeout_instead_of_hanging() -> None:
+    def _timeout(*_a, **_kw):
+        raise subprocess.TimeoutExpired(["probe"], 90.0)
+
+    error = _check(_timeout, timeout=90.0)
+    assert error is not None and "nach 90s ohne Ergebnis" in error
+
+
+def test_qt_probe_reports_an_unstartable_process() -> None:
+    def _oserror(*_a, **_kw):
+        raise OSError("Permission denied")
+
+    error = _check(_oserror)
+    assert error is not None and "nicht startbar" in error
+
+
+def test_qt_probe_ignores_qt_chatter_before_the_json_line() -> None:
+    """Qt schreibt gern Warnungen auf stdout – die letzte JSON-Zeile zählt."""
+    import json as _json
+
+    noisy = "qt.qpa: irgendeine Warnung\n" + _json.dumps({"ok": True})
+    assert _check(lambda *_a, **_kw: _probe_result(noisy)) is None
+
+
+def test_the_preflight_runs_the_real_probe_on_every_platform() -> None:
+    """Kein Plattform-Sonderweg: Der Nachweis gehört zu jedem Readiness-Job."""
+    for platform in preflight.KNOWN_PLATFORMS:
+        names = [name for name, _ in preflight.run_preflight(platform)]
+        assert "qt-gl" in names, platform
+        # Der billige Ladetest bleibt und läuft davor.
+        assert names.index("gl") < names.index("qt-gl"), platform
+
+
+# ── Bereitstellung der schlanken Runtime (#934) ────────────────────────
+
+
+def test_probe_requirements_come_from_the_release_constraints() -> None:
+    """Dieselbe Quelle wie das Release-venv – kein zweiter Pin-Stand."""
+    pins = preflight.probe_requirements()
+    assert pins and all(pin.lower().startswith("pyqt6") for pin in pins)
+    assert any(pin.startswith("PyQt6==") for pin in pins)
+
+
+def test_probe_requirements_fail_closed_without_pins(tmp_path: Path) -> None:
+    missing = tmp_path / "fehlt.txt"
+    with pytest.raises(preflight.PreflightError, match="nicht lesbar"):
+        preflight.probe_requirements(missing)
+    empty = tmp_path / "constraints.txt"
+    empty.write_text("# nur ein Kommentar\nPillow==11.0.0\n", encoding="utf-8")
+    with pytest.raises(preflight.PreflightError, match="Keine pyqt6-Pins"):
+        preflight.probe_requirements(empty)
+
+
+def test_a_changed_pin_changes_the_runtime_key() -> None:
+    """Das ist die Aktualisierung bei Dependency-Änderungen: neuer Schlüssel."""
+    old = preflight.probe_runtime_key(["PyQt6==6.7.1"], python_version="3.11")
+    new = preflight.probe_runtime_key(["PyQt6==6.8.0"], python_version="3.11")
+    other_python = preflight.probe_runtime_key(["PyQt6==6.7.1"], python_version="3.12")
+    assert old != new and old != other_python
+    assert old == preflight.probe_runtime_key(["PyQt6==6.7.1"], python_version="3.11")
+
+
+class _FakeBuilder:
+    """Baut das venv wie ``python -m venv`` es täte – ohne Netz."""
+
+    def __init__(self, venv: Path, *, fail_at: str = "") -> None:
+        self.venv = venv
+        self.fail_at = fail_at
+        self.commands: list[list[str]] = []
+
+    def __call__(self, command, **_kwargs):
+        self.commands.append(list(command))
+        if self.fail_at and self.fail_at in " ".join(command):
+            return _probe_result(code=1, stderr="Netzwerkfehler beim Wheel-Download")
+        if "venv" in command:
+            (self.venv / "bin").mkdir(parents=True, exist_ok=True)
+            (self.venv / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
+        return _probe_result()
+
+
+def test_the_runtime_is_built_once_and_then_reused(tmp_path: Path) -> None:
+    venv = tmp_path / "qt"
+    builder = _FakeBuilder(venv)
+    first = preflight.ensure_probe_runtime(
+        venv=venv, requirements=["PyQt6==6.7.1"], runner=builder
+    )
+    assert first == venv / "bin" / "python"
+    built = len(builder.commands)
+    assert built == 2, builder.commands
+    # Wheels statt Quellbau: ein Compilerlauf auf dem Pi spränge jedes Budget.
+    assert any("--only-binary=:all:" in cmd for cmd in builder.commands)
+
+    preflight.ensure_probe_runtime(
+        venv=venv, requirements=["PyQt6==6.7.1"], runner=builder
+    )
+    assert len(builder.commands) == built, "Runtime wurde erneut gebaut"
+
+
+def test_a_changed_pin_rebuilds_the_runtime(tmp_path: Path) -> None:
+    venv = tmp_path / "qt"
+    builder = _FakeBuilder(venv)
+    preflight.ensure_probe_runtime(venv=venv, requirements=["PyQt6==6.7.1"], runner=builder)
+    preflight.ensure_probe_runtime(venv=venv, requirements=["PyQt6==6.8.0"], runner=builder)
+    assert len(builder.commands) == 4, builder.commands
+
+
+def test_a_failed_build_never_looks_fresh(tmp_path: Path) -> None:
+    """Marker erst nach erfolgreicher Installation – sonst bliebe ein halbes
+    venv liegen und der nächste Lauf hielte es für einsatzbereit."""
+    venv = tmp_path / "qt"
+    builder = _FakeBuilder(venv, fail_at="pip")
+    with pytest.raises(preflight.PreflightError, match="Netzwerkfehler"):
+        preflight.ensure_probe_runtime(
+            venv=venv, requirements=["PyQt6==6.7.1"], runner=builder
+        )
+    assert not (venv / preflight.PROBE_MARKER_NAME).exists()
+
+
+def test_a_build_timeout_is_a_named_error(tmp_path: Path) -> None:
+    """Das Budget kommt aus der Quelle, nicht aus einem Literal im Test."""
+    budget = preflight.RUNTIME_BUILD_TIMEOUT_S
+
+    def _timeout(*_a, **_kw):
+        raise subprocess.TimeoutExpired(["venv"], budget)
+
+    with pytest.raises(preflight.PreflightError, match=f"nach {budget:.0f}s abgebrochen"):
+        preflight.ensure_probe_runtime(
+            venv=tmp_path / "qt", requirements=["PyQt6==6.7.1"], runner=_timeout
+        )
+
+
+def test_the_runtime_location_is_overridable(tmp_path: Path) -> None:
+    assert preflight.probe_venv_path({}) == preflight.PROBE_VENV_DEFAULT
+    chosen = preflight.probe_venv_path({preflight.PROBE_VENV_ENV: str(tmp_path / "eigen")})
+    assert chosen == tmp_path / "eigen"
+
+
 def test_check_network_counts_http_error_as_reachable() -> None:
     def _http_error(_request: object, timeout: float) -> object:
         raise urllib.error.HTTPError("https://api.github.com", 403, "rate", None, None)

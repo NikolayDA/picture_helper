@@ -163,7 +163,10 @@ jobs:
     name: Preflight macOS arm64
     if: inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64'
     runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 5
+    # 10 statt 5 Minuten seit #934: Der echte Qt-/GL-Probeaufruf baut seine
+    # schlanke Runtime einmal je Pin-Stand (Qt-Wheels ~100 MB). Danach kostet
+    # der Aufruf Sekunden; das Budget ist die Obergrenze, nicht der Regelfall.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
         with:
@@ -175,7 +178,8 @@ jobs:
     name: Preflight Linux aarch64
     if: inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64'
     runs-on: [self-hosted, Linux, ARM64]
-    timeout-minutes: 5
+    # 10 statt 5 Minuten seit #934 (einmaliger Bau der Qt-Probe-Runtime).
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
         with:
@@ -189,7 +193,8 @@ jobs:
       (inputs.platforms == 'alle' || inputs.platforms == 'linux-x86_64')
       && vars.ABNAHME_X86_64_ENABLED == 'true'
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: 5
+    # 10 statt 5 Minuten seit #934 (einmaliger Bau der Qt-Probe-Runtime).
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
         with:

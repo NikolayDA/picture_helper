@@ -1,6 +1,7 @@
 """Guards for the self-hosted release acceptance workflow (#641)."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -223,6 +224,46 @@ def test_approval_manifest_gated_to_full_platform_matrix() -> None:
     assert "if: inputs.platforms != 'alle'" in notice_block
     assert "Kein Freigabemanifest" in notice_block
     assert "platforms=alle" in notice_block
+
+
+def test_the_real_qt_probe_runs_in_every_active_readiness_job() -> None:
+    """#934: Der echte Qt-/GL-Probeaufruf gehört in **jeden** Readiness-Job.
+
+    Er hängt nicht an einem Workflow-Schritt, sondern an ``run_preflight`` —
+    damit erfasst er beide Aufruforte (Abnahme und Heartbeat) und alle drei
+    Plattformen ohne kopierte Kommandozeile. Dieser Wächter hält fest, dass
+    genau das so bleibt: Ein Sonderweg, der den Nachweis in einem Job
+    ausließe, wäre still (der Job bliebe grün) und fiele erst im schweren
+    Plattform-Job auf — der Ausfallmodus, den #934 beseitigt.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "abnahme_preflight_wf", ROOT / "scripts" / "abnahme_preflight.py"
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    assert (ROOT / "scripts" / "qt_gl_probe.py").is_file()
+    for platform in module.KNOWN_PLATFORMS:
+        names = [name for name, _ in module.run_preflight(platform)]
+        assert "qt-gl" in names, platform
+
+    # Und der Nachweis läuft vor den schweren Jobs, nicht neben ihnen.
+    text = _workflow_text()
+    for platform in ("macos-arm64", "linux-arm64", "linux-x86_64"):
+        assert f"needs: [candidate-source, preflight-{platform}]" in text
+    # Das Jobbudget muss den einmaligen Bau der schlanken Runtime tragen,
+    # sonst schneidet GitHub den Lauf ab, bevor der benannte Fehler entsteht –
+    # der Befund waere dann ein nacktes "job timed out".
+    budgets = [
+        int(match)
+        for block in re.findall(r"(?ms)^  preflight-[a-z0-9_-]+:\n(.*?)(?=^  \S)", text)
+        for match in re.findall(r"(?m)^    timeout-minutes: (\d+)$", block)
+    ]
+    assert len(budgets) == 3, budgets
+    assert min(budgets) * 60 > module.RUNTIME_BUILD_TIMEOUT_S, budgets
 
 
 def test_workflow_preflight_gates_platform_jobs() -> None:
