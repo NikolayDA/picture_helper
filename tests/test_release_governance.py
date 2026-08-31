@@ -245,7 +245,13 @@ def test_the_ruleset_check_aborts_instead_of_merely_reporting() -> None:
     first = procedure.index("gh workflow run release-linux.yml")
     block = procedure[procedure.rfind("```bash", 0, first) : first]
     assert "verify-ref-protection" in block, "Schutzprüfung nicht im Dispatch-Block"
-    assert re.search(r"verify-ref-protection.*?&&", block, flags=re.DOTALL), (
+    # Nur Fortsetzungszeilen (Backslash am Zeilenende) bis zum `&&`. Ein
+    # bloßes "irgendwo danach steht ein &&" trüge nicht: Der Block endet per
+    # Konstruktion direkt vor dem Dispatch und enthält deshalb immer noch das
+    # `&&` der *zweiten* Prüfung — die Entkopplung, die dieser Wächter
+    # ausschließen soll, bliebe damit grün (#936-Review).
+    tail = block[block.index("verify-ref-protection") :]
+    assert re.match(r"[^\n]*(?:\\\n[^\n]*)*\s*&&", tail), (
         "Schutzprüfung nicht per && an den Dispatch gekoppelt"
     )
 
@@ -265,6 +271,10 @@ def test_the_documented_ruleset_creates_exactly_the_required_rules() -> None:
     assert ruleset["enforcement"] == "active"
     assert ruleset["conditions"]["ref_name"]["include"] == ["refs/heads/release/*"]
     assert tuple(sorted(rule["type"] for rule in ruleset["rules"])) == rc.REQUIRED_REF_RULES
+    # Rulesets binden anders als Branch-Protection auch Admins. Ohne Bypass
+    # scheiterten die beiden Löschwege, die dieses Runbook selbst als
+    # Owner-Handgriff vorsieht — der eine davon im Rollback-Moment.
+    assert ruleset["bypass_actors"], "ohne Bypass blockiert das Rezept die eigenen Löschwege"
 
 
 def test_tag_and_release_ref_have_separate_documented_roles() -> None:

@@ -327,8 +327,12 @@ def test_each_missing_rule_blocks_on_its_own(missing: str) -> None:
 
 def test_ref_protection_rejects_a_malformed_answer() -> None:
     """Eine unerwartete Antwortform darf nicht als 'ungeprueft, aber ok' enden."""
-    with pytest.raises(rc.ContractError, match="keine Liste"):
+    # Eine GitHub-Fehlerantwort nennt ihre Ursache, statt sie im JSON zu
+    # verstecken - der haeufigste Nicht-Listen-Fall (#936-Review).
+    with pytest.raises(rc.ContractError, match="GitHub meldete: Not Found"):
         rc.validate_ref_protection({"message": "Not Found"}, expected_ref=f"release/{TAG}")
+    with pytest.raises(rc.ContractError, match="keine Liste"):
+        rc.validate_ref_protection("nope", expected_ref=f"release/{TAG}")
     with pytest.raises(rc.ContractError, match="kein Objekt"):
         rc.validate_ref_protection(["non_fast_forward"], expected_ref=f"release/{TAG}")
     with pytest.raises(rc.ContractError, match="ohne 'type'"):

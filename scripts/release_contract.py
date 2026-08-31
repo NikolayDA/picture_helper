@@ -726,8 +726,14 @@ def validate_ref_protection(
             f"Release-Ref muss dem Schema {RELEASE_REF_PREFIX}vX.Y.Z entsprechen: {expected_ref!r}"
         )
     if not isinstance(payload, list):
+        # Der haeufigste Nicht-Listen-Fall ist eine GitHub-Fehlerantwort
+        # ("Not Found", "Bad credentials"). Sie als blossen Formfehler zu
+        # melden liesse den Owner die Ursache im JSON suchen statt im Aufruf.
+        message = payload.get("message") if isinstance(payload, dict) else None
+        hint = f" - GitHub meldete: {message}" if isinstance(message, str) and message else ""
         raise ContractError(
-            f"Regelantwort fuer {expected_ref} ist keine Liste, sondern {type(payload).__name__}"
+            f"Regelantwort fuer {expected_ref} ist keine Liste, "
+            f"sondern {type(payload).__name__}{hint}"
         )
     found: set[str] = set()
     for index, entry in enumerate(cast(list[Any], payload)):

@@ -202,6 +202,13 @@ liefert ausschließlich Regeln aus Rulesets im Zustand `active`; ein Ruleset in
 `evaluate` oder `disabled` zählt also nicht als Schutz. Der Ref ist ein Branch
 und kein Tag, weil nur Branches diesen Schutz tragen.
 
+Die Prüfung deckt genau das Fenster ab, in dem sie zählt: Sie läuft **einmal**
+vor dem ersten Dispatch. Würde das Ruleset danach entfernt, bliebe eine
+tatsächliche Bewegung des Refs trotzdem nicht unbemerkt — `verify-release-ref`
+läuft vor jedem weiteren Dispatch, und `candidate-source` vergleicht im Lauf
+selbst `GITHUB_SHA` gegen den Kandidaten-SHA. Geprüft wird hier der *Schutz*,
+gefangen wird die *Folge* seines Verlusts an anderer Stelle.
+
 Fehlt das Ruleset noch, legt der Repository-Owner es einmalig an (danach gilt es
 für jedes weitere Release):
 
@@ -213,10 +220,25 @@ gh api --method POST "repos/NikolayDA/picture_helper/rulesets" \
   "target": "branch",
   "enforcement": "active",
   "conditions": {"ref_name": {"include": ["refs/heads/release/*"], "exclude": []}},
-  "rules": [{"type": "deletion"}, {"type": "non_fast_forward"}, {"type": "update"}]
+  "rules": [{"type": "deletion"}, {"type": "non_fast_forward"}, {"type": "update"}],
+  "bypass_actors": [{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]
 }
 JSON
 ```
+
+Der `bypass_actors`-Eintrag ist **nötig**, nicht bequem: Rulesets binden anders
+als klassische Branch-Protection standardmäßig auch Repository-Admins. Ohne ihn
+scheiterten zwei Handgriffe, die dieses Runbook selbst als Owner-Weg vorsieht —
+das Löschen des Refs auf einem verworfenen Kandidaten (Schritt 2, Zweig `0)`)
+und das optionale Aufräumen nach Schritt 9 —, der erste davon ausgerechnet im
+Rollback-Moment. Er entwertet `verify-ref-protection` nicht: Gegen Versehen aus
+Automatisierung und gegen Dritte greift der Schutz unverändert, und das harte
+Gate bleibt ohnehin der SHA-Vergleich. Dass ein Ruleset den Owner selbst nicht
+bindet, ist die im
+[ADR](history/ADR-2026-release-ref-entkopplung.md) ausdrücklich getroffene
+Entscheidung: eine bewusste Restlücke, die sich mit der ohnehin menschlichen
+Go-/No-Go-Entscheidung deckt. Ein falscher `actor_id` fällt beim POST auf —
+GitHub lehnt unbekannte Rollen ab, statt den Eintrag still zu verwerfen.
 
 **Output/Evidenz:** lokale Freeze-Provenienz als Vorprüfung; Release-Ref mit aufgelöstem SHA im Issue;
 später die unveränderliche `release-freeze-provenance-<attempt>` aus dem Kandidatenlauf.
