@@ -37,7 +37,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from datetime import date as date_type
+from datetime import datetime, timezone  # noqa: UP017 - Projekt unterstuetzt Python 3.10
 from pathlib import Path
 from typing import Final
 
@@ -248,7 +248,14 @@ def insert_appstream_release(xml_text: str, version: str, release_date: str) -> 
     Textuell statt ueber ElementTree: Ein Reserialisieren wuerde Kommentare und
     Formatierung der gesamten Datei umschreiben und den Diff unlesbar machen.
     """
-    entry = f'    <release version="{version}" date="{release_date}"/>'
+    opening = re.search(r"(?m)^(?P<indent>[ \t]*)<releases>[ \t]*$", xml_text)
+    if opening is None:
+        raise PrepareError(f"{APPSTREAM_PATH}: <releases>-Block nicht gefunden")
+    # Einrueckung aus der Datei ableiten statt fest zu verdrahten: Sie wurde
+    # bisher erfasst und wieder verworfen, eine Formatänderung wäre unbemerkt
+    # geblieben (Review-Hinweis auf PR #932).
+    indent = opening.group("indent") + "  "
+    entry = f'{indent}<release version="{version}" date="{release_date}"/>'
     # Einen vorhandenen Eintrag entfernen statt in place zu aktualisieren: Das
     # Gate liest den **ersten** <release> und vergleicht ihn mit der
     # Kandidatenversion. Ein an alter Stelle aktualisierter Eintrag liesse die
@@ -258,9 +265,9 @@ def insert_appstream_release(xml_text: str, version: str, release_date: str) -> 
     )
     if existing is not None:
         xml_text = xml_text[: existing.start()] + xml_text[existing.end() :]
-    opening = re.search(r"(?m)^(\s*)<releases>\s*$", xml_text)
-    if opening is None:
-        raise PrepareError(f"{APPSTREAM_PATH}: <releases>-Block nicht gefunden")
+        opening = re.search(r"(?m)^[ \t]*<releases>[ \t]*$", xml_text)
+        if opening is None:  # pragma: no cover - oben bereits geprueft
+            raise PrepareError(f"{APPSTREAM_PATH}: <releases>-Block nicht gefunden")
     cut = opening.end()
     return xml_text[:cut] + "\n" + entry + xml_text[cut:]
 
@@ -739,13 +746,17 @@ def main(argv: list[str] | None = None) -> int:
 
     if not _SEMVER_RE.fullmatch(args.version):
         parser.error(f"Version muss X.Y.Z sein: {args.version!r}")
-    release_date = args.date or date_type.today().isoformat()
+    # Bewusst UTC statt ``date.today()``: Das Release-Datum steht in sechs
+    # CHANGELOG-Dateien und in den AppStream-Metadaten und soll nicht davon
+    # abhaengen, in welcher Zeitzone der Release-Owner sitzt. Die Hilfe zu
+    # ``--date`` verspricht genau das.
+    release_date = args.date or datetime.now(timezone.utc).date().isoformat()
     try:
         # Echte Kalenderpruefung statt einer Formpruefung: ``2026-02-31`` haette
         # die Form erfuellt und stuende danach in sechs CHANGELOG-Dateien und in
         # den AppStream-Metadaten – das Freeze-Gate prueft nur Form und
         # Gleichheit ueber die Dateien, nicht die Existenz des Datums.
-        if date_type.fromisoformat(release_date).isoformat() != release_date:
+        if datetime.fromisoformat(release_date).date().isoformat() != release_date:
             raise ValueError(release_date)
     except ValueError:
         parser.error(f"Datum muss ein gültiges Kalenderdatum JJJJ-MM-TT sein: {release_date!r}")

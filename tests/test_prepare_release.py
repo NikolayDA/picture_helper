@@ -174,13 +174,29 @@ def test_the_freeze_gate_blocks_on_an_unfilled_skeleton(fixture_repo: Path) -> N
     assert len(gaps) == len(LANGUAGES) + 1, [f.message for f in gaps]
 
 
-def test_the_full_gate_reports_the_gap_not_just_the_helper(fixture_repo: Path) -> None:
+def test_the_full_gate_reports_the_gap_not_just_the_helper(
+    fixture_repo: Path, monkeypatch
+) -> None:
     """Der Wächter muss in ``verify()`` **verdrahtet** sein, nicht nur existieren.
 
-    Ein Test, der nur ``_check_editorial_placeholders`` direkt aufruft, bliebe
-    grün, wenn jemand den Aufruf aus ``verify()`` entfernt – der Befund fiele
-    dann still aus dem Gate. Deshalb hier der vollständige Lauf.
+    Ein Test, der nur die Hilfsfunktionen direkt aufruft, bliebe grün, wenn
+    jemand den Aufruf aus ``verify()`` entfernt – der Befund fiele dann still
+    aus dem Gate. Deshalb hier der vollständige Lauf.
+
+    Die Actions-Umgebung wird dafür neutralisiert: ``_check_workflow_candidate``
+    bindet das Gate sonst an ``GITHUB_SHA``, und dieser Commit existiert im
+    Fixture-Repository nicht. Lokal fiel das nicht auf, in der PR-CI schon –
+    dieselbe Vorsichtsmaßnahme trifft ``tests/test_release_freeze.py``.
     """
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    for name in (
+        "GITHUB_SHA",
+        "GITHUB_REPOSITORY",
+        "GITHUB_WORKFLOW",
+        "GITHUB_RUN_ID",
+        "GITHUB_RUN_ATTEMPT",
+    ):
+        monkeypatch.delenv(name, raising=False)
     base_tag = _git(fixture_repo, "describe", "--tags", "--abbrev=0")
     inputs = pr.ReleaseInputs(
         version="9.9.9",
