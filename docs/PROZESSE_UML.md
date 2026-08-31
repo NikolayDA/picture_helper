@@ -269,6 +269,13 @@ flowchart TD
   PR-Workflow-Kette ist danach ein menschlich authentifizierter Folge-Push
   nötig; ein manueller Dispatch ist nur bei einzelnen Workflows vorhanden und
   daher kein gleichwertiger Ersatz.
+- Ebenfalls nicht gezeichnet und kein versionierter Workflow, sondern
+  Live-Konfiguration: das Codex-Review der GitHub-App
+  `chatgpt-codex-connector`. Es reviewt laut eigener Beschreibung bei
+  PR-Eröffnung, `ready_for_review` und auf `@codex review` – unabhängig vom
+  Claude-Review und ohne dessen Doku-Pfad-Ausnahme. Wie alle
+  Review-Kommentare ist es laut [GitHub-Rahmen](#aktueller-github-rahmen)
+  keine Merge-Sperre.
 
 ---
 
@@ -382,7 +389,10 @@ flowchart TD
   `dependency-audit.yml` (montags 05:00 UTC), `benchmark.yml` und `codeql.yml`
   (montags 05:17 UTC),
   `recommendations-live-check.yml` (täglich 06:30 UTC),
-  `clamav-db-refresh.yml` (montags 03:00 UTC).
+  `clamav-db-refresh.yml` (montags 03:00 UTC),
+  `runner-heartbeat.yml` (täglich 05:30 UTC, Erreichbarkeit der Self-hosted
+  Abnahme-Runner) und der monatliche Dry-Run von `release-linux.yml`
+  (am 3. um 04:40 UTC, siehe Abschnitt 4).
 - Ebenfalls nicht gezeichnet ist der `workflow_run`-Einstieg von
   `recommendations-live-check.yml` nach jedem Abschluss von
   `codex-security-scan.yml` und `benchmark.yml`: Deren automatisch eröffnete
@@ -425,7 +435,7 @@ flowchart TD
 
   subgraph OWN["Partition: Release-Owner"]
     direction TB
-    S1["Schritt 1 · Release vorbereiten<br/>main aktuell, Version aus pyproject, CHANGELOG und Release-Text prüfen<br/>release_contract.py validate-checklist · pytest tests/test_markdown_links.py"]
+    S1["Schritt 1 · Release vorbereiten<br/>main aktuell; Standardweg scripts/prepare_release.py erzeugt das Gerüst mit TODO(release)-Lücken<br/>Lücken von Hand füllen, CHANGELOG und Release-Text prüfen, per PR einreichen<br/>release_contract.py validate-checklist · pytest tests/test_markdown_links.py"]
     S2["Schritt 2 · Kandidatenstand einfrieren<br/>scripts/verify_release_freeze.py, Laufkopf ist der Kandidat<br/>Release-Ref release/vX.Y.Z anlegen, anlege-only, Ruleset prüfen"]
     SQ1{"Freeze konsistent?"}
     S2F["Pfadklassifikation oder Doku per PR korrigieren<br/>zurück zu Schritt 1, nicht taggen"]
@@ -451,6 +461,9 @@ flowchart TD
     direction TB
     H0["Schritt 5 · Abnahme starten<br/>--ref RELEASE_REF · run_id des Kandidaten · platforms=alle · dry_run=false · target_issue"]
     H1["candidate-source<br/>fünf Dateien laden, Hashes prüfen, release-candidate-contract-&lt;attempt&gt; erzeugen<br/>und Workflow-SHA hart an den Kandidaten binden"]
+    HP["Preflight je Plattform + Runner-Watchdog<br/>Runner-Erreichbarkeit und echter Qt-/GL-Probeaufruf;<br/>hängende Warteschlangen brechen sichtbar ab statt still zu warten"]
+    HF0["Fork"]:::bar
+    HJ0["Join"]:::bar
     HF["Fork"]:::bar
     H2["macOS arm64<br/>DMG-Start, Retina, natives 3D, E2E, GL-Suite"]
     H3["Linux arm64<br/>AppImage- und .deb-Zyklus, GL-Provenance, natives 3D, E2E"]
@@ -466,7 +479,10 @@ flowchart TD
   SQ2 -->|"nein · Fund oder Artefaktfehler"| NOGO["No-Go protokollieren<br/>Kandidat verwerfen, Ursache per PR beheben, neu ab Schritt 1"]
   SQ2 -->|"ja"| SQ4
   SQ4 -->|"nein · Ref bewegt oder verwechselt"| NOGO
-  SQ4 -->|"ja"| H0 --> H1 --> HF
+  SQ4 -->|"ja"| H0 --> HF0
+  HF0 --> H1 --> HJ0
+  HF0 --> HP --> HJ0
+  HJ0 --> HF
   HF --> H2 --> HJ
   HF --> H3 --> HJ
   HF --> H4 --> HJ
@@ -535,8 +551,12 @@ flowchart TD
 
 **Anmerkungen**
 
-- Die drei Release-Workflows sind ausschließlich `workflow_dispatch`. Es gibt
-  keinen Tag-Trigger und keinen Weg, der am Manifest vorbei veröffentlicht.
+- Kandidatenbau, Abnahme und Veröffentlichung starten ausschließlich manuell
+  per `workflow_dispatch`; einen Tag-Trigger oder einen Weg, der am Manifest
+  vorbei veröffentlicht, gibt es nicht. Einzige Zeitplan-Ausnahme ist der
+  monatliche Dry-Run von `release-linux.yml` (#922, am 3. um 04:40 UTC): Er
+  probt den Kandidatenpfad auf dem `main`-Head, erzeugt aber ausdrücklich
+  keinen Kandidaten und veröffentlicht nichts.
 - `release-linux.yml` erzeugt noch keinen Kandidatenvertrag. Erst
   `candidate-source` am Anfang von `release-abnahme.yml` lädt die fünf Dateien,
   prüft ihre Metadaten und Hashes und veröffentlicht
