@@ -34,11 +34,17 @@ permissions:
   contents: read
 
 # Ein wartender Heartbeat-Job bleibt bei einem offline Runner in der
-# Warteschlange, bis GitHub ihn nach 24 h abbricht. Statt ihn (wie der
-# Lauf-Watchdog) per force-cancel zu beenden – was den Lauf als "cancelled"
-# und damit ohne Fehlermeldung enden liesse – raeumt der Lauf des naechsten
-# Tages auf. So bleibt hoechstens ein wartender Lauf stehen, und der
-# Fehlschlag bleibt als Fehlschlag sichtbar.
+# Warteschlange, bis GitHub ihn nach 24 h abbricht. Der Heartbeat bricht ihn
+# bewusst nicht selbst ab – er hat dafuer kein Schreibrecht auf Actions und
+# soll es nicht haben; stattdessen raeumt der Lauf
+# des naechsten Tages auf, sodass hoechstens ein wartender Lauf stehen bleibt.
+#
+# Wichtig dabei, und frueher hier falsch behauptet: Der LAUF endet dann als
+# "cancelled", nicht als Fehlschlag – Actions verschickt also gerade im
+# Offline-Fall KEINE Fehlermail. Genau deshalb ist RUNNER_HEARTBEAT_ISSUE
+# Pflicht: Der Issue-Kommentar der Auswertung ist der einzige Kanal, der im
+# Zielszenario rechtzeitig traegt. Er faellt zur Annahmefrist (15 min), lange
+# bevor der wartende Job ueberhaupt endet.
 concurrency:
   group: runner-heartbeat
   cancel-in-progress: true
@@ -196,6 +202,7 @@ jobs:
             watch \
             --repo "$GITHUB_REPOSITORY" \
             --run-id "$GITHUB_RUN_ID" \
+            --acceptance-seconds 900 \
             --deadline-seconds 1500 \
             --poll-seconds 20 \
             $x86flag

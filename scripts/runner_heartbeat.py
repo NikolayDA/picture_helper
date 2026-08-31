@@ -52,6 +52,17 @@ from typing import Any, Final
 
 API_VERSION: Final = "2022-11-28"
 REQUEST_TIMEOUT_S: Final = 30.0
+# Zwei Fristen, weil zwei verschiedene Fragen (#921-Nachpruefung). Eine
+# einzige Frist beantwortete beide falsch: Die Doku versprach "meldet, wenn
+# einer den Job nicht binnen 15 Minuten annimmt", die Auswertung wartete aber
+# das volle Fenster ab und meldete "wartet nach 1500 s".
+#: Bis hierhin muss ein Runner den Job **angenommen** haben. Laeuft sie ab,
+#: waehrend ein Job noch ``queued`` ist, steht das Offline-Verdikt sofort
+#: fest - auf das Gesamtfenster zu warten verzoegerte nur die Meldung.
+DEFAULT_ACCEPTANCE_S: Final = 900
+#: Bis hierhin muss die **Bereitschaftspruefung** abgeschlossen sein:
+#: Annahmefrist (15 min) plus das Jobbudget des Readiness-Jobs (10 min).
+#: Laeuft ein Job darueber hinaus, gibt es kein Verdikt statt eines geratenen.
 DEFAULT_DEADLINE_S: Final = 1500
 DEFAULT_POLL_S: Final = 20
 
@@ -185,6 +196,13 @@ class QueueState:
     failed: tuple[str, ...] = ()
     pending: tuple[str, ...] = ()
     observed: bool = True
+    #: Ob die Annahmefrist beim Ende der Beobachtung wirklich abgelaufen war.
+    #: ``watch`` kehrt beim ersten gescheiterten Job **sofort** zurueck – dann
+    #: kann gleichzeitig ein anderer noch ``queued`` sein, ohne dass er zu
+    #: spaet waere. Ohne dieses Flag behauptete der Bericht "wartet nach
+    #: 15 min", obwohl 90 s vergangen sind (#938-Review): Der Offline-Zweig
+    #: war nie durchlaufen, die Zahl also unbelegt.
+    acceptance_expired: bool = False
 
 
 def queue_state(jobs: list[dict[str, Any]], names: tuple[str, ...]) -> QueueState:
@@ -237,12 +255,18 @@ def watch(
     observe: Callable[[], QueueState],
     expected: tuple[str, ...],
     *,
+    acceptance_s: float,
     deadline_s: float,
     poll_s: float,
     clock: Callable[[], float] = time.monotonic,
     sleep: Callable[[float], None] = time.sleep,
 ) -> QueueState:
-    """Beobachtet, bis jeder erwartete Job zugewiesen ist oder die Frist fällt.
+    """Beobachtet, bis jeder erwartete Job fertig ist oder eine Frist fällt.
+
+    **Zwei** Fristen, weil zwei verschiedene Fragen: Bis ``acceptance_s`` muss
+    ein Runner den Job angenommen haben – ist dann noch einer ``queued``, ist
+    das Offline-Verdikt fällig, ohne das Gesamtfenster abzuwarten. Bis
+    ``deadline_s`` muss die Bereitschaftsprüfung abgeschlossen sein.
 
     Erfolg verlangt, dass jeder erwartete Job in der Jobliste erschienen
     **und** nicht mehr ``queued`` ist; eine direkt nach Laufstart noch
@@ -255,6 +279,14 @@ def watch(
     start = clock()
     last = QueueState(known=(), queued=(), observed=False)
     last_success: float | None = None
+
+    def _verdict_ready() -> QueueState:
+        """Ergebnis eines Fristablaufs – mit Frische-Degradierung."""
+        stale = last_success is None or clock() - last_success > 2 * poll_s
+        if (last.queued or last.failed) and stale:
+            return replace(last, observed=False, acceptance_expired=True)
+        return replace(last, acceptance_expired=True)
+
     while True:
         try:
             last = observe()
@@ -268,16 +300,24 @@ def watch(
                 return last
             if not last.pending and set(expected).issubset(last.known):
                 return last
-        if clock() - start >= deadline_s:
-            stale = last_success is None or clock() - last_success > 2 * poll_s
-            if (last.queued or last.failed) and stale:
-                return replace(last, observed=False)
-            return last
+        elapsed = clock() - start
+        # Annahmefrist: Ein noch wartender Job ist hier bereits das Ergebnis –
+        # aber nur auf **frischer** Grundlage. Ist die Beobachtung veraltet
+        # (API-Stoerung um die Frist herum), bliebe sonst genau das Fenster
+        # ungenutzt, in dem sich die API erholen koennte: Der Monitor gaebe
+        # 10 Minuten Beobachtung fuer eine Stoerung auf, die er ueberlebt
+        # haette, und meldete UNOBSERVED statt eines echten Verdikts.
+        if elapsed >= acceptance_s and last.queued:
+            verdict = _verdict_ready()
+            if verdict.observed:
+                return verdict
+        if elapsed >= deadline_s:
+            return _verdict_ready()
         sleep(poll_s)
 
 
 def evaluate(
-    state: QueueState, expected: tuple[str, ...], *, deadline_s: float
+    state: QueueState, expected: tuple[str, ...], *, acceptance_s: float, deadline_s: float
 ) -> tuple[str, str]:
     """Bewertet die letzte Beobachtung als ``(Verdikt, Begründung)``."""
     if not state.observed:
@@ -287,10 +327,25 @@ def evaluate(
             "schlägt bewusst keinen Alarm."
         )
     reasons: list[str] = []
-    if state.queued:
+    if state.queued and state.acceptance_expired:
+        # Der zweite moegliche Grund gehoert in die Meldung, nicht nur in die
+        # Doku: Self-hosted-Runner nehmen einen Job gleichzeitig an. Laeuft
+        # gerade eine Abnahme auf demselben Geraet, wartet der Heartbeat-Job
+        # zu Recht – und der Empfaenger des Issue-Kommentars soll nicht nach
+        # einem Ausfall suchen, den es nicht gibt.
         reasons.append(
-            f"{', '.join(state.queued)} wartet nach {deadline_s:.0f} s weiterhin "
-            "auf einen Runner – offline oder nimmt keine Jobs an"
+            f"{', '.join(state.queued)} wartet nach {acceptance_s / 60:.0f} min "
+            "weiterhin auf einen Runner – offline, nimmt keine Jobs an oder ist "
+            "mit einem anderen Lauf belegt"
+        )
+    elif state.queued:
+        # Die Beobachtung endete vorzeitig, weil ein anderer Job bereits
+        # gescheitert war. Der wartende Runner ist damit nicht zu spaet – ihn
+        # als offline zu melden waere eine Behauptung ohne Beleg.
+        reasons.append(
+            f"{', '.join(state.queued)} hatte den Job noch nicht angenommen, als "
+            "die Beobachtung endete – die Annahmefrist war da noch nicht "
+            "abgelaufen, also kein Offline-Befund"
         )
     if state.failed:
         # Die zweite Haelfte des Signals: angenommen, aber nicht einsatzbereit.
@@ -310,7 +365,7 @@ def evaluate(
         )
     if state.pending:
         return VERDICT_UNOBSERVED, (
-            f"{', '.join(state.pending)} lief zum Fristablauf noch – "
+            f"{', '.join(state.pending)} lief nach {deadline_s / 60:.0f} min noch – "
             "angenommen, Bereitschaft aber noch offen. Kein Verdikt."
         )
     return VERDICT_PASS, (
@@ -328,6 +383,7 @@ def build_report(
     detail: str,
     expected: tuple[str, ...],
     state: QueueState,
+    acceptance_s: float,
     deadline_s: float,
     run_url: str,
 ) -> dict[str, Any]:
@@ -337,6 +393,7 @@ def build_report(
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "verdict": verdict,
         "detail": detail,
+        "acceptance_seconds": acceptance_s,
         "deadline_seconds": deadline_s,
         "run_url": run_url,
         "expected_jobs": list(expected),
@@ -345,6 +402,7 @@ def build_report(
         "failed_jobs": list(state.failed),
         "pending_jobs": list(state.pending),
         "observed": state.observed,
+        "acceptance_expired": state.acceptance_expired,
     }
 
 
@@ -464,11 +522,16 @@ def _cmd_watch(args: argparse.Namespace) -> int:
 
     state = watch(
         observe, expected,
+        acceptance_s=args.acceptance_seconds,
         deadline_s=args.deadline_seconds, poll_s=args.poll_seconds,
     )
-    verdict, detail = evaluate(state, expected, deadline_s=args.deadline_seconds)
+    verdict, detail = evaluate(
+        state, expected,
+        acceptance_s=args.acceptance_seconds, deadline_s=args.deadline_seconds,
+    )
     report = build_report(
         verdict=verdict, detail=detail, expected=expected, state=state,
+        acceptance_s=args.acceptance_seconds,
         deadline_s=args.deadline_seconds, run_url=args.run_url,
     )
     write_outputs(report, report_path=args.report, summary_path=args.summary)
@@ -499,11 +562,36 @@ def main(argv: list[str] | None = None) -> int:
     watch_cmd.add_argument("--repo", required=True)
     watch_cmd.add_argument("--run-id", required=True)
     watch_cmd.add_argument("--x86-64-enabled", action="store_true")
-    watch_cmd.add_argument("--deadline-seconds", type=float, default=DEFAULT_DEADLINE_S)
+    watch_cmd.add_argument(
+        "--acceptance-seconds", type=float, default=DEFAULT_ACCEPTANCE_S,
+        help="Frist bis zur Annahme des Jobs durch den Runner.",
+    )
+    watch_cmd.add_argument(
+        "--deadline-seconds", type=float, default=DEFAULT_DEADLINE_S,
+        help="Gesamtfrist bis zum Abschluss der Bereitschaftspruefung.",
+    )
     watch_cmd.add_argument("--poll-seconds", type=float, default=DEFAULT_POLL_S)
     watch_cmd.set_defaults(func=_cmd_watch)
 
     args = parser.parse_args(argv)
+    # Eine Annahmefrist jenseits des Gesamtfensters waere wirkungslos: Der
+    # Offline-Zweig kaeme nie zum Zug, und der Heartbeat haelt sein
+    # "<= 15 min" nicht mehr, ohne dass es jemand merkt.
+    # Symmetrisch defensiv: Beide Optionen haengen am selben Unterkommando.
+    # Nur eine per getattr zu lesen liefe bei einem kuenftigen Unterkommando
+    # mit genau einer der beiden in einen AttributeError (#938-Review).
+    acceptance = getattr(args, "acceptance_seconds", None)
+    deadline = getattr(args, "deadline_seconds", None)
+    # ``>=`` statt ``>``: Eine Annahmefrist gleich dem Gesamtfenster ist
+    # wirkungslos – der Offline-Zweig kaeme nie frueher zum Zug, und der
+    # Heartbeat faellt still auf den Zustand zurueck, den dieser PR behebt.
+    # So sind CLI, Docstring und Waechter deckungsgleich.
+    if acceptance is not None and deadline is not None and acceptance >= deadline:
+        parser.error(
+            f"--acceptance-seconds ({acceptance:.0f}) muss kleiner als "
+            f"--deadline-seconds ({deadline:.0f}) sein – sonst gibt es kein "
+            "frueheres Offline-Verdikt."
+        )
     result = args.func(args)
     return int(result)
 

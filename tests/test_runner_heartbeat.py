@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -131,10 +132,15 @@ def test_queue_state_ignores_foreign_jobs() -> None:
 
 # ── Beobachtung ────────────────────────────────────────────────────────
 
-def _watch(observe, *, ticks: list[float], deadline: float = 1.0, poll: float = 10.0):
+def _watch(
+    observe, *, ticks: list[float], deadline: float = 1.0, poll: float = 10.0,
+    acceptance: float | None = None,
+):
     clock = iter(ticks)
     return hb.watch(
-        observe, EXPECTED, deadline_s=deadline, poll_s=poll,
+        observe, EXPECTED,
+        acceptance_s=deadline if acceptance is None else acceptance,
+        deadline_s=deadline, poll_s=poll,
         clock=lambda: next(clock), sleep=lambda _s: None,
     )
 
@@ -142,13 +148,13 @@ def _watch(observe, *, ticks: list[float], deadline: float = 1.0, poll: float = 
 def test_watch_returns_as_soon_as_every_runner_accepted() -> None:
     state = _watch(lambda: hb.queue_state(_jobs("ok", "ok"), EXPECTED),
                    ticks=[0, 0, 1])
-    assert hb.evaluate(state, EXPECTED, deadline_s=900)[0] == hb.VERDICT_PASS
+    assert hb.evaluate(state, EXPECTED, acceptance_s=900, deadline_s=900)[0] == hb.VERDICT_PASS
 
 
 def test_watch_reports_the_runner_that_never_took_the_job() -> None:
     state = _watch(lambda: hb.queue_state(_jobs("ok", "queued"), EXPECTED),
                    ticks=[0, 0, 1, 2])
-    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=900)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=900, deadline_s=900)
     assert verdict == hb.VERDICT_FAIL
     assert "Heartbeat Linux aarch64" in detail
 
@@ -165,7 +171,7 @@ def test_an_incomplete_job_list_does_not_end_the_watch_early() -> None:
 
     state = _watch(observe, ticks=[0, 0, 0, 1])
     assert seen["n"] == 2
-    assert hb.evaluate(state, EXPECTED, deadline_s=900)[0] == hb.VERDICT_PASS
+    assert hb.evaluate(state, EXPECTED, acceptance_s=900, deadline_s=900)[0] == hb.VERDICT_PASS
 
 
 def test_a_monitor_without_observation_raises_no_alarm() -> None:
@@ -174,7 +180,7 @@ def test_a_monitor_without_observation_raises_no_alarm() -> None:
         raise OSError("api down")
 
     state = _watch(boom, ticks=[0, 1, 2])
-    assert hb.evaluate(state, EXPECTED, deadline_s=900)[0] == hb.VERDICT_UNOBSERVED
+    assert hb.evaluate(state, EXPECTED, acceptance_s=900, deadline_s=900)[0] == hb.VERDICT_UNOBSERVED
 
 
 def test_a_stale_queue_observation_never_becomes_a_verdict() -> None:
@@ -187,14 +193,17 @@ def test_a_stale_queue_observation_never_becomes_a_verdict() -> None:
             return hb.queue_state(_jobs("queued", "queued"), EXPECTED)
         raise OSError("api down")
 
-    state = _watch(flaky, ticks=[0, 0, 100, 200])
+    # Ein Tick mehr als früher: Ist die Beobachtung zur Annahmefrist veraltet,
+    # terminiert sie dort nicht mehr, sondern fällt auf das Gesamtfenster durch
+    # (#938-Review) – hier fallen beide zusammen, also unmittelbar.
+    state = _watch(flaky, ticks=[0, 0, 100, 200, 200])
     assert state.observed is False
-    assert hb.evaluate(state, EXPECTED, deadline_s=900)[0] == hb.VERDICT_UNOBSERVED
+    assert hb.evaluate(state, EXPECTED, acceptance_s=900, deadline_s=900)[0] == hb.VERDICT_UNOBSERVED
 
 
 def test_missing_expected_jobs_are_reported_without_a_runner_verdict() -> None:
     state = hb.QueueState(known=EXPECTED[:1], queued=(), observed=True)
-    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=900)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=900, deadline_s=900)
     assert verdict == hb.VERDICT_UNOBSERVED
     assert "Heartbeat Linux aarch64" in detail
 
@@ -203,10 +212,10 @@ def test_missing_expected_jobs_are_reported_without_a_runner_verdict() -> None:
 
 def test_report_and_summary_name_the_offline_runner(tmp_path: Path) -> None:
     state = hb.QueueState(known=EXPECTED, queued=("Heartbeat Linux aarch64",))
-    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=900)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=900, deadline_s=900)
     report = hb.build_report(
         verdict=verdict, detail=detail, expected=EXPECTED, state=state,
-        deadline_s=900, run_url="https://example.invalid/run/1",
+        acceptance_s=900, deadline_s=900, run_url="https://example.invalid/run/1",
     )
     hb.write_outputs(
         report, report_path=tmp_path / "r.json", summary_path=tmp_path / "s.md",
@@ -245,7 +254,7 @@ def test_an_accepted_but_failing_runner_is_never_reported_as_pass() -> None:
     state = hb.queue_state(_jobs("ok", "fail"), EXPECTED)
     assert state.queued == ()
     assert state.failed == ("Heartbeat Linux aarch64",)
-    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=1500)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
     assert verdict == hb.VERDICT_FAIL
     assert "nicht einsatzbereit" in detail
 
@@ -263,10 +272,115 @@ def test_a_cancelled_job_is_not_a_device_verdict() -> None:
 
 
 def test_both_halves_of_the_signal_appear_together() -> None:
+    """Beide Hälften stehen im Bericht – aber nur die belegte fristbezogen."""
     state = hb.queue_state(_jobs("queued", "fail"), EXPECTED)
-    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=1500)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
     assert verdict == hb.VERDICT_FAIL
-    assert "wartet" in detail and "nicht einsatzbereit" in detail
+    assert "noch nicht angenommen" in detail and "nicht einsatzbereit" in detail
+
+
+def test_a_short_circuit_never_claims_an_expired_deadline() -> None:
+    """``watch`` kehrt beim ersten gescheiterten Job **sofort** zurück.
+
+    Dann kann gleichzeitig ein anderer Runner noch ``queued`` sein, ohne zu
+    spät zu sein: Scheitert macOS nach 90 s an der Härtung, hätte der Pi bei
+    t=200 s noch annehmen können. Der Bericht sagte trotzdem „wartet nach
+    15 min" — eine Zahl, für die der Offline-Zweig nie durchlaufen wurde
+    (#938-Review). Ausgerechnet dieser PR macht die Wahrhaftigkeit dieser
+    Fristen zum Ziel.
+    """
+    ticks = iter([0, 0, 90])
+    state = hb.watch(
+        lambda: hb.queue_state(_jobs("queued", "fail"), EXPECTED), EXPECTED,
+        acceptance_s=900, deadline_s=1500, poll_s=20,
+        clock=lambda: next(ticks), sleep=lambda _s: None,
+    )
+    assert state.acceptance_expired is False, "Frist war nicht abgelaufen"
+    _, detail = hb.evaluate(state, EXPECTED, acceptance_s=900, deadline_s=1500)
+    assert "15 min" not in detail, detail
+    assert "noch nicht angenommen" in detail
+
+    # Gegenprobe: Läuft die Frist wirklich ab, steht die Zahl wieder da.
+    # Der Beobachtungszeitpunkt liegt dicht an der Frist – sonst gälte die
+    # Beobachtung als veraltet und der Heartbeat schlüge (richtigerweise)
+    # gar keinen Alarm.
+    ticks = iter([0, 890, 900, 900])
+    expired = hb.watch(
+        lambda: hb.queue_state(_jobs("queued", "queued"), EXPECTED), EXPECTED,
+        acceptance_s=900, deadline_s=1500, poll_s=20,
+        clock=lambda: next(ticks), sleep=lambda _s: None,
+    )
+    assert expired.acceptance_expired is True
+    _, detail = hb.evaluate(expired, EXPECTED, acceptance_s=900, deadline_s=1500)
+    assert "wartet nach 15 min" in detail
+
+
+def test_a_stale_observation_at_the_acceptance_deadline_keeps_polling() -> None:
+    """Ein API-Schluckauf darf das Beobachtungsfenster nicht verschenken.
+
+    Die Frische-Degradierung galt vorher nur am Gesamtfenster. Mit der
+    Annahmefrist griffe sie zehn Minuten früher: Eine Störung um t=900
+    beendete die Beobachtung als ``UNOBSERVED``, obwohl die API bis 1500 s
+    Zeit gehabt hätte, sich zu erholen (#938-Review).
+    """
+    calls = {"n": 0}
+
+    def observe():
+        calls["n"] += 1
+        if calls["n"] >= 3:
+            raise OSError("Jobs-API kurzzeitig weg")
+        return hb.queue_state(_jobs("ok", "queued"), EXPECTED)
+
+    ticks = iter([0, 860, 880, 900, 900, 1200, 1500, 1500, 1500])
+    hb.watch(
+        observe, EXPECTED, acceptance_s=900, deadline_s=1500, poll_s=20,
+        clock=lambda: next(ticks), sleep=lambda _s: None,
+    )
+    assert calls["n"] >= 3, "Beobachtung endete zur Annahmefrist trotz Störung"
+
+
+def test_the_offline_reason_names_the_busy_runner_case() -> None:
+    """Self-hosted Runner nehmen einen Job gleichzeitig an.
+
+    Läuft zur Heartbeat-Zeit eine Abnahme auf demselben Gerät, wartet der
+    Job zu Recht. Der Empfänger des Issue-Kommentars soll dann nicht nach
+    einem Ausfall suchen, den es nicht gibt (#938-Review).
+    """
+    state = hb.queue_state(_jobs("ok", "queued"), EXPECTED)
+    _, detail = hb.evaluate(
+        replace(state, acceptance_expired=True), EXPECTED,
+        acceptance_s=900, deadline_s=1500,
+    )
+    assert "belegt" in detail, detail
+    assert "offline" in detail
+
+
+def test_the_cli_rejects_a_useless_acceptance_deadline(capsys) -> None:
+    """Gleich oder groesser als das Gesamtfenster heisst: kein frueheres Verdikt.
+
+    Der Heartbeat fiele damit still auf den Zustand zurueck, den dieser PR
+    behebt — CLI, Docstring und Wächter verlangen deshalb dasselbe ``<``
+    (#938-Review).
+    """
+    for acceptance in ("1500", "1600"):
+        with pytest.raises(SystemExit):
+            hb.main([
+                "--report", "r.json", "--summary", "s.md", "watch",
+                "--repo", "o/r", "--run-id", "1",
+                "--acceptance-seconds", acceptance, "--deadline-seconds", "1500",
+            ])
+        assert "muss kleiner als" in capsys.readouterr().err
+
+
+def test_the_report_records_whether_the_deadline_expired() -> None:
+    """Auch die Evidenz muss die Unterscheidung tragen, nicht nur der Text."""
+    state = hb.queue_state(_jobs("queued", "fail"), EXPECTED)
+    report = hb.build_report(
+        verdict=hb.VERDICT_FAIL, detail="egal", expected=EXPECTED, state=state,
+        acceptance_s=900, deadline_s=1500, run_url="",
+    )
+    assert report["acceptance_expired"] is False
+    assert report["acceptance_seconds"] == 900 and report["deadline_seconds"] == 1500
 
 
 def test_watch_reports_a_failed_readiness_job_without_waiting_out_the_deadline() -> None:
@@ -274,7 +388,8 @@ def test_watch_reports_a_failed_readiness_job_without_waiting_out_the_deadline()
     clock = iter([0, 0, 1])
     state = hb.watch(
         lambda: hb.queue_state(_jobs("ok", "fail"), EXPECTED), EXPECTED,
-        deadline_s=1500, poll_s=20, clock=lambda: next(clock), sleep=lambda _s: None,
+        acceptance_s=1500, deadline_s=1500, poll_s=20,
+        clock=lambda: next(clock), sleep=lambda _s: None,
     )
     assert state.failed == ("Heartbeat Linux aarch64",)
 
@@ -292,7 +407,7 @@ def test_watch_waits_for_completion_not_merely_for_acceptance() -> None:
 
     clock = iter([0, 0, 0, 1])
     state = hb.watch(
-        observe, EXPECTED, deadline_s=1500, poll_s=20,
+        observe, EXPECTED, acceptance_s=900, deadline_s=1500, poll_s=20,
         clock=lambda: next(clock), sleep=lambda _s: None,
     )
     assert seen["n"] == 2
@@ -304,17 +419,17 @@ def test_a_job_still_running_at_the_deadline_yields_no_verdict() -> None:
     state = hb.QueueState(
         known=EXPECTED, queued=(), pending=("Heartbeat macOS arm64",),
     )
-    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=1500)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
     assert verdict == hb.VERDICT_UNOBSERVED
     assert "noch" in detail
 
 
 def test_the_report_separates_offline_from_not_ready(tmp_path: Path) -> None:
     state = hb.queue_state(_jobs("queued", "fail"), EXPECTED)
-    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=1500)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
     report = hb.build_report(
         verdict=verdict, detail=detail, expected=EXPECTED, state=state,
-        deadline_s=1500, run_url="",
+        acceptance_s=900, deadline_s=1500, run_url="",
     )
     hb.write_outputs(report, report_path=tmp_path / "r.json", summary_path=tmp_path / "s.md")
     payload = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))

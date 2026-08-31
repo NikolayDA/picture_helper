@@ -981,7 +981,17 @@ ADR [`docs/history/ADR-2026-release-abnahme-automatisierung.md`](docs/history/AD
 frühestens beim Release. `runner-heartbeat.yml` deckt die Zeit **davor** ab:
 täglich 05:30 UTC (und auf Zuruf) bekommt jeder aktive Runner einen
 Minimaljob, und `scripts/runner_heartbeat.py` beobachtet GitHub-hosted, ob er
-ihn binnen 15 Minuten annimmt. Der Job auf dem Runner ist bewusst der
+ihn annimmt und besteht. Dafür **zwei getrennte Fristen** (#921-Nachprüfung,
+zuvor eine für beides — die Doku versprach 15 Minuten, die Auswertung wartete
+1500 s ab): Bis zur **Annahmefrist** (15 min) muss der Runner den Job
+angenommen haben; ist er dann noch `queued`, fällt das Offline-Verdikt
+sofort, statt das Gesamtfenster abzuwarten. Bis zur **Bereitschaftsfrist**
+(25 min = Annahme + Jobbudget des Readiness-Jobs) muss die Prüfung
+abgeschlossen sein; läuft sie darüber hinaus, gibt es `UNOBSERVED` statt
+eines geratenen Verdikts. Beide Werte stehen als Voreinstellung im Skript,
+werden im Workflow ausdrücklich übergeben, und
+`tests/test_runner_heartbeat_workflow.py` hält Doku, Workflow und Konstanten
+gegeneinander. Der Job auf dem Runner ist bewusst der
 Abnahme-Preflight mit `--hardening-strict`: So fällt nicht nur ein *offline*
 Gerät auf, sondern auch ein eingeschaltetes, das nicht einsatzbereit wäre.
 Die Auswertung liest Status **und** `conclusion`: Ein Runner, der den Job
@@ -991,7 +1001,12 @@ Schritte desselben Jobs und `needs`-Vorgänger erfasst. Fail-safe wie der
 Lauf-Watchdog — ohne **frische** Beobachtung (API-Fehler) gibt es kein
 Verdikt, sonst entwertete jeder Schluckauf den Alarm. Der
 Heartbeat bricht nie einen Lauf ab (kein `actions: write`); gegen auflaufende
-Warteschlangen-Jobs schützt `concurrency: cancel-in-progress`.
+Warteschlangen-Jobs schützt `concurrency: cancel-in-progress`. Genau deshalb
+endet ein Offline-Lauf am Folgetag als **`cancelled`**, nicht als Fehlschlag —
+Actions verschickt dann keine Fehlermail, und der Issue-Kommentar ist der
+einzige Kanal, der rechtzeitig trägt. Ein Workflow-Kommentar behauptete
+zeitweise das Gegenteil und nahm damit der Pflichtvariable ihre Begründung;
+ein Test hält die Aussage jetzt fest.
 
 Die **Geräte-Härtung** in `abnahme_preflight.run_hardening` prüft zwei
 Lücken, die aus den offiziellen Vorlagen von `actions/runner` stammen:

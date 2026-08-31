@@ -26,6 +26,19 @@ ACCEPTANCE = WORKFLOW_DIR / "release-abnahme.yml"
 # (dispatch-/schedule-only, minimale Permissions, Checkout ohne Credentials).
 SELF_HOSTED_WORKFLOWS = {"release-abnahme.yml", "runner-heartbeat.yml"}
 
+AUTOMATION = ROOT / "docs" / "RELEASE_AUTOMATION.md"
+
+
+def _automation_section(number: str) -> str:
+    """Text eines ``## <number>.``-Abschnitts bis zur nächsten gleichen Ebene."""
+    text = AUTOMATION.read_text(encoding="utf-8")
+    head = re.search(rf"(?m)^## {re.escape(number)}\. ", text)
+    assert head is not None, f"Abschnitt {number} fehlt in RELEASE_AUTOMATION.md"
+    rest = text[head.start() :]
+    following = re.search(r"(?m)^## ", rest[1:])
+    return rest[: following.start() + 1] if following else rest
+
+
 _SPEC = importlib.util.spec_from_file_location(
     "runner_heartbeat", ROOT / "scripts" / "runner_heartbeat.py"
 )
@@ -242,6 +255,60 @@ def test_runner_jobs_run_the_hardening_tier_strictly() -> None:
     )
     assert "abnahme_preflight.py" in acceptance
     assert "--hardening-strict" not in acceptance
+
+
+def test_both_deadlines_agree_across_code_workflow_and_docs() -> None:
+    """#921-Nachprüfung: **eine** Aussage über die Fristen, nicht drei.
+
+    Vorher versprach die Doku „binnen 15 Minuten", der Workflow übergab ein
+    Gesamtfenster von 1500 s, und die Fehlermeldung sagte „wartet nach
+    1500 s". Alle drei beschrieben dieselbe Sache verschieden — die Art
+    Drift, gegen die diese Datei sonst Wächter stellt.
+    """
+    acceptance = int(heartbeat.DEFAULT_ACCEPTANCE_S)
+    deadline = int(heartbeat.DEFAULT_DEADLINE_S)
+    # Eine Annahmefrist jenseits des Gesamtfensters wäre wirkungslos.
+    assert acceptance < deadline, (acceptance, deadline)
+
+    # 1. Der Workflow übergibt genau diese Werte – sichtbar im Joblog.
+    body = HEARTBEAT.read_text(encoding="utf-8")
+    assert f"--acceptance-seconds {acceptance}" in body
+    assert f"--deadline-seconds {deadline}" in body
+
+    # 2. Die Doku nennt beide in Minuten und begründet die Summe.
+    section = _automation_section("7")
+    assert f"**{acceptance // 60} min** ({acceptance} s)" in section
+    assert f"**{deadline // 60} min** ({deadline} s)" in section
+
+    # 3. Das Gesamtfenster deckt Annahme plus das Jobbudget des Readiness-Jobs.
+    readiness = [
+        int(job["timeout-minutes"]) * 60
+        for job in _jobs(HEARTBEAT).values()
+        if "abnahme_preflight.py" in " ".join(
+            str(step.get("run", "")) for step in job.get("steps", [])
+        )
+    ]
+    assert readiness and deadline >= acceptance + max(readiness), (deadline, readiness)
+
+    # 4. Und die Auswertung selbst hat Zeit, das Fenster auszusitzen.
+    watch_budget = int(_jobs(HEARTBEAT)["watch"]["timeout-minutes"]) * 60
+    assert watch_budget > deadline, (watch_budget, deadline)
+
+
+def test_the_offline_case_is_not_claimed_to_be_a_visible_failure() -> None:
+    """Der Workflow darf nicht behaupten, was er nicht hält (#921-Nachprüfung).
+
+    Ein Kommentar sagte, der Fehlschlag bleibe „als Fehlschlag sichtbar" —
+    tatsächlich beendet der Folgelauf ihn per `cancel-in-progress` als
+    `cancelled`, also **ohne** Actions-Fehlermail. Genau deshalb ist der
+    Issue-Kommentar Pflicht; die Falschaussage nahm dieser Pflicht ihre
+    Begründung.
+    """
+    body = HEARTBEAT.read_text(encoding="utf-8")
+    assert "Fehlschlag bleibt als Fehlschlag sichtbar" not in body
+    concurrency = body[body.index("concurrency:") - 900 : body.index("concurrency:")]
+    assert "cancelled" in concurrency and "Fehlermail" in concurrency
+    assert "RUNNER_HEARTBEAT_ISSUE" in concurrency
 
 
 def test_every_readiness_job_can_afford_the_runtime_build() -> None:
