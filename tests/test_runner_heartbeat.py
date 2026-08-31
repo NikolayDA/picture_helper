@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -192,7 +193,10 @@ def test_a_stale_queue_observation_never_becomes_a_verdict() -> None:
             return hb.queue_state(_jobs("queued", "queued"), EXPECTED)
         raise OSError("api down")
 
-    state = _watch(flaky, ticks=[0, 0, 100, 200])
+    # Ein Tick mehr als früher: Ist die Beobachtung zur Annahmefrist veraltet,
+    # terminiert sie dort nicht mehr, sondern fällt auf das Gesamtfenster durch
+    # (#938-Review) – hier fallen beide zusammen, also unmittelbar.
+    state = _watch(flaky, ticks=[0, 0, 100, 200, 200])
     assert state.observed is False
     assert hb.evaluate(state, EXPECTED, acceptance_s=900, deadline_s=900)[0] == hb.VERDICT_UNOBSERVED
 
@@ -309,6 +313,46 @@ def test_a_short_circuit_never_claims_an_expired_deadline() -> None:
     assert expired.acceptance_expired is True
     _, detail = hb.evaluate(expired, EXPECTED, acceptance_s=900, deadline_s=1500)
     assert "wartet nach 15 min" in detail
+
+
+def test_a_stale_observation_at_the_acceptance_deadline_keeps_polling() -> None:
+    """Ein API-Schluckauf darf das Beobachtungsfenster nicht verschenken.
+
+    Die Frische-Degradierung galt vorher nur am Gesamtfenster. Mit der
+    Annahmefrist griffe sie zehn Minuten früher: Eine Störung um t=900
+    beendete die Beobachtung als ``UNOBSERVED``, obwohl die API bis 1500 s
+    Zeit gehabt hätte, sich zu erholen (#938-Review).
+    """
+    calls = {"n": 0}
+
+    def observe():
+        calls["n"] += 1
+        if calls["n"] >= 3:
+            raise OSError("Jobs-API kurzzeitig weg")
+        return hb.queue_state(_jobs("ok", "queued"), EXPECTED)
+
+    ticks = iter([0, 860, 880, 900, 900, 1200, 1500, 1500, 1500])
+    hb.watch(
+        observe, EXPECTED, acceptance_s=900, deadline_s=1500, poll_s=20,
+        clock=lambda: next(ticks), sleep=lambda _s: None,
+    )
+    assert calls["n"] >= 3, "Beobachtung endete zur Annahmefrist trotz Störung"
+
+
+def test_the_offline_reason_names_the_busy_runner_case() -> None:
+    """Self-hosted Runner nehmen einen Job gleichzeitig an.
+
+    Läuft zur Heartbeat-Zeit eine Abnahme auf demselben Gerät, wartet der
+    Job zu Recht. Der Empfänger des Issue-Kommentars soll dann nicht nach
+    einem Ausfall suchen, den es nicht gibt (#938-Review).
+    """
+    state = hb.queue_state(_jobs("ok", "queued"), EXPECTED)
+    _, detail = hb.evaluate(
+        replace(state, acceptance_expired=True), EXPECTED,
+        acceptance_s=900, deadline_s=1500,
+    )
+    assert "belegt" in detail, detail
+    assert "offline" in detail
 
 
 def test_the_report_records_whether_the_deadline_expired() -> None:

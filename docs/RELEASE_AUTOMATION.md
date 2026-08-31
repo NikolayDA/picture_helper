@@ -779,7 +779,7 @@ Auswertung wartete das volle Fenster ab und meldete „wartet nach 1500 s".
 
 | Frist | Wert | Frage | Ausgang beim Ablauf |
 |---|---|---|---|
-| Annahme | **15 min** (900 s) | Hat der Runner den Job *angenommen*? | noch `queued` → `FAIL` (offline), sofort |
+| Annahme | **15 min** (900 s) | Hat der Runner den Job *angenommen*? | noch `queued` → `FAIL` (offline **oder belegt**, s. u.), sofort |
 | Bereitschaft | **25 min** (1500 s) | Ist die *Prüfung abgeschlossen*? | noch `running` → `UNOBSERVED`, kein Verdikt |
 
 Die Gesamtfrist ist die Summe aus Annahmefrist und dem Jobbudget des
@@ -789,6 +789,24 @@ verzögerte nur die Meldung, und die Zusage „binnen 15 Minuten" hielte nicht.
 Beide Werte stehen als Voreinstellung im Skript und werden im Workflow
 ausdrücklich übergeben; `tests/test_runner_heartbeat_workflow.py` hält
 Doku, Workflow und Konstanten gegeneinander.
+
+Zwei Feinheiten, die sich aus der Verkürzung ergeben:
+
+- **Ein belegtes Gerät ist kein offline Gerät.** Self-hosted Runner nehmen
+  standardmäßig einen Job gleichzeitig an. Läuft zur Heartbeat-Zeit ein
+  Abnahme-Plattformjob auf demselben Runner, wartet der Heartbeat-Job zu
+  Recht — und wird nach 15 statt nach 25 Minuten gemeldet. Die Meldung nennt
+  diesen Grund deshalb ausdrücklich mit („offline, nimmt keine Jobs an oder
+  ist mit einem anderen Lauf belegt"); wer den Issue-Kommentar liest, soll
+  nicht nach einem Ausfall suchen, den es nicht gibt. Belastbarer wäre eine
+  Auswertung des Runner-Zustands — die braucht aber genau das PAT mit
+  `Administration: read`, das §7 unten bewusst ablehnt.
+- **Ein API-Schluckauf verschenkt die Beobachtung nicht.** Die Annahmefrist
+  terminiert nur auf **frischer** Grundlage. Ist die Beobachtung zum
+  Fristablauf veraltet, läuft die Schleife bis zum Gesamtfenster weiter,
+  damit sich die Jobs-API erholen kann — sonst gäbe der Monitor zehn Minuten
+  für eine Störung auf, die er überlebt hätte, und meldete `UNOBSERVED`
+  statt eines echten Verdikts.
 
 Der Job auf dem Runner ist bewusst kein `echo`, sondern der Preflight aus
 §2/§2.1/§2.2 mit `--hardening-strict`. Damit fällt nicht nur ein *offline*

@@ -301,9 +301,16 @@ def watch(
             if not last.pending and set(expected).issubset(last.known):
                 return last
         elapsed = clock() - start
-        # Annahmefrist: Ein noch wartender Job ist hier bereits das Ergebnis.
+        # Annahmefrist: Ein noch wartender Job ist hier bereits das Ergebnis –
+        # aber nur auf **frischer** Grundlage. Ist die Beobachtung veraltet
+        # (API-Stoerung um die Frist herum), bliebe sonst genau das Fenster
+        # ungenutzt, in dem sich die API erholen koennte: Der Monitor gaebe
+        # 10 Minuten Beobachtung fuer eine Stoerung auf, die er ueberlebt
+        # haette, und meldete UNOBSERVED statt eines echten Verdikts.
         if elapsed >= acceptance_s and last.queued:
-            return _verdict_ready()
+            verdict = _verdict_ready()
+            if verdict.observed:
+                return verdict
         if elapsed >= deadline_s:
             return _verdict_ready()
         sleep(poll_s)
@@ -321,9 +328,15 @@ def evaluate(
         )
     reasons: list[str] = []
     if state.queued and state.acceptance_expired:
+        # Der zweite moegliche Grund gehoert in die Meldung, nicht nur in die
+        # Doku: Self-hosted-Runner nehmen einen Job gleichzeitig an. Laeuft
+        # gerade eine Abnahme auf demselben Geraet, wartet der Heartbeat-Job
+        # zu Recht – und der Empfaenger des Issue-Kommentars soll nicht nach
+        # einem Ausfall suchen, den es nicht gibt.
         reasons.append(
             f"{', '.join(state.queued)} wartet nach {acceptance_s / 60:.0f} min "
-            "weiterhin auf einen Runner – offline oder nimmt keine Jobs an"
+            "weiterhin auf einen Runner – offline, nimmt keine Jobs an oder ist "
+            "mit einem anderen Lauf belegt"
         )
     elif state.queued:
         # Die Beobachtung endete vorzeitig, weil ein anderer Job bereits
