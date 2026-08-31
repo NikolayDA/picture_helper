@@ -848,6 +848,11 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"Datum muss ein gültiges Kalenderdatum JJJJ-MM-TT sein: {release_date!r}")
 
     repo = args.repo.resolve()
+    # Beide Pfade absolut: Geschrieben wird relativ zum Prozess-CWD, ``gh``
+    # laeuft aber mit ``cwd=repo``. Ein relativer ``--issue-output`` zeigte
+    # sonst auf zwei verschiedene Dateien – und die Wiederanlaufzeile auf gar
+    # keine (#933-Review).
+    issue_output: Path | None = None if args.issue_output is None else args.issue_output.resolve()
     try:
         previous = vrf._PYPROJECT_VERSION_RE.search(_read(repo, PYPROJECT_PATH))
         if previous is None:
@@ -898,7 +903,7 @@ def main(argv: list[str] | None = None) -> int:
     # ausfuehrbaren Weg zum Issue – ein zweiter Skriptlauf bricht ab, weil
     # ``pyproject.toml`` bereits auf der Zielversion steht (#933).
     fallback: Path | None = None
-    issue_path: Path | None = args.issue_output
+    issue_path: Path | None = issue_output
     if args.dry_run:
         # Ein Probelauf soll ALLES zeigen, was entstuende – auch das Issue.
         # Geschrieben oder angelegt wird dabei nichts.
@@ -912,8 +917,8 @@ def main(argv: list[str] | None = None) -> int:
             issue_path = fallback
         if issue_path is not None:
             write_text_atomic(issue_path, issue_body)
-        if args.issue_output is not None:
-            print(f"  geschrieben: {args.issue_output}")
+        if issue_output is not None:
+            print(f"  geschrieben: {issue_output}")
         else:
             print(f"\n--- Release-Issue: {issue_title} ---")
             print(issue_body)

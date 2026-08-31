@@ -888,6 +888,44 @@ def test_the_default_call_leaves_an_executable_resume(
     assert _worktree_hashes(fixture_repo) == before
 
 
+def test_a_relative_issue_output_stays_valid_for_gh_and_the_resume(
+    fixture_repo: Path, tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """Relativer ``--issue-output`` (#933-Review).
+
+    Geschrieben wird relativ zum **Prozess-CWD**, ``gh`` läuft aber mit
+    ``cwd=repo``: Unaufgelöst zeigte derselbe Pfad damit auf zwei verschiedene
+    Dateien – und die Wiederanlaufzeile auf gar keine. Der Fallback verdeckte
+    das, weil ``mkdtemp`` absolut liefert.
+    """
+    log = _with_gh_stub(tmp_path, monkeypatch, exit_code=1)
+    workdir = tmp_path / "cwd"
+    workdir.mkdir()
+    monkeypatch.chdir(workdir)
+    assert (
+        pr.main(
+            [
+                "9.9.9",
+                "--date",
+                "2026-09-15",
+                "--repo",
+                str(fixture_repo),
+                "--issue-output",
+                "issue.md",
+                "--create-issue",
+            ]
+        )
+        == 2
+    )
+    written = workdir / "issue.md"
+    assert written.is_file() and not (fixture_repo / "issue.md").exists()
+    # ``gh`` bekommt den absoluten Pfad – sonst suchte es <repo>/issue.md.
+    assert str(written) in log.read_text("utf-8")
+    command = _resume_command(capsys.readouterr().err)
+    body_file = Path(shlex.split(command[command.index("gh issue create") :])[-1])
+    assert body_file == written and body_file.is_file()
+
+
 def test_a_successful_creation_leaves_no_stray_copy(
     fixture_repo: Path, tmp_path: Path, monkeypatch, capsys
 ) -> None:
