@@ -305,9 +305,333 @@ def test_acceptance_run_on_a_foreign_ref_is_rejected() -> None:
         )
 
 
+# ── Tag-Anlage im Publish-Workflow (#919, Stufe 1) ──────────────────────────
+
+TAG_OBJECT_SHA = "b" * 40
+
+
+def _tag_ref(sha: str = HEAD, *, ref: str = f"refs/tags/{TAG}", kind: str = "commit") -> dict:
+    """Antwort von ``gh api repos/OWNER/REPO/git/ref/tags/vX.Y.Z``."""
+    return {"ref": ref, "object": {"type": kind, "sha": sha}}
+
+
+def _tag_object(commit: str = HEAD, *, sha: str = TAG_OBJECT_SHA) -> dict:
+    """Antwort von ``gh api repos/OWNER/REPO/git/tags/<tag-objekt-sha>``."""
+    return {"sha": sha, "object": {"type": "commit", "sha": commit}}
+
+
+def test_missing_tag_is_planned_for_creation_on_the_manifest_commit(tmp_path: Path) -> None:
+    manifest, _ = _manifest(tmp_path)
+    assert rc.plan_release_tag(manifest, tag=TAG, ref_payload=None) == (
+        rc.TAG_PLAN_CREATE, HEAD,
+    )
+
+
+def test_existing_correct_tag_is_only_verified(tmp_path: Path) -> None:
+    """Wiederanlauf ist idempotent: Ein passender Tag wird nicht neu gesetzt."""
+    manifest, _ = _manifest(tmp_path)
+    assert rc.plan_release_tag(manifest, tag=TAG, ref_payload=_tag_ref()) == (
+        rc.TAG_PLAN_ALREADY_CORRECT, HEAD,
+    )
+
+
+def test_divergent_tag_blocks_instead_of_being_moved(tmp_path: Path) -> None:
+    """Ein Tag wird nie verschoben - auch nicht "zur Reparatur"."""
+    manifest, _ = _manifest(tmp_path)
+    with pytest.raises(rc.ContractError, match="wird nicht verschoben"):
+        rc.plan_release_tag(manifest, tag=TAG, ref_payload=_tag_ref("c" * 40))
+
+
+def test_annotated_tag_is_dereferenced_before_the_sha_comparison(tmp_path: Path) -> None:
+    """Der Ref eines annotierten Tags zeigt auf das Tag-Objekt, nicht den Commit.
+
+    Ohne Dereferenzierung verglichen wir den Tag-Objekt-SHA gegen den
+    Kandidaten-SHA - der Vergleich schluege immer fehl (oder, schlimmer, ginge
+    bei einer laxeren Pruefung still durch). Runbook-Schritt 7 setzt bewusst
+    ein **annotiertes** Tag, dieser Pfad ist also der Regelfall.
+    """
+    manifest, _ = _manifest(tmp_path)
+    assert rc.plan_release_tag(
+        manifest,
+        tag=TAG,
+        ref_payload=_tag_ref(TAG_OBJECT_SHA, kind="tag"),
+        tag_object_payload=_tag_object(),
+    ) == (rc.TAG_PLAN_ALREADY_CORRECT, HEAD)
+
+    # Dasselbe annotierte Tag auf einem fremden Commit blockiert.
+    with pytest.raises(rc.ContractError, match="wird nicht verschoben"):
+        rc.plan_release_tag(
+            manifest,
+            tag=TAG,
+            ref_payload=_tag_ref(TAG_OBJECT_SHA, kind="tag"),
+            tag_object_payload=_tag_object("c" * 40),
+        )
+
+
+def test_annotated_tag_without_its_object_payload_fails_closed(tmp_path: Path) -> None:
+    manifest, _ = _manifest(tmp_path)
+    with pytest.raises(rc.ContractError, match="annotiert"):
+        rc.plan_release_tag(manifest, tag=TAG, ref_payload=_tag_ref(TAG_OBJECT_SHA, kind="tag"))
+
+
+def test_tag_object_payload_must_belong_to_the_referenced_tag(tmp_path: Path) -> None:
+    """Eine untergeschobene Tag-Objekt-Antwort darf den Vergleich nicht tragen."""
+    manifest, _ = _manifest(tmp_path)
+    with pytest.raises(rc.ContractError, match="gehoert nicht zu"):
+        rc.plan_release_tag(
+            manifest,
+            tag=TAG,
+            ref_payload=_tag_ref(TAG_OBJECT_SHA, kind="tag"),
+            tag_object_payload=_tag_object(sha="d" * 40),
+        )
+
+
+def test_tag_plan_rejects_a_foreign_ref_answer_and_a_manifest_mismatch(tmp_path: Path) -> None:
+    manifest, _ = _manifest(tmp_path)
+    with pytest.raises(rc.ContractError, match="gehoert zu"):
+        rc.plan_release_tag(manifest, tag=TAG, ref_payload=_tag_ref(ref="refs/tags/v9.9.9"))
+    with pytest.raises(rc.ContractError, match="weicht vom Manifest-Tag"):
+        rc.plan_release_tag(manifest, tag="v9.9.9", ref_payload=None)
+
+
+def test_tag_plan_rejects_a_branch_object_behind_the_tag_ref(tmp_path: Path) -> None:
+    manifest, _ = _manifest(tmp_path)
+    with pytest.raises(rc.ContractError, match="statt auf Commit oder Tag-Objekt"):
+        rc.plan_release_tag(manifest, tag=TAG, ref_payload=_tag_ref(kind="tree"))
+
+
+def test_matching_refs_selection_ignores_prefix_neighbours() -> None:
+    """`git/matching-refs` sucht per Praefix - das darf nie als Treffer gelten.
+
+    Laut GitHub-Referenz liefert `tags/v2.7.2` auch `v2.7.2-rc1`. Ohne exakte
+    Auswahl haette ein Vorabtag den Anschein erweckt, der Release-Tag existiere
+    schon: Der Workflow haette dann `already-correct` oder einen Konflikt
+    gemeldet, statt den Tag anzulegen.
+    """
+    neighbours = [
+        _tag_ref(ref=f"refs/tags/{TAG}-rc1"),
+        _tag_ref(ref=f"refs/tags/{TAG}.1"),
+    ]
+    assert rc.select_tag_ref(neighbours, tag=TAG) is None
+    assert rc.select_tag_ref([], tag=TAG) is None
+    exact = _tag_ref()
+    assert rc.select_tag_ref([*neighbours, exact], tag=TAG) == exact
+    with pytest.raises(rc.ContractError, match="mehrfach"):
+        rc.select_tag_ref([exact, exact], tag=TAG)
+    with pytest.raises(rc.ContractError, match="keine Liste"):
+        rc.select_tag_ref({"ref": f"refs/tags/{TAG}"}, tag=TAG)
+
+
+def test_plan_tag_cli_reports_action_and_candidate(tmp_path: Path, capsys) -> None:
+    manifest, _ = _manifest(tmp_path)
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    refs_path = tmp_path / "matching-refs.json"
+
+    # Leere Liste = Tag fehlt (der Endpunkt antwortet immer mit HTTP 200).
+    refs_path.write_text("[]", encoding="utf-8")
+    args = ["plan-tag", "--manifest", str(manifest_path), "--tag", TAG,
+            "--matching-refs-json", str(refs_path)]
+    assert rc.main(args) == 0
+    assert "create" in capsys.readouterr().out
+
+    refs_path.write_text(json.dumps([_tag_ref()]), encoding="utf-8")
+    assert rc.main(args) == 0
+    assert "already-correct" in capsys.readouterr().out
+
+    refs_path.write_text(json.dumps([_tag_ref("c" * 40)]), encoding="utf-8")
+    assert rc.main(args) == 2
+
+    # Nur ein Praefix-Nachbar: der Tag selbst fehlt weiterhin.
+    refs_path.write_text(json.dumps([_tag_ref(ref=f"refs/tags/{TAG}-rc1")]), encoding="utf-8")
+    assert rc.main(args) == 0
+    assert "create" in capsys.readouterr().out
+
+
+
+# ── Finale Release-Instanz (#919, Stufe 3) ──────────────────────────────────
+
+
+def _update_payload(ok: bool = True, **overrides: object) -> dict:
+    payload = {
+        "schema": 1,
+        "kind": "abnahme-update-check",
+        "erzeugt_am": "2026-08-30T22:00:00+00:00",
+        "kandidaten_version": VERSION,
+        "ok": ok,
+        "pruefungen": [
+            {"rolle": "vorgaenger", "befund": "ok" if ok else "STATUS_UNERWARTET"},
+            {"rolle": "kandidat", "befund": "ok"},
+        ],
+    }
+    payload.update(overrides)
+    return payload
+
+
+def _write_update_evidence(root: Path, platform: str, payload: dict, *, attempt: int = 1) -> None:
+    target = root / f"abnahme-{platform}-{attempt}" / "update_check"
+    target.mkdir(parents=True, exist_ok=True)
+    (target / "update_check.json").write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_update_check_constants_stay_in_sync_with_the_smoke_writer() -> None:
+    """Handgepflegte Kopie gegen ihre Quelle (Drift-Disziplin).
+
+    ``release_contract`` spiegelt Schema, Kind und Dateiname bewusst, statt
+    ``abnahme_smoke`` zu importieren - der Vertrag bleibt so von der
+    Smoke-Maschinerie unabhaengig. Ohne diesen Waechter bliebe eine
+    Schemaanhebung im Schreiber still, und die Auswertung wuerde sie als
+    "unbekannte Nutzlast" abweisen statt sie zu lesen.
+    """
+    smoke_spec = importlib.util.spec_from_file_location(
+        "abnahme_smoke_probe", ROOT / "scripts" / "abnahme_smoke.py"
+    )
+    assert smoke_spec is not None and smoke_spec.loader is not None
+    smoke = importlib.util.module_from_spec(smoke_spec)
+    sys.modules["abnahme_smoke_probe"] = smoke
+    smoke_spec.loader.exec_module(smoke)
+    assert rc.UPDATE_CHECK_SCHEMA == smoke.UPDATE_CHECK_SUMMARY_SCHEMA
+    assert rc.UPDATE_CHECK_KIND == smoke.UPDATE_CHECK_SUMMARY_KIND
+    assert rc.UPDATE_CHECK_SUMMARY_NAME == smoke.UPDATE_CHECK_SUMMARY_NAME
+    assert rc.UPDATE_CHECK_CRITERIA["linux-arm64"] == "UPDATE-LINUX-ARM-01"
+    assert rc.UPDATE_CHECK_CRITERIA["macos-arm64"] == "UPDATE-MACOS-ARM-01"
+
+
+def test_update_status_maps_evidence_to_pass_fail_pending() -> None:
+    assert rc.update_check_status(_update_payload(True))[0] == "PASS"
+    # FAIL statt WAIVED: Der Fund betrifft alle ausgelieferten Installationen.
+    status, detail = rc.update_check_status(_update_payload(False))
+    assert status == "FAIL" and "STATUS_UNERWARTET" in detail
+    assert rc.update_check_status(None)[0] == "PENDING"
+
+
+def test_unknown_update_payload_throws_instead_of_looking_like_pending() -> None:
+    """Ein Schemabruch darf nicht wie ein nicht gelaufener Nachweis aussehen."""
+    with pytest.raises(rc.ContractError, match="Unbekannte Update-Check-Nutzlast"):
+        rc.update_check_status(_update_payload(schema=2))
+    with pytest.raises(rc.ContractError, match="Unbekannte Update-Check-Nutzlast"):
+        rc.update_check_status(_update_payload(kind="etwas-anderes"))
+    with pytest.raises(rc.ContractError, match="ok-Feld"):
+        rc.update_check_status(_update_payload(ok="ja"))
+
+
+def test_evidence_loader_picks_the_newest_attempt_per_platform(tmp_path: Path) -> None:
+    root = tmp_path / "evidenz"
+    _write_update_evidence(root, "linux-arm64", _update_payload(False), attempt=1)
+    _write_update_evidence(root, "linux-arm64", _update_payload(True), attempt=2)
+    _write_update_evidence(root, "macos-arm64", _update_payload(True), attempt=1)
+    payloads = rc.load_update_check_payloads(root)
+    assert set(payloads) == {"linux-arm64", "macos-arm64"}
+    assert payloads["linux-arm64"]["ok"] is True
+    assert rc.load_update_check_payloads(tmp_path / "fehlt") == {}
+
+
+def _instance_for(tmp_path: Path) -> tuple[dict, dict, Path]:
+    """Instanz im Zustand nach dem publish-seitigen Job (Stufe 3a)."""
+    manifest, _ = _manifest(tmp_path)
+    instance = copy.deepcopy(manifest["release_instance"])
+    assert isinstance(instance, dict)
+    checklist = rc.load_release_checklist(CHECKLIST)
+    for criterion in ("PUBLISH-01", "PUBLISH-02", "PUBLISH-03", "PUBLIC-DOWNLOAD-01"):
+        instance = rc.set_release_instance_criterion(
+            instance, checklist=checklist, checklist_path=CHECKLIST,
+            criterion_id=criterion, status="PASS", evidence=["https://example.invalid/run"],
+        )
+    return instance, checklist, CHECKLIST
+
+
+def test_both_platform_criteria_are_filled_from_their_own_evidence(tmp_path: Path) -> None:
+    instance, checklist, checklist_path = _instance_for(tmp_path)
+    root = tmp_path / "evidenz"
+    _write_update_evidence(root, "linux-arm64", _update_payload(True))
+    _write_update_evidence(root, "macos-arm64", _update_payload(True))
+    updated, log = rc.apply_update_criteria(
+        instance, checklist=checklist, checklist_path=checklist_path,
+        payloads=rc.load_update_check_payloads(root),
+        run_url="https://example.invalid/abnahme",
+    )
+    states = {item["id"]: item["status"] for item in updated["criteria"]}
+    assert states["UPDATE-LINUX-ARM-01"] == "PASS"
+    assert states["UPDATE-MACOS-ARM-01"] == "PASS"
+    assert len(log) == 2
+    rc.validate_release_instance_completion(
+        updated, checklist=checklist, checklist_path=checklist_path,
+        through_phase="post-release",
+    )
+
+
+def test_a_platform_without_evidence_stays_pending_and_blocks_completion(
+    tmp_path: Path,
+) -> None:
+    """Kein Mitziehen: Ein Linux-PASS belegt macOS nicht."""
+    instance, checklist, checklist_path = _instance_for(tmp_path)
+    root = tmp_path / "evidenz"
+    _write_update_evidence(root, "linux-arm64", _update_payload(True))
+    updated, _ = rc.apply_update_criteria(
+        instance, checklist=checklist, checklist_path=checklist_path,
+        payloads=rc.load_update_check_payloads(root),
+        run_url="https://example.invalid/abnahme",
+    )
+    states = {item["id"]: item for item in updated["criteria"]}
+    assert states["UPDATE-LINUX-ARM-01"]["status"] == "PASS"
+    assert states["UPDATE-MACOS-ARM-01"]["status"] == "PENDING"
+    # PENDING traegt keine Evidenz - sonst saehe ein nicht erbrachter
+    # Nachweis belegt aus.
+    assert states["UPDATE-MACOS-ARM-01"]["evidence"] == []
+    with pytest.raises(rc.ContractError, match="UPDATE-MACOS-ARM-01"):
+        rc.validate_release_instance_completion(
+            updated, checklist=checklist, checklist_path=checklist_path,
+            through_phase="post-release",
+        )
+
+
+def test_a_failed_update_check_blocks_completion_and_is_never_waived(
+    tmp_path: Path,
+) -> None:
+    instance, checklist, checklist_path = _instance_for(tmp_path)
+    root = tmp_path / "evidenz"
+    _write_update_evidence(root, "linux-arm64", _update_payload(False))
+    _write_update_evidence(root, "macos-arm64", _update_payload(True))
+    updated, _ = rc.apply_update_criteria(
+        instance, checklist=checklist, checklist_path=checklist_path,
+        payloads=rc.load_update_check_payloads(root),
+        run_url="https://example.invalid/abnahme",
+    )
+    states = {item["id"]: item["status"] for item in updated["criteria"]}
+    assert states["UPDATE-LINUX-ARM-01"] == "FAIL"
+    with pytest.raises(rc.ContractError, match="fehlgeschlagen"):
+        rc.validate_release_instance_completion(
+            updated, checklist=checklist, checklist_path=checklist_path,
+            through_phase="post-release",
+        )
+
+
+def test_finalize_cli_writes_the_instance_even_when_it_blocks(tmp_path: Path) -> None:
+    """Die Evidenz eines FAIL darf nicht mit dem FAIL verschwinden."""
+    instance, _, _ = _instance_for(tmp_path)
+    instance_path = tmp_path / "instance.json"
+    instance_path.write_text(json.dumps(instance), encoding="utf-8")
+    root = tmp_path / "evidenz"
+    _write_update_evidence(root, "linux-arm64", _update_payload(False))
+    _write_update_evidence(root, "macos-arm64", _update_payload(True))
+    output = tmp_path / "final.json"
+    code = rc.main([
+        "finalize-instance", "--checklist", str(CHECKLIST),
+        "--instance", str(instance_path), "--evidence-dir", str(root),
+        "--run-url", "https://example.invalid/abnahme", "--output", str(output),
+    ])
+    assert code == 2
+    written = json.loads(output.read_text(encoding="utf-8"))
+    states = {item["id"]: item["status"] for item in written["criteria"]}
+    assert states["UPDATE-LINUX-ARM-01"] == "FAIL"
+    assert states["UPDATE-MACOS-ARM-01"] == "PASS"
+
+
 def test_versioned_checklist_has_exact_scope_stable_ids_and_required_fields() -> None:
     checklist = rc.load_release_checklist(CHECKLIST)
-    assert checklist["checklist_version"] == "2.0.0"
+    # 2.1.0 (#919): PUBLISH-01 wird von CI gesetzt, nicht mehr vom
+    # Release-Owner - Kriteriumssemantik und IDs unveraendert.
+    assert checklist["checklist_version"] == "2.1.0"
     assert tuple(item["id"] for item in checklist["artifacts"]) == rc.CHECKLIST_ARTIFACTS
     assert not any("windows" in json.dumps(item).lower() for item in checklist["artifacts"])
     criteria = checklist["criteria"]

@@ -74,10 +74,11 @@ def test_workflow_uploads_evidence_per_platform() -> None:
 
     assert "name: abnahme-macos-arm64" in text
     assert "name: abnahme-linux-arm64" in text
-    # Sieben Uploads: drei Plattform-Evidenzen, Kandidatenvertrag,
-    # Vision-Verdikte (#781), Abschlussmatrix und unveränderliches
-    # Freigabemanifest (#744).
-    assert text.count("actions/upload-artifact") == 7
+    # Acht Uploads: drei Plattform-Evidenzen, Kandidatenvertrag,
+    # Vision-Verdikte (#781), Abschlussmatrix, unveränderliches
+    # Freigabemanifest (#744) und die finale Release-Instanz (#919).
+    assert text.count("actions/upload-artifact") == 8
+    assert "name: release-acceptance-instance-final-" in text
 
 
 def test_workflow_gates_and_surfaces_paused_x86_64() -> None:
@@ -124,7 +125,8 @@ def test_workflow_emits_immutable_approval_manifest() -> None:
     assert "release-approval-manifest-${{ github.run_attempt }}" in text
     assert "release-freeze-provenance.json" in text
     assert "--summary-output" in text
-    assert text.count("retention-days: 90") == 7
+    # Acht Aufbewahrungsangaben - eine je Upload, inkl. finaler Instanz (#919).
+    assert text.count("retention-days: 90") == 8
 
 
 def test_workflow_runs_hardware_smoke() -> None:

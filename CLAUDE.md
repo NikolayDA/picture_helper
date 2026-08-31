@@ -744,12 +744,39 @@ Entscheidung: ADR
 
 - **Unterkommandos:** `prepare-candidate` / `create-approval` /
   `verify-approval` / `verify-release-ref` / `verify-artifacts` /
-  `plan-publish` sowie die
+  `plan-tag` / `plan-publish` sowie die
   Checklisten-Seite `validate-checklist` / `extract-instance` /
-  `set-criterion` / `validate-instance`. `release-abnahme.yml` ruft
-  `prepare-candidate`, `create-approval` und `extract-instance` auf,
-  `release-publish.yml` ausschließlich `verify-approval`, `verify-artifacts`
-  und `plan-publish` (kein Neubau, kein Clobber).
+  `set-criterion` / `finalize-instance` / `validate-instance`.
+  `release-abnahme.yml` ruft `prepare-candidate`, `create-approval`,
+  `extract-instance` und (nur mit `publish_run_id`) `finalize-instance` auf,
+  `release-publish.yml` `verify-approval`, `verify-artifacts`, `plan-tag`,
+  `plan-publish`, `extract-instance`, `set-criterion` und `validate-instance`
+  (kein Neubau, kein Clobber).
+- **Automatisierter Abschluss (#919):** Drei Handgriffe aus Runbook-Schritt 7
+  bis 9 laufen im Workflow, ohne dass eine Prüfung entfällt. `create_tag`
+  legt den annotierten Tag **nach** der Manifestprüfung auf
+  `candidate.head_sha` an — `plan-tag` entscheidet netzfrei aus dem Manifest
+  und `git/matching-refs/tags/<tag>` (immer HTTP 200, leere Liste = fehlt;
+  `select_tag_ref` filtert die **Präfix**-Treffer des Endpunkts exakt weg,
+  annotierte Tags werden vor dem SHA-Vergleich dereferenziert). Ein
+  abweichender Tag bricht ab, wird nie verschoben; der manuelle Weg bleibt
+  gültig. Der Job `update-dispatch` (`scripts/release_update_dispatch.py`,
+  einziger Träger von `actions: write`) startet den
+  Post-Release-Update-Nachweis auf dem Release-Tag: Weil `workflow_dispatch`
+  mit HTTP 204 ohne Run-ID antwortet, kennzeichnet sich der Lauf über
+  `dispatch_marker` im `run-name` und wird per Polling korreliert; der Marker
+  `update-check:<tag>:<candidate_run_id>` ist deterministisch und macht einen
+  Wiederanlauf idempotent (auch ein fehlgeschlagener Nachweis wird nie
+  automatisch wiederholt — er ist ein Incident). Ohne `predecessor_tag` wird
+  sichtbar übersprungen; geraten wird der Vorgänger nie. Die Release-Instanz
+  entsteht in zwei Hälften, jede dort, wo die Evidenz anfällt: der
+  Publish-Lauf setzt `PUBLISH-01..03`/`PUBLIC-DOWNLOAD-01` und validiert bis
+  `publish`, der ausgelöste Abnahme-Lauf trägt beide Update-Kriterien aus
+  seiner `update_check.json` nach (`finalize-instance`, fail-closed: keine
+  Evidenz → `PENDING` ohne Evidenzeintrag, `ok: false` → `FAIL`, unbekanntes
+  Schema → Abbruch) und validiert erstmals `--through-phase post-release`.
+  Beide nutzen die Checkliste des **Kandidaten-Commits**, weil die Instanz
+  deren Dateihash pinnt. Betrieb: [`RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §4.3.
 - **Öffentlicher Download-Nachweis (#916):** `release-publish.yml` trägt nach
   dem Publish einen zweiten Job, der `PUBLIC-DOWNLOAD-01` maschinell erbringt.
   `scripts/public_download_check.py` (Qt-frei, streng getypt, nur

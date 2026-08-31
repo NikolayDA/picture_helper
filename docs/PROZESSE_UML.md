@@ -487,11 +487,11 @@ flowchart TD
 
   subgraph OWN["Partition: Release-Owner"]
     direction TB
-    T1["Schritt 7 · Tag setzen<br/>git tag -a auf candidate.head_sha aus dem Manifest, prüfen, pushen"]
-    T2["Schritt 8 · Veröffentlichung starten<br/>verify-release-ref, dann gh workflow run release-publish.yml --ref RELEASE_REF<br/>mit tag, candidate_run_id, acceptance_run_id, approval_artifact_name"]
+    T1["Schritt 7 · Tag setzen<br/>von Hand oder per create_tag im Publish-Lauf<br/>immer auf candidate.head_sha aus dem Manifest, danach verifiziert"]
+    T2["Schritt 8 · Veröffentlichung starten<br/>verify-release-ref, dann gh workflow run release-publish.yml --ref RELEASE_REF<br/>mit tag, candidate_run_id, acceptance_run_id, approval_artifact_name<br/>create_tag und predecessor_tag optional"]
     T3["Schritt 9 · öffentliche Prüfung<br/>alle fünf Assets anonym über browser_download_url laden und Hashes vergleichen"]
-    T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>release-abnahme.yml --ref RELEASE_REF, gleiche run_id,<br/>platforms=alle, predecessor_tag, target_issue"]
-    T5["Instanz pflegen<br/>set-criterion für PUBLISH-01 bis 03, PUBLIC-DOWNLOAD-01, UPDATE-LINUX-ARM-01, UPDATE-MACOS-ARM-01<br/>validate-instance --through-phase post-release, Kommentar ins Release-Issue"]
+    T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>vom Publish-Lauf ausgelöst (Job update-dispatch, Marker im run-name)<br/>gleiche run_id, platforms=alle, predecessor_tag<br/>manueller Start bleibt Rückfallweg"]
+    T5["Instanz prüfen<br/>Publish-Lauf setzt PUBLISH-01 bis 03 und PUBLIC-DOWNLOAD-01 (bis Phase publish)<br/>ausgelöster Abnahme-Lauf trägt beide UPDATE-Kriterien nach (bis post-release)<br/>set-criterion von Hand bleibt Rückfallweg"]
   end
 
   subgraph PUB["Partition: CI · release-publish.yml, baut nichts neu"]
@@ -579,5 +579,10 @@ flowchart TD
   Die drei Workflow-Dateien müssen während eines laufenden Releases unter
   ihren Pfaden auf `main` bestehen bleiben; ausgeführt wird danach die
   Definition aus dem gewählten Ref.
+- Der automatisierte Abschluss (#919) ersetzt keine Prüfung, nur Tipparbeit:
+  Der Tag wird auch bei `create_tag` anschließend gegen `candidate.head_sha`
+  verifiziert, ein abweichender Tag bricht ab statt verschoben zu werden, und
+  die beiden Update-Kriterien bleiben ohne Nachweis `PENDING` statt `PASS`.
+  Ein fehlgeschlagener Update-Nachweis wird nie automatisch wiederholt.
 - Ein Hotfix überspringt keinen Schritt: neue Patch-Version, neuer Kandidat,
   neue Abnahme, neues Manifest, neuer Tag.

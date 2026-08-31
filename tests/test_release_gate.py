@@ -217,6 +217,193 @@ def test_publish_is_dispatch_only_and_verifies_existing_tag_head() -> None:
     assert "--tag-sha" in text
 
 
+
+# ── Tag im Publish-Workflow (#919, Stufe 1) ────────────────────────────
+
+def test_tag_creation_is_opt_in_and_off_by_default() -> None:
+    """Der bestehende manuelle Tag-Weg bleibt gueltig (#919, Stufe 1)."""
+    doc = _load(_PUBLISH)
+    create_tag = doc[True]["workflow_dispatch"]["inputs"]["create_tag"]
+    assert create_tag["type"] == "boolean"
+    assert create_tag["default"] is False, "create_tag muss standardmaessig aus sein"
+
+
+def test_tag_is_created_only_after_the_full_approval_check() -> None:
+    """Reihenfolge ist die Zusicherung: erst Manifestpruefung, dann Tag.
+
+    Entstuende der Tag vorher, zeigte er auf einen Commit, den noch nichts
+    gegen das Freigabemanifest gebunden hat. Und er muss **vor** dem
+    candidate-source-Checkout entstehen, weil dessen ``fetch-depth: 0`` ihn
+    mitbringt und die bestehende Tag-Verifikation sonst ins Leere liefe.
+    """
+    steps = _load(_PUBLISH)["jobs"]["publish"]["steps"]
+    names = [str(step.get("name") or step.get("uses") or "") for step in steps]
+    approval = next(i for i, n in enumerate(names) if n.startswith("Manifest, Workflows"))
+    creation = next(i for i, n in enumerate(names) if n.startswith("Release-Tag anlegen"))
+    checkout = next(i for i, n in enumerate(names) if n.startswith("Kandidaten-Commit fuer"))
+    verify = next(i for i, n in enumerate(names) if n.startswith("Tag muss auf exakt"))
+    assert approval < creation < checkout < verify, names
+
+    step = steps[creation]
+    assert step["if"] == "inputs.create_tag"
+    # Sollwert ausschliesslich aus der Manifestpruefung, nie aus einem Input.
+    assert step["env"]["CANDIDATE_SHA"] == "${{ steps.approval.outputs.candidate_sha }}"
+    assert "inputs.tag" not in str(step.get("env"))
+
+
+def test_tag_creation_asks_the_contract_and_creates_an_annotated_tag() -> None:
+    run = next(
+        step["run"] for step in _load(_PUBLISH)["jobs"]["publish"]["steps"]
+        if str(step.get("name") or "").startswith("Release-Tag anlegen")
+    )
+    # Die Entscheidung faellt netzfrei im Vertrag, nicht im Shell.
+    assert "release_contract.py plan-tag" in run
+    # matching-refs statt git/ref: immer HTTP 200, leere Liste = Tag fehlt.
+    assert "git/matching-refs/tags/" in run
+    assert "git/ref/tags/" not in run, "404-Sonderfall gehoert nicht in den Shell"
+    # Annotiert wie in Runbook-Schritt 7: Tag-Objekt, dann Ref darauf.
+    assert 'gh api "repos/${GITHUB_REPOSITORY}/git/tags"' in run
+    assert "-f type=commit" in run
+    # Kein Verschieben: weder force noch delete auf dem Tag-Ref.
+    assert "--method PATCH" not in run and "--method DELETE" not in run
+    assert "-X DELETE" not in run
+
+
+def test_publish_keeps_verifying_the_tag_even_when_it_created_it() -> None:
+    """Die Anlage ersetzt die Verifikation nicht - sie kommt zusaetzlich.
+
+    Ohne diesen Waechter koennte ein spaeterer Umbau die Tag-Pruefung als
+    "schon durch die Anlage erledigt" streichen; dann faenge nichts mehr einen
+    Tag ab, der zwischen Anlage und Upload bewegt wurde.
+    """
+    verify = next(
+        step for step in _load(_PUBLISH)["jobs"]["publish"]["steps"]
+        if str(step.get("name") or "").startswith("Tag muss auf exakt")
+    )
+    assert "if" not in verify, "Die Tag-Verifikation darf nicht an create_tag haengen"
+    assert 'rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}"' in verify["run"]
+
+
+# ── Update-Dispatch und Release-Instanz (#919, Stufen 2 und 3) ─────────
+
+_ABNAHME = _ROOT / ".github" / "workflows" / "release-abnahme.yml"
+
+
+def test_instance_job_runs_before_the_dispatch_that_consumes_it() -> None:
+    """Der Abnahme-Lauf laedt die Instanz aus dem Publish-Lauf.
+
+    Liefe der Dispatch zuerst, koennte der Abnahme-Lauf das Artefakt suchen,
+    bevor es existiert - ein Wettlauf, den keine Wiederholung heilt.
+    """
+    jobs = _load(_PUBLISH)["jobs"]
+    assert "release-instance" in _needs_list(jobs["update-dispatch"])
+    assert set(_needs_list(jobs["release-instance"])) == {"publish", "public-download"}
+
+
+def test_only_the_dispatch_job_may_start_workflows() -> None:
+    """`actions: write` ist das einzige neue Schreibrecht - und liegt genau
+    dort, wo es gebraucht wird. Der publish-Job bleibt bei contents/actions."""
+    jobs = _load(_PUBLISH)["jobs"]
+    assert jobs["update-dispatch"]["permissions"]["actions"] == "write"
+    for name in ("publish", "public-download", "release-instance"):
+        assert jobs[name]["permissions"].get("actions") in (None, "read"), name
+    # Der Job, der den Release mutiert, darf weiterhin nicht kommentieren.
+    assert "issues" not in jobs["publish"]["permissions"]
+
+
+def test_predecessor_is_an_explicit_input_and_never_guessed() -> None:
+    doc = _load(_PUBLISH)
+    predecessor = doc[True]["workflow_dispatch"]["inputs"]["predecessor_tag"]
+    assert predecessor["default"] == ""
+    text = _publish_text()
+    # /releases/latest waere durch Backfills und Pre-Releases verfaelschbar.
+    assert "releases/latest" not in text
+
+
+def test_dispatch_uses_the_verified_tag_as_ref_and_the_contract_script() -> None:
+    run = next(
+        step["run"] for step in _load(_PUBLISH)["jobs"]["update-dispatch"]["steps"]
+        if str(step.get("name") or "").startswith("Abnahme-Lauf idempotent")
+    )
+    assert "release_update_dispatch.py" in run
+    assert '--ref "$RELEASE_TAG"' in run
+    assert "--publish-run-id" in run and "--predecessor-tag" in run
+
+
+def test_acceptance_run_name_carries_the_correlation_marker() -> None:
+    """Ohne Marker im run-name bliebe der ausgeloeste Lauf unauffindbar:
+    workflow_dispatch antwortet mit HTTP 204 ohne Run-ID."""
+    doc = _load(_ABNAHME)
+    assert "inputs.dispatch_marker" in doc["run-name"]
+    inputs = doc[True]["workflow_dispatch"]["inputs"]
+    assert inputs["dispatch_marker"]["default"] == ""
+    assert inputs["publish_run_id"]["default"] == ""
+
+
+def test_final_instance_steps_are_gated_on_the_publish_run_id() -> None:
+    """Ein manueller Abnahme-Lauf ohne publish_run_id bleibt unveraendert."""
+    steps = [
+        step for step in _load(_ABNAHME)["jobs"]["aggregation"]["steps"]
+        if "Release-Instanz" in str(step.get("name") or "")
+        or "Post-Release-Kriterien" in str(step.get("name") or "")
+    ]
+    assert len(steps) == 5, [s.get("name") for s in steps]
+    for step in steps:
+        assert "inputs.publish_run_id != ''" in str(step["if"]), step.get("name")
+
+
+def test_final_instance_survives_a_blocking_validation() -> None:
+    """Ein FAIL ist genau der Fall, in dem die Instanz gebraucht wird.
+
+    Die Validierung laeuft im Skript nach dem Schreiben; Sicherung, Rendering
+    und Kommentar haengen an !cancelled(), nicht an success().
+    """
+    steps = {
+        str(step.get("name") or ""): step
+        for step in _load(_ABNAHME)["jobs"]["aggregation"]["steps"]
+    }
+    for name in (
+        "Finale Release-Instanz sichern und rendern",
+        "Finale Release-Instanz als Actions-Artefakt sichern",
+        "Finale Release-Instanz als Issue-Kommentar posten",
+    ):
+        assert "!cancelled()" in str(steps[name]["if"]), name
+
+    finalize = steps["Post-Release-Kriterien nachtragen und bis post-release validieren"]
+    assert "finalize-instance" in finalize["run"]
+    # Erst nach dem Nachtrag darf bis post-release validiert werden. Geprueft
+    # werden Kommandozeilen, nicht Kommentare - die duerfen die Phase nennen.
+    publish_commands = [
+        line for step in _load(_PUBLISH)["jobs"].values()
+        for entry in step["steps"] if "run" in entry
+        for line in entry["run"].splitlines()
+        if not line.lstrip().startswith("#")
+    ]
+    assert not [line for line in publish_commands if "--through-phase post-release" in line], (
+        "Der Publish-Lauf kann post-release nicht validieren - die "
+        "Update-Kriterien sind dort noch PENDING."
+    )
+    assert any("--through-phase publish" in line for line in publish_commands)
+
+
+def test_publish_instance_job_pins_the_candidate_checklist() -> None:
+    """set-criterion vergleicht den Checklisten-Dateihash gegen den Pin.
+
+    Nimmt der Job die Checkliste des Workflow-Checkouts statt die des
+    Kandidaten, bricht die Pflege, sobald die Checkliste auf main weiterzieht.
+    """
+    steps = _load(_PUBLISH)["jobs"]["release-instance"]["steps"]
+    run = next(
+        step["run"] for step in steps
+        if str(step.get("name") or "").startswith("Publish-Pflichten mit den")
+    )
+    assert 'checklist="candidate-source/docs/RELEASE_ACCEPTANCE_CHECKLIST.md"' in run
+    assert any(
+        step.get("with", {}).get("path") == "candidate-source"
+        and "candidate_sha" in str(step.get("with", {}).get("ref"))
+        for step in steps
+    ), "Der Kandidaten-Checkout fehlt"
+
 # ── Release-Follow-ups (#257) ──────────────────────────────────────────
 
 def test_test_job_requires_verify_candidate() -> None:

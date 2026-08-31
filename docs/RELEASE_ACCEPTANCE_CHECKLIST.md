@@ -2,7 +2,7 @@
 
 **Owner:** Repository-Owner
 **Schema:** `1`
-**Checklisten-Version:** `2.0.0`
+**Checklisten-Version:** `2.1.0`
 **Gültigkeit:** für alle Releases, deren Freigabemanifest diese Version und den
 vollständigen Commit-SHA sowie den SHA-256 dieser Datei pinnt.
 
@@ -78,7 +78,7 @@ neue Checklisten-Version und eigene, stabile IDs.
 | `SCREENSHOT-01` | Pre-Release | SHOULD | Release-Owner | native Screenshots; Vision ist nur Vorbewertung, finale Freigabe menschlich |
 | `MALWARE-01` | Pre-Release | SHOULD | Security-Owner | Scannerzustand `PASS`, `FAIL` oder sichtbar nicht verfügbar; bei vorhandenem Cache EICAR-Erfolg und je Artefakt Rohdatei + entpackte Nutzlast mit mehr als 0 gescannten Bytes, keine Limitüberschreitung; Malware-Fund blockiert immer |
 | `NOTES-01` | Pre-Release | MUST | Release-Owner | Release Notes nennen Auswirkung, Plattformen, Einschränkungen und Upgrade-/Rollback-Hinweis |
-| `PUBLISH-01` | Publish | MUST | Release-Owner | Tag zeigt auf Manifest-`head_sha`; Publish verwendet Kandidaten- und Abnahme-Run |
+| `PUBLISH-01` | Publish | MUST | CI | Tag zeigt auf Manifest-`head_sha`; Publish verwendet Kandidaten- und Abnahme-Run |
 | `PUBLISH-02` | Publish | MUST | CI | erneut geladene öffentliche Assets sind exakt die fünf Manifestdateien und byteidentisch |
 | `PUBLISH-03` | Publish | MUST | CI | Draft-first; partielle oder abweichende Zustände blockieren ohne Clobber |
 | `PUBLIC-DOWNLOAD-01` | Publish | MUST | CI | `public-download-report.json` des Publish-Laufs: alle fünf Assets anonym über `browser_download_url` geladen und gegen Manifesthash geprüft |
@@ -100,9 +100,11 @@ v2.7.3 existiert. Beide tragen dieselbe Bewertungsreihenfolge; ein
 `public-download-report.json` im Nachweis-Job von `release-publish.yml`: Der
 Job lädt alle fünf Assets **nach** dem Veröffentlichen anonym über ihre
 `browser_download_url` und vergleicht sie mit demselben `verify-artifacts`
-gegen das Freigabemanifest wie der Publish-Job zuvor. Der Release-Owner liest
-den Bericht und setzt das Kriterium; die frühere Handprozedur bleibt in
-[RELEASE_PROCESS.md](RELEASE_PROCESS.md) als Rückfallweg dokumentiert.
+gegen das Freigabemanifest wie der Publish-Job zuvor. Seit #919 setzt derselbe
+Lauf das Kriterium auch selbst (Job `release-instance`, zusammen mit
+`PUBLISH-01..03`); der Release-Owner liest den Bericht und prüft die
+Instanz. Beide Handprozeduren bleiben in
+[RELEASE_PROCESS.md](RELEASE_PROCESS.md) als Rückfallwege dokumentiert.
 
 Die detaillierten Hardware-Prozeduren stehen in
 [PACKAGING_SMOKE.md](PACKAGING_SMOKE.md). Der vollständige Ablauf, Wiederanlauf,
@@ -121,7 +123,7 @@ müssen dieselben IDs beschreiben; Tests verhindern Drift.
 {
   "schema": 1,
   "kind": "release-acceptance-checklist",
-  "checklist_version": "2.0.0",
+  "checklist_version": "2.1.0",
   "allowed_states": ["PASS", "FAIL", "WAIVED", "NOT_APPLICABLE", "PENDING"],
   "phases": ["pre-release", "publish", "post-release"],
   "requirements": ["MUST", "SHOULD", "POST_RELEASE"],
@@ -151,7 +153,7 @@ müssen dieselben IDs beschreiben; Tests verhindern Drift.
     {"id": "SCREENSHOT-01", "phase": "pre-release", "requirement": "SHOULD", "owner": "release-owner", "evidence_source": "native screenshots + vision-verdikte.json", "description": "Native screenshots are human-approved; model output is advisory only.", "artifacts": ["linux-arm64-appimage", "linux-arm64-deb", "macos-arm64-dmg"], "verification": "manual", "waiver_allowed": true, "not_applicable_allowed": false},
     {"id": "MALWARE-01", "phase": "pre-release", "requirement": "SHOULD", "owner": "security-owner", "evidence_source": "candidate scan evidence and #731 decision", "description": "Scanner availability is explicit; with a restored database, EICAR passes and every raw artifact plus extracted payload reports nonzero scanned bytes without limit alerts; every malware finding blocks.", "artifacts": ["linux-x86_64-appimage", "linux-x86_64-deb", "linux-arm64-appimage", "linux-arm64-deb", "macos-arm64-dmg"], "verification": "manual", "waiver_allowed": true, "not_applicable_allowed": false},
     {"id": "NOTES-01", "phase": "pre-release", "requirement": "MUST", "owner": "release-owner", "evidence_source": "CHANGELOG release section", "description": "Notes name impact, supported platforms, limitations and upgrade/rollback guidance.", "artifacts": [], "verification": "candidate-contract", "waiver_allowed": false, "not_applicable_allowed": false},
-    {"id": "PUBLISH-01", "phase": "publish", "requirement": "MUST", "owner": "release-owner", "evidence_source": "release-publish.yml run metadata", "description": "Tag and both recorded runs refer to the accepted candidate head.", "artifacts": [], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
+    {"id": "PUBLISH-01", "phase": "publish", "requirement": "MUST", "owner": "ci", "evidence_source": "release-publish.yml run metadata + release-acceptance-instance artifact", "description": "Tag and both recorded runs refer to the accepted candidate head.", "artifacts": [], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
     {"id": "PUBLISH-02", "phase": "publish", "requirement": "MUST", "owner": "ci", "evidence_source": "post-upload download + manifest verification", "description": "Public release contains exactly the five byte-identical manifest files.", "artifacts": ["linux-x86_64-appimage", "linux-x86_64-deb", "linux-arm64-appimage", "linux-arm64-deb", "macos-arm64-dmg"], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
     {"id": "PUBLISH-03", "phase": "publish", "requirement": "MUST", "owner": "ci", "evidence_source": "publish state plan", "description": "Draft-first promotion blocks partial or divergent state without clobber.", "artifacts": [], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
     {"id": "PUBLIC-DOWNLOAD-01", "phase": "publish", "requirement": "MUST", "owner": "ci", "evidence_source": "public-download-report.json (release-publish.yml)", "description": "All five public assets are downloaded anonymously and match their manifest hashes.", "artifacts": ["linux-x86_64-appimage", "linux-x86_64-deb", "linux-arm64-appimage", "linux-arm64-deb", "macos-arm64-dmg"], "verification": "publish", "waiver_allowed": false, "not_applicable_allowed": false},
@@ -189,6 +191,7 @@ Ein vollständiger Waiver-Datensatz hat dieses Format:
 
 | Version | Datum | Änderung | Referenz |
 |---|---|---|---|
+| `2.1.0` | 2026-08-31 | `PUBLISH-01` von `Release-Owner` auf `CI`: Der Publish-Lauf verifizierte die Tag-/Run-Bindung schon immer und trägt sie seit #919 auch selbst in die Release-Instanz ein; die Kriteriumssemantik bleibt unverändert (kein ID-Wechsel ⇒ Minor) | #919 |
 | `2.0.0` | 2026-08-30 | `UPDATE-01` in `UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` geteilt (stabile ID entfällt ⇒ Major); Deklaration und Nachweis je Plattform deckungsgleich, `.deb`-Identitätsbegründung im Kriteriumstext | #917 |
 | `1.1.0` | 2026-08-30 | `PUBLIC-DOWNLOAD-01` auf automatisierte Evidenz umgestellt (`verification: publish`, Owner CI, `public-download-report.json`) | #916 |
 | `1.0.0` | 2026-08-01 | Erste versionierte Fassung mit stabilen IDs, Phasen, Pflichtgraden und Artefaktumfang | #746 |

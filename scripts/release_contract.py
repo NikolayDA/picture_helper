@@ -678,6 +678,132 @@ def validate_release_ref(
     return actual_sha
 
 
+#: Ergebnisse von :func:`plan_release_tag`. Ein dritter Zustand ist bewusst
+#: nicht vorgesehen: Ein abweichender Tag wirft, statt einen "fix"-Plan zu
+#: liefern - ein Tag wird nie verschoben (Runbook, Rollback-Abschnitt).
+TAG_PLAN_CREATE: Final = "create"
+TAG_PLAN_ALREADY_CORRECT: Final = "already-correct"
+
+
+def resolve_tag_commit(
+    ref_payload: dict[str, Any], *, tag: str, tag_object_payload: dict[str, Any] | None = None
+) -> str:
+    """Loest eine ``git/ref/tags``-Antwort auf den Commit auf, auf den sie zeigt.
+
+    Ein **annotiertes** Tag zeigt im Ref auf ein Tag-*Objekt*, nicht auf den
+    Commit; erst dessen ``object.sha`` ist der Commit. Genau diese Verwechslung
+    wuerde eine SHA-Gleichheitspruefung still gegen den falschen Wert fuehren -
+    dieselbe Falle, die :func:`validate_release_ref` fuer Branch-Refs abfaengt.
+    Der Aufrufer reicht deshalb bei ``type == "tag"`` zusaetzlich die Antwort von
+    ``gh api repos/OWNER/REPO/git/tags/<sha>`` herein; netzfrei wie ueberall in
+    diesem Vertrag.
+    """
+    actual_ref = str(ref_payload.get("ref") or "")
+    if actual_ref != f"refs/tags/{tag}":
+        raise ContractError(
+            f"Tag-Antwort gehoert zu {actual_ref!r}, erwartet refs/tags/{tag}"
+        )
+    obj = ref_payload.get("object")
+    if not isinstance(obj, dict):
+        raise ContractError(f"Tag {tag} ohne Objektangabe")
+    target = cast(dict[str, Any], obj)
+    kind = target.get("type")
+    if kind == "commit":
+        return _full_sha(target.get("sha"), "tag.object.sha")
+    if kind != "tag":
+        raise ContractError(f"Tag {tag} zeigt auf {kind!r} statt auf Commit oder Tag-Objekt")
+    if tag_object_payload is None:
+        raise ContractError(
+            f"Tag {tag} ist annotiert; zur Aufloesung fehlt die git/tags-Antwort"
+        )
+    tag_object_sha = _full_sha(target.get("sha"), "tag.object.sha")
+    if _full_sha(tag_object_payload.get("sha"), "tag_object.sha") != tag_object_sha:
+        raise ContractError(f"Tag-Objekt-Antwort gehoert nicht zu {tag}")
+    inner = tag_object_payload.get("object")
+    if not isinstance(inner, dict):
+        raise ContractError(f"Tag-Objekt {tag} ohne Zielangabe")
+    pointed = cast(dict[str, Any], inner)
+    if pointed.get("type") != "commit":
+        raise ContractError(
+            f"Tag-Objekt {tag} zeigt auf {pointed.get('type')!r} statt auf einen Commit"
+        )
+    return _full_sha(pointed.get("sha"), "tag_object.object.sha")
+
+
+def select_tag_ref(matching_refs: object, *, tag: str) -> dict[str, Any] | None:
+    """Waehlt aus einer ``git/matching-refs``-Antwort genau ``refs/tags/<tag>``.
+
+    Der Endpunkt sucht per **Praefix**: laut GitHub-Referenz werden zu
+    ``tags/v2.9.0`` auch ``v2.9.0-rc1`` und ``v2.9.0.1`` geliefert ("If the
+    ``:ref`` doesn't exist in the repository, but existing refs start with
+    ``:ref``, they will be returned as an array"). Ohne exakte Auswahl haette
+    ein Vorabtag den Anschein erweckt, der Release-Tag existiere bereits.
+
+    Genau deshalb wird die Liste hier gefiltert statt im Shell: ``[]`` heisst
+    "Tag fehlt" und ist damit vom Fehlerfall unterscheidbar, ohne 404 aus
+    stderr zu lesen.
+    """
+    if not isinstance(matching_refs, list):
+        raise ContractError("matching-refs-Antwort ist keine Liste")
+    wanted = f"refs/tags/{tag}"
+    hits = [
+        cast(dict[str, Any], item)
+        for item in cast(list[Any], matching_refs)
+        if isinstance(item, dict) and item.get("ref") == wanted
+    ]
+    if len(hits) > 1:
+        raise ContractError(f"matching-refs liefert {wanted} mehrfach")
+    return hits[0] if hits else None
+
+
+def plan_release_tag(
+    manifest: dict[str, Any],
+    *,
+    tag: str,
+    ref_payload: dict[str, Any] | None,
+    tag_object_payload: dict[str, Any] | None = None,
+) -> tuple[str, str]:
+    """Entscheidet netzfrei, ob der Release-Tag angelegt werden darf (#919).
+
+    ``ref_payload is None`` heisst "Tag existiert nicht" (HTTP 404 beim
+    Aufrufer). Sollwert ist ausschliesslich ``candidate.head_sha`` aus dem
+    Freigabemanifest - nie der aktuelle Checkout, nie ein Eingabewert.
+
+    Drei Ausgaenge, davon einer fail-closed:
+
+    * Tag fehlt        -> ``create``
+    * Tag zeigt richtig -> ``already-correct`` (Wiederanlauf ist idempotent)
+    * Tag zeigt anders  -> ``ContractError``
+
+    Ein abweichender Tag wird bewusst **nicht** repariert: Sobald ein Release
+    oder ein externer Download existiert, waere jedes Verschieben ein Bruch der
+    bereits veroeffentlichten Zuordnung. Der Runbook-Weg ist dann eine neue
+    Patch-Version, keine Tag-Korrektur.
+    """
+    candidate = manifest.get("candidate")
+    if not isinstance(candidate, dict):
+        raise ContractError("Manifest ohne Kandidatenblock")
+    expected_sha = _full_sha(
+        cast(dict[str, Any], candidate).get("head_sha"), "candidate.head_sha"
+    )
+    expected_tag = str(cast(dict[str, Any], candidate).get("expected_tag") or "")
+    if tag != expected_tag:
+        raise ContractError(
+            f"Tag {tag!r} weicht vom Manifest-Tag {expected_tag!r} ab"
+        )
+    if ref_payload is None:
+        return TAG_PLAN_CREATE, expected_sha
+    actual_sha = resolve_tag_commit(
+        ref_payload, tag=tag, tag_object_payload=tag_object_payload
+    )
+    if actual_sha != expected_sha:
+        raise ContractError(
+            f"Tag {tag} zeigt auf {actual_sha}, das Manifest bindet {expected_sha}. "
+            "Tag wird nicht verschoben - Ursache klaeren oder neue Patch-Version."
+        )
+    return TAG_PLAN_ALREADY_CORRECT, expected_sha
+
+
 def _release_files(directory: Path) -> dict[str, Path]:
     if not directory.is_dir():
         raise ContractError(f"Artefaktverzeichnis fehlt: {directory}")
@@ -978,6 +1104,124 @@ def _load_platform_evidence(root: Path) -> dict[str, dict[str, Any]]:
         if platform not in selected or attempt >= selected[platform][0]:
             selected[platform] = (attempt, data)
     return {platform: item[1] for platform, item in selected.items()}
+
+
+#: Post-Release-Kriterium je Plattform (#917). Die Zuordnung ist die einzige
+#: Quelle: Ein Lauf ohne macOS-Evidenz laesst UPDATE-MACOS-ARM-01 PENDING,
+#: statt es aus dem Linux-Ergebnis mitzuziehen.
+UPDATE_CHECK_CRITERIA: Final = {
+    "linux-arm64": "UPDATE-LINUX-ARM-01",
+    "macos-arm64": "UPDATE-MACOS-ARM-01",
+}
+#: Nutzlast, die ``abnahme_smoke`` je Plattform schreibt. Bewusst hier
+#: gespiegelt statt importiert: Dieser Vertrag bleibt von der Smoke-Maschinerie
+#: unabhaengig. ``tests/test_release_contract.py`` haelt beide Seiten synchron
+#: (Drift-Disziplin wie bei der Qt-apt-Paketliste).
+UPDATE_CHECK_SCHEMA: Final = 1
+UPDATE_CHECK_KIND: Final = "abnahme-update-check"
+UPDATE_CHECK_SUMMARY_NAME: Final = "update_check.json"
+
+
+def load_update_check_payloads(root: Path) -> dict[str, dict[str, Any]]:
+    """Sammelt ``update_check/update_check.json`` je Plattform aus der Evidenz.
+
+    Attempt-Auswahl wie in :func:`_load_platform_evidence`: Bei einem
+    Wiederanlauf liegt dieselbe Plattform mehrfach im Artefaktbaum, und nur der
+    juengste Versuch beschreibt den geltenden Stand.
+    """
+    selected: dict[str, tuple[int, dict[str, Any]]] = {}
+    if not root.is_dir():
+        return {}
+    for path in root.rglob(f"update_check/{UPDATE_CHECK_SUMMARY_NAME}"):
+        for platform in UPDATE_CHECK_CRITERIA:
+            pattern = re.compile(rf"^abnahme-{re.escape(platform)}-(\d+)$")
+            attempts = [
+                int(match.group(1))
+                for part in path.parts
+                if (match := pattern.fullmatch(part)) is not None
+            ]
+            if not attempts:
+                continue
+            attempt = max(attempts)
+            if platform not in selected or attempt >= selected[platform][0]:
+                selected[platform] = (attempt, _load_json(path))
+            break
+    return {platform: item[1] for platform, item in selected.items()}
+
+
+def update_check_status(payload: dict[str, Any] | None) -> tuple[str, str]:
+    """Bildet eine Update-Check-Nutzlast auf Kriteriumsstatus und Begruendung ab.
+
+    Drei Ausgaenge, keiner davon geschoent:
+
+    * keine Evidenz -> ``PENDING`` (der Lauf hat den Nachweis nicht erbracht)
+    * ``ok: true``  -> ``PASS``
+    * ``ok: false`` -> ``FAIL``
+
+    ``FAIL`` ist Absicht: Ein fehlgeschlagener Update-Check betrifft alle
+    bereits ausgelieferten Installationen und wird laut Runbook nie auf
+    ``WAIVED`` gesetzt. Eine unbekannte Nutzlast wirft, statt als ``PENDING``
+    durchzugehen - sonst saehe ein Schemabruch wie ein nicht gelaufener
+    Nachweis aus.
+    """
+    if payload is None:
+        return "PENDING", "keine Update-Check-Evidenz in diesem Lauf"
+    if payload.get("schema") != UPDATE_CHECK_SCHEMA or payload.get("kind") != UPDATE_CHECK_KIND:
+        raise ContractError(
+            "Unbekannte Update-Check-Nutzlast: "
+            f"schema={payload.get('schema')!r} kind={payload.get('kind')!r}"
+        )
+    ok = payload.get("ok")
+    if not isinstance(ok, bool):
+        raise ContractError("Update-Check-Nutzlast ohne belastbares ok-Feld")
+    checks = payload.get("pruefungen")
+    findings = (
+        ", ".join(
+            f"{item.get('rolle')}={item.get('befund')}"
+            for item in checks
+            if isinstance(item, dict)
+        )
+        if isinstance(checks, list)
+        else ""
+    )
+    if ok:
+        return "PASS", findings or "alle Rollen ok"
+    return "FAIL", findings or "Update-Check nicht bestanden"
+
+
+def apply_update_criteria(
+    instance: dict[str, Any],
+    *,
+    checklist: dict[str, Any],
+    checklist_path: Path,
+    payloads: dict[str, dict[str, Any]],
+    run_url: str,
+) -> tuple[dict[str, Any], list[str]]:
+    """Traegt beide Post-Release-Kriterien in die Instanz ein (#919, Stufe 3).
+
+    Liefert die aktualisierte Instanz und je Kriterium eine Protokollzeile.
+    Die Validierung bleibt bewusst beim Aufrufer: Erst wird die Instanz
+    geschrieben, dann geprueft - sonst verloere ein ``FAIL`` genau die Evidenz,
+    die ihn belegt.
+    """
+    updated = instance
+    log: list[str] = []
+    for platform, criterion in sorted(UPDATE_CHECK_CRITERIA.items()):
+        status, detail = update_check_status(payloads.get(platform))
+        log.append(f"{criterion}: {status} ({platform}) - {detail}")
+        if status == "PENDING":
+            # PENDING braucht (und duldet) keine Evidenz; ein Eintrag hier
+            # wuerde einen nicht erbrachten Nachweis belegt aussehen lassen.
+            continue
+        updated = set_release_instance_criterion(
+            updated,
+            checklist=checklist,
+            checklist_path=checklist_path,
+            criterion_id=criterion,
+            status=status,
+            evidence=[run_url, f"Artefakt abnahme-{platform}"],
+        )
+    return updated, log
 
 
 def create_approval_manifest(
@@ -1403,6 +1647,14 @@ def _parser() -> argparse.ArgumentParser:
     artifacts.add_argument("--manifest", type=Path, required=True)
     artifacts.add_argument("--directory", type=Path, required=True)
 
+    plan_tag = commands.add_parser("plan-tag")
+    plan_tag.add_argument("--manifest", type=Path, required=True)
+    plan_tag.add_argument("--tag", required=True)
+    # Antwort von git/matching-refs/tags/<tag>: immer HTTP 200, leere Liste =
+    # Tag fehlt. Kein 404-Sonderfall im Shell.
+    plan_tag.add_argument("--matching-refs-json", type=Path, required=True)
+    plan_tag.add_argument("--tag-object-json", type=Path)
+
     plan = commands.add_parser("plan-publish")
     plan.add_argument("--manifest", type=Path, required=True)
     plan.add_argument("--state", type=Path, required=True)
@@ -1424,6 +1676,13 @@ def _parser() -> argparse.ArgumentParser:
     set_criterion.add_argument("--waiver-owner", default="")
     set_criterion.add_argument("--waiver-reason", default="")
     set_criterion.add_argument("--output", type=Path, required=True)
+
+    finalize = commands.add_parser("finalize-instance")
+    finalize.add_argument("--checklist", type=Path, required=True)
+    finalize.add_argument("--instance", type=Path, required=True)
+    finalize.add_argument("--evidence-dir", type=Path, required=True)
+    finalize.add_argument("--run-url", required=True)
+    finalize.add_argument("--output", type=Path, required=True)
 
     validate_instance = commands.add_parser("validate-instance")
     validate_instance.add_argument("--checklist", type=Path, required=True)
@@ -1491,6 +1750,24 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Release-Ref {args.ref} zeigt auf {sha}.")
         elif args.command == "verify-artifacts":
             verify_artifact_directory(_load_json(args.manifest), args.directory)
+        elif args.command == "plan-tag":
+            ref_payload = select_tag_ref(
+                json.loads(args.matching_refs_json.read_text(encoding="utf-8")),
+                tag=args.tag,
+            )
+            tag_object_payload = (
+                _load_json(args.tag_object_json)
+                if args.tag_object_json is not None and args.tag_object_json.is_file()
+                else None
+            )
+            action, candidate_sha = plan_release_tag(
+                _load_json(args.manifest),
+                tag=args.tag,
+                ref_payload=ref_payload,
+                tag_object_payload=tag_object_payload,
+            )
+            _write_github_outputs({"action": action, "candidate_sha": candidate_sha})
+            print(f"Tag-Plan fuer {args.tag}: {action} (Kandidat {candidate_sha}).")
         elif args.command == "plan-publish":
             state = _load_json(args.state)
             action = plan_publish(
@@ -1524,6 +1801,27 @@ def main(argv: list[str] | None = None) -> int:
                 waiver_reason=args.waiver_reason,
             )
             _write_json(args.output, instance)
+        elif args.command == "finalize-instance":
+            checklist = load_release_checklist(args.checklist)
+            updated, log = apply_update_criteria(
+                _load_json(args.instance),
+                checklist=checklist,
+                checklist_path=args.checklist,
+                payloads=load_update_check_payloads(args.evidence_dir),
+                run_url=args.run_url,
+            )
+            # Erst schreiben, dann pruefen: Ein FAIL darf die Instanz, die ihn
+            # belegt, nicht mitreissen.
+            _write_json(args.output, updated)
+            for line in log:
+                print(line)
+            validate_release_instance_completion(
+                updated,
+                checklist=checklist,
+                checklist_path=args.checklist,
+                through_phase="post-release",
+            )
+            print("Release-Instanz ist bis post-release abgeschlossen.")
         else:
             checklist = load_release_checklist(args.checklist)
             instance = _load_json(args.instance)
