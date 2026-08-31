@@ -1,0 +1,221 @@
+"""Tests des täglichen Runner-Heartbeats (#921, Epic #914).
+
+Der Netzweg ist injiziert, damit Pausenlogik, Queue-Auswertung und die
+fail-safe Pfade ohne GitHub prüfbar sind – dasselbe Muster wie beim
+Lauf-Watchdog in ``tests/test_abnahme_watchdog.py``.
+"""
+from __future__ import annotations
+
+import importlib.util
+import json
+import sys
+from datetime import date
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parent.parent
+_SPEC = importlib.util.spec_from_file_location(
+    "runner_heartbeat", ROOT / "scripts" / "runner_heartbeat.py"
+)
+assert _SPEC is not None and _SPEC.loader is not None
+hb = importlib.util.module_from_spec(_SPEC)
+sys.modules["runner_heartbeat"] = hb
+_SPEC.loader.exec_module(hb)
+
+TODAY = date(2026, 8, 31)
+EXPECTED = hb.expected_jobs(x86_enabled=False)
+
+
+def _jobs(*states: str, names: tuple[str, ...] = EXPECTED) -> list[dict]:
+    # strict=False mit Absicht: ein Test gibt bewusst weniger Zustaende als
+    # Namen an (unvollstaendige Jobliste direkt nach Laufstart).
+    return [
+        {"name": name, "status": state}
+        for name, state in zip(names, states, strict=False)
+    ]
+
+
+# ── Wartungsfenster ────────────────────────────────────────────────────
+
+def test_an_unset_variable_keeps_the_heartbeat_active() -> None:
+    state = hb.pause_state(paused_raw="", until_raw="", today=TODAY)
+    assert (state.paused, state.ok) == (False, True)
+
+
+@pytest.mark.parametrize("raw", ["false", "0", "nein", "yes", " "])
+def test_only_an_explicit_true_pauses(raw: str) -> None:
+    assert hb.pause_state(paused_raw=raw, until_raw="", today=TODAY).paused is False
+
+
+@pytest.mark.parametrize("raw", ["true", "TRUE", " True "])
+def test_a_dated_window_pauses_without_becoming_a_finding(raw: str) -> None:
+    state = hb.pause_state(paused_raw=raw, until_raw="2026-09-05", today=TODAY)
+    assert (state.paused, state.ok) == (True, True)
+    assert state.until == date(2026, 9, 5)
+
+
+def test_the_last_day_of_the_window_still_counts() -> None:
+    state = hb.pause_state(paused_raw="true", until_raw=TODAY.isoformat(), today=TODAY)
+    assert (state.paused, state.ok) == (True, True)
+
+
+def test_a_pause_without_an_end_is_itself_the_finding() -> None:
+    """Sonst bliebe die Überwachung still abgeschaltet – genau der Zustand,
+    gegen den #921 antritt (der Pi war tagelang unbemerkt offline)."""
+    state = hb.pause_state(paused_raw="true", until_raw="", today=TODAY)
+    assert (state.paused, state.ok) == (True, False)
+    assert "ohne Ende" in state.detail
+
+
+def test_an_expired_window_stays_paused_but_turns_the_run_red() -> None:
+    """Pausiert bleibt es (kein Fehlalarm im echten Wartungsfall), rot wird es
+    trotzdem – eine vergessene Pause fällt so täglich auf."""
+    state = hb.pause_state(paused_raw="true", until_raw="2026-08-30", today=TODAY)
+    assert (state.paused, state.ok) == (True, False)
+    assert "endete am 2026-08-30" in state.detail
+
+
+def test_an_unparsable_end_date_is_not_silently_ignored() -> None:
+    state = hb.pause_state(paused_raw="true", until_raw="naechste Woche", today=TODAY)
+    assert (state.paused, state.ok) == (True, False)
+    assert "ISO-Datum" in state.detail
+
+
+def test_pause_status_writes_the_job_output_and_exit_code(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    output = tmp_path / "out.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
+    code = hb.main([
+        "--summary", str(tmp_path / "s.md"),
+        "pause-status", "--paused", "true", "--until", "2000-01-01",
+        "--today", TODAY.isoformat(),
+    ])
+    assert code == 1
+    assert "paused=true" in output.read_text(encoding="utf-8")
+    assert "::error title=Heartbeat-Pause ungueltig::" in capsys.readouterr().out
+    assert "PAUSED" in (tmp_path / "s.md").read_text(encoding="utf-8")
+
+
+# ── Erwartete Jobs ─────────────────────────────────────────────────────
+
+def test_the_paused_platform_is_not_expected() -> None:
+    assert hb.expected_jobs(x86_enabled=False) == (
+        "Heartbeat macOS arm64", "Heartbeat Linux aarch64",
+    )
+    assert hb.expected_jobs(x86_enabled=True)[-1] == "Heartbeat Linux x86_64"
+
+
+def test_queue_state_counts_only_queued_jobs_as_waiting() -> None:
+    state = hb.queue_state(_jobs("completed", "queued"), EXPECTED)
+    assert state.known == EXPECTED
+    assert state.queued == ("Heartbeat Linux aarch64",)
+
+
+def test_queue_state_ignores_foreign_jobs() -> None:
+    jobs = _jobs("in_progress", "in_progress") + [{"name": "Heartbeat-Status", "status": "queued"}]
+    assert hb.queue_state(jobs, EXPECTED).queued == ()
+
+
+# ── Beobachtung ────────────────────────────────────────────────────────
+
+def _watch(observe, *, ticks: list[float], deadline: float = 1.0, poll: float = 10.0):
+    clock = iter(ticks)
+    return hb.watch(
+        observe, EXPECTED, deadline_s=deadline, poll_s=poll,
+        clock=lambda: next(clock), sleep=lambda _s: None,
+    )
+
+
+def test_watch_returns_as_soon_as_every_runner_accepted() -> None:
+    state = _watch(lambda: hb.queue_state(_jobs("in_progress", "in_progress"), EXPECTED),
+                   ticks=[0, 0, 1])
+    assert hb.evaluate(state, EXPECTED, deadline_s=900)[0] == hb.VERDICT_PASS
+
+
+def test_watch_reports_the_runner_that_never_took_the_job() -> None:
+    state = _watch(lambda: hb.queue_state(_jobs("in_progress", "queued"), EXPECTED),
+                   ticks=[0, 0, 1, 2])
+    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=900)
+    assert verdict == hb.VERDICT_FAIL
+    assert "Heartbeat Linux aarch64" in detail
+
+
+def test_an_incomplete_job_list_does_not_end_the_watch_early() -> None:
+    """Direkt nach Laufstart kennt die API noch nicht alle Jobs."""
+    seen = {"n": 0}
+
+    def observe():
+        seen["n"] += 1
+        if seen["n"] == 1:
+            return hb.queue_state(_jobs("in_progress", names=EXPECTED[:1]), EXPECTED)
+        return hb.queue_state(_jobs("in_progress", "in_progress"), EXPECTED)
+
+    state = _watch(observe, ticks=[0, 0, 0, 1])
+    assert seen["n"] == 2
+    assert hb.evaluate(state, EXPECTED, deadline_s=900)[0] == hb.VERDICT_PASS
+
+
+def test_a_monitor_without_observation_raises_no_alarm() -> None:
+    """Ein Fehlalarm bei jedem API-Schluckauf entwertet den Alarm."""
+    def boom():
+        raise OSError("api down")
+
+    state = _watch(boom, ticks=[0, 1, 2])
+    assert hb.evaluate(state, EXPECTED, deadline_s=900)[0] == hb.VERDICT_UNOBSERVED
+
+
+def test_a_stale_queue_observation_never_becomes_a_verdict() -> None:
+    """Der Runner kann den Job längst übernommen haben."""
+    seen = {"n": 0}
+
+    def flaky():
+        seen["n"] += 1
+        if seen["n"] == 1:
+            return hb.queue_state(_jobs("queued", "queued"), EXPECTED)
+        raise OSError("api down")
+
+    state = _watch(flaky, ticks=[0, 0, 100, 200])
+    assert state.observed is False
+    assert hb.evaluate(state, EXPECTED, deadline_s=900)[0] == hb.VERDICT_UNOBSERVED
+
+
+def test_missing_expected_jobs_are_reported_without_a_runner_verdict() -> None:
+    state = hb.QueueState(known=EXPECTED[:1], queued=(), observed=True)
+    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=900)
+    assert verdict == hb.VERDICT_UNOBSERVED
+    assert "Heartbeat Linux aarch64" in detail
+
+
+# ── Bericht und Summary ────────────────────────────────────────────────
+
+def test_report_and_summary_name_the_offline_runner(tmp_path: Path) -> None:
+    state = hb.QueueState(known=EXPECTED, queued=("Heartbeat Linux aarch64",))
+    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=900)
+    report = hb.build_report(
+        verdict=verdict, detail=detail, expected=EXPECTED, state=state,
+        deadline_s=900, run_url="https://example.invalid/run/1",
+    )
+    hb.write_outputs(
+        report, report_path=tmp_path / "r.json", summary_path=tmp_path / "s.md",
+    )
+    payload = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
+    assert payload["schema"] == hb.REPORT_SCHEMA
+    assert payload["kind"] == hb.REPORT_KIND
+    assert payload["verdict"] == hb.VERDICT_FAIL
+    assert payload["queued_jobs"] == ["Heartbeat Linux aarch64"]
+    summary = (tmp_path / "s.md").read_text(encoding="utf-8")
+    assert "Heartbeat Linux aarch64 | ❌ wartet auf einen Runner" in summary
+    assert "Heartbeat macOS arm64 | ✅ angenommen" in summary
+    # Der Kommentar im Betriebs-Issue ist dieselbe Datei – er muss den Weg
+    # zur Abhilfe nennen, nicht nur den Befund.
+    assert "RELEASE_AUTOMATION.md" in summary
+    assert "https://example.invalid/run/1" in summary
+
+
+def test_watch_command_needs_a_token(monkeypatch, capsys) -> None:
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    assert hb.main(["watch", "--repo", "o/r", "--run-id", "1"]) == 2
+    assert "GH_TOKEN" in capsys.readouterr().out

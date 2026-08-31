@@ -557,7 +557,7 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **zwölf** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **dreizehn** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
@@ -565,7 +565,8 @@ Ein Paket, `bgremover/`:
   `scripts/release_path_policy.py` (#743), `scripts/release_contract.py`
   (#744/#747), `scripts/public_download_check.py` (#916),
   `scripts/release_update_dispatch.py` (#919),
-  `scripts/scan_release_artifacts.py` (#920) und
+  `scripts/scan_release_artifacts.py` (#920),
+  `scripts/runner_heartbeat.py` (#921) und
   `scripts/recommendations_live_check.py` (#752) – als
   eigenständige Dateien ohne `scripts/__init__.py` explizit per Dateipfad in
   `files` sowie per Modul-Override (Modulname = Dateibasisname) erfasst.
@@ -601,7 +602,7 @@ Ein Paket, `bgremover/`:
 
 ## CI-Automatisierung
 
-Workflows unter `.github/workflows/` (16):
+Workflows unter `.github/workflows/` (17):
 
 - **Test/Qualität:** `pr-ci.yml` (jeder PR, Ubuntu + Py3.12), `ci.yml` (volle
   Matrix Ubuntu/macOS × Py3.10–3.13; Kandidaten-Gate, wöchentlich und manuell —
@@ -650,6 +651,12 @@ Workflows unter `.github/workflows/` (16):
   steht nur im
   [`Release-Runbook`](docs/RELEASE_PROCESS.md), die stabilen Kriterien nur in
   der [`Abnahme-Checkliste`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md).
+- **Runner-Betrieb:** `runner-heartbeat.yml` (#921) — täglich 05:30 UTC und
+  manuell; gibt jedem aktiven Self-hosted-Runner einen Minimaljob (den
+  Abnahme-Preflight mit `--hardening-strict`) und meldet über
+  `scripts/runner_heartbeat.py`, wenn einer ihn nicht binnen 15 Minuten
+  annimmt. Deckt die Zeit **zwischen** den Läufen ab, die #915 nicht
+  erreicht. Siehe *Runner-Heartbeat und Geräte-Härtung* unten.
 - **Claude:** `claude.yml` — interaktiver Agent, reagiert auf `@claude`-Erwähnungen
   in Issues/PR-Kommentaren; `claude-code-review.yml` — automatisches Review neuer
   PRs (#555), seit der Reviewschleifen-Entschärfung genau **einmal je PR**
@@ -945,6 +952,44 @@ Die **Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt.** Kanonischer
 Ablauf: [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md). Betrieb:
 [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md), Entscheidungen:
 ADR [`docs/history/ADR-2026-release-abnahme-automatisierung.md`](docs/history/ADR-2026-release-abnahme-automatisierung.md).
+
+### Runner-Heartbeat und Geräte-Härtung (#921)
+
+`release-abnahme.yml` meldet einen Runner-Ausfall **im** Lauf – also
+frühestens beim Release. `runner-heartbeat.yml` deckt die Zeit **davor** ab:
+täglich 05:30 UTC (und auf Zuruf) bekommt jeder aktive Runner einen
+Minimaljob, und `scripts/runner_heartbeat.py` beobachtet GitHub-hosted, ob er
+ihn binnen 15 Minuten annimmt. Der Job auf dem Runner ist bewusst der
+Abnahme-Preflight mit `--hardening-strict`: So fällt nicht nur ein *offline*
+Gerät auf, sondern auch ein eingeschaltetes, das nicht einsatzbereit wäre.
+Fail-safe wie der Lauf-Watchdog — ohne **frische** Beobachtung (API-Fehler)
+gibt es kein Verdikt, sonst entwertete jeder Schluckauf den Alarm. Der
+Heartbeat bricht nie einen Lauf ab (kein `actions: write`); gegen auflaufende
+Warteschlangen-Jobs schützt `concurrency: cancel-in-progress`.
+
+Die **Geräte-Härtung** in `abnahme_preflight.run_hardening` prüft zwei
+Lücken, die aus den offiziellen Vorlagen von `actions/runner` stammen:
+`actions.runner.service.template` enthält kein `Restart=` und
+`actions.runner.plist.template` kein `KeepAlive` – ein abgestürzter
+Runner-Dienst bleibt auf **beiden** Plattformen unten, bis jemand ihn von
+Hand startet. Dazu der macOS-Sleep-Schutz (`pmset`-Profil **oder** aktive
+`caffeinate`-Assertion; der Display-Schlaf zählt mit, weil die Abnahme native
+Screenshots erzeugt). Diese Punkte entscheiden über die Verfügbarkeit
+zwischen den Läufen, nicht über die Gültigkeit eines laufenden Nachweises –
+im Abnahme-Preflight bleiben sie deshalb Hinweise, im Heartbeat sind sie
+bindend.
+
+**Governance:** Bis #921 stand „nur der Abnahme-Workflow spricht
+Self-hosted-Labels an" allein als Häkchen in RELEASE_AUTOMATION §3. Die Regel
+ist bewusst um genau diesen zweiten Workflow erweitert und dabei erstmals
+maschinell erzwungen: `tests/test_runner_heartbeat_workflow.py` scannt
+**alle** Workflow-Dateien und schlägt bei einem dritten fehl, prüft für beide
+erlaubten Workflows den Ausschluss von Push-/PR-/Fork-Triggern und den
+Checkout ohne Credentials, und bindet `issues: write` an genau den Job, der
+auch kommentiert. Das Wartungsfenster ist über
+`RUNNER_HEARTBEAT_PAUSED`/`_UNTIL` pausierbar — sichtbar und **befristet**:
+eine Pause ohne gültiges Enddatum macht den Lauf rot, statt die Überwachung
+still stillzulegen. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7.
 
 ## Wichtig: Drift-Disziplin (Befund N6)
 

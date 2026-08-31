@@ -1,0 +1,215 @@
+name: Runner-Heartbeat
+
+# Taeglicher Lebens- und Bereitschaftsnachweis der Self-hosted Runner
+# (#921, Epic #914).
+#
+# Warum ueberhaupt: Der v2.9.0-Verzug entstand, weil der Pi-Runner tagelang
+# offline war und das erst beim Abnahme-Dispatch auffiel (#881). Der
+# Lauf-Watchdog aus #915 bricht so einen Lauf zwar schnell ab, verkuerzt die
+# Entdeckungszeit aber nicht. Dieser Workflow deckt die Zeit ZWISCHEN den
+# Laeufen ab: Er beschaeftigt jeden Runner minimal und meldet, wenn einer den
+# Job nicht annimmt.
+#
+# Der Job auf dem Runner ist bewusst kein blosses ``echo``: Er faehrt den
+# Abnahme-Preflight (#915) samt Geraete-Haertung (#921, --hardening-strict).
+# Damit faellt nicht nur ein *offline* Runner auf, sondern auch ein
+# eingeschalteter, der nicht einsatzbereit waere – fehlende grafische
+# Sitzung, fehlendes GL, voller Datentraeger, abgeschalteter Sleep-Schutz
+# oder ein Dienst ohne Neustart-Policy.
+#
+# Governance (RELEASE_AUTOMATION §3): Bis #921 galt „nur der Abnahme-Workflow
+# spricht Self-hosted-Labels an". Diese Regel ist bewusst um genau diesen
+# Workflow erweitert – unter denselben Schutzbedingungen: kein Push-, PR-
+# oder Fork-Trigger, minimale Permissions, Checkout ohne Credentials und
+# ausschliesslich repo-eigener Code. ``tests/test_runner_heartbeat_workflow.py``
+# erzwingt beides maschinell und laesst keinen dritten Workflow zu.
+on:
+  schedule:
+    # Taeglich 05:30 UTC – vor dem Arbeitstag und ausserhalb der Fenster von
+    # recommendations-live-check (06:30) und clamav-db-refresh (Mo 03:00).
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Ein wartender Heartbeat-Job bleibt bei einem offline Runner in der
+# Warteschlange, bis GitHub ihn nach 24 h abbricht. Statt ihn (wie der
+# Lauf-Watchdog) per force-cancel zu beenden – was den Lauf als "cancelled"
+# und damit ohne Fehlermeldung enden liesse – raeumt der Lauf des naechsten
+# Tages auf. So bleibt hoechstens ein wartender Lauf stehen, und der
+# Fehlschlag bleibt als Fehlschlag sichtbar.
+concurrency:
+  group: runner-heartbeat
+  cancel-in-progress: true
+
+jobs:
+  # Wartungsfenster sichtbar auswerten. Die Pause ist befristet: ohne
+  # gueltiges Enddatum in der Zukunft ist die Pause selbst der Befund, sonst
+  # waere die Ueberwachung still abgeschaltet – genau der Zustand, den #921
+  # abschafft.
+  status:
+    name: Heartbeat-Status
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      paused: ${{ steps.pause.outputs.paused }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      # Repository-Variablen ueber ``env`` statt per ``${{ }}`` in die
+      # Kommandozeile: ein Wert wie ``"; rm -rf …`` wuerde sonst als Shell-Text
+      # eingesetzt. Sie sind zwar nur von Maintainern setzbar, aber dieser
+      # Workflow spricht Self-hosted Runner an – dort ist der Unterschied
+      # zwischen Wert und Code kein theoretischer.
+      - name: Wartungsfenster bewerten
+        id: pause
+        env:
+          HEARTBEAT_PAUSED: ${{ vars.RUNNER_HEARTBEAT_PAUSED }}
+          HEARTBEAT_PAUSED_UNTIL: ${{ vars.RUNNER_HEARTBEAT_PAUSED_UNTIL }}
+        run: |
+          set -euo pipefail
+          python3 scripts/runner_heartbeat.py \
+            --summary heartbeat/status.md \
+            --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            pause-status \
+            --paused "${HEARTBEAT_PAUSED:-}" \
+            --until "${HEARTBEAT_PAUSED_UNTIL:-}"
+      - name: Status in die Job-Summary
+        if: always()
+        run: |
+          set -euo pipefail
+          # Kein ``[ -f … ] && cat``: unter ``set -e`` liesse der falsche Test
+          # als letztes Kommando den Schritt fehlschlagen.
+          if [ -f heartbeat/status.md ]; then
+            cat heartbeat/status.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  heartbeat-macos-arm64:
+    name: Heartbeat macOS arm64
+    needs: status
+    if: needs.status.outputs.paused != 'true'
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Einsatzbereitschaft und Haertung pruefen
+        run: python3 scripts/abnahme_preflight.py --platform macos-arm64 --hardening-strict
+
+  heartbeat-linux-arm64:
+    name: Heartbeat Linux aarch64
+    needs: status
+    if: needs.status.outputs.paused != 'true'
+    runs-on: [self-hosted, Linux, ARM64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Einsatzbereitschaft und Haertung pruefen
+        run: python3 scripts/abnahme_preflight.py --platform linux-arm64 --hardening-strict
+
+  # Spiegelt die Pause aus RELEASE_AUTOMATION §5: Solange kein
+  # x86_64-Geraet registriert ist, darf der Heartbeat es nicht erwarten –
+  # sonst meldete er taeglich einen Ausfall, den es nicht gibt.
+  heartbeat-linux-x86_64:
+    name: Heartbeat Linux x86_64
+    needs: status
+    if: needs.status.outputs.paused != 'true' && vars.ABNAHME_X86_64_ENABLED == 'true'
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Einsatzbereitschaft und Haertung pruefen
+        run: python3 scripts/abnahme_preflight.py --platform linux-x86_64 --hardening-strict
+
+  # GitHub-hosted Auswertung, parallel zu den Runner-Jobs: Sie beobachtet,
+  # ob jeder erwartete Job einem Runner zugewiesen wurde. Bewusst nicht per
+  # ``needs`` an die Runner-Jobs gehaengt – ein nie startender Job wuerde die
+  # Auswertung sonst genauso lange blockieren, wie sie melden soll.
+  #
+  # PAT-frei mit Absicht: Der Runner-Status per API
+  # (``GET /repos/{o}/{r}/actions/runners``) braucht ein Fine-grained PAT mit
+  # ``Administration: read``, das dem ``GITHUB_TOKEN`` nicht zuweisbar ist.
+  # Ein Dauer-Token mit Administrationsrecht im Repository waere ein
+  # groesseres Risiko als der Nutzen; die Job-Annahme belegt dasselbe.
+  # Abwaegung: RELEASE_AUTOMATION §7.
+  watch:
+    name: Heartbeat-Auswertung
+    needs: status
+    if: needs.status.outputs.paused != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Runner-Annahme beobachten
+        id: watch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          X86_64_ENABLED: ${{ vars.ABNAHME_X86_64_ENABLED }}
+        run: |
+          set -euo pipefail
+          x86flag=""
+          [ "${X86_64_ENABLED:-}" = "true" ] && x86flag="--x86-64-enabled"
+          python3 scripts/runner_heartbeat.py \
+            --report heartbeat/heartbeat.json \
+            --summary heartbeat/heartbeat.md \
+            --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            watch \
+            --repo "$GITHUB_REPOSITORY" \
+            --run-id "$GITHUB_RUN_ID" \
+            --deadline-seconds 900 \
+            --poll-seconds 20 \
+            $x86flag
+
+      # Auch (gerade) im Fehlerfall: der Bericht ist die Evidenz.
+      - name: Ergebnis in die Job-Summary
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -f heartbeat/heartbeat.md ]; then
+            cat heartbeat/heartbeat.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Kein Heartbeat-Bericht erzeugt – Auswertung brach vorher ab."
+          fi
+
+      - name: Bericht sichern
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: runner-heartbeat
+          path: heartbeat/
+          if-no-files-found: warn
+          retention-days: 30
+
+      # Nur im Fehlerfall kommentieren: ein taeglicher Erfolgskommentar
+      # verwandelte das Betriebs-Issue in Rauschen, in dem der eine
+      # Ausfalltag untergeht. Der fehlgeschlagene Lauf loest zusaetzlich die
+      # Actions-Fehlerbenachrichtigung aus.
+      - name: Betriebs-Issue benachrichtigen
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ISSUE: ${{ vars.RUNNER_HEARTBEAT_ISSUE }}
+        run: |
+          set -euo pipefail
+          report="heartbeat/heartbeat.md"
+          test -f "$report" || { echo "::notice::Kein Bericht zum Kommentieren."; exit 0; }
+          if [ -z "$TARGET_ISSUE" ]; then
+            echo "::notice title=Kein Issue-Kommentar::RUNNER_HEARTBEAT_ISSUE ist nicht gesetzt; der Befund bleibt Job-Summary, Artefakt und Actions-Fehlermeldung."
+            exit 0
+          fi
+          [[ "$TARGET_ISSUE" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::RUNNER_HEARTBEAT_ISSUE muss leer oder eine positive Issue-Nummer sein."; exit 1; }
+          gh issue comment "$TARGET_ISSUE" --repo "${GITHUB_REPOSITORY}" --body-file "$report"

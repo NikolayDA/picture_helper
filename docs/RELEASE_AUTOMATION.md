@@ -75,6 +75,83 @@ von GitHub [dokumentierten macOS-LaunchAgent](https://docs.github.com/en/actions
 der Workflow prüft dieselbe Bedingung nochmals unmittelbar vor dem nativen
 Qt-Lauf.
 
+**Sleep-Schutz und Dienst-Neustart (macOS, #921).** Ein schlafender Mac nimmt
+keine Jobs an – der Runner steht dann als „Idle" in der Oberfläche, während
+die Warteschlange wächst. Zwei Einstellungen sichern die Bereitschaft; beide
+prüft der Preflight (`scripts/abnahme_preflight.py`) und der tägliche
+Heartbeat (§7) setzt sie durch:
+
+```sh
+# Am Netzteil weder System- noch Display-Schlaf. Der Display-Schlaf zählt mit:
+# die Abnahme erzeugt native Screenshots (SCREEN-*), ein dunkles Display
+# entwertet genau diesen Nachweis.
+sudo pmset -c sleep 0 displaysleep 0
+# Nur für einen zugeklappt betriebenen MacBook zusätzlich:
+sudo pmset -a disablesleep 1
+```
+
+Alternative für Geräte, die sonst schlafen sollen: den Runner-Dienst in einen
+`caffeinate`-Wrapper hängen (`caffeinate -dimsu`). Der Preflight akzeptiert
+beides – ein dauerhaftes `pmset`-Profil **oder** aktive Assertions.
+
+**Prüfkommando** (beide Zeilen müssen `0` zeigen bzw. die Assertions `1`):
+
+```sh
+pmset -g custom | awk '/^AC Power:/{ac=1} ac && /(^| )(sleep|displaysleep|disablesleep) /'
+pmset -g assertions | grep -E 'PreventUserIdle(System|Display)Sleep'
+```
+
+Der LaunchAgent aus `svc.sh install` startet den Runner **nicht** von selbst
+neu: Die offizielle Vorlage (`actions.runner.plist.template` in
+`actions/runner`) setzt nur `RunAtLoad`, kein `KeepAlive`. Ein abgestürzter
+Dienst bleibt damit unten, bis sich jemand am Gerät anmeldet. Einmalig
+ergänzen (und nach jedem `svc.sh install` erneut, weil die Datei dabei neu
+erzeugt wird):
+
+```sh
+plist=~/Library/LaunchAgents/$(basename "$(cat .service)")
+/usr/libexec/PlistBuddy -c 'Add :KeepAlive bool true' "$plist" \
+  || /usr/libexec/PlistBuddy -c 'Set :KeepAlive true' "$plist"
+./svc.sh stop && ./svc.sh start
+/usr/libexec/PlistBuddy -c 'Print :KeepAlive' "$plist"   # muss "true" sein
+```
+
+### 2.2 Neustartfestigkeit des Pi (Pflicht)
+
+Dieselbe Lücke auf der Linux-Seite, aus derselben Quelle: Die Unit-Vorlage
+`actions.runner.service.template` enthält **kein** `Restart=` – systemd
+startet den Dienst nach einem Absturz also nicht neu. Der Drop-in gehört in
+dieselbe Datei wie die Session-Variablen aus §2.1, damit ein späteres
+`svc.sh install` ihn nicht überschreibt:
+
+```sh
+sudo systemctl edit "$(cat .service)"
+```
+
+```ini
+[Service]
+Restart=always
+RestartSec=10
+```
+
+```sh
+sudo systemctl daemon-reload
+systemctl show "$(cat .service)" -p Restart --value   # muss "always" sein
+```
+
+**Grafische Sitzung nach Reboot.** Der Dienst startet mit dem System, die
+Desktop-Sitzung aber nur, wenn der Runner-Benutzer automatisch angemeldet
+wird – sonst fehlen `DISPLAY`/`WAYLAND_DISPLAY` und jede GL-Prüfung schlägt
+fehl. Auf Raspberry Pi OS über `sudo raspi-config` → *System Options* →
+*Boot / Auto Login* → *Desktop Autologin*, alternativ direkt in der
+LightDM-Konfiguration (`/etc/lightdm/lightdm.conf`, `autologin-user=`).
+
+**Reboot-Probe (einmalig, am Gerät):** `sudo reboot`; nach dem Hochfahren
+ohne manuelle Anmeldung den Heartbeat von Hand starten (§7) und prüfen, dass
+`Heartbeat Linux aarch64` grün durchläuft. Das belegt Autologin, Session,
+Dienststart und Neustart-Policy in einem Zug. Ergebnis und Datum im
+Betriebs-Issue notieren.
+
 **Linux:** Der systemd-Dienst läuft als derselbe dedizierte Benutzer, der an
 der Desktop-Sitzung angemeldet ist. Zuerst in einem Terminal **dieser
 grafischen Sitzung** die tatsächlichen Werte erfassen:
@@ -115,10 +192,16 @@ wählt.
 ## 3. Sicherheits-Checkliste (vor Inbetriebnahme, je Runner)
 
 - [ ] Runner ist **nur für dieses Repository** registriert (kein Org-Sharing).
-- [ ] Der Abnahme-Workflow ist der einzige, der Self-hosted-Labels anspricht;
-      er läuft ausschließlich über `workflow_dispatch` – nie auf Push-, PR-
-      oder Fork-Events (erzwungen durch
-      `tests/test_release_abnahme_workflow.py`).
+- [ ] Genau **zwei** Workflows sprechen Self-hosted-Labels an: der
+      Abnahme-Workflow (`workflow_dispatch`) und der tägliche Heartbeat
+      (`schedule` + `workflow_dispatch`, §7). Nie Push-, PR- oder
+      Fork-Events. Beide checken ohne Credentials aus und führen auf dem
+      Runner ausschließlich repo-eigenen Code aus. Die Liste ist seit #921
+      maschinell erzwungen – `tests/test_runner_heartbeat_workflow.py`
+      scannt **alle** Workflow-Dateien und schlägt bei einem dritten fehl;
+      `tests/test_release_abnahme_workflow.py` deckt die Abnahme-Seite ab.
+      Ein weiterer Workflow ist eine bewusste Entscheidung: erst die Liste
+      im Test ändern, dann dieselben Schutzbedingungen erfüllen.
 - [ ] Runner läuft unter einem **dedizierten Benutzer** ohne Zugriff auf
       persönliche Daten/Schlüssel.
 - [ ] Linux-Runner (für den `.deb`-Smoke): **eng begrenztes** `sudo` nur für
@@ -548,3 +631,101 @@ Es ist keine Code-Änderung nötig.
   Dry-Run des Abnahme-Workflows ausführen, bevor ein echtes Release ansteht.
 - Runner, die länger offline sind, entfernt GitHub nach 30 Tagen automatisch –
   dann §2 wiederholen.
+
+### 6.1 Neustart und Update je Gerät
+
+Vor geplanten Eingriffen den Heartbeat befristet pausieren (§7), sonst meldet
+er den Ausfall als echten Befund. Nach dem Eingriff die Pause **aufheben**;
+ein abgelaufenes Wartungsfenster macht den nächsten Heartbeat rot – bewusst,
+damit eine vergessene Pause nicht die Überwachung stilllegt.
+
+**Raspberry Pi (Linux aarch64):**
+
+```sh
+sudo apt update && sudo apt full-upgrade
+sudo reboot
+# Nach dem Hochfahren, ohne manuelle Anmeldung:
+systemctl is-active "$(cat .service)"                 # active
+systemctl show "$(cat .service)" -p Restart --value   # always
+python3 scripts/abnahme_preflight.py --platform linux-arm64 --hardening-strict
+```
+
+**MacBook (macOS arm64):** Systemupdate einspielen, neu starten und am Gerät
+**anmelden** – der LaunchAgent lebt in der GUI-Sitzung des Runner-Benutzers
+und startet erst mit ihr.
+
+```sh
+./svc.sh status                                        # läuft
+pmset -g custom | awk '/^AC Power:/{ac=1} ac && /(^| )(sleep|displaysleep) /'
+python3 scripts/abnahme_preflight.py --platform macos-arm64 --hardening-strict
+```
+
+Danach in beiden Fällen den Heartbeat einmal von Hand starten (§7). Steht ein
+echtes Release an, zusätzlich den Dry-Run des Abnahme-Workflows fahren – der
+Heartbeat belegt Bereitschaft, nicht die vollständige Abnahmekette.
+
+## 7. Runner-Heartbeat: Ausfälle zwischen den Läufen (#921)
+
+Der Lauf-Watchdog (#915) meldet einen Ausfall **im** Abnahme-Lauf – also
+frühestens beim Release. Beim v2.9.0-Verzug war der Pi-Runner tagelang
+offline, und genau das fiel erst beim Dispatch auf (#881). Der Workflow
+[`runner-heartbeat.yml`](../.github/workflows/runner-heartbeat.yml) schließt
+die Lücke davor: Er läuft **täglich um 05:30 UTC** (und auf Zuruf), gibt
+jedem aktiven Runner einen minimalen Job und meldet, wenn einer ihn nicht
+binnen 15 Minuten annimmt.
+
+Der Job auf dem Runner ist bewusst kein `echo`, sondern der Preflight aus
+§2/§2.1/§2.2 mit `--hardening-strict`. Damit fällt nicht nur ein *offline*
+Gerät auf, sondern auch ein eingeschaltetes, das nicht einsatzbereit wäre:
+fehlende grafische Sitzung, fehlendes GL, voller Datenträger, abgeschalteter
+Sleep-Schutz, Dienst ohne Neustart-Policy. Im Abnahme-Preflight bleiben die
+Härtungspunkte bewusst Hinweise – ein Release soll nicht an einer
+Display-Sleep-Einstellung scheitern; der tägliche Lauf ist die
+Durchsetzungsstelle.
+
+**Meldeweg.** Der fehlgeschlagene Lauf löst die Actions-Fehlerbenachrichtigung
+aus. Ist die Repository-Variable `RUNNER_HEARTBEAT_ISSUE` auf eine
+Issue-Nummer gesetzt, kommentiert der Lauf denselben Bericht zusätzlich dort.
+Kommentiert wird **nur im Fehlerfall**: ein täglicher Erfolgskommentar würde
+das Betriebs-Issue in Rauschen verwandeln, in dem der eine Ausfalltag
+untergeht. Bericht (`heartbeat.json`, Schema 1) und Summary hängen 30 Tage
+als Artefakt `runner-heartbeat` am Lauf.
+
+**Wartungsfenster.** Für geplante Eingriffe pausieren:
+
+| Variable | Wert |
+|---|---|
+| `RUNNER_HEARTBEAT_PAUSED` | `true` |
+| `RUNNER_HEARTBEAT_PAUSED_UNTIL` | Enddatum, `YYYY-MM-DD` |
+
+Die Pause ist sichtbar (Warnung und Job-Summary „pausiert") und **befristet**:
+Fehlt das Enddatum, ist es unlesbar oder liegt es in der Vergangenheit, wird
+der Lauf rot – die Pause selbst ist dann der Befund. Eine unbefristete Pause
+wäre keine Pause, sondern eine abgeschaltete Überwachung, und niemand sähe
+es. Nach dem Eingriff `RUNNER_HEARTBEAT_PAUSED` entfernen.
+
+**Warum ohne PAT.** Der Runner-Status ließe sich direkt abfragen
+(`GET /repos/{owner}/{repo}/actions/runners`), das braucht aber ein
+Fine-grained PAT mit `Administration: read` – ein Recht, das dem
+`GITHUB_TOKEN` nicht zuweisbar ist. Abwägung:
+
+| | Heartbeat-Jobs (gewählt) | PAT mit `Administration: read` |
+|---|---|---|
+| Zusätzliches Dauergeheimnis | keines | ein Token mit Administrationsrecht am Repository |
+| Aussage | Runner **nimmt Jobs an** und ist einsatzbereit | Runner ist bei GitHub als online registriert |
+| Blinder Fleck | – | ein „online", aber unbrauchbarer Runner bleibt grün |
+| Kosten | zwei Minutenjobs pro Tag | keine |
+
+Ein online gemeldeter Runner ohne grafische Sitzung hätte dieselbe Abnahme
+scheitern lassen; die Job-Annahme belegt mehr als der Statusflag und braucht
+kein Geheimnis. Entscheidung deshalb: PAT-frei. Wird der Statusweg später
+doch gebraucht (z. B. um zwischen „offline" und „busy" zu unterscheiden),
+ist er additiv nachrüstbar.
+
+**Grenzen.** Bleibt ein Runner offline, wartet sein Job bis zu 24 Stunden in
+der Warteschlange. Der Heartbeat bricht ihn bewusst **nicht** ab: Ein
+force-cancel ließe den Lauf als „cancelled" enden – ohne Fehlermeldung. Statt
+dessen räumt `concurrency: cancel-in-progress` auf, sodass höchstens ein
+wartender Lauf stehen bleibt. Kann die Job-Liste nicht abgefragt werden
+(API-Fehler), meldet der Heartbeat `UNOBSERVED` und schlägt keinen Alarm –
+ein Monitor ohne Beobachtung darf kein Verdikt fällen.
