@@ -29,10 +29,32 @@ name: Release artifacts (Linux + macOS)
 # Tag-Trigger noch Schreibrechte oder einen Publish-Job. ``release-publish.yml``
 # kann spaeter ausschliesslich die hier erzeugten, abgenommenen Bytes laden.
 #
+# Dry-Run (#922): Zusaetzlich zum Dispatch laeuft dieser Workflow monatlich per
+# ``schedule``. Das ist die einzige Ausnahme von "dispatch-only" - Tag-Trigger,
+# Schreibrechte und Publish-Job fehlen weiterhin. Anlass: Beim v2.9.0-Release
+# scheiterte der erste Kandidatenlauf an ``base-tag-missing`` (#880), einem
+# Fehler, den NUR der Kandidatenkontext sichtbar macht (reusable-Full-CI-Aufruf,
+# drei Build-Legs, Artefakt-Scan, Artefakt-Upload) - und er fiel erst unter
+# Zeitdruck am Release-Tag auf. Der Dry-Run faehrt genau diese Pfade zwischen
+# den Releases, mit demselben produktiven KI-Buendel; er ist NIE ein Kandidat:
+# ``release_contract.validate_workflow_run`` verlangt fail-closed
+# ``event == workflow_dispatch``, und der ``candidate-source``-Job der Abnahme
+# laeuft vor jeder Hardware-Arbeit. Zusaetzlich sichtbar gekennzeichnet ueber
+# ``run-name``, Notice und Job-Zusammenfassung, und mit kurzer Aufbewahrung der
+# Produktartefakte.
+#
 # Der Linux-Build buendelt nur das bgremover-Wheel + Abhaengigkeiten ins
 # AppImage; der macOS-Build packt sie via PyInstaller ins .app-Bundle. Beide
 # laufen in einem isolierten venv und installieren das Projekt nicht in den
 # Runner (kein pip-Pin noetig, vgl. tests/test_ci_pip_pin.py).
+
+# Kandidatenbau vs. Dry-Run auf einen Blick in der Laufliste (#922) - die
+# Kennzeichnung darf nicht erst im Joblog stehen, sonst wird ein Dry-Run beim
+# Suchen der Run-ID mit einem Kandidaten verwechselt.
+run-name: >-
+  ${{ github.event_name == 'schedule'
+  && 'Dry-Run - kein Kandidat' || 'Kandidatenbau' }}
+
 on:
   workflow_dispatch:
     inputs:
@@ -40,9 +62,35 @@ on:
         description: 'Bundle rembg (AI background removal) into the artifacts'
         type: boolean
         default: true
+  # #922: monatlicher Dry-Run des gesamten Kandidatenpfads. Versetzt zu allen
+  # anderen Schedules des Repos und bewusst nicht zur vollen Stunde (GitHub
+  # verzoegert Schedules zu Spitzenzeiten). Scheduled Runs laufen immer auf dem
+  # Default-Branch - der Dry-Run prueft also den Stand, aus dem der naechste
+  # Kandidat entstehen wuerde.
+  schedule:
+    - cron: '40 4 3 * *'
 
 permissions:
   contents: read
+
+# Einzige Quelle des Laufmodus und der davon abhaengigen Werte (#922). Auf
+# Workflow-Ebene, damit Kennzeichnung, Build-Legs und Abschlussbericht nicht je
+# eine eigene Bedingung tragen - der KI-Buendelstatus war zuvor als zwei
+# unabhaengige Ausdruecke formuliert (env WITH_AI und das ``--ai``-Flag), die
+# nur zufaellig uebereinstimmten.
+env:
+  # ``schedule`` = Dry-Run, alles andere (nur ``workflow_dispatch``) = Kandidat.
+  DRY_RUN: ${{ github.event_name == 'schedule' && '1' || '0' }}
+  # Der Dry-Run baut IMMER den produktiven Pfad: ein Release buendelt rembg
+  # (#881), ein Dry-Run mit ``with_ai=false`` pruefte einen anderen Pfad als
+  # den ausgelieferten. Im schedule-Kontext gibt es kein ``inputs.with_ai``.
+  WITH_AI: ${{ (github.event_name == 'schedule' || inputs.with_ai) && '1' || '0' }}
+  # Aufbewahrung der ~1,1 GB Produktartefakte eines Dry-Runs. Kurz genug, um
+  # die Kosten zu begrenzen - und eine zweite, unabhaengige Schranke gegen die
+  # Verwechslung mit einem Kandidaten. Die kleinen Evidenzartefakte
+  # (Freeze-Provenienz, Sicherheitsscan) behalten 90 Tage: Sie tragen die
+  # Diagnose eines roten Laufs und kosten kaum Speicher.
+  DRY_RUN_RETENTION_DAYS: '3'
 
 jobs:
   # Gate 1: abgeleitetes Freeze-/Provenienz-Gate fuer den manuellen
@@ -52,6 +100,51 @@ jobs:
     name: Verify candidate provenance
     runs-on: ubuntu-latest
     steps:
+      # #922: Der Laufmodus steht BEWUSST vor dem Checkout. Faellt schon der
+      # Checkout oder das Freeze-Gate, existiert die Kennzeichnung trotzdem -
+      # gerade ein abgebrochener Lauf verleitet sonst dazu, seine Run-ID fuer
+      # einen Kandidaten zu halten. Der Notice erscheint im Lauf-Kopf, die
+      # Zusammenfassung bleibt dauerhaft am Lauf.
+      - name: Laufmodus kennzeichnen (Dry-Run oder Kandidat)
+        run: |
+          set -euo pipefail
+          # Fail-closed gegen eine Annahme, die die GitHub-Doku nicht ausdruecklich
+          # abdeckt: Der ``inputs``-Kontext ist laut Kontextreferenz nur in
+          # ``workflow_dispatch``- und wiederverwendbaren Workflows verfuegbar; fuer
+          # den ``schedule``-Lauf stuetzt sich ``WITH_AI`` auf die dokumentierte
+          # Regel "eine nicht existierende Eigenschaft ergibt einen leeren String".
+          # Traegt diese Regel nicht, buende der Dry-Run STILL ohne KI und pruefte
+          # damit einen anderen als den ausgelieferten Pfad. Der Abbruch hier kostet
+          # nichts (erster Job, vor Full-CI und Build) und macht aus dem stillen
+          # Fehler einen lauten.
+          if [ "$DRY_RUN" = "1" ] && [ "$WITH_AI" != "1" ]; then
+            echo "::error title=Dry-Run ohne KI-Buendel::WITH_AI=${WITH_AI}, erwartet 1. Der Dry-Run muss den produktiven Pfad bauen (#922/#881) - Ausdruck in env.WITH_AI pruefen."
+            exit 1
+          fi
+          if [ "$DRY_RUN" = "1" ]; then
+            echo "::notice title=Dry-Run::Dieser Lauf ist KEIN Release-Kandidat (#922) - geplanter Test des Kandidatenpfads."
+            {
+              echo "## Dry-Run - kein Kandidat"
+              echo
+              echo "Geplanter Lauf (\`schedule\`) des vollstaendigen Kandidatenpfads (#922): Full-CI als wiederverwendbarer Workflow, drei Build-Legs, Artefakt-Scan und -Upload. Geprueft wird die Pipeline, nicht ein Release."
+              echo
+              echo "- **Nicht als Kandidat verwendbar.** \`release-abnahme.yml\` weist diese Run-ID im Job \`candidate-source\` ab: Der Freigabevertrag verlangt \`event == workflow_dispatch\`."
+              echo "- Produktartefakte werden nur ${DRY_RUN_RETENTION_DAYS} Tage aufbewahrt (Kandidatenlauf: 90)."
+              echo "- Gebaut wird mit dem produktiven KI-Buendel (\`WITH_AI=${WITH_AI}\`)."
+              echo "- Ein roter Lauf ist ein Pipeline-Befund. Ursache, Owner und Reaktionsweg stehen im Job **Dry-Run-Ergebnis**."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::notice title=Kandidatenbau::Manuell ausgeloester Kandidatenlauf (workflow_dispatch)."
+            {
+              echo "## Kandidatenbau"
+              echo
+              echo "Manuell ausgeloester Lauf (\`workflow_dispatch\`). Nur ein solcher Lauf kann Quelle einer Abnahme und Veroeffentlichung sein."
+              echo
+              echo "- KI-Buendel: \`WITH_AI=${WITH_AI}\`"
+              echo "- Naechster Schritt nach gruenem Lauf: Runbook-Schritt 5 (\`release-abnahme.yml\` mit dieser Run-ID)."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       # fetch-depth: 0 + Tags: das Freeze-Gate leitet den Kandidaten aus der
       # Historie seit dem Basis-Tag ab und braucht dafuer das ganze Fenster.
       - uses: actions/checkout@v5
@@ -130,10 +223,10 @@ jobs:
       # appimagetool needs FUSE to run; extract-and-run avoids requiring it
       # (and the FUSE2 package) on the CI runner. Harmlos/ungenutzt auf macOS.
       APPIMAGE_EXTRACT_AND_RUN: '1'
-      # #307/#308: ob die Artefakte rembg/onnxruntime bündeln. Dieselbe
-      # Bedingung wie der ``--ai``-Schalter der Build-Schritte – steuert den
+      # #307/#308: ob die Artefakte rembg/onnxruntime bündeln, steuert den
       # KI-Selbsttest und die erlaubte Instanzzahl des Fork-Bomb-Wächters.
-      WITH_AI: ${{ inputs.with_ai && '1' || '0' }}
+      # Seit #922 auf Workflow-Ebene (``env`` oben) und dort zugleich die
+      # Quelle des ``--ai``-Schalters der Build-Schritte.
     steps:
       - uses: actions/checkout@v5
 
@@ -156,15 +249,34 @@ jobs:
           echo "Produktversion: $project_version"
           echo "Commit-SHA: ${GITHUB_SHA}"
           echo "Workflow: ${GITHUB_WORKFLOW} | Run-ID: ${GITHUB_RUN_ID} | Run-Attempt: ${GITHUB_RUN_ATTEMPT} | Trigger: ${GITHUB_EVENT_NAME}"
+          # #922: Der Laufmodus gehoert in dieselbe Zeilengruppe wie die
+          # Provenienz - wer ein Build-Log liest, um eine Run-ID zu belegen,
+          # sieht hier sofort, ob es ueberhaupt ein Kandidat sein kann.
+          if [ "$DRY_RUN" = "1" ]; then
+            echo "Laufmodus: DRY-RUN - kein Release-Kandidat (#922)"
+          else
+            echo "Laufmodus: Kandidatenbau"
+          fi
+          echo "KI-Buendel (WITH_AI): ${WITH_AI}"
           echo "Matrix-Leg: ${{ matrix.os }} ${{ matrix.arch }} (${{ matrix.platform_tag }})"
           echo "Runner: ${RUNNER_OS} / ${RUNNER_ARCH}"
           python3 --version
           pip --version
 
       # ── Linux: AppImage + .deb ──────────────────────────────────────────
+      # Der ``--ai``-Schalter kommt aus derselben Variable wie der KI-Selbsttest
+      # und der Fork-Bomb-Wächter (#922). Zuvor standen hier zwei unabhängige
+      # ``inputs.with_ai``-Ausdrücke: Sie hätten auseinanderlaufen können, und
+      # im ``schedule``-Kontext gibt es ``inputs`` gar nicht – der Dry-Run
+      # hätte ohne KI gebaut und damit einen anderen als den ausgelieferten
+      # Pfad geprüft. Leere Variable = kein Argument (bewusst ohne Quotes).
       - name: Build AppImage
         if: matrix.os == 'linux'
-        run: ./packaging/linux/build_appimage.sh ${{ inputs.with_ai && '--ai' || '' }}
+        run: |
+          set -euo pipefail
+          ai_flag=""
+          if [ "$WITH_AI" = "1" ]; then ai_flag="--ai"; fi
+          ./packaging/linux/build_appimage.sh $ai_flag
 
       # #709-Review: der Runner-``pip`` oben ist nicht der Bundler, der das
       # Artefakt tatsaechlich baut – build_appimage.sh legt dafuer eine
@@ -352,9 +464,14 @@ jobs:
           echo "OK: echter apt-Install/Start/dpkg-Remove-Zyklus fuer $(basename "$deb") erfolgreich."
 
       # ── macOS: .app + .dmg ──────────────────────────────────────────────
+      # Dieselbe Quelle wie im Linux-Leg (#922, siehe Kommentar dort).
       - name: Build macOS app + .dmg (PyInstaller)
         if: matrix.os == 'macos'
-        run: ./packaging/mac/build_macos.sh ${{ inputs.with_ai && '--ai' || '' }}
+        run: |
+          set -euo pipefail
+          ai_flag=""
+          if [ "$WITH_AI" = "1" ]; then ai_flag="--ai"; fi
+          ./packaging/mac/build_macos.sh $ai_flag
 
       # #709-Review: analog zum Linux-Leg – build_macos.sh installiert
       # PyInstaller unversioniert (``--upgrade``) in eine isolierte
@@ -587,10 +704,100 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
 
+      # #922: Im Dry-Run kurz aufbewahrt - das ist der eigentliche Kostenblock
+      # (~1,1 GB je Lauf) und zugleich eine zweite Schranke gegen die
+      # Verwechslung mit einem Kandidaten. Der Kandidatenlauf behaelt 90 Tage:
+      # Abnahme und Veroeffentlichung laden genau diese Bytes.
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v7
         with:
           name: bgremover-${{ matrix.platform_tag }}
           path: dist/*
           if-no-files-found: error
-          retention-days: 90
+          retention-days: ${{ env.DRY_RUN == '1' && env.DRY_RUN_RETENTION_DAYS || 90 }}
+
+  # #922: Ein roter Dry-Run muss handlungsfaehig sein, nicht nur sichtbar -
+  # dasselbe Muster wie recommendations-live-check.yml (Ursache, Owner und
+  # Reaktionsweg dauerhaft in der Job-Zusammenfassung). Der Job buendelt das
+  # Ergebnis der drei Stufen an einer Stelle: Wer den Lauf oeffnet, sieht
+  # sofort, WELCHE Stufe gefallen ist, statt drei Jobs durchsuchen zu muessen.
+  # Er laeuft nur im Dry-Run - beim Kandidatenbau folgt ohnehin das Runbook.
+  dry-run-report:
+    name: Dry-Run-Ergebnis
+    # Der ``env``-Kontext ist in ``jobs.<id>.if`` laut GitHub-Kontextreferenz
+    # NICHT verfuegbar; ``DRY_RUN`` waere hier leer und die Bedingung immer
+    # falsch. Deshalb steht die Modusbedingung hier ausgeschrieben - ein Test
+    # haelt beide Formulierungen zusammen.
+    if: always() && github.event_name == 'schedule'
+    needs: [verify-candidate, test, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ergebnis, Ursache und Reaktionsweg festhalten
+        env:
+          VERIFY_RESULT: ${{ needs.verify-candidate.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          # Drei Ausgaenge, bewusst getrennt: gefallen (Befund, rot),
+          # unvollstaendig (abgebrochen/nicht gelaufen - kein Befund, aber
+          # auch KEIN Gruen-Nachweis) und bestanden. Ein Abbruch als "gruen"
+          # zu melden waere die gefaehrlichere Falschaussage: Der Lauf
+          # erschiene als Beleg, dass der Release-Pfad traegt.
+          failed=""
+          incomplete=""
+          label() {
+            case "$1" in
+              success)   printf 'bestanden' ;;
+              skipped)   printf 'nicht gelaufen' ;;
+              cancelled) printf 'abgebrochen' ;;
+              *)         printf 'FEHLER (%s)' "$1" ;;
+            esac
+          }
+          for pair in "verify-candidate=$VERIFY_RESULT" "test=$TEST_RESULT" "build=$BUILD_RESULT"; do
+            case "${pair#*=}" in
+              success)             ;;
+              skipped|cancelled)   incomplete="$incomplete ${pair%%=*}" ;;
+              *)                   failed="$failed ${pair%%=*}" ;;
+            esac
+          done
+
+          {
+            echo "## Dry-Run-Ergebnis (#922)"
+            echo
+            echo "| Stufe | Ergebnis | Deckt ab |"
+            echo "| --- | --- | --- |"
+            echo "| \`verify-candidate\` | $(label "$VERIFY_RESULT") | Freeze-Gate, Pfadklassifikation, Kandidatenprovenienz |"
+            echo "| \`test\` | $(label "$TEST_RESULT") | Full-CI-Matrix als **wiederverwendbarer** Workflow (genau der Aufrufpfad, der in #880 flach auscheckte) |"
+            echo "| \`build\` | $(label "$BUILD_RESULT") | drei Build-Legs, Smoke-Launches, Artefakt-Scan inkl. ClamAV-Cache, Artefakt-Upload |"
+            echo
+            if [ -n "$failed" ]; then
+              echo "### Befund: Pipeline-Rot im Release-Pfad"
+              echo
+              echo "Gefallene Stufe(n):$failed. Diagnosematerial am Lauf: Job-Logs, das Artefakt \`security-scan-<plattform>\` (Bericht, Summary und Phasen-Logs) und \`release-freeze-provenance-<versuch>\`."
+              echo
+              echo "**Owner: Repository-Owner.** Ein roter Dry-Run bleibt ein aktiver Pipeline-Befund, bis die Ursache behoben oder bewusst als bekannt eingeordnet ist. Reaktion vor dem naechsten Kandidatenbau, spaetestens beim naechsten Release - genau dort waere sie sonst wieder Zeitdruckarbeit (#880)."
+              echo
+              echo "Nach der Korrektur laesst sich derselbe Pfad ohne Wartezeit erneut pruefen: \`release-linux.yml\` manuell starten (dann als Kandidatenlauf gekennzeichnet) oder den naechsten geplanten Lauf abwarten."
+            elif [ -n "$incomplete" ]; then
+              echo "### Unvollstaendig - kein Ergebnis"
+              echo
+              echo "Nicht bewertbare Stufe(n):$incomplete. Der Lauf ist weder ein Befund noch ein Nachweis, dass der Release-Pfad traegt. Wer die Aussage braucht, startet \`release-linux.yml\` manuell (dann als Kandidatenlauf gekennzeichnet) oder wartet den naechsten geplanten Lauf ab."
+            else
+              echo "**Der Release-Pfad ist gruen.** Dieser Lauf ist trotzdem kein Kandidat (siehe \`verify-candidate\`)."
+            fi
+            echo
+            echo "Lauf: $RUN_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "$failed" ]; then
+            echo "::error title=Dry-Run rot::Pipeline-Rot im Release-Pfad, gefallene Stufe(n):$failed"
+            exit 1
+          fi
+          if [ -n "$incomplete" ]; then
+            echo "::warning title=Dry-Run unvollstaendig::Nicht bewertbare Stufe(n):$incomplete - kein Befund, aber auch kein Gruen-Nachweis."
+            exit 0
+          fi
+          echo "Dry-Run gruen: verify-candidate, test und build sind bestanden."

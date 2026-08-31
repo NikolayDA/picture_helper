@@ -641,9 +641,13 @@ Workflows unter `.github/workflows/` (17):
   Fassungen aktiv (vor dem nächsten betroffenen Merge, spätestens innerhalb
   eines Arbeitstags). Der Check bleibt read-only, damit er den geprüften
   offenen Bestand nicht durch ein eigenes Issue verändert.
-- **Release:** `release-linux.yml` baut nur manuell den Kandidaten (zwei
-  AppImages, zwei `.deb`, ein macOS-`.dmg`) nach `verify-candidate` + Full-CI;
-  kein Tag-Trigger, keine Schreibrechte, kein Publish. `release-abnahme.yml`
+- **Release:** `release-linux.yml` baut den Kandidaten (zwei
+  AppImages, zwei `.deb`, ein macOS-`.dmg`) nach `verify-candidate` + Full-CI —
+  ein Kandidat entsteht ausschließlich per Dispatch; kein Tag-Trigger, keine
+  Schreibrechte, kein Publish. Seit #922 läuft derselbe Workflow zusätzlich
+  monatlich als **Dry-Run** (siehe *Dry-Run des Kandidatenpfads* unten): die
+  einzige Trigger-Ausnahme, ohne dass eine der drei Zusicherungen fällt.
+  `release-abnahme.yml`
   bindet Hardware-Evidenz und Freeze-Provenienz an genau diesen Build-Run.
   `release-publish.yml` veröffentlicht danach ausschließlich die fünf im
   Freigabemanifest gespeicherten SHA-256, Draft-first und ohne Neubau/Clobber
@@ -998,6 +1002,40 @@ Offline-Fall bleibt der Lauf unabgeschlossen (der wartende Job hängt bis zu
 24 h) und endet am Folgetag über `cancel-in-progress` als „cancelled" — die
 Actions-Fehlermail bleibt also genau dann aus, wenn sie gebraucht würde. Der
 Issue-Kommentar der Auswertung ist der einzige Kanal, der rechtzeitig trägt. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7.
+
+### Dry-Run des Kandidatenpfads (#922)
+
+Der erste v2.9.0-Kandidatenlauf scheiterte an `base-tag-missing` (#880) — ein
+Fehler, den **nur** der Kandidatenkontext sichtbar macht (Full-CI als
+wiederverwendbarer Workflow, drei Build-Legs, Artefakt-Scan, Artefakt-Upload)
+und der deshalb erst am Release-Tag auffiel. `release-linux.yml` läuft dafür
+zusätzlich **monatlich** per `schedule`. Das ist die einzige Ausnahme von
+„dispatch-only": Tag-Trigger, Schreibrechte und Publish-Job fehlen weiterhin,
+und `tests/test_release_gate.py` hält beides fest.
+
+Der Dry-Run baut mit dem **produktiven** KI-Bündel — ein Lauf ohne rembg
+prüfte einen anderen als den ausgelieferten Pfad (#881). Weil es im
+`schedule`-Kontext kein `inputs.with_ai` gibt, steht der Modus als
+Workflow-`env` (`DRY_RUN`/`WITH_AI`) an genau einer Stelle und speist auch den
+`--ai`-Schalter der Build-Schritte; zuvor waren das zwei unabhängige
+Ausdrücke, die nur zufällig übereinstimmten.
+
+**Er wird nie ein Kandidat.** Bindend ist der Freigabevertrag:
+`release_contract.validate_workflow_run` verlangt fail-closed
+`event == workflow_dispatch`, und `release-abnahme.yml` ruft `prepare-candidate`
+im Job `candidate-source` auf — vor jeder Hardware-Arbeit. Diese Regel war bis
+#922 trivial erfüllt (es gab keine anderen Läufe) und ungetestet; sie trägt
+jetzt eine echte Zusicherung. Dazu zwei sichtbare Schranken: `run-name`,
+Notice und Job-Zusammenfassung kennzeichnen den Lauf (die Kennzeichnung steht
+**vor** dem Checkout, damit sie auch ein abgebrochener Lauf trägt), und die
+Produktartefakte verfallen nach 3 statt 90 Tagen.
+
+Ein roter Dry-Run ist handlungsfähig statt nur sichtbar: Der Job
+**Dry-Run-Ergebnis** nennt die gefallene Stufe, das Diagnosematerial, den Owner
+(Repository-Owner) und den Reaktionsweg — Muster von
+`recommendations-live-check.yml`. Abgebrochene oder übersprungene Stufen
+meldet er als „unvollständig", nie als bestanden. Zweck, Kosten und Abgrenzung
+zum Kandidatenlauf: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §8.
 
 ## Wichtig: Drift-Disziplin (Befund N6)
 

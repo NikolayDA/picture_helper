@@ -1018,3 +1018,187 @@ def test_a_failed_build_leg_still_gets_its_anomaly_review() -> None:
     assert "--logs-only" not in by_name[scan]["run"], (
         "Der reguläre Scan darf niemals im Logs-only-Modus laufen."
     )
+
+
+# ── #922: monatlicher Dry-Run des Kandidatenpfads ───────────────────────────
+#
+# Der erste v2.9.0-Kandidatenlauf scheiterte an ``base-tag-missing`` (#880):
+# ``ci.yml`` lief als wiederverwendbarer Workflow ohne vollen Checkout – ein
+# Fehler, den nur der Kandidatenkontext sichtbar macht und der erst am
+# Release-Tag auffiel. Der geplante Lauf faehrt genau diesen Pfad zwischen den
+# Releases. Die folgenden Wachter halten seine drei tragenden Eigenschaften
+# fest: Er ist niemals ein Kandidat, er prueft den *produktiven* Pfad, und ein
+# roter Lauf ist handlungsfaehig.
+
+
+def _release_on() -> dict:
+    doc = _load(_RELEASE)
+    # PyYAML (YAML 1.1) liest den ``on``-Key als Boolean ``True``.
+    on = doc.get(True, doc.get("on"))
+    assert isinstance(on, dict)
+    return on
+
+
+def test_dry_run_is_scheduled_and_stays_the_only_trigger_exception() -> None:
+    """Der schedule-Trigger ist die *einzige* Ausnahme von "dispatch-only".
+
+    Insbesondere kommt kein Tag-/Push-Trigger zurueck: Der Workflow soll nie
+    ungegated aus einem Tag heraus starten (#250).
+    """
+    on = _release_on()
+    assert set(on) == {"workflow_dispatch", "schedule"}, sorted(on)
+    crons = [entry["cron"] for entry in on["schedule"]]
+    assert len(crons) == 1, crons
+    minute, hour, day_of_month, month, day_of_week = crons[0].split()
+    # Monatlich: fester Tag im Monat, keine Wochentagsbindung.
+    assert day_of_month.isdigit() and month == "*" and day_of_week == "*", crons[0]
+    assert hour.isdigit() and minute.isdigit(), crons[0]
+    assert minute != "0", (
+        "GitHub verzoegert Schedules zur vollen Stunde – bewusst versetzte Minute waehlen."
+    )
+
+
+def test_dry_run_keeps_the_workflow_free_of_write_permissions_and_publish() -> None:
+    """Die Zusicherungen des Kandidatenbaus gelten im Dry-Run unveraendert."""
+    doc = _load(_RELEASE)
+    assert doc["permissions"] == {"contents": "read"}
+    # Einzige write-Angabe im ganzen Workflow bleibt der OIDC-Sonderfall des
+    # Full-CI-Aufrufs (#303) – insbesondere kein ``contents: write``.
+    write_scopes = {
+        (name, scope)
+        for name, job in doc["jobs"].items()
+        for scope, value in (job.get("permissions") or {}).items()
+        if value == "write"
+    }
+    assert write_scopes == {("test", "id-token")}, write_scopes
+    # Und kein Veroeffentlichungspfad: weder ein publish-Job noch ein gh-Aufruf.
+    assert "publish" not in doc["jobs"]
+    assert "gh release" not in _release_text()
+
+
+def test_run_mode_has_exactly_one_source_of_truth() -> None:
+    """``DRY_RUN`` ist die Modusquelle – nicht je Job eine eigene Bedingung."""
+    doc = _load(_RELEASE)
+    env = doc["env"]
+    assert env["DRY_RUN"] == "${{ github.event_name == 'schedule' && '1' || '0' }}"
+    # ``env`` ist laut GitHub-Kontextreferenz in ``jobs.<id>.if`` NICHT
+    # verfuegbar; dort steht die Bedingung deshalb ausgeschrieben. Genau diese
+    # Doppelung braucht einen Waechter, damit sie nicht auseinanderlaeuft.
+    assert doc["jobs"]["dry-run-report"]["if"] == (
+        "always() && github.event_name == 'schedule'"
+    )
+    assert "github.event_name == 'schedule'" in doc["run-name"]
+
+
+def test_dry_run_builds_the_productive_ai_path() -> None:
+    """Ein Dry-Run ohne KI-Buendel pruefte einen anderen als den Release-Pfad.
+
+    Ein Release buendelt rembg (#881). Im ``schedule``-Kontext gibt es kein
+    ``inputs.with_ai`` – die alte Formulierung ``inputs.with_ai && '1' || '0'``
+    haette den geplanten Lauf still ohne KI gebaut.
+    """
+    doc = _load(_RELEASE)
+    assert doc["env"]["WITH_AI"] == (
+        "${{ (github.event_name == 'schedule' || inputs.with_ai) && '1' || '0' }}"
+    )
+    # Der ``--ai``-Schalter der Build-Schritte kommt aus derselben Variable und
+    # nicht mehr aus einem zweiten, unabhaengigen ``inputs``-Ausdruck.
+    build_steps = {step.get("name"): step for step in _release_build_steps()}
+    for name, script in (
+        ("Build AppImage", "packaging/linux/build_appimage.sh"),
+        ("Build macOS app + .dmg (PyInstaller)", "packaging/mac/build_macos.sh"),
+    ):
+        run = build_steps[name]["run"]
+        assert "inputs.with_ai" not in run, name
+        assert 'if [ "$WITH_AI" = "1" ]; then ai_flag="--ai"; fi' in run, name
+        assert f"{script} $ai_flag" in run, name
+    # Unterhalb von ``jobs:`` darf der KI-Status in keinem *Ausdruck* mehr aus
+    # ``inputs`` kommen (Prosa in Kommentaren darf ihn weiter erwaehnen).
+    jobs_section = _release_text().split("\njobs:", 1)[1]
+    leaked = re.findall(r"\$\{\{[^}]*inputs\.with_ai[^}]*\}\}", jobs_section)
+    assert not leaked, leaked
+
+
+def test_a_dry_run_without_the_ai_bundle_fails_before_it_builds() -> None:
+    """Fail-closed gegen eine nicht dokumentierte Annahme.
+
+    Die GitHub-Kontextreferenz fuehrt ``inputs`` nur fuer ``workflow_dispatch``
+    und wiederverwendbare Workflows. Dass ``inputs.with_ai`` im
+    ``schedule``-Lauf zum leeren String wird, folgt aus der allgemeinen Regel
+    "eine nicht existierende Eigenschaft ergibt einen leeren String" - nicht
+    aus einer Aussage ueber diesen Fall. Traegt die Regel nicht, buende der
+    Dry-Run still ohne KI. Der Waechter macht daraus einen Abbruch im ersten
+    Job, also vor Full-CI und Build.
+    """
+    marker = _load(_RELEASE)["jobs"]["verify-candidate"]["steps"][0]["run"]
+    assert 'if [ "$DRY_RUN" = "1" ] && [ "$WITH_AI" != "1" ]; then' in marker
+    assert "exit 1" in marker
+    # Ein Kandidatenlauf mit ``with_ai=false`` bleibt ausdruecklich erlaubt.
+    assert '"$DRY_RUN" = "0"' not in marker
+
+
+def test_dry_run_marks_itself_before_anything_can_fail() -> None:
+    """Die Kennzeichnung steht vor dem Checkout – sonst fehlt sie genau dann,
+    wenn ein abgebrochener Lauf am ehesten mit einem Kandidaten verwechselt
+    wird."""
+    steps = _load(_RELEASE)["jobs"]["verify-candidate"]["steps"]
+    marker = steps[0]
+    assert marker.get("name") == "Laufmodus kennzeichnen (Dry-Run oder Kandidat)", (
+        f"Erster Schritt ist nicht die Kennzeichnung, sondern: {marker}"
+    )
+    checkout = next(
+        index for index, step in enumerate(steps) if "checkout" in str(step.get("uses", ""))
+    )
+    assert checkout > 0, "Die Kennzeichnung muss VOR dem Checkout stehen."
+    run = marker["run"]
+    assert '::notice title=Dry-Run::' in run
+    assert '::notice title=Kandidatenbau::' in run
+    assert 'GITHUB_STEP_SUMMARY' in run
+    # Die Kennzeichnung nennt den Grund, warum ein Dry-Run kein Kandidat ist.
+    assert "event == workflow_dispatch" in run
+    # Und der Modus steht zusaetzlich in der Provenienz jedes Build-Legs.
+    provenance = {step.get("name"): step for step in _release_build_steps()}[
+        "Log build provenance (version, commit, run, runner toolchain)"
+    ]["run"]
+    assert 'if [ "$DRY_RUN" = "1" ]' in provenance
+    assert "${WITH_AI}" in provenance
+
+
+def test_dry_run_artifacts_expire_quickly_but_evidence_survives() -> None:
+    """Produktartefakte kurz (Kosten + zweite Schranke), Evidenz lang (Diagnose)."""
+    doc = _load(_RELEASE)
+    assert doc["env"]["DRY_RUN_RETENTION_DAYS"] == "3"
+    uploads = {
+        step["with"]["name"]: step["with"]
+        for job in doc["jobs"].values()
+        for step in job.get("steps", [])
+        if "upload-artifact" in str(step.get("uses", ""))
+    }
+    assert uploads["bgremover-${{ matrix.platform_tag }}"]["retention-days"] == (
+        "${{ env.DRY_RUN == '1' && env.DRY_RUN_RETENTION_DAYS || 90 }}"
+    )
+    # Freeze-Provenienz und Sicherheitsbericht bleiben unveraendert lang: Sie
+    # sind klein und tragen die Diagnose eines roten Dry-Runs.
+    for name in (
+        "release-freeze-provenance-${{ github.run_attempt }}",
+        "security-scan-${{ matrix.platform_tag }}",
+    ):
+        assert uploads[name]["retention-days"] == 90, name
+
+
+def test_a_red_dry_run_names_cause_owner_and_reaction() -> None:
+    """Muster von ``recommendations-live-check.yml``: sichtbar UND handlungsfaehig."""
+    doc = _load(_RELEASE)
+    report = doc["jobs"]["dry-run-report"]
+    assert set(report["needs"]) == {"verify-candidate", "test", "build"}
+    step = report["steps"][0]
+    run = step["run"]
+    for result in ("VERIFY_RESULT", "TEST_RESULT", "BUILD_RESULT"):
+        assert result in step["env"], result
+        assert result in run, result
+    assert "Owner: Repository-Owner" in run
+    assert "exit 1" in run, "eine gefallene Stufe muss den Lauf rot machen"
+    # Abbruch/uebersprungen ist ausdruecklich KEIN Gruen-Nachweis – sonst
+    # gaelte ein abgebrochener Lauf als Beleg, dass der Release-Pfad traegt.
+    assert "Unvollstaendig - kein Ergebnis" in run
+    assert 'skipped|cancelled)   incomplete=' in run

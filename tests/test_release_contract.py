@@ -305,6 +305,58 @@ def test_acceptance_run_on_a_foreign_ref_is_rejected() -> None:
         )
 
 
+def test_a_scheduled_dry_run_can_never_become_a_candidate() -> None:
+    """#922: Der monatliche Dry-Run laeuft per ``schedule`` – und ist damit
+    erstmals ein realer, erfolgreicher ``release-linux.yml``-Lauf, dessen
+    Run-ID jemand versehentlich in die Abnahme geben kann.
+
+    Bis #922 war die Ereignisregel in ``validate_workflow_run`` unbelegt:
+    Es *gab* keine Laeufe ausserhalb von ``workflow_dispatch``, die Regel war
+    trivial erfuellt und ohne Test. Jetzt traegt sie eine Zusicherung, die die
+    sichtbare Kennzeichnung des Laufs allein nicht geben kann – die
+    Kennzeichnung sieht nur, wer hinschaut. Der Vertrag muss ablehnen.
+    """
+    scheduled = _run(CANDIDATE_RUN_ID, rc.BUILD_WORKFLOW)
+    scheduled["event"] = "schedule"
+    with pytest.raises(rc.ContractError, match="workflow_dispatch"):
+        rc.validate_workflow_run(
+            scheduled,
+            expected_run_id=CANDIDATE_RUN_ID,
+            expected_workflow=rc.BUILD_WORKFLOW,
+        )
+
+
+def test_prepare_candidate_rejects_a_dry_run_before_touching_any_artifact(
+    tmp_path: Path,
+) -> None:
+    """Die Ablehnung muss VOR der Artefaktauswertung greifen (#922).
+
+    Ein Dry-Run traegt dieselben fuenf Artefaktcontainer und dieselbe
+    Freeze-Provenienz wie ein Kandidat – an den Artefakten allein ist er nicht
+    zu erkennen. Wuerde die Ereignispruefung erst hinter der Containerpruefung
+    liegen, entstuende aus einem Dry-Run ein vollstaendig aussehendes
+    Freigabemanifest, das erst spaeter (oder nie) auffiele.
+    """
+    files = tmp_path / "files"
+    _write_release_files(files)
+    provenance_root = tmp_path / "provenance"
+    _write_freeze_payload(provenance_root / "release-freeze-provenance.json")
+    scheduled = _run(CANDIDATE_RUN_ID, rc.BUILD_WORKFLOW)
+    scheduled["event"] = "schedule"
+    out = tmp_path / "out"
+
+    with pytest.raises(rc.ContractError, match="workflow_dispatch"):
+        rc.prepare_candidate_contract(
+            run=scheduled,
+            listing={"artifacts": _candidate_artifacts()},
+            candidate_dir=files,
+            provenance_dir=provenance_root,
+            expected_run_id=CANDIDATE_RUN_ID,
+            output_dir=out,
+        )
+    assert not out.exists(), "Ein abgelehnter Dry-Run darf kein Manifest hinterlassen"
+
+
 # ── Tag-Anlage im Publish-Workflow (#919, Stufe 1) ──────────────────────────
 
 TAG_OBJECT_SHA = "b" * 40
