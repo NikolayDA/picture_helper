@@ -72,6 +72,29 @@ def fixture_repo(tmp_path: Path) -> Path:
     return repo
 
 
+def _current_version(repo: Path = ROOT) -> str:
+    """Version aus ``pyproject.toml`` – im Vorbereitungs-PR ist das die neue.
+
+    Hart notierte ``2.9.0`` würden genau in dem PR fehlschlagen, den dieses
+    Skript erzeugt: Dort steht die Zielversion schon in ``pyproject.toml`` und
+    ``current-freeze`` zeigt bereits auf das neue Dokument.
+    """
+    match = re.search(r'(?m)^version\s*=\s*"([^"]+)"', (repo / "pyproject.toml").read_text("utf-8"))
+    assert match is not None
+    return match.group(1)
+
+
+def _current_freeze_version(repo: Path = ROOT) -> str:
+    """Version, auf die ``current-freeze`` in der Pfadpolicy zeigt."""
+    policy = json.loads((repo / "release" / "path-policy.json").read_text("utf-8"))
+    for entry in policy["candidate_relevant"]:
+        if entry["id"] == "current-freeze":
+            match = re.search(r"RELEASE-(\d+\.\d+\.\d+)-scope-freeze\.md", entry["path"])
+            assert match is not None
+            return match.group(1)
+    raise AssertionError("current-freeze fehlt in der Pfadpolicy")
+
+
 def _inputs(version: str = "9.9.9") -> pr.ReleaseInputs:
     return pr.ReleaseInputs(
         version=version, release_date="2026-09-15", base_tag="v9.9.8", base_sha="a" * 40
@@ -82,12 +105,18 @@ def _inputs(version: str = "9.9.9") -> pr.ReleaseInputs:
 
 
 def test_two_runs_produce_byte_identical_output(fixture_repo: Path) -> None:
-    """Zweifacher Lauf = identisches Ergebnis (Akzeptanzkriterium)."""
-    first = pr.plan(fixture_repo, _inputs(), predecessor_version="2.9.0")
+    """Zweifacher Lauf = identisches Ergebnis (Akzeptanzkriterium).
+
+    Der Vorgänger wird **einmal** bestimmt: Determinismus heißt gleiche
+    Eingaben, und nach dem ersten Lauf zeigt ``current-freeze`` bereits auf das
+    neue Dokument.
+    """
+    predecessor = _current_freeze_version(fixture_repo)
+    first = pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor)
     pr.apply(fixture_repo, first.files)
     after_first = {item.path: (fixture_repo / item.path).read_bytes() for item in first.files}
 
-    second = pr.plan(fixture_repo, _inputs(), predecessor_version="2.9.0")
+    second = pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor)
     pr.apply(fixture_repo, second.files)
     after_second = {item.path: (fixture_repo / item.path).read_bytes() for item in second.files}
 
@@ -108,9 +137,10 @@ def test_the_rendered_issue_is_deterministic() -> None:
 
 def test_a_second_run_does_not_bump_the_policy_twice(fixture_repo: Path) -> None:
     """Der Rollover ist idempotent – sonst liefe die Policy-Version hoch."""
-    first = pr.plan(fixture_repo, _inputs(), predecessor_version="2.9.0")
+    predecessor = _current_freeze_version(fixture_repo)
+    first = pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor)
     pr.apply(fixture_repo, first.files)
-    second = pr.plan(fixture_repo, _inputs(), predecessor_version="2.9.0")
+    second = pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor)
     assert second.policy_version == first.policy_version
 
 
@@ -130,7 +160,7 @@ def test_the_freeze_gate_blocks_on_an_unfilled_skeleton(fixture_repo: Path) -> N
     Platzhalter-Wächter ist die Stelle, an der ``prepare_release`` und
     ``verify_release_freeze`` zusammenhängen.
     """
-    prepared = pr.plan(fixture_repo, _inputs(), predecessor_version="2.9.0")
+    prepared = pr.plan(fixture_repo, _inputs(), predecessor_version=_current_freeze_version(fixture_repo))
     pr.apply(fixture_repo, prepared.files)
     _git(fixture_repo, "add", "-A")
     _git(fixture_repo, "commit", "-qm", "Geruest")
@@ -158,7 +188,9 @@ def test_the_full_gate_reports_the_gap_not_just_the_helper(fixture_repo: Path) -
         base_tag=base_tag,
         base_sha=_git(fixture_repo, "rev-list", "-n", "1", base_tag),
     )
-    prepared = pr.plan(fixture_repo, inputs, predecessor_version=base_tag.lstrip("v"))
+    prepared = pr.plan(
+        fixture_repo, inputs, predecessor_version=_current_freeze_version(fixture_repo)
+    )
     pr.apply(fixture_repo, prepared.files)
     _git(fixture_repo, "add", "-A")
     _git(fixture_repo, "commit", "-qm", "Geruest")
@@ -169,7 +201,7 @@ def test_the_full_gate_reports_the_gap_not_just_the_helper(fixture_repo: Path) -
 
 def test_filling_the_gaps_clears_the_finding(fixture_repo: Path) -> None:
     """Gegenprobe: Der Wächter blockiert die Lücke, nicht das Gerüst als solches."""
-    prepared = pr.plan(fixture_repo, _inputs(), predecessor_version="2.9.0")
+    prepared = pr.plan(fixture_repo, _inputs(), predecessor_version=_current_freeze_version(fixture_repo))
     pr.apply(fixture_repo, prepared.files)
     for item in prepared.files:
         target = fixture_repo / item.path
@@ -188,23 +220,23 @@ def test_filling_the_gaps_clears_the_finding(fixture_repo: Path) -> None:
 
 
 def test_editorial_work_is_never_overwritten(fixture_repo: Path) -> None:
-    prepared = pr.plan(fixture_repo, _inputs(), predecessor_version="2.9.0")
+    prepared = pr.plan(fixture_repo, _inputs(), predecessor_version=_current_freeze_version(fixture_repo))
     pr.apply(fixture_repo, prepared.files)
     changelog = fixture_repo / "CHANGELOG.md"
     changelog.write_text(changelog.read_text("utf-8").replace(pr.PLACEHOLDER, "fertig"), "utf-8")
 
     with pytest.raises(pr.PrepareError, match="redaktionell bearbeitet"):
-        pr.plan(fixture_repo, _inputs(), predecessor_version="2.9.0")
+        pr.plan(fixture_repo, _inputs(), predecessor_version=_current_freeze_version(fixture_repo))
 
 
 def test_an_edited_freeze_document_is_never_overwritten(fixture_repo: Path) -> None:
-    prepared = pr.plan(fixture_repo, _inputs(), predecessor_version="2.9.0")
+    prepared = pr.plan(fixture_repo, _inputs(), predecessor_version=_current_freeze_version(fixture_repo))
     pr.apply(fixture_repo, prepared.files)
     freeze = fixture_repo / pr.freeze_doc_path("9.9.9")
     freeze.write_text(freeze.read_text("utf-8").replace(pr.PLACEHOLDER, "entschieden"), "utf-8")
 
     with pytest.raises(pr.PrepareError, match="redaktionell bearbeitet"):
-        pr.plan(fixture_repo, _inputs(), predecessor_version="2.9.0")
+        pr.plan(fixture_repo, _inputs(), predecessor_version=_current_freeze_version(fixture_repo))
 
 
 # ── Das Gerüst passt zu den Verträgen, die es später prüfen ────────────
@@ -326,13 +358,18 @@ def test_changelog_insertion_needs_the_unreleased_anchor() -> None:
 def test_policy_rollover_keeps_the_file_shape_and_bumps_exactly_once() -> None:
     original = (ROOT / "release" / "path-policy.json").read_text("utf-8")
     rolled, version = pr.roll_over_freeze_policy(
-        original, version="9.9.9", predecessor_version="2.9.0"
+        original, version="9.9.9", predecessor_version=_current_freeze_version()
     )
     data = json.loads(rolled)
     assert data["policy_version"] == json.loads(original)["policy_version"] + 1 == version
+    predecessor = _current_freeze_version()
     entries = {entry["id"]: entry["path"] for entry in data["candidate_relevant"]}
     assert entries["current-freeze"] == pr.freeze_doc_path("9.9.9")
-    assert entries["historical-freeze-2.9.0"] == pr.freeze_doc_path("2.9.0")
+    assert entries[f"historical-freeze-{predecessor}"] == pr.freeze_doc_path(predecessor)
+    # Der Drift-Waechter der Release-Dokumente kennt das neue Dokument (#923-Review):
+    # ohne diesen Eintrag ist ``make check`` im erzeugten Stand rot, und zwar an
+    # einer rein schematischen Stelle, die kein redaktionelles Fuellen behebt.
+    assert pr.freeze_doc_path("9.9.9") in data["drift_guards"]["release_documents"]
     # Nur wenige Zeilen bewegen sich – ein json.dumps-Roundtrip schriebe 650 um.
     # Ein reiner Positionsvergleich taugt hier nicht: Die eingefuegte Zeile
     # verschiebt alles danach, difflib zaehlt die tatsaechliche Aenderung.
@@ -343,7 +380,11 @@ def test_policy_rollover_keeps_the_file_shape_and_bumps_exactly_once() -> None:
         )
         if line[:1] in "+-" and not line.startswith(("+++", "---"))
     ]
-    assert len(changed) <= 6, changed
+    # Erwartet sind acht Zeilen: ``policy_version`` (alt/neu), die umgehängte
+    # ``current-freeze``-Zeile (alt/neu), der neue ``historical-freeze``-Eintrag
+    # sowie in ``drift_guards`` die letzte Zeile mit/ohne Komma plus der neue
+    # Eintrag. Alles darüber hinaus wäre eine Umformatierung.
+    assert len(changed) <= 8, changed
 
 
 def test_policy_rollover_refuses_an_unexpected_predecessor() -> None:
@@ -532,3 +573,35 @@ def test_dry_run_previews_the_issue_and_never_calls_gh(
     assert "im Probelauf nicht ausgeführt" in captured.err
     assert not log.exists()
     assert not (fixture_repo / pr.freeze_doc_path("9.9.9")).exists()
+
+
+@pytest.mark.parametrize(
+    ("version", "predecessor", "expected"),
+    [
+        ("2.10.0", "2.9.0", "minor-release-2.10.0"),
+        ("2.9.1", "2.9.0", "patch-release-2.9.1"),
+        ("3.0.0", "2.9.0", "minor-release-3.0.0"),
+        ("2.7.3", "2.7.2", "patch-release-2.7.3"),
+    ],
+)
+def test_scope_name_follows_the_house_convention(
+    version: str, predecessor: str, expected: str
+) -> None:
+    """Ableitbar aus dem Versionssprung – die bisherigen Dokumente belegen das Schema."""
+    assert pr.scope_name(version, predecessor) == expected
+
+
+def test_the_existing_freeze_documents_use_that_very_scheme() -> None:
+    """Handgepflegte Konvention gegen ihre Quelle: die vier echten Dokumente."""
+    any_scope = re.compile(r"(?m)^- \*\*Release-Scope:\*\* `([^`]+)`")
+    house_style = re.compile(r"^(?:minor|patch)-release-\d+\.\d+\.\d+$")
+    # 2.6.0 und 2.7.1 stammen aus der Zeit vor der maschinenlesbaren Zeile –
+    # geprüft wird die Konvention dort, wo die Zeile existiert.
+    scopes = {
+        document.name: match.group(1)
+        for document in sorted((ROOT / "docs" / "history").glob("RELEASE-*-scope-freeze.md"))
+        if (match := any_scope.search(document.read_text("utf-8"))) is not None
+    }
+    assert len(scopes) >= 4, scopes
+    for name, scope in scopes.items():
+        assert house_style.fullmatch(scope), (name, scope)

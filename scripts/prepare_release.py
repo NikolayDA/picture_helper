@@ -197,6 +197,38 @@ def insert_changelog_section(text: str, language: str, version: str, release_dat
     return f"{head}\n\n{section}\n\n{tail}"
 
 
+_UNRELEASED_LINK_RE: Final = re.compile(
+    r"(?m)^\[Unreleased\]: (?P<base>\S+?/compare/)v(?P<from>\d+\.\d+\.\d+)\.\.\.HEAD$"
+)
+
+
+def update_changelog_links(text: str, version: str) -> str:
+    """Zieht die Fussnoten-Links nach: ``[Unreleased]`` und der neue Vergleich.
+
+    Genau diese mechanische Luecke – fehlender Fussnoten-Eintrag fuer die
+    neueste Ueberschrift, veraltetes ``[Unreleased]``-Vergleichsziel – rutschte
+    an zwei aufeinanderfolgenden Release-Schnitten durch (#773/#827) und hat
+    seitdem einen eigenen Waechter. Ein Geruest ohne diese Zeilen macht
+    ``make check`` rot, und zwar an einer Stelle, die kein redaktionelles
+    Fuellen behebt.
+
+    Idempotent: Zeigt ``[Unreleased]`` bereits auf *version*, bleibt der Text
+    unveraendert.
+    """
+    match = _UNRELEASED_LINK_RE.search(text)
+    if match is None:
+        raise PrepareError("CHANGELOG ohne '[Unreleased]: …/compare/vX.Y.Z...HEAD'-Fussnote")
+    previous = match.group("from")
+    if previous == version:
+        return text
+    base = match.group("base")
+    replacement = (
+        f"[Unreleased]: {base}v{version}...HEAD\n"
+        f"[{version}]: {base}v{previous}...v{version}"
+    )
+    return text[: match.start()] + replacement + text[match.end() :]
+
+
 def insert_appstream_release(xml_text: str, version: str, release_date: str) -> str:
     """Ergaenzt den AppStream-``<release>``-Eintrag als juengsten der Liste.
 
@@ -224,6 +256,14 @@ POLICY_PATH: Final = rpp.POLICY_PATH
 #: ``evidence``-Listen aufblaehen und einen 650-Zeilen-Diff erzeugen.
 _POLICY_VERSION_RE: Final = re.compile(r'(?m)^(\s*"policy_version":\s*)(\d+)(\s*,)$')
 _CURRENT_FREEZE_RE: Final = re.compile(r'(?m)^(\s*)\{"id": "current-freeze",[^\n]*\}(,?)$')
+#: Letzter Eintrag der Drift-Wächter-Liste ``release_documents``. Der Wächter
+#: ``tests/test_release_freeze.py::test_release_document_drift_guard_is_explicit_and_current``
+#: leitet seine Sollmenge aus der *aktuellen* ``pyproject``-Version ab – nach dem
+#: Versionssprung gehört das neue Freeze-Dokument also dazu, sonst ist ``make
+#: check`` im erzeugten Stand rot. Rein schematisch, deshalb Teil des Rollovers.
+_LAST_RELEASE_DOCUMENT_RE: Final = re.compile(
+    r'(?ms)("release_documents":\s*\[.*?)^(\s*)"([^"]+)"\n(\s*)\]'
+)
 
 
 def roll_over_freeze_policy(
@@ -274,7 +314,31 @@ def roll_over_freeze_policy(
         f'bleibt aber ein candidate-relevanter Release-Governance-Artefakt."}}{comma}'
     )
     text = policy_text[: current.start()] + replacement + policy_text[current.end() :]
+
+    guard = _LAST_RELEASE_DOCUMENT_RE.search(text)
+    if guard is None:
+        raise PrepareError(f"{POLICY_PATH}: drift_guards.release_documents nicht gefunden")
+    if f'"{new_path}"' not in guard.group(0):
+        text = (
+            text[: guard.start()]
+            + f'{guard.group(1)}{guard.group(2)}"{guard.group(3)}",\n'
+            + f'{guard.group(2)}"{new_path}"\n{guard.group(4)}]'
+            + text[guard.end() :]
+        )
     return _POLICY_VERSION_RE.sub(rf"\g<1>{new_version}\g<3>", text, count=1), new_version
+
+
+def scope_name(version: str, predecessor_version: str) -> str:
+    """Release-Scope im Hausstil: ``minor-release-`` bzw. ``patch-release-``.
+
+    Ableitbar aus dem Versionssprung, deshalb kein Freitext: Die bisherigen
+    Freeze-Dokumente fuehren ``patch-release-2.7.2``/``minor-release-2.9.0``.
+    Ein erfundenes Schema haette den Hausstil nach vier Releases gebrochen.
+    """
+    new_parts = tuple(int(part) for part in version.split("."))
+    old_parts = tuple(int(part) for part in predecessor_version.split("."))
+    kind = "patch" if new_parts[:2] == old_parts[:2] else "minor"
+    return f"{kind}-release-{version}"
 
 
 def freeze_document(
@@ -304,7 +368,7 @@ als blockierenden Befund aus, bis sie gefüllt sind.
 
 - **Basis-Tag:** `{inputs.base_tag}` (= `{inputs.base_sha}`)
 - **Kandidatenversion:** `{inputs.version}`
-- **Release-Scope:** `release-{inputs.version}`
+- **Release-Scope:** `{scope_name(inputs.version, predecessor_version)}`
 - **Pfadpolicy:** `release/path-policy.json` (Version `{policy_version}`)
 
 Der volle Basis-SHA ist unveränderlich. Der Tagname allein genügt nicht: Das
@@ -547,8 +611,11 @@ def plan(repo: Path, inputs: ReleaseInputs, *, predecessor_version: str) -> Plan
         planned.append(
             PlannedFile(
                 relative,
-                insert_changelog_section(
-                    _read(repo, relative), language, inputs.version, inputs.release_date
+                update_changelog_links(
+                    insert_changelog_section(
+                        _read(repo, relative), language, inputs.version, inputs.release_date
+                    ),
+                    inputs.version,
                 ),
             )
         )
@@ -736,10 +803,23 @@ def main(argv: list[str] | None = None) -> int:
         for path in unknown:
             print(f"  - {path}", file=sys.stderr)
 
+    # Was das Skript bewusst NICHT erledigt, gehoert hierher – sonst sucht der
+    # Release-Owner die Ursache eines roten ``make check`` im Erzeugten statt
+    # in der eigenen Liste. Beide Punkte brauchen eine Entscheidung bzw. die
+    # installierte Umgebung und sind deshalb keine Automatisierung.
     print(
-        f"\nNächste Schritte: redaktionelle {PLACEHOLDER}-Lücken füllen, "
-        "Lizenz-Snapshots über scripts/generate_license_report.py neu erzeugen, "
-        "dann 'make check' und 'python scripts/verify_release_freeze.py'."
+        f"""
+Nächste Schritte (in dieser Reihenfolge):
+  1. Redaktionelle {PLACEHOLDER}-Lücken füllen: Scope im Freeze-Dokument sowie
+     Auswirkung, Betroffene, Upgrade-Relevanz und Einschränkungen in allen
+     sechs CHANGELOG-Fassungen.
+  2. Lizenz-Snapshots neu erzeugen: python scripts/generate_license_report.py
+     (braucht die installierte Umgebung, deshalb nicht Teil dieses Laufs).
+  3. Paket neu installieren (pip install -e '.[test]'), sonst meldet
+     tests/test_version.py weiter die alte Metadaten-Version.
+  4. tests/test_release_freeze.py pinnt Basis-Tag und Release-Scope des
+     jeweils aktuellen Release – beide Literale von Hand nachziehen.
+  5. make check und python scripts/verify_release_freeze.py."""
     )
     return 0
 
