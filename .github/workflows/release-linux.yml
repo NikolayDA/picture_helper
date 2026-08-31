@@ -515,9 +515,11 @@ jobs:
             # Signaturcache verbindlich. Nur MALWARE-01 wird gemaess Checkliste
             # sichtbar UNAVAILABLE und benoetigt die dokumentierte Entscheidung.
             # Die Warnung schreibt seit #920 der Scanner selbst, damit derselbe
-            # Grund im Bericht und im Joblog steht.
+            # Grund im Bericht und im Joblog steht. Der Grund nennt bewusst NUR
+            # die fehlende Datenbank: ob der Secret-/Pfad-Scan besteht, steht
+            # erst nach ihm fest und sagt allein das Verdikt des Berichts.
             python3 scripts/scan_release_artifacts.py "${common[@]}" \
-              --malware-unavailable "kein Cache-Treffer – clamav-db-refresh.yml lief noch nie erfolgreich oder der Cache wurde eviktiert. Secret-/Pfad-Scan ist bestanden." \
+              --malware-unavailable "kein Cache-Treffer – clamav-db-refresh.yml lief noch nie erfolgreich oder der Cache wurde eviktiert." \
               dist
             exit 0
           fi

@@ -845,15 +845,37 @@ def test_expired_entry_produces_a_visible_warning_in_log_report_and_summary(
     ("text", "expected"),
     [
         ("Data scanned: 1.28 GiB\n", int(1.28 * 1024**3)),
+        ("Data scanned: 2.00 MiB\n", 2 * 1024**2),
+        ("Data scanned: 4.00 KiB\n", 4 * 1024),
         ("Data scanned: 68 B\n", 68),
-        ("Data scanned: 2.00 MB\n", 2_000_000),
         ("Data read: 1.00 MiB (ratio 1.00:1)\n", None),
     ],
 )
 def test_parse_scanned_bytes_covers_the_units_clamav_emits(
     text: str, expected: int | None
 ) -> None:
+    """``loggBytes`` (clamav/clamscan/clamscan.c) kennt genau diese vier."""
     assert scan_release_artifacts.parse_scanned_bytes(text) == expected
+
+
+def test_a_decimal_unit_yields_no_number_instead_of_a_wrong_one() -> None:
+    """Dezimale Labels erzeugt clamscan nicht.
+
+    Sie als Zehnerpotenz zu deuten hiesse, aus einer Einheit unbekannter
+    Semantik eine exakt aussehende Zahl zu raten – im Bericht die
+    schaedlichere Variante als ein ehrliches "keine Evidenz".
+    """
+    assert scan_release_artifacts.parse_scanned_bytes("Data scanned: 2.00 MB\n") is None
+
+
+def test_an_unparsable_unit_does_not_weaken_the_fail_closed_gate() -> None:
+    """Das Gate liest die Rohzeile, nicht die Bytezahl – es bleibt unberuehrt."""
+    result = subprocess.CompletedProcess(
+        ["clamscan"], 0,
+        stdout="Infected files: 0\nData scanned: 2.00 MB\n",
+    )
+    assert scan_release_artifacts.clamav_scan_succeeded(result) is True
+    assert scan_release_artifacts.parse_scanned_bytes(result.stdout) is None
 
 
 def test_signature_state_reports_age_and_staleness(monkeypatch, tmp_path: Path) -> None:
@@ -980,3 +1002,154 @@ def test_logs_only_and_clamav_are_mutually_exclusive(tmp_path: Path) -> None:
         scan_release_artifacts.main(
             ["--logs-only", "--clamav-database", str(tmp_path), str(tmp_path)]
         )
+
+
+# ── #920-Review: fehlendes Phasen-Log ist nicht "unauffaellig" ──────────
+
+def test_a_missing_expected_phase_log_is_warned_not_silently_clean(tmp_path: Path) -> None:
+    """Der gefaehrlichere Fall ist nicht die unbekannte, sondern die FEHLENDE Phase.
+
+    ``build-logs/`` kann von einem anderen Schritt des Legs angelegt worden
+    sein. Fehlt darin das erwartete Log, saehe der Bericht ohne diese Pruefung
+    exakt wie ein sauberer Lauf aus – Abschnitt 4 der Summary meldete "Keine.",
+    ohne dass je eine Zeile gelesen wurde.
+    """
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    (log_dir / "smoke-launch-appimage.log").write_text("alles ok\n", encoding="utf-8")
+
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "x.AppImage").write_bytes(b"harmlos")
+    report = tmp_path / "report.json"
+    summary = tmp_path / "summary.md"
+
+    def fake_extract(archive: Path, dest: Path) -> None:
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "inner.bin").write_bytes(b"harmlos")
+
+    original = scan_release_artifacts.extract_payload
+    scan_release_artifacts.extract_payload = fake_extract  # type: ignore[assignment]
+    try:
+        # linux-x86_64 erwartet zwei Logs; das .deb-Log fehlt hier.
+        assert scan_release_artifacts.main([
+            "--platform", "linux-x86_64", "--build-log-dir", str(log_dir),
+            "--report", str(report), "--summary", str(summary), str(dist),
+        ]) == 0
+    finally:
+        scan_release_artifacts.extract_payload = original  # type: ignore[assignment]
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["build_logs"]["missing_phases"] == ["deb-install-smoke"]
+    assert payload["build_logs"]["expected_phases"] == [
+        "smoke-launch-appimage", "deb-install-smoke",
+    ]
+    assert any("deb-install-smoke" in item for item in payload["warnings"])
+    assert "ungeprueft, nicht unauffaellig" in " ".join(payload["warnings"])
+    assert "deb-install-smoke" in summary.read_text(encoding="utf-8")
+
+
+def test_all_expected_phase_logs_present_produces_no_warning(tmp_path: Path) -> None:
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    (log_dir / "smoke-launch-macos-app.log").write_text("alles ok\n", encoding="utf-8")
+    assert scan_release_artifacts.main([
+        "--logs-only", "--platform", "macos-arm64", "--build-log-dir", str(log_dir),
+        "--report", str(tmp_path / "r.json"), str(tmp_path / "nix"),
+    ]) == 0
+    payload = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
+    assert payload["build_logs"]["missing_phases"] == []
+    assert not any("fehlt fuer Plattform" in item for item in payload["warnings"])
+
+
+def test_phase_to_platform_mapping_matches_the_workflow_legs() -> None:
+    """Handgepflegte Zuordnung gegen ihre Quelle – dieselbe Drift-Disziplin.
+
+    Welcher Schritt auf welchem Leg laeuft, steht in seiner ``if``-Bedingung;
+    welches Log er schreibt, in seiner ``phase_log``-Zuweisung.
+    """
+    yaml = pytest.importorskip("yaml")
+    workflow = yaml.safe_load(
+        (_ROOT / ".github" / "workflows" / "release-linux.yml").read_text(encoding="utf-8")
+    )
+    os_by_tag = {
+        leg["platform_tag"]: leg["os"]
+        for leg in workflow["jobs"]["build"]["strategy"]["matrix"]["include"]
+    }
+    from_workflow: dict[str, set[str]] = {tag: set() for tag in os_by_tag}
+    for step in workflow["jobs"]["build"]["steps"]:
+        phases = re.findall(r'phase_log="build-logs/([\w-]+)\.log"', step.get("run", ""))
+        if not phases:
+            continue
+        condition = str(step.get("if", ""))
+        for tag, leg_os in os_by_tag.items():
+            if f"matrix.os == '{leg_os}'" in condition:
+                from_workflow[tag].update(phases)
+    assert {
+        tag: set(phases) for tag, phases in scan_release_artifacts.PHASES_BY_PLATFORM.items()
+    } == from_workflow
+
+
+def test_known_phases_is_derived_from_the_platform_mapping() -> None:
+    """Zwei Listen waeren zwei Driftquellen; KNOWN_PHASES wird abgeleitet."""
+    assert set(scan_release_artifacts.KNOWN_PHASES) == {
+        phase
+        for phases in scan_release_artifacts.PHASES_BY_PLATFORM.values()
+        for phase in phases
+    }
+
+
+# ── #920-Review: Entpackfehler ist kein bestandener Malware-Scan ────────
+
+def test_an_unextractable_artifact_never_counts_as_malware_scanned(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """EICAR bestanden heisst nicht, dass JEDES Artefakt geprueft wurde.
+
+    Ohne entpackte Nutzlast fehlen beide geforderten ClamAV-Teilnachweise –
+    ein danach unveraendertes ``malware_scan: PASS`` behauptete im Bericht das
+    Gegenteil.
+    """
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "kaputt.AppImage").write_bytes(b"harmlos")
+    database = tmp_path / "db"
+    database.mkdir()
+    (database / "daily.cvd").write_bytes(b"marker")
+    report = tmp_path / "report.json"
+
+    monkeypatch.setattr(scan_release_artifacts, "verify_clamav_eicar", lambda db, wd: True)
+
+    def broken_extract(archive: Path, dest: Path) -> None:
+        raise ValueError("unbekanntes Artefaktformat: .AppImage")
+
+    monkeypatch.setattr(scan_release_artifacts, "extract_payload", broken_extract)
+    code = scan_release_artifacts.main([
+        "--clamav-database", str(database), "--report", str(report), str(dist),
+    ])
+
+    assert code == 1
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["verdict"] == "FAIL"
+    assert payload["malware_scan"]["status"] == "FAIL"
+    assert payload["counts"]["malware_failed_artifacts"] == 1
+    assert payload["counts"]["scan_errors"] == 1
+    assert payload["artifacts"][0]["malware"]["status"] == "FAIL"
+    assert payload["eicar_selftest"]["status"] == "PASS"  # der Selbsttest galt ja
+
+
+# ── #920-Review: Teilnachweis-Labels bleiben unteilbar ─────────────────
+
+def test_clamav_target_labels_are_shared_between_scan_and_summary() -> None:
+    """Doppelt getippte Labels liessen die Summary still auf "keine Evidenz" fallen."""
+    source = _SCRIPT.read_text(encoding="utf-8")
+    for label in ("Rohdatei", "entpackte Nutzlast"):
+        # Quote-unabhaengig: eine Kopie in einfachen Anfuehrungszeichen ist
+        # dieselbe Drift wie eine in doppelten.
+        occurrences = re.findall(rf"""['"]{re.escape(label)}['"]""", source)
+        assert len(occurrences) == 1, (
+            f"{label!r} darf nur an der Konstanten-Definition als Literal stehen, "
+            f"gefunden: {len(occurrences)}x – sonst driften Scan und Summary auseinander"
+        )
+    assert scan_release_artifacts._LABEL_RAW == "Rohdatei"
+    assert scan_release_artifacts._LABEL_PAYLOAD == "entpackte Nutzlast"

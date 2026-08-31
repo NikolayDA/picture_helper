@@ -141,13 +141,24 @@ _CLAMAV_DATA_SCANNED = re.compile(
 )
 _CLAMAV_INFECTED = re.compile(r"(?m)^Infected files:\s*(\d+)\s*$")
 _CLAMAV_LIMIT_MARKER = "Heuristics.Limits.Exceeded"
+# Die beiden Teilnachweise heissen im Bericht wie in der Summary gleich. Als
+# doppelt getippte Literale waere ein Umbenennen genau die Sorte stiller Drift,
+# gegen die dieses Repo sonst Waechter stellt: die Summary faende die Spalte
+# nicht mehr und zeigte "keine Evidenz" statt der Zahl.
+_LABEL_RAW: Final = "Rohdatei"
+_LABEL_PAYLOAD: Final = "entpackte Nutzlast"
 # ``clamscan --version`` liefert "ClamAV <engine>/<sigs>/<Signaturdatum>".
 _CLAMAV_VERSION_DATE = re.compile(r"/(\w{3} \w{3}\s+\d{1,2} \d{2}:\d{2}:\d{2} \d{4})$")
 _SIGNATURE_MAX_AGE_DAYS: Final = 14
+# Genau die vier Schreibweisen, die ``clamscan`` erzeugt: ``loggBytes`` in
+# clamav/clamscan/clamscan.c kennt nur ``GiB``/``MiB``/``KiB``/``B`` und rechnet
+# durchgaengig mit 1024. Dezimale Labels (``MB``) gibt es dort nicht – sie hier
+# zu akzeptieren hiesse, eine Bytezahl aus einer Einheit zu raten, deren
+# Semantik wir nicht kennen. Unbekannte Einheit -> ``None`` (im Bericht als
+# "keine Evidenz"), nie eine plausibel aussehende falsche Zahl. Beobachtet im
+# Kandidatenlauf 33065289784: "Data scanned: 1.28 GiB".
 _BYTE_UNITS: Final[dict[str, int]] = {
-    "B": 1,
-    "KB": 1000, "MB": 1000**2, "GB": 1000**3, "TB": 1000**4,
-    "KIB": 1024, "MIB": 1024**2, "GIB": 1024**3, "TIB": 1024**4,
+    "B": 1, "KIB": 1024, "MIB": 1024**2, "GIB": 1024**3,
 }
 # Hex statt Klartext: Manche lokale Virenscanner quarantänisieren bereits
 # Quellcode, der den EICAR-Teststring wörtlich enthält. Erst im temporären
@@ -176,10 +187,20 @@ VERDICT_UNAVAILABLE: Final = "UNAVAILABLE"
 # ``.github/workflows/release-linux.yml`` – ein Tippfehler im Register wuerde
 # den Eintrag sonst still wirkungslos machen.
 KNOWN_PLATFORMS: Final = ("linux-x86_64", "linux-raspberrypi-arm64", "macos-arm64")
-KNOWN_PHASES: Final = (
-    "smoke-launch-appimage",
-    "deb-install-smoke",
-    "smoke-launch-macos-app",
+# Welches Leg welche Phasen-Logs schreibt. Ein *unbekannter* Dateiname faellt
+# ohnehin auf; der gefaehrlichere Fall ist der umgekehrte: ``build-logs/``
+# existiert, das erwartete Log fehlt aber. Ohne diese Erwartung saehe der
+# Bericht dann exakt aus wie ein sauberer Lauf (``anomalies_total: 0``,
+# Abschnitt 4 "Keine.") – die Durchsicht haette abgehakt, ohne eine Zeile
+# gelesen zu haben. Deshalb je Plattform erwartet und ein fehlendes Log
+# sichtbar gewarnt.
+PHASES_BY_PLATFORM: Final[dict[str, tuple[str, ...]]] = {
+    "linux-x86_64": ("smoke-launch-appimage", "deb-install-smoke"),
+    "linux-raspberrypi-arm64": ("smoke-launch-appimage", "deb-install-smoke"),
+    "macos-arm64": ("smoke-launch-macos-app",),
+}
+KNOWN_PHASES: Final = tuple(
+    sorted({phase for phases in PHASES_BY_PLATFORM.values() for phase in phases})
 )
 # Ein Fingerprint muss lang genug sein, um genau eine Meldung zu treffen.
 # Kurze Fragmente waeren faktisch die breiten Regex-Suppressionen, die #920
@@ -470,7 +491,7 @@ def scan_artifact_with_clamav(
 
     print(f">> ClamAV: {artifact.name} (Rohdatei + entpackter Inhalt, getrennt)")
     targets: list[ClamavTargetResult] = []
-    for label, target in (("Rohdatei", artifact), ("entpackte Nutzlast", extracted)):
+    for label, target in ((_LABEL_RAW, artifact), (_LABEL_PAYLOAD, extracted)):
         print(f"   Teilnachweis: {label}")
         result = _run_clamav(database, [target])
         _print_clamav_output(result)
@@ -884,8 +905,8 @@ def render_summary(report: dict[str, Any]) -> str:
         lines.append(
             f"| {artifact['name']} | {artifact.get('raw_bytes', 0)} "
             f"| {artifact.get('payload_bytes', 0)} | {artifact.get('payload_files', 0)} "
-            f"| {_scanned(scanned.get('Rohdatei'))} "
-            f"| {_scanned(scanned.get('entpackte Nutzlast'))} |"
+            f"| {_scanned(scanned.get(_LABEL_RAW))} "
+            f"| {_scanned(scanned.get(_LABEL_PAYLOAD))} |"
         )
     lines.append("")
 
@@ -1035,6 +1056,7 @@ def _collect_anomalies(
     """Liest die Build-Logs und teilt ihre Auffaelligkeiten in bekannt/unbekannt."""
     build_logs: list[dict[str, Any]] = []
     anomalies: list[LogAnomaly] = []
+    seen_phases: set[str] = set()
     if args.build_log_dir is not None:
         if not args.build_log_dir.is_dir():
             warnings.append(
@@ -1046,6 +1068,7 @@ def _collect_anomalies(
                 warnings.append(
                     f"Unbekannte Build-Log-Phase {phase!r}; kein Registereintrag kann greifen."
                 )
+            seen_phases.add(phase)
             found = detect_log_anomalies(text, phase=phase)
             anomalies.extend(found)
             build_logs.append({
@@ -1053,11 +1076,26 @@ def _collect_anomalies(
                 "lines": len(text.splitlines()),
                 "anomalies": len(found),
             })
+        # Fail-open-Richtung schliessen: ein fehlendes erwartetes Log ist von
+        # einem sauberen Lauf sonst nicht unterscheidbar (s. PHASES_BY_PLATFORM).
+        for phase in PHASES_BY_PLATFORM.get(args.platform or "", ()):
+            if phase not in seen_phases:
+                warnings.append(
+                    f"Erwartetes Phasen-Log {phase!r} fehlt fuer Plattform "
+                    f"{args.platform!r} – dieser Bau-Schritt ist ungeprueft, "
+                    "nicht unauffaellig."
+                )
     known, unknown = classify_anomalies(
         anomalies, register, platform=args.platform or "", today=today,
     )
+    expected = list(PHASES_BY_PLATFORM.get(args.platform or "", ()))
     return (
-        {"files": build_logs, "anomalies_total": len(anomalies)},
+        {
+            "files": build_logs,
+            "anomalies_total": len(anomalies),
+            "expected_phases": expected,
+            "missing_phases": sorted(set(expected) - seen_phases),
+        },
         {"known": known, "unknown": unknown},
     )
 
@@ -1211,6 +1249,15 @@ def main(argv: list[str] | None = None) -> int:
                 hard_findings.append(detail)
                 counts["scan_errors"] += 1
                 entry["error"] = str(exc)
+                if clamav_ready:
+                    # Ohne entpackte Nutzlast gibt es fuer dieses Artefakt
+                    # keinen der beiden geforderten ClamAV-Teilnachweise. Ein
+                    # danach unveraendertes ``malware_scan: PASS`` wuerde im
+                    # Bericht das Gegenteil behaupten.
+                    missing = f"{path.name}: kein ClamAV-Nachweis (Artefakt nicht entpackbar)."
+                    entry["malware"] = {"status": VERDICT_FAIL, "detail": missing, "targets": []}
+                    counts["malware_failed_artifacts"] += 1
+                    malware_scan = {"status": VERDICT_FAIL, "reason": missing}
                 artifacts.append(entry)
                 continue
             entry.update({
