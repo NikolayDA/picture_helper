@@ -355,6 +355,23 @@ def test_the_offline_reason_names_the_busy_runner_case() -> None:
     assert "offline" in detail
 
 
+def test_the_cli_rejects_a_useless_acceptance_deadline(capsys) -> None:
+    """Gleich oder groesser als das Gesamtfenster heisst: kein frueheres Verdikt.
+
+    Der Heartbeat fiele damit still auf den Zustand zurueck, den dieser PR
+    behebt — CLI, Docstring und Wächter verlangen deshalb dasselbe ``<``
+    (#938-Review).
+    """
+    for acceptance in ("1500", "1600"):
+        with pytest.raises(SystemExit):
+            hb.main([
+                "--report", "r.json", "--summary", "s.md", "watch",
+                "--repo", "o/r", "--run-id", "1",
+                "--acceptance-seconds", acceptance, "--deadline-seconds", "1500",
+            ])
+        assert "muss kleiner als" in capsys.readouterr().err
+
+
 def test_the_report_records_whether_the_deadline_expired() -> None:
     """Auch die Evidenz muss die Unterscheidung tragen, nicht nur der Text."""
     state = hb.queue_state(_jobs("queued", "fail"), EXPECTED)

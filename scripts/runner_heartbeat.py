@@ -577,11 +577,20 @@ def main(argv: list[str] | None = None) -> int:
     # Eine Annahmefrist jenseits des Gesamtfensters waere wirkungslos: Der
     # Offline-Zweig kaeme nie zum Zug, und der Heartbeat haelt sein
     # "<= 15 min" nicht mehr, ohne dass es jemand merkt.
+    # Symmetrisch defensiv: Beide Optionen haengen am selben Unterkommando.
+    # Nur eine per getattr zu lesen liefe bei einem kuenftigen Unterkommando
+    # mit genau einer der beiden in einen AttributeError (#938-Review).
     acceptance = getattr(args, "acceptance_seconds", None)
-    if acceptance is not None and acceptance > args.deadline_seconds:
+    deadline = getattr(args, "deadline_seconds", None)
+    # ``>=`` statt ``>``: Eine Annahmefrist gleich dem Gesamtfenster ist
+    # wirkungslos – der Offline-Zweig kaeme nie frueher zum Zug, und der
+    # Heartbeat faellt still auf den Zustand zurueck, den dieser PR behebt.
+    # So sind CLI, Docstring und Waechter deckungsgleich.
+    if acceptance is not None and deadline is not None and acceptance >= deadline:
         parser.error(
-            f"--acceptance-seconds ({acceptance:.0f}) darf --deadline-seconds "
-            f"({args.deadline_seconds:.0f}) nicht ueberschreiten."
+            f"--acceptance-seconds ({acceptance:.0f}) muss kleiner als "
+            f"--deadline-seconds ({deadline:.0f}) sein – sonst gibt es kein "
+            "frueheres Offline-Verdikt."
         )
     result = args.func(args)
     return int(result)
