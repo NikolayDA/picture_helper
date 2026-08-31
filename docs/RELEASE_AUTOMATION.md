@@ -683,8 +683,14 @@ Härtungspunkte bewusst Hinweise – ein Release soll nicht an einer
 Display-Sleep-Einstellung scheitern; der tägliche Lauf ist die
 Durchsetzungsstelle.
 
-**Meldeweg.** Der fehlgeschlagene Lauf löst die Actions-Fehlerbenachrichtigung
-aus. Ist die Repository-Variable `RUNNER_HEARTBEAT_ISSUE` auf eine
+**Meldeweg.** Die Auswertung liest Status **und** Ergebnis der Runner-Jobs.
+Damit trägt sie beide Hälften des Signals: den Runner, der den Job gar nicht
+annimmt (offline), und den, der ihn annimmt und an der Bereitschaftsprüfung
+scheitert (nicht einsatzbereit). Der Umweg über die Jobs-API ist nötig, weil
+`if: failure()` in einem Schritt nur auf vorherige Schritte **desselben**
+Jobs und auf Vorgänger per `needs` reagiert – die Runner-Jobs sind bewusst
+keine Vorgänger der Auswertung. Der fehlgeschlagene Lauf löst zusätzlich die
+Actions-Fehlerbenachrichtigung aus. Ist die Repository-Variable `RUNNER_HEARTBEAT_ISSUE` auf eine
 Issue-Nummer gesetzt, kommentiert der Lauf denselben Bericht zusätzlich dort.
 Kommentiert wird **nur im Fehlerfall**: ein täglicher Erfolgskommentar würde
 das Betriebs-Issue in Rauschen verwandeln, in dem der eine Ausfalltag

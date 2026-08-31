@@ -128,10 +128,17 @@ jobs:
       - name: Einsatzbereitschaft und Haertung pruefen
         run: python3 scripts/abnahme_preflight.py --platform linux-x86_64 --hardening-strict
 
-  # GitHub-hosted Auswertung, parallel zu den Runner-Jobs: Sie beobachtet,
-  # ob jeder erwartete Job einem Runner zugewiesen wurde. Bewusst nicht per
-  # ``needs`` an die Runner-Jobs gehaengt – ein nie startender Job wuerde die
-  # Auswertung sonst genauso lange blockieren, wie sie melden soll.
+  # GitHub-hosted Auswertung, parallel zu den Runner-Jobs. Bewusst nicht per
+  # ``needs`` an sie gehaengt – ein nie startender Job wuerde die Auswertung
+  # sonst genauso lange blockieren, wie sie melden soll.
+  #
+  # Genau deshalb liest sie die Job-*Conclusions* mit (Review PR #930):
+  # ``if: failure()`` in einem Schritt reagiert laut GitHub-Referenz nur auf
+  # vorherige Schritte DIESES Jobs und auf Vorgaenger per ``needs``. Ein an
+  # der Haertung gescheiterter Runner-Job liesse diesen Job also gruen – der
+  # Bericht meldete PASS fuer ein nachweislich nicht einsatzbereites Geraet,
+  # und im Betriebs-Issue staende nichts. Die Frist deckt darum Queue *und*
+  # Laufzeit des Bereitschaftsjobs ab (dessen timeout-minutes: 10).
   #
   # PAT-frei mit Absicht: Der Runner-Status per API
   # (``GET /repos/{o}/{r}/actions/runners``) braucht ein Fine-grained PAT mit
@@ -144,7 +151,7 @@ jobs:
     needs: status
     if: needs.status.outputs.paused != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     permissions:
       contents: read
       actions: read
@@ -169,7 +176,7 @@ jobs:
             watch \
             --repo "$GITHUB_REPOSITORY" \
             --run-id "$GITHUB_RUN_ID" \
-            --deadline-seconds 900 \
+            --deadline-seconds 1500 \
             --poll-seconds 20 \
             $x86flag
 

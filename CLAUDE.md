@@ -962,8 +962,12 @@ Minimaljob, und `scripts/runner_heartbeat.py` beobachtet GitHub-hosted, ob er
 ihn binnen 15 Minuten annimmt. Der Job auf dem Runner ist bewusst der
 Abnahme-Preflight mit `--hardening-strict`: So fällt nicht nur ein *offline*
 Gerät auf, sondern auch ein eingeschaltetes, das nicht einsatzbereit wäre.
-Fail-safe wie der Lauf-Watchdog — ohne **frische** Beobachtung (API-Fehler)
-gibt es kein Verdikt, sonst entwertete jeder Schluckauf den Alarm. Der
+Die Auswertung liest Status **und** `conclusion`: Ein Runner, der den Job
+annimmt und an der Härtung scheitert, ist genauso ein Befund wie ein offline
+Gerät — `if: failure()` sieht ihn nicht, weil es laut GitHub-Referenz nur
+Schritte desselben Jobs und `needs`-Vorgänger erfasst. Fail-safe wie der
+Lauf-Watchdog — ohne **frische** Beobachtung (API-Fehler) gibt es kein
+Verdikt, sonst entwertete jeder Schluckauf den Alarm. Der
 Heartbeat bricht nie einen Lauf ab (kein `actions: write`); gegen auflaufende
 Warteschlangen-Jobs schützt `concurrency: cancel-in-progress`.
 

@@ -18,9 +18,14 @@ Zwei Unterkommandos, beide netzarm und nur Standardbibliothek:
     abschafft — die Alarmanlage bliebe abgeschaltet, und niemand sähe es.
 
 ``watch``
-    Beobachtet GitHub-hosted die Heartbeat-Jobs desselben Laufs, bis jeder
-    erwartete Job einem Runner zugewiesen wurde, und meldet sonst zum
-    Fristablauf, welcher Runner den Job nicht angenommen hat. Fail-safe wie
+    Beobachtet GitHub-hosted die Heartbeat-Jobs desselben Laufs und meldet
+    **beide** Hälften des Signals: den Runner, der den Job gar nicht erst
+    annimmt (``queued`` zum Fristablauf), und den, der ihn annimmt und an der
+    Bereitschaftsprüfung scheitert (``conclusion`` ``failure``/``timed_out``).
+    Die zweite Hälfte braucht den Umweg über die Jobs-API, weil
+    ``if: failure()`` in einem Schritt laut GitHub-Referenz nur auf vorherige
+    Schritte **desselben** Jobs (und Vorgängerjobs per ``needs``) reagiert –
+    die Runner-Jobs sind bewusst keine Vorgänger. Fail-safe wie
     ``abnahme_watchdog.py``: Ohne **frische** Beobachtung (API-Ausfall) gibt
     es kein Verdikt — ein Monitor, der nicht beobachten kann, schlägt keinen
     Alarm, sonst verliert der Alarm seinen Wert.
@@ -47,7 +52,7 @@ from typing import Any, Final
 
 API_VERSION: Final = "2022-11-28"
 REQUEST_TIMEOUT_S: Final = 30.0
-DEFAULT_DEADLINE_S: Final = 900
+DEFAULT_DEADLINE_S: Final = 1500
 DEFAULT_POLL_S: Final = 20
 
 REPORT_SCHEMA: Final = 1
@@ -158,26 +163,46 @@ def expected_jobs(*, x86_enabled: bool) -> tuple[str, ...]:
     return tuple(HEARTBEAT_JOB_NAMES[platform] for platform in platforms)
 
 
+# Ergebnisse, die einen Runner als nicht einsatzbereit ausweisen. ``cancelled``
+# gehört bewusst nicht dazu: Das ist eine menschliche Handlung (oder die
+# ``cancel-in-progress``-Aufräumung), kein Geräteurteil.
+FAILED_CONCLUSIONS: Final = ("failure", "timed_out")
+
+
 @dataclass(frozen=True)
 class QueueState:
-    """Beobachtung der Heartbeat-Jobs eines Laufs."""
+    """Beobachtung der Heartbeat-Jobs eines Laufs.
+
+    Drei Mengen statt einer: Ein Runner kann den Job gar nicht erst annehmen
+    (``queued``), ihn annehmen und an der Bereitschaftsprüfung scheitern
+    (``failed``) oder noch daran arbeiten (``pending``). Nur ``status``
+    auszuwerten hiesse, den zweiten Fall als Erfolg zu melden – der Bericht
+    behauptete dann ``PASS`` für ein nachweislich nicht einsatzbereites Gerät.
+    """
 
     known: tuple[str, ...]
     queued: tuple[str, ...]
+    failed: tuple[str, ...] = ()
+    pending: tuple[str, ...] = ()
     observed: bool = True
 
 
 def queue_state(jobs: list[dict[str, Any]], names: tuple[str, ...]) -> QueueState:
-    """Zustand der exakt benannten Heartbeat-Jobs.
-
-    Ein bereits beendeter oder übersprungener Job zählt als bekannt, aber
-    nicht als wartend – nur ``queued`` heißt „kein Runner hat den Job
-    angenommen".
-    """
-    present = {str(job.get("name", "")): str(job.get("status", "")) for job in jobs}
+    """Zustand der exakt benannten Heartbeat-Jobs aus Status **und** Ergebnis."""
+    present = {
+        str(job.get("name", "")): (
+            str(job.get("status", "")), str(job.get("conclusion") or ""),
+        )
+        for job in jobs
+    }
     known = tuple(name for name in names if name in present)
-    queued = tuple(name for name in known if present[name] == "queued")
-    return QueueState(known=known, queued=queued)
+    queued = tuple(name for name in known if present[name][0] == "queued")
+    pending = tuple(name for name in known if present[name][0] != "completed")
+    failed = tuple(
+        name for name in known
+        if present[name][0] == "completed" and present[name][1] in FAILED_CONCLUSIONS
+    )
+    return QueueState(known=known, queued=queued, failed=failed, pending=pending)
 
 
 def _request(url: str, token: str) -> urllib.request.Request:
@@ -237,11 +262,15 @@ def watch(
             print(f"::warning::Heartbeat: Jobabfrage fehlgeschlagen ({exc}).")
         else:
             last_success = clock()
-            if not last.queued and set(expected).issubset(last.known):
+            # Ein gescheiterter Bereitschaftsjob steht sofort fest – auf die
+            # uebrigen zu warten verzoegerte nur die Meldung.
+            if last.failed:
+                return last
+            if not last.pending and set(expected).issubset(last.known):
                 return last
         if clock() - start >= deadline_s:
             stale = last_success is None or clock() - last_success > 2 * poll_s
-            if last.queued and stale:
+            if (last.queued or last.failed) and stale:
                 return replace(last, observed=False)
             return last
         sleep(poll_s)
@@ -257,12 +286,21 @@ def evaluate(
             "(API-Fehler) – kein Verdikt. Ein Monitor ohne Beobachtung "
             "schlägt bewusst keinen Alarm."
         )
+    reasons: list[str] = []
     if state.queued:
-        names = ", ".join(state.queued)
-        return VERDICT_FAIL, (
-            f"{names} wartet nach {deadline_s:.0f} s weiterhin auf einen "
-            "Runner – der Runner ist offline oder nimmt keine Jobs an."
+        reasons.append(
+            f"{', '.join(state.queued)} wartet nach {deadline_s:.0f} s weiterhin "
+            "auf einen Runner – offline oder nimmt keine Jobs an"
         )
+    if state.failed:
+        # Die zweite Haelfte des Signals: angenommen, aber nicht einsatzbereit.
+        # Ohne sie meldete der Bericht PASS, waehrend der Lauf rot ist.
+        reasons.append(
+            f"{', '.join(state.failed)} hat die Bereitschaftsprüfung nicht "
+            "bestanden – Gerät angenommen, aber nicht einsatzbereit"
+        )
+    if reasons:
+        return VERDICT_FAIL, "; ".join(reasons) + "."
     missing = tuple(name for name in expected if name not in state.known)
     if missing:
         return VERDICT_UNOBSERVED, (
@@ -270,7 +308,15 @@ def evaluate(
             f"{', '.join(missing)} – Namensdrift oder API-Anomalie, "
             "kein Runner-Verdikt."
         )
-    return VERDICT_PASS, "Alle erwarteten Runner haben ihren Job angenommen."
+    if state.pending:
+        return VERDICT_UNOBSERVED, (
+            f"{', '.join(state.pending)} lief zum Fristablauf noch – "
+            "angenommen, Bereitschaft aber noch offen. Kein Verdikt."
+        )
+    return VERDICT_PASS, (
+        "Alle erwarteten Runner haben ihren Job angenommen und die "
+        "Bereitschaftsprüfung bestanden."
+    )
 
 
 # ── Bericht und Summary ────────────────────────────────────────────────
@@ -296,6 +342,8 @@ def build_report(
         "expected_jobs": list(expected),
         "observed_jobs": list(state.known),
         "queued_jobs": list(state.queued),
+        "failed_jobs": list(state.failed),
+        "pending_jobs": list(state.pending),
         "observed": state.observed,
     }
 
@@ -312,14 +360,20 @@ def render_summary(report: dict[str, Any]) -> str:
     expected = list(report.get("expected_jobs", []))
     if expected:
         queued = set(report.get("queued_jobs", []))
+        failed = set(report.get("failed_jobs", []))
+        pending = set(report.get("pending_jobs", []))
         known = set(report.get("observed_jobs", []))
         lines.append("| Runner-Job | Zustand |")
         lines.append("| --- | --- |")
         for name in expected:
             if name in queued:
                 status = "❌ wartet auf einen Runner"
+            elif name in failed:
+                status = "❌ angenommen, aber nicht einsatzbereit"
+            elif name in pending:
+                status = "⚠️ läuft noch"
             elif name in known:
-                status = "✅ angenommen"
+                status = "✅ angenommen und bestanden"
             else:
                 status = "⚠️ nicht in der Jobliste"
             lines.append(f"| {name} | {status} |")
@@ -327,8 +381,11 @@ def render_summary(report: dict[str, Any]) -> str:
     if report["verdict"] == VERDICT_FAIL:
         lines.append(
             "Abhilfe: Gerät einschalten bzw. Runner-Dienst starten "
-            "(`docs/RELEASE_AUTOMATION.md` §6). Bleibt ein Runner länger als "
-            "30 Tage offline, entfernt GitHub ihn und §2 ist zu wiederholen."
+            "(`docs/RELEASE_AUTOMATION.md` §6). Hat der Runner den Job "
+            "angenommen und die Prüfung nicht bestanden, nennt sein Joblog "
+            "den fehlenden Punkt – Härtung siehe §2.1/§2.2. Bleibt ein Runner "
+            "länger als 30 Tage offline, entfernt GitHub ihn und §2 ist zu "
+            "wiederholen."
         )
         lines.append("")
     if report.get("run_url"):

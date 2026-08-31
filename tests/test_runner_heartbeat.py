@@ -28,10 +28,21 @@ EXPECTED = hb.expected_jobs(x86_enabled=False)
 
 
 def _jobs(*states: str, names: tuple[str, ...] = EXPECTED) -> list[dict]:
-    # strict=False mit Absicht: ein Test gibt bewusst weniger Zustaende als
-    # Namen an (unvollstaendige Jobliste direkt nach Laufstart).
+    """Jobliste aus Kurzformen: ``queued``/``running``/``ok``/``fail``/``timeout``.
+
+    strict=False mit Absicht: ein Test gibt bewusst weniger Zustaende als
+    Namen an (unvollstaendige Jobliste direkt nach Laufstart).
+    """
+    shapes = {
+        "queued": ("queued", None),
+        "running": ("in_progress", None),
+        "ok": ("completed", "success"),
+        "fail": ("completed", "failure"),
+        "timeout": ("completed", "timed_out"),
+        "cancelled": ("completed", "cancelled"),
+    }
     return [
-        {"name": name, "status": state}
+        {"name": name, "status": shapes[state][0], "conclusion": shapes[state][1]}
         for name, state in zip(names, states, strict=False)
     ]
 
@@ -108,13 +119,13 @@ def test_the_paused_platform_is_not_expected() -> None:
 
 
 def test_queue_state_counts_only_queued_jobs_as_waiting() -> None:
-    state = hb.queue_state(_jobs("completed", "queued"), EXPECTED)
+    state = hb.queue_state(_jobs("ok", "queued"), EXPECTED)
     assert state.known == EXPECTED
     assert state.queued == ("Heartbeat Linux aarch64",)
 
 
 def test_queue_state_ignores_foreign_jobs() -> None:
-    jobs = _jobs("in_progress", "in_progress") + [{"name": "Heartbeat-Status", "status": "queued"}]
+    jobs = _jobs("ok", "ok") + [{"name": "Heartbeat-Status", "status": "queued"}]
     assert hb.queue_state(jobs, EXPECTED).queued == ()
 
 
@@ -129,13 +140,13 @@ def _watch(observe, *, ticks: list[float], deadline: float = 1.0, poll: float = 
 
 
 def test_watch_returns_as_soon_as_every_runner_accepted() -> None:
-    state = _watch(lambda: hb.queue_state(_jobs("in_progress", "in_progress"), EXPECTED),
+    state = _watch(lambda: hb.queue_state(_jobs("ok", "ok"), EXPECTED),
                    ticks=[0, 0, 1])
     assert hb.evaluate(state, EXPECTED, deadline_s=900)[0] == hb.VERDICT_PASS
 
 
 def test_watch_reports_the_runner_that_never_took_the_job() -> None:
-    state = _watch(lambda: hb.queue_state(_jobs("in_progress", "queued"), EXPECTED),
+    state = _watch(lambda: hb.queue_state(_jobs("ok", "queued"), EXPECTED),
                    ticks=[0, 0, 1, 2])
     verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=900)
     assert verdict == hb.VERDICT_FAIL
@@ -149,8 +160,8 @@ def test_an_incomplete_job_list_does_not_end_the_watch_early() -> None:
     def observe():
         seen["n"] += 1
         if seen["n"] == 1:
-            return hb.queue_state(_jobs("in_progress", names=EXPECTED[:1]), EXPECTED)
-        return hb.queue_state(_jobs("in_progress", "in_progress"), EXPECTED)
+            return hb.queue_state(_jobs("ok", names=EXPECTED[:1]), EXPECTED)
+        return hb.queue_state(_jobs("ok", "ok"), EXPECTED)
 
     state = _watch(observe, ticks=[0, 0, 0, 1])
     assert seen["n"] == 2
@@ -219,3 +230,96 @@ def test_watch_command_needs_a_token(monkeypatch, capsys) -> None:
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     assert hb.main(["watch", "--repo", "o/r", "--run-id", "1"]) == 2
     assert "GH_TOKEN" in capsys.readouterr().out
+
+
+# ── Review PR #930: die zweite Haelfte des Signals ──────────────────────
+
+def test_an_accepted_but_failing_runner_is_never_reported_as_pass() -> None:
+    """``if: failure()`` sieht laut GitHub-Referenz nur Schritte DIESES Jobs
+    und Vorgaenger per ``needs`` – die Runner-Jobs sind bewusst keine.
+
+    Ohne die Conclusions meldete der Bericht ``PASS`` fuer ein Geraet, das
+    gerade an der Bereitschaftspruefung gescheitert ist, und im
+    Betriebs-Issue staende nichts.
+    """
+    state = hb.queue_state(_jobs("ok", "fail"), EXPECTED)
+    assert state.queued == ()
+    assert state.failed == ("Heartbeat Linux aarch64",)
+    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=1500)
+    assert verdict == hb.VERDICT_FAIL
+    assert "nicht einsatzbereit" in detail
+
+
+def test_a_timed_out_runner_job_counts_as_not_ready() -> None:
+    """Angenommen, aber haengengeblieben – auch das ist keine Bereitschaft."""
+    state = hb.queue_state(_jobs("ok", "timeout"), EXPECTED)
+    assert state.failed == ("Heartbeat Linux aarch64",)
+
+
+def test_a_cancelled_job_is_not_a_device_verdict() -> None:
+    """Abbruch ist eine menschliche Handlung (oder cancel-in-progress)."""
+    state = hb.queue_state(_jobs("ok", "cancelled"), EXPECTED)
+    assert state.failed == () and state.queued == ()
+
+
+def test_both_halves_of_the_signal_appear_together() -> None:
+    state = hb.queue_state(_jobs("queued", "fail"), EXPECTED)
+    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=1500)
+    assert verdict == hb.VERDICT_FAIL
+    assert "wartet" in detail and "nicht einsatzbereit" in detail
+
+
+def test_watch_reports_a_failed_readiness_job_without_waiting_out_the_deadline() -> None:
+    """Der Befund steht fest – warten verzoegerte nur die Meldung."""
+    clock = iter([0, 0, 1])
+    state = hb.watch(
+        lambda: hb.queue_state(_jobs("ok", "fail"), EXPECTED), EXPECTED,
+        deadline_s=1500, poll_s=20, clock=lambda: next(clock), sleep=lambda _s: None,
+    )
+    assert state.failed == ("Heartbeat Linux aarch64",)
+
+
+def test_watch_waits_for_completion_not_merely_for_acceptance() -> None:
+    """Ein noch laufender Job darf die Beobachtung nicht beenden – sonst
+    saehe sie sein Scheitern nie."""
+    seen = {"n": 0}
+
+    def observe():
+        seen["n"] += 1
+        if seen["n"] == 1:
+            return hb.queue_state(_jobs("running", "running"), EXPECTED)
+        return hb.queue_state(_jobs("ok", "fail"), EXPECTED)
+
+    clock = iter([0, 0, 0, 1])
+    state = hb.watch(
+        observe, EXPECTED, deadline_s=1500, poll_s=20,
+        clock=lambda: next(clock), sleep=lambda _s: None,
+    )
+    assert seen["n"] == 2
+    assert state.failed == ("Heartbeat Linux aarch64",)
+
+
+def test_a_job_still_running_at_the_deadline_yields_no_verdict() -> None:
+    """Angenommen ist es – ueber die Bereitschaft ist noch nichts bekannt."""
+    state = hb.QueueState(
+        known=EXPECTED, queued=(), pending=("Heartbeat macOS arm64",),
+    )
+    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=1500)
+    assert verdict == hb.VERDICT_UNOBSERVED
+    assert "noch" in detail
+
+
+def test_the_report_separates_offline_from_not_ready(tmp_path: Path) -> None:
+    state = hb.queue_state(_jobs("queued", "fail"), EXPECTED)
+    verdict, detail = hb.evaluate(state, EXPECTED, deadline_s=1500)
+    report = hb.build_report(
+        verdict=verdict, detail=detail, expected=EXPECTED, state=state,
+        deadline_s=1500, run_url="",
+    )
+    hb.write_outputs(report, report_path=tmp_path / "r.json", summary_path=tmp_path / "s.md")
+    payload = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
+    assert payload["queued_jobs"] == ["Heartbeat macOS arm64"]
+    assert payload["failed_jobs"] == ["Heartbeat Linux aarch64"]
+    summary = (tmp_path / "s.md").read_text(encoding="utf-8")
+    assert "❌ wartet auf einen Runner" in summary
+    assert "❌ angenommen, aber nicht einsatzbereit" in summary
