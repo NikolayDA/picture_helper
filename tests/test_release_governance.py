@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
+
+from scripts import release_contract as rc
 
 ROOT = Path(__file__).resolve().parent.parent
 CLAUDE = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
@@ -221,6 +224,71 @@ def test_release_ref_creation_is_guarded_as_strictly_as_the_dispatches() -> None
     #    Doppelpunkt heisst „der Ref darf nicht existieren" — ein vorhandener
     #    Ref liesse sich damit auch bei Fast-Forward nicht still bewegen.
     assert '--force-with-lease="refs/heads/${RELEASE_REF}:"' in arms["2"]
+
+
+def test_the_ruleset_check_aborts_instead_of_merely_reporting() -> None:
+    """#918: Der Schutz des Refs wird **bewertet**, nicht nur ausgegeben.
+
+    Die erste Fassung gab die aktiven Regeltypen per `--jq` aus und überließ
+    die Bewertung dem Augenschein — eine leere Liste (gar kein Ruleset) sah
+    damit genauso aus wie eine bestandene Prüfung. Der Ref trägt die
+    Unveränderlichkeit dieser Entscheidung; ohne erzwungenen Schutz ist er nur
+    eine Verabredung.
+    """
+    procedure = RUNBOOK.split("## Änderungsverlauf", maxsplit=1)[0]
+    assert "verify-ref-protection" in procedure
+    assert "[.[].type] | sort | unique" not in procedure, "berichtende Altfassung zurück"
+
+    # Die Prüfung bedingt den ersten Dispatch, statt ihm nur voranzugehen —
+    # dieselbe Kopplung, die `test_every_dispatch_is_conditional_on_the_ref_check`
+    # für die SHA-Prüfung festhält.
+    first = procedure.index("gh workflow run release-linux.yml")
+    block = procedure[procedure.rfind("```bash", 0, first) : first]
+    assert "verify-ref-protection" in block, "Schutzprüfung nicht im Dispatch-Block"
+    # Nur Fortsetzungszeilen (Backslash am Zeilenende) bis zum `&&`. Ein
+    # bloßes "irgendwo danach steht ein &&" trüge nicht: Der Block endet per
+    # Konstruktion direkt vor dem Dispatch und enthält deshalb immer noch das
+    # `&&` der *zweiten* Prüfung — die Entkopplung, die dieser Wächter
+    # ausschließen soll, bliebe damit grün (#936-Review).
+    tail = block[block.index("verify-ref-protection") :]
+    assert re.match(r"[^\n]*(?:\\\n[^\n]*)*\s*&&", tail), (
+        "Schutzprüfung nicht per && an den Dispatch gekoppelt"
+    )
+
+
+def test_the_documented_ruleset_creates_exactly_the_required_rules() -> None:
+    """Handgepflegte Kopie gegen ihre Quelle: Anlage-Rezept vs. Vertrag.
+
+    Ein Rezept, das eine der drei Operationen vergisst, erzeugte ein Ruleset,
+    das die eigene Prüfung nie besteht — und zwar erst mitten im Release.
+    """
+    payload = re.search(r"--input - <<'JSON'\n(.*?)\nJSON", RUNBOOK, flags=re.DOTALL)
+    assert payload is not None, "Anlage-Rezept für das Ruleset fehlt im Runbook"
+    ruleset = json.loads(payload.group(1))
+    assert ruleset["target"] == "branch", "nur Branches tragen diesen Schutz"
+    # `evaluate`/`disabled` erscheinen nicht in rules/branches – ein solches
+    # Ruleset bestünde die Prüfung nie und schützte auch nichts.
+    assert ruleset["enforcement"] == "active"
+    assert ruleset["conditions"]["ref_name"]["include"] == ["refs/heads/release/*"]
+    assert tuple(sorted(rule["type"] for rule in ruleset["rules"])) == rc.REQUIRED_REF_RULES
+    # Rulesets binden anders als Branch-Protection auch Admins. Ohne Bypass
+    # scheiterten die beiden Löschwege, die dieses Runbook selbst als
+    # Owner-Handgriff vorsieht — der eine davon im Rollback-Moment.
+    assert ruleset["bypass_actors"], "ohne Bypass blockiert das Rezept die eigenen Löschwege"
+
+
+def test_tag_and_release_ref_have_separate_documented_roles() -> None:
+    """Beide zeigen auf denselben Commit — genau deshalb braucht es die Rollen.
+
+    Der zurückgebaute Schritt-9-Dispatch lief auf dem Tag statt auf dem Ref und
+    fiel niemandem auf: fail-closed blieb er, nur eben aus einer zweiten
+    Prozessquelle.
+    """
+    procedure = RUNBOOK.split("## Änderungsverlauf", maxsplit=1)[0]
+    assert "veroeffentlichte Version" in procedure or "veröffentlichte Version" in procedure
+    assert "Dispatch- und Wiederanlaufquelle" in procedure
+    automation = (ROOT / "docs" / "RELEASE_AUTOMATION.md").read_text(encoding="utf-8")
+    assert "Dispatch-Ref ist der Release-**Tag**" not in automation, "Altzustand zurück"
 
 
 def test_release_workflow_paths_stay_dispatchable_from_the_default_branch() -> None:

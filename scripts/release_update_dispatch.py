@@ -46,6 +46,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
+try:  # Dateiaufruf: ``python scripts/release_update_dispatch.py``
+    import release_contract as rc
+except ModuleNotFoundError:  # Import ueber Dateipfad bzw. als ``scripts.…``
+    from scripts import release_contract as rc
+
 #: Workflow, der den Update-Nachweis auf echter Hardware erbringt.
 ACCEPTANCE_WORKFLOW: Final = "release-abnahme.yml"
 #: Felder, die das Polling braucht; bewusst knapp gehalten.
@@ -151,6 +156,34 @@ def find_existing_run(runner: Runner, *, repo: str, marker: str) -> RunRef | Non
         "--json", RUN_FIELDS,
     ])
     return select_marked_run(json.loads(raw or "[]"), marker=marker)
+
+
+def verify_dispatch_ref(runner: Runner, *, repo: str, ref: str, expected_sha: str) -> str:
+    """Prueft den Dispatch-Ref gegen den Kandidaten-SHA – **nur vor einem Dispatch**.
+
+    Die Regel selbst liegt im Freigabevertrag (:func:`release_contract.
+    validate_release_ref`); hier steht nur der Netzweg. Sie gehoert genau an
+    diese Stelle und nicht in einen vorgelagerten Workflow-Schritt: Nach
+    Runbook-Schritt 9 darf der Release-Ref geloescht sein, und ein
+    Wiederanlauf, der den vorhandenen Nachweislauf findet, dispatcht gar nicht
+    mehr. Eine unbedingte Pruefung machte genau diesen idempotenten
+    Wiederanlauf rot – wegen einer Quelle, die niemand mehr braucht.
+    """
+    try:
+        raw = runner(["api", f"repos/{repo}/git/ref/heads/{ref}"])
+    except DispatchError as exc:
+        raise DispatchError(
+            f"Dispatch-Ref {ref} ist nicht abrufbar ({exc}). Nach Schritt 9 darf er "
+            "geloescht sein - dann bleibt der manuelle Weg aus Runbook-Schritt 9."
+        ) from exc
+    try:
+        payload = json.loads(raw or "{}")
+    except json.JSONDecodeError as exc:
+        raise DispatchError(f"Ref-Antwort fuer {ref} ist kein JSON: {exc}") from exc
+    try:
+        return rc.validate_release_ref(payload, expected_ref=ref, expected_sha=expected_sha)
+    except rc.ContractError as exc:
+        raise DispatchError(f"Dispatch-Ref {ref} nicht verwendbar: {exc}") from exc
 
 
 def dispatch_acceptance_run(
@@ -280,6 +313,7 @@ def run(
     *,
     repo: str,
     ref: str,
+    expected_sha: str,
     tag: str,
     candidate_run_id: str,
     predecessor_tag: str,
@@ -304,6 +338,7 @@ def run(
         if existing is not None:
             action, found = ACTION_ALREADY_PRESENT, existing
         else:
+            verify_dispatch_ref(call, repo=repo, ref=ref, expected_sha=expected_sha)
             dispatch_acceptance_run(
                 call,
                 repo=repo,
@@ -337,7 +372,12 @@ def run(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True, help="owner/repo")
-    parser.add_argument("--ref", required=True, help="Dispatch-Ref des Abnahme-Laufs.")
+    parser.add_argument(
+        "--ref", required=True, help="Dispatch-Ref des Abnahme-Laufs (release/vX.Y.Z)."
+    )
+    parser.add_argument(
+        "--expected-sha", required=True, help="Kandidaten-SHA aus dem Freigabemanifest."
+    )
     parser.add_argument("--tag", required=True, help="Veroeffentlichter Release-Tag.")
     parser.add_argument("--candidate-run-id", required=True)
     parser.add_argument("--publish-run-id", required=True)
@@ -349,6 +389,7 @@ def main(argv: list[str] | None = None) -> int:
         action = run(
             repo=args.repo,
             ref=args.ref,
+            expected_sha=args.expected_sha,
             tag=args.tag,
             candidate_run_id=args.candidate_run_id,
             predecessor_tag=args.predecessor_tag,

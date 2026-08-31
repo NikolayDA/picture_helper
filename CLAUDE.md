@@ -815,7 +815,16 @@ Entscheidung: ADR
   abweichender Tag bricht ab, wird nie verschoben; der manuelle Weg bleibt
   gültig. Der Job `update-dispatch` (`scripts/release_update_dispatch.py`,
   einziger Träger von `actions: write`) startet den
-  Post-Release-Update-Nachweis auf dem Release-Tag: Weil `workflow_dispatch`
+  Post-Release-Update-Nachweis auf dem **Release-Ref** — deterministisch aus
+  dem Tag abgeleitet und über `validate_release_ref` gegen
+  `candidate.head_sha` geprüft, also dieselbe Quelle wie die Schritte 3, 5
+  und 8 (#918-Nachprüfung; der Tag bleibt die veröffentlichte Version, nicht
+  die Dispatch-Quelle). Die Prüfung (`verify_dispatch_ref`) sitzt bewusst
+  **im Skript unmittelbar vor einem echten Dispatch**, nicht in einem
+  vorgelagerten Workflow-Schritt: Nach Schritt 9 darf der Ref gelöscht sein,
+  und ein Wiederanlauf, der den vorhandenen Nachweislauf findet, dispatcht
+  gar nicht mehr — eine unbedingte Prüfung machte genau diesen idempotenten
+  Wiederanlauf rot. Weil `workflow_dispatch`
   mit HTTP 204 ohne Run-ID antwortet, kennzeichnet sich der Lauf über
   `dispatch_marker` im `run-name` und wird per Polling korreliert; der Marker
   `update-check:<tag>:<candidate_run_id>` ist deterministisch und macht einen
@@ -876,7 +885,14 @@ Entscheidung: ADR
   Kandidaten aus dem **Manifest** aus, nicht aus dem Dispatch-Ref.
   `release_contract.py verify-release-ref` ist die vorgelagerte, netzfreie
   Kontrolle (Ref-Schema, Commit-Objekt, SHA-Gleichheit) vor **jedem** der vier
-  Dispatches — ein Kommando statt vier kopierter Shell-Blöcke. Eingekauft wird
+  Dispatches — ein Kommando statt vier kopierter Shell-Blöcke.
+  `verify-ref-protection` ist das Gegenstück für den **Schutz**: Es bewertet
+  die aktiven Regeln des Refs (`deletion`/`non_fast_forward`/`update` aus
+  `REQUIRED_REF_RULES`) fail-closed, statt sie nur auszugeben — eine leere
+  Regelliste heißt „gar kein Ruleset" und sah in der berichtenden Erstfassung
+  aus wie eine bestandene Prüfung. Der Endpunkt `rules/branches/<ref>` liefert
+  ausschließlich Regeln aus Rulesets im Zustand `active`; Vorhandensein
+  bedeutet dort also wirklich „greift". Eingekauft wird
   damit, dass die Workflow-**Definition** vom Kandidaten-Commit stammt: ein
   später auf `main` gemergter Prozessfix wirkt erst ab dem nächsten Kandidaten
   (dieselbe bewusste Eigenschaft wie beim Aggregations-Job, RELEASE_AUTOMATION

@@ -176,7 +176,15 @@ Die Go-/No-Go-Entscheidung bleibt menschlich.
 
 - `scripts/release_contract.py verify-release-ref` — Ref-Schema, Commit-Objekt,
   SHA-Gleichheit; netzfrei über die `gh api`-Antwort.
-- `tests/test_release_contract.py` — Positiv- und Negativfälle der Prüfung.
+- `scripts/release_contract.py verify-ref-protection` — die aktiven Regeln des
+  Refs gegen `REQUIRED_REF_RULES` (`deletion`, `non_fast_forward`, `update`);
+  fail-closed statt berichtend, ebenfalls netzfrei. Eine leere Regelliste (gar
+  kein Ruleset) ist damit ein Abbruchgrund und sieht nicht länger aus wie eine
+  bestandene Prüfung.
+- `tests/test_release_contract.py` — Positiv- und Negativfälle beider Prüfungen.
+- `tests/test_release_gate.py` — der automatisierte Schritt-9-Dispatch in
+  `release-publish.yml` läuft auf dem Release-Ref und kann nicht auf Tag oder
+  `main` zurückfallen; der Ref wird vorher gegen `candidate.head_sha` geprüft.
 - `tests/test_release_governance.py` — das Runbook **und** die UML-Zeichnung
   dispatchen auf den Release-Ref und nicht mehr auf `main`; die
   `MAIN_SHA`-Konvention ist verschwunden; die Ref-Anlage ist fail-closed an die

@@ -28,27 +28,46 @@ TAG = "v2.9.1"
 PREDECESSOR = "v2.9.0"
 CANDIDATE_RUN = "4242"
 PUBLISH_RUN = "8888"
-REF = TAG
+#: Seit #918 ist der Dispatch-Ref der Release-Ref, nicht der Tag.
+REF = f"release/{TAG}"
+CANDIDATE_SHA = "c" * 40
 MARKER = f"update-check:{TAG}:{CANDIDATE_RUN}"
 
 
 class FakeGh:
-    """Protokolliert Aufrufe und liefert je Abfrage die nächste Laufliste."""
+    """Protokolliert Aufrufe und liefert je Abfrage die nächste Laufliste.
 
-    def __init__(self, listings: list[list[dict]]) -> None:
+    ``ref_payload`` beantwortet die Ref-Abfrage vor einem Dispatch;
+    ``None`` lässt sie wie einen ``gh``-Fehler scheitern (gelöschter Ref).
+    """
+
+    def __init__(self, listings: list[list[dict]], *, ref_payload: dict | None = "default") -> None:
         self.listings = listings
         self.calls: list[list[str]] = []
+        self.ref_payload = (
+            {"ref": f"refs/heads/{REF}", "object": {"type": "commit", "sha": CANDIDATE_SHA}}
+            if ref_payload == "default"
+            else ref_payload
+        )
 
     def __call__(self, args: Sequence[str]) -> str:
         self.calls.append(list(args))
         if args[:2] == ["run", "list"]:
             payload = self.listings.pop(0) if self.listings else []
             return json.dumps(payload)
+        if args[:1] == ["api"]:
+            if self.ref_payload is None:
+                raise rud.DispatchError("gh api scheiterte (Exit 1): Not Found")
+            return json.dumps(self.ref_payload)
         return ""
 
     @property
     def dispatches(self) -> list[list[str]]:
         return [call for call in self.calls if call[:2] == ["workflow", "run"]]
+
+    @property
+    def ref_lookups(self) -> list[list[str]]:
+        return [call for call in self.calls if call[:1] == ["api"]]
 
 
 def _run_entry(run_id: int = 777, *, marker: str = MARKER, status: str = "queued",
@@ -67,6 +86,7 @@ def _invoke(gh: FakeGh, tmp_path: Path, *, predecessor: str = PREDECESSOR) -> st
     return rud.run(
         repo=REPO,
         ref=REF,
+        expected_sha=CANDIDATE_SHA,
         tag=TAG,
         candidate_run_id=CANDIDATE_RUN,
         predecessor_tag=predecessor,
@@ -221,7 +241,7 @@ def test_empty_target_issue_is_passed_through_instead_of_omitted(tmp_path: Path)
     """
     gh = FakeGh([[], [_run_entry()]])
     rud.run(
-        repo=REPO, ref=REF, tag=TAG, candidate_run_id=CANDIDATE_RUN,
+        repo=REPO, ref=REF, expected_sha=CANDIDATE_SHA, tag=TAG, candidate_run_id=CANDIDATE_RUN,
         predecessor_tag=PREDECESSOR, target_issue="", publish_run_id=PUBLISH_RUN,
         markdown=tmp_path / "report.md", runner=gh, sleep=lambda _s: None,
     )
@@ -229,9 +249,51 @@ def test_empty_target_issue_is_passed_through_instead_of_omitted(tmp_path: Path)
     assert "target_issue=" in dispatch, dispatch
 
 
+# ── Ref-Prüfung nur vor einem echten Dispatch (#936-Review) ─────────────────
+
+
+def test_the_ref_is_verified_before_dispatching(tmp_path: Path) -> None:
+    """Der Ref wird gegen den Kandidaten-SHA geprüft, bevor der Lauf startet."""
+    gh = FakeGh([[], [_run_entry()]])
+    _invoke(gh, tmp_path)
+    lookup, = gh.ref_lookups
+    assert lookup == ["api", f"repos/{REPO}/git/ref/heads/{REF}"]
+    assert gh.calls.index(lookup) < gh.calls.index(gh.dispatches[0])
+
+
+def test_a_rerun_after_the_ref_was_deleted_stays_green(tmp_path: Path) -> None:
+    """Nach Schritt 9 darf der Release-Ref gelöscht sein (ADR, Lebenszyklus).
+
+    Ein Wiederanlauf des Publish-Laufs findet dann den vorhandenen
+    Nachweislauf und dispatcht gar nicht — die Ref-Abfrage darf ihn nicht
+    rot machen, nur weil eine Quelle fehlt, die niemand mehr braucht.
+    """
+    gh = FakeGh([[_run_entry(status="completed", conclusion="success")]], ref_payload=None)
+    assert _invoke(gh, tmp_path) == rud.ACTION_ALREADY_PRESENT
+    assert gh.ref_lookups == [], "Ref abgefragt, obwohl nicht dispatcht wurde"
+    assert gh.dispatches == []
+
+
+def test_a_missing_ref_blocks_a_real_dispatch_with_a_named_cause(tmp_path: Path) -> None:
+    """Muss dispatcht werden, ist der fehlende Ref ein Abbruch – mit Weg heraus."""
+    gh = FakeGh([[]], ref_payload=None)
+    with pytest.raises(rud.DispatchError, match="nicht abrufbar"):
+        _invoke(gh, tmp_path)
+    assert gh.dispatches == []
+
+
+def test_a_ref_that_moved_off_the_candidate_blocks_the_dispatch(tmp_path: Path) -> None:
+    """Dieselbe Regel wie vor jedem manuellen Dispatch – aus dem Vertrag, nicht kopiert."""
+    moved = {"ref": f"refs/heads/{REF}", "object": {"type": "commit", "sha": "d" * 40}}
+    gh = FakeGh([[]], ref_payload=moved)
+    with pytest.raises(rud.DispatchError, match="nicht verwendbar"):
+        _invoke(gh, tmp_path)
+    assert gh.dispatches == []
+
+
 def test_cli_reports_failures_as_exit_two(tmp_path: Path, capsys) -> None:
     code = rud.main([
-        "--repo", REPO, "--ref", REF, "--tag", "kaputt",
+        "--repo", REPO, "--ref", REF, "--expected-sha", CANDIDATE_SHA, "--tag", "kaputt",
         "--candidate-run-id", CANDIDATE_RUN, "--publish-run-id", PUBLISH_RUN,
         "--markdown", str(tmp_path / "report.md"),
     ])

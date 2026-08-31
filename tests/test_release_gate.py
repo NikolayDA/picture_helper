@@ -404,14 +404,39 @@ def test_predecessor_is_an_explicit_input_and_never_guessed() -> None:
     assert "releases/latest" not in text
 
 
-def test_dispatch_uses_the_verified_tag_as_ref_and_the_contract_script() -> None:
-    run = next(
-        step["run"] for step in _load(_PUBLISH)["jobs"]["update-dispatch"]["steps"]
-        if str(step.get("name") or "").startswith("Abnahme-Lauf idempotent")
+def test_dispatch_uses_the_protected_release_ref_and_the_contract_script() -> None:
+    """Schritt 9 dispatcht auf `release/vX.Y.Z`, nicht auf Tag oder `main` (#918).
+
+    Der Rückfall auf den Tag sähe folgenlos aus — beide zeigen auf denselben
+    Commit, und die SHA-Prüfung bliebe fail-closed. Er wäre trotzdem eine
+    zweite Prozessquelle für dieselbe Handlung; ein Runbook-Satz allein hält
+    das nicht, deshalb steht der Wächter am ausführbaren Workflow.
+    """
+    steps = _load(_PUBLISH)["jobs"]["update-dispatch"]["steps"]
+    dispatch = next(
+        s for s in steps if str(s.get("name") or "").startswith("Abnahme-Lauf idempotent")
     )
-    assert "release_update_dispatch.py" in run
-    assert '--ref "$RELEASE_TAG"' in run
-    assert "--publish-run-id" in run and "--predecessor-tag" in run
+
+    # 1. Der Ref entsteht deterministisch aus dem Tag – er muss dem Publish-Lauf
+    #    nicht übergeben werden – und wird gegen candidate.head_sha geprüft.
+    assert "release_update_dispatch.py" in dispatch["run"]
+    assert '--ref "release/${RELEASE_TAG}"' in dispatch["run"]
+    assert '--expected-sha "$CANDIDATE_SHA"' in dispatch["run"]
+    assert dispatch["env"]["CANDIDATE_SHA"] == "${{ needs.publish.outputs.candidate_sha }}"
+    assert "--publish-run-id" in dispatch["run"] and "--predecessor-tag" in dispatch["run"]
+
+    # 2. Die Prüfung liegt im Skript, weil nur dort feststeht, ob überhaupt
+    #    dispatcht wird – ein vorgelagerter Workflow-Schritt machte den
+    #    idempotenten Wiederanlauf nach gelöschtem Ref rot (#936-Review).
+    assert "verify_dispatch_ref" in (
+        _ROOT / "scripts" / "release_update_dispatch.py"
+    ).read_text(encoding="utf-8")
+
+    # 3. … und der Tag bleibt die veröffentlichte Version, nie die Quelle.
+    assert '--tag "$RELEASE_TAG"' in dispatch["run"]
+    runs = " ".join(str(step.get("run") or "") for step in steps)
+    for forbidden in ('--ref "$RELEASE_TAG"', "--ref main", '--ref "main"', "--ref $RELEASE_TAG"):
+        assert forbidden not in runs, forbidden
 
 
 def test_acceptance_run_name_carries_the_correlation_marker() -> None:

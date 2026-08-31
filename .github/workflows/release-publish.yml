@@ -586,19 +586,26 @@ jobs:
         id: dispatch
         env:
           RELEASE_TAG: ${{ inputs.tag }}
+          CANDIDATE_SHA: ${{ needs.publish.outputs.candidate_sha }}
           CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
           PREDECESSOR_TAG: ${{ inputs.predecessor_tag }}
           TARGET_ISSUE: ${{ inputs.target_issue }}
         run: |
           set -euo pipefail
-          # Dispatch-Ref ist der Release-Tag: Er existiert an dieser Stelle,
-          # ist unveraenderlich und wurde von verify-approval --tag-sha gegen
-          # candidate.head_sha geprueft. Der Release-Ref aus #918 ist dem
-          # Publish-Lauf nicht als Wert bekannt; der Tag zeigt auf denselben
-          # Commit und traegt dieselbe Bindung.
+          # Dispatch-Ref ist der unveraenderliche Release-Ref (#918) - dieselbe
+          # Quelle wie in den Runbook-Schritten 3, 5 und 8, deterministisch aus
+          # dem Tag abgeleitet und dem Publish-Lauf deshalb nicht zu uebergeben.
+          # Tag und Ref zeigen zwar auf denselben Commit, aber zwei
+          # Prozessquellen fuer dieselbe Handlung sind eine Quelle zu viel.
+          #
+          # Geprueft wird der Ref gegen candidate.head_sha im Skript, und zwar
+          # erst unmittelbar vor einem tatsaechlichen Dispatch: Nach Schritt 9
+          # darf der Ref geloescht sein, und ein Wiederanlauf, der den
+          # vorhandenen Nachweislauf findet, braucht ihn nicht mehr.
           python3 scripts/release_update_dispatch.py \
             --repo "$GITHUB_REPOSITORY" \
-            --ref "$RELEASE_TAG" \
+            --ref "release/${RELEASE_TAG}" \
+            --expected-sha "$CANDIDATE_SHA" \
             --tag "$RELEASE_TAG" \
             --candidate-run-id "$CANDIDATE_RUN_ID" \
             --publish-run-id "$GITHUB_RUN_ID" \
