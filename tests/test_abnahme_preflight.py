@@ -214,13 +214,16 @@ _PMSET_ASSERTIONS = """Assertion status system-wide:
    PreventUserIdleSystemSleep     1
 Listed by owning process:
    pid 511(caffeinate): [0x0001] 00:12:03 PreventUserIdleSystemSleep named: "caffeinate"
+   pid 511(caffeinate): [0x0002] 00:12:03 PreventUserIdleDisplaySleep named: "caffeinate"
 """
 _SLEEPY = _PMSET_CUSTOM.replace(
     " sleep                0", " sleep                10",
 ).replace(" displaysleep         0", " displaysleep         10")
-_NO_ASSERTIONS = _PMSET_ASSERTIONS.replace(
-    "PreventUserIdleSystemSleep     1", "PreventUserIdleSystemSleep     0",
-)
+# Ohne Eigentuemer-Abschnitt: niemand haelt eine Assertion.
+_NO_ASSERTIONS = _PMSET_ASSERTIONS.split("Listed by owning process")[0]
+# Eine fremde Anwendung haelt beide Assertions – die systemweiten Zaehler
+# sehen identisch aus, aber der Schutz endet mit ihr.
+_FOREIGN_ASSERTIONS = _PMSET_ASSERTIONS.replace("(caffeinate)", "(zoom.us)")
 
 
 def _pmset(custom: str, assertions: str):
@@ -229,6 +232,23 @@ def _pmset(custom: str, assertions: str):
         return subprocess.CompletedProcess(cmd, 0, stdout=text)
 
     return runner
+
+
+def test_assertion_owners_are_read_from_the_owning_process_section() -> None:
+    owners = preflight.parse_pmset_assertion_owners(_PMSET_ASSERTIONS)
+    assert owners["caffeinate"] == {
+        "PreventUserIdleSystemSleep", "PreventUserIdleDisplaySleep",
+    }
+
+
+def test_a_foreign_application_holding_the_assertions_does_not_count() -> None:
+    """Die systemweiten Zaehler stehen auch bei einer Videokonferenz auf 1.
+
+    Ein solcher Zufallstreffer liesse die Haertung bestehen – und sobald das
+    Programm endet, schlaeft der Mac wieder ein (Codex-Review PR #930).
+    """
+    error = preflight.check_macos_sleep(runner=_pmset(_SLEEPY, _FOREIGN_ASSERTIONS))
+    assert error is not None and "caffeinate" in error
 
 
 def test_pmset_ac_block_ignores_the_battery_values() -> None:
@@ -322,6 +342,26 @@ def test_systemd_without_restart_policy_is_a_finding() -> None:
     error = preflight.check_systemd_restart(runner=_systemctl(_UNIT_LINE, "no\n"))
     assert error is not None
     assert "Restart=no" in error and "actions.runner.owner-repo.pi.service" in error
+
+
+def test_a_crashed_unit_is_reported_as_a_policy_finding_not_as_missing() -> None:
+    """``systemctl list-units`` setzt der Problem-Unit ein "●" voran.
+
+    Wurde es nach dem Split entfernt, blieb der leere String uebrig, die Unit
+    verschwand aus der Liste und die Meldung schickte zu ``svc.sh install`` –
+    das haette ausgerechnet den Drop-in ueberschrieben (Review PR #930).
+    """
+    marked = "\u25cf " + _UNIT_LINE
+    error = preflight.check_systemd_restart(runner=_systemctl(marked, "no\n"))
+    assert error is not None
+    assert "Restart=no" in error
+    assert "actions.runner.owner-repo.pi.service" in error
+    assert "svc.sh install" not in error
+
+
+def test_a_marked_unit_with_a_restart_policy_passes() -> None:
+    marked = "\u25cf " + _UNIT_LINE
+    assert preflight.check_systemd_restart(runner=_systemctl(marked, "always\n")) is None
 
 
 def test_a_missing_runner_unit_is_reported() -> None:

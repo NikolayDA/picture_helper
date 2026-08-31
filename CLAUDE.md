@@ -993,7 +993,11 @@ Checkout ohne Credentials, und bindet `issues: write` an genau den Job, der
 auch kommentiert. Das Wartungsfenster ist über
 `RUNNER_HEARTBEAT_PAUSED`/`_UNTIL` pausierbar — sichtbar und **befristet**:
 eine Pause ohne gültiges Enddatum macht den Lauf rot, statt die Überwachung
-still stillzulegen. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7.
+still stillzulegen. `RUNNER_HEARTBEAT_ISSUE` ist dagegen **Pflicht**: Im
+Offline-Fall bleibt der Lauf unabgeschlossen (der wartende Job hängt bis zu
+24 h) und endet am Folgetag über `cancel-in-progress` als „cancelled" — die
+Actions-Fehlermail bleibt also genau dann aus, wenn sie gebraucht würde. Der
+Issue-Kommentar der Auswertung ist der einzige Kanal, der rechtzeitig trägt. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7.
 
 ## Wichtig: Drift-Disziplin (Befund N6)
 

@@ -689,13 +689,18 @@ annimmt (offline), und den, der ihn annimmt und an der Bereitschaftsprüfung
 scheitert (nicht einsatzbereit). Der Umweg über die Jobs-API ist nötig, weil
 `if: failure()` in einem Schritt nur auf vorherige Schritte **desselben**
 Jobs und auf Vorgänger per `needs` reagiert – die Runner-Jobs sind bewusst
-keine Vorgänger der Auswertung. Der fehlgeschlagene Lauf löst zusätzlich die
-Actions-Fehlerbenachrichtigung aus. Ist die Repository-Variable `RUNNER_HEARTBEAT_ISSUE` auf eine
-Issue-Nummer gesetzt, kommentiert der Lauf denselben Bericht zusätzlich dort.
-Kommentiert wird **nur im Fehlerfall**: ein täglicher Erfolgskommentar würde
-das Betriebs-Issue in Rauschen verwandeln, in dem der eine Ausfalltag
-untergeht. Bericht (`heartbeat.json`, Schema 1) und Summary hängen 30 Tage
-als Artefakt `runner-heartbeat` am Lauf.
+keine Vorgänger der Auswertung.
+
+Der **verbindliche** Kanal ist der Kommentar im Betriebs-Issue: Die
+Repository-Variable `RUNNER_HEARTBEAT_ISSUE` ist Pflicht, die Auswertung
+prüft sie vor jeder Messung und schlägt sonst mit klarer Meldung fehl. Grund
+steht unter *Grenzen*: Im Offline-Fall ist der **Lauf** nicht abgeschlossen,
+und Actions benachrichtigt erst beim Laufabschluss — die Fehlermail bleibt
+also genau dann aus, wenn sie gebraucht würde. Kommentiert wird **nur im
+Fehlerfall**: ein täglicher Erfolgskommentar würde das Betriebs-Issue in
+Rauschen verwandeln, in dem der eine Ausfalltag untergeht. Bericht
+(`heartbeat.json`, Schema 1) und Summary hängen 30 Tage als Artefakt
+`runner-heartbeat` am Lauf.
 
 **Wartungsfenster.** Für geplante Eingriffe pausieren:
 
@@ -703,6 +708,12 @@ als Artefakt `runner-heartbeat` am Lauf.
 |---|---|
 | `RUNNER_HEARTBEAT_PAUSED` | `true` |
 | `RUNNER_HEARTBEAT_PAUSED_UNTIL` | Enddatum, `YYYY-MM-DD` |
+
+Im Regelbetrieb erforderlich:
+
+| Variable | Wert |
+|---|---|
+| `RUNNER_HEARTBEAT_ISSUE` | Nummer des Betriebs-Issues (Pflicht, s. *Meldeweg*) |
 
 Die Pause ist sichtbar (Warnung und Job-Summary „pausiert") und **befristet**:
 Fehlt das Enddatum, ist es unlesbar oder liegt es in der Vergangenheit, wird
@@ -732,6 +743,12 @@ ist er additiv nachrüstbar.
 der Warteschlange. Der Heartbeat bricht ihn bewusst **nicht** ab: Ein
 force-cancel ließe den Lauf als „cancelled" enden – ohne Fehlermeldung. Statt
 dessen räumt `concurrency: cancel-in-progress` auf, sodass höchstens ein
-wartender Lauf stehen bleibt. Kann die Job-Liste nicht abgefragt werden
-(API-Fehler), meldet der Heartbeat `UNOBSERVED` und schlägt keinen Alarm –
-ein Monitor ohne Beobachtung darf kein Verdikt fällen.
+wartender Lauf stehen bleibt. Die Kehrseite, und der Grund für die
+Pflichtvariable oben: Dieser Lauf endet dann am Folgetag ebenfalls als
+„cancelled". Auf die Actions-Fehlermail ist im Offline-Fall daher **kein**
+Verlass — sie kommt nur, wenn der Lauf regulär abschließt (alle Runner haben
+den Job angenommen, mindestens einer die Prüfung nicht bestanden). Der
+Issue-Kommentar der Auswertung fällt dagegen sofort nach der Frist. Kann die
+Job-Liste nicht abgefragt werden (API-Fehler), meldet der Heartbeat
+`UNOBSERVED` und schlägt keinen Alarm – ein Monitor ohne Beobachtung darf
+kein Verdikt fällen.

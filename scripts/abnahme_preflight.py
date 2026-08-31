@@ -62,9 +62,15 @@ _PMSET_AC_HEADING = re.compile(r"(?m)^AC Power:")
 _PMSET_SOURCE_HEADING = re.compile(r"(?m)^[A-Z][A-Za-z ]*:\s*$")
 _PMSET_SETTING = re.compile(r"(?m)^\s*(\w+)\s+(-?\d+)\s*$")
 # Eine aktive caffeinate-Assertion ist die dokumentierte Alternative zum
-# pmset-Profil; beide verhindern denselben Zustand.
-_ASSERTION_LINE = re.compile(r"(?m)^\s*(\w+)\s+(\d+)\s*$")
+# pmset-Profil; beide verhindern denselben Zustand. Entscheidend ist der
+# EIGENTUEMER: Die systemweiten Zaehler oben stehen auch auf 1, wenn gerade
+# eine Videokonferenz oder ein Build den Schlaf verhindert. Ein solcher
+# Zufallstreffer liesse die Haertung bestehen, und sobald das Programm endet,
+# schlaeft der Mac wieder ein – deshalb zaehlt nur eine Assertion, die dem
+# dokumentierten caffeinate-Wrapper des Runner-Dienstes gehoert.
+_ASSERTION_OWNER = re.compile(r"(?m)^\s*pid\s+\d+\(([^)]+)\):.*?\b(\w+)\s+named:")
 SLEEP_ASSERTIONS = ("PreventUserIdleSystemSleep", "PreventUserIdleDisplaySleep")
+SLEEP_ASSERTION_OWNER = "caffeinate"
 
 
 def check_python() -> str | None:
@@ -257,10 +263,18 @@ def parse_pmset_ac(text: str) -> dict[str, int]:
     return {key: int(value) for key, value in _PMSET_SETTING.findall(block)}
 
 
-def parse_pmset_assertions(text: str) -> dict[str, int]:
-    """Liest die systemweiten Assertions aus ``pmset -g assertions``."""
-    head, _, _ = text.partition("Listed by owning process")
-    return {key: int(value) for key, value in _ASSERTION_LINE.findall(head)}
+def parse_pmset_assertion_owners(text: str) -> dict[str, set[str]]:
+    """Ordnet die Assertions aus ``pmset -g assertions`` ihren Prozessen zu.
+
+    Nur der Abschnitt „Listed by owning process" trägt diese Information; die
+    systemweiten Zähler darüber sagen nur, *dass* irgendjemand den Schlaf
+    verhindert – nicht, ob es der Runner-Wrapper ist.
+    """
+    _, _, owned = text.partition("Listed by owning process")
+    result: dict[str, set[str]] = {}
+    for process, assertion in _ASSERTION_OWNER.findall(owned):
+        result.setdefault(process.strip(), set()).add(assertion)
+    return result
 
 
 def check_macos_sleep(
@@ -294,14 +308,20 @@ def check_macos_sleep(
         )
     except (OSError, subprocess.SubprocessError):
         assertions = subprocess.CompletedProcess(["pmset"], 1, stdout="")
-    active = parse_pmset_assertions(assertions.stdout or "")
-    if all(active.get(name) == 1 for name in SLEEP_ASSERTIONS):
+    owners = parse_pmset_assertion_owners(assertions.stdout or "")
+    held = {
+        assertion
+        for process, names in owners.items()
+        if SLEEP_ASSERTION_OWNER in process
+        for assertion in names
+    }
+    if set(SLEEP_ASSERTIONS).issubset(held):
         return None
     values = ", ".join(f"{name}={settings.get(name)}" for name in awake)
     return (
-        f"Ruhezustand am Netz nicht abgeschaltet ({values}) und keine aktive "
-        "caffeinate-Assertion. Ein schlafender Mac nimmt keine Jobs an – "
-        "RELEASE_AUTOMATION §2.1."
+        f"Ruhezustand am Netz nicht abgeschaltet ({values}) und keine "
+        f"{SLEEP_ASSERTION_OWNER}-Assertion, die beide Schlafarten hält. Ein "
+        "schlafender Mac nimmt keine Jobs an – RELEASE_AUTOMATION §2.1."
     )
 
 
@@ -355,8 +375,13 @@ def check_systemd_restart(
         )
     except (OSError, subprocess.SubprocessError) as exc:
         return f"systemctl nicht ausfuehrbar ({exc})."
+    # ``systemctl list-units`` stellt einer Unit im Problemzustand ein "●"
+    # voran. Es muss VOR dem Split weg: ``line.split()[0]`` waere sonst genau
+    # dieses Zeichen, und die Funktion meldete ausgerechnet fuer die
+    # abgestuerzte Unit "kein Dienst installiert" – ein Hinweis, der zu
+    # ``svc.sh install`` fuehrt und dabei den Drop-in ueberschreibt.
     units = [
-        line.split()[0].lstrip("\u25cf ")
+        line.lstrip("\u25cf \t").split()[0]
         for line in (listing.stdout or "").splitlines()
         if line.strip()
     ]

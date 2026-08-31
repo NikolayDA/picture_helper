@@ -35,6 +35,30 @@ sys.modules["runner_heartbeat"] = heartbeat
 _SPEC.loader.exec_module(heartbeat)
 
 
+def _workflow_files(directory: Path = WORKFLOW_DIR) -> list[Path]:
+    """Alle Workflow-Dateien – GitHub erkennt ``.yml`` **und** ``.yaml``.
+
+    Nur ``*.yml`` zu scannen hiesse, dass ein als ``.yaml`` angelegter dritter
+    Workflow die Exklusivitaetsregel unbemerkt umginge (Codex-Review PR #930).
+    """
+    return sorted(
+        path for pattern in ("*.yml", "*.yaml") for path in directory.glob(pattern)
+    )
+
+
+def test_the_scan_covers_both_workflow_extensions(tmp_path: Path) -> None:
+    """Wächter über den Wächter, an einem echten Verzeichnis geprüft.
+
+    Die erste Fassung dieses Tests verglich die gefundenen Endungen mit ihrer
+    eigenen Sollmenge **vereinigt** – und war damit immer wahr. Hier fällt ein
+    auf ``*.yml`` verengter Glob tatsächlich auf.
+    """
+    (tmp_path / "a.yml").write_text("x", encoding="utf-8")
+    (tmp_path / "b.yaml").write_text("x", encoding="utf-8")
+    (tmp_path / "c.txt").write_text("x", encoding="utf-8")
+    assert {path.name for path in _workflow_files(tmp_path)} == {"a.yml", "b.yaml"}
+
+
 def _text() -> str:
     return HEARTBEAT.read_text(encoding="utf-8")
 
@@ -69,7 +93,7 @@ def test_only_the_declared_workflows_address_self_hosted_runners() -> None:
     dabei auf die Schutzbedingungen unten.
     """
     using = {
-        path.name for path in sorted(WORKFLOW_DIR.glob("*.yml"))
+        path.name for path in _workflow_files()
         if "self-hosted" in path.read_text(encoding="utf-8")
     }
     assert using == SELF_HOSTED_WORKFLOWS, (
@@ -218,6 +242,24 @@ def test_runner_jobs_run_the_hardening_tier_strictly() -> None:
     )
     assert "abnahme_preflight.py" in acceptance
     assert "--hardening-strict" not in acceptance
+
+
+def test_the_notification_channel_is_mandatory_not_optional() -> None:
+    """Der Issue-Kommentar ist im Offline-Fall der einzige Kanal, der trägt.
+
+    Bleibt ein Runner-Job in der Warteschlange, ist der **Lauf** nicht
+    abgeschlossen – Actions benachrichtigt aber erst beim Laufabschluss, und
+    der kommt dann erst am nächsten Tag über `cancel-in-progress`, also als
+    „cancelled" und damit ohne Fehlermeldung. Eine optionale Zielvariable
+    liesse den Ausfall genau im Zielszenario unbemerkt.
+    """
+    steps = _jobs(HEARTBEAT)["watch"]["steps"]
+    names = [step.get("name") for step in steps]
+    check = next(step for step in steps if step.get("name") == "Meldeweg pruefen")
+    assert "RUNNER_HEARTBEAT_ISSUE ist nicht gesetzt" in check["run"]
+    assert "exit 1" in check["run"]
+    # Vor der Messung, damit die Fehlkonfiguration sofort auffällt.
+    assert names.index("Meldeweg pruefen") < names.index("Runner-Annahme beobachten")
 
 
 def test_repository_variables_never_reach_the_shell_as_code() -> None:
