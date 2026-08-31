@@ -20,6 +20,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -587,7 +588,15 @@ def _worktree_hashes(repo: Path) -> dict[str, str]:
 
 
 def _with_gh_stub(tmp_path: Path, monkeypatch, *, exit_code: int = 0) -> Path:
-    """Setzt einen ``gh``-Stub auf den PATH und liefert seine Protokolldatei."""
+    """Setzt einen ``gh``-Stub auf den PATH und liefert seine Protokolldatei.
+
+    Zieht dabei auch die Fallback-Ablage unter die pytest-Aufräumung: Der
+    Fehlerpfad räumt bewusst nicht auf, sonst bliebe je Lauf ein
+    ``bgremover-release-*`` im System-Tempverzeichnis liegen. ``tempfile``
+    cacht ``gettempdir()``, ein gesetztes ``TMPDIR`` wirkte hier also nicht
+    mehr – deshalb direkt ``tempfile.tempdir``.
+    """
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     bin_dir = tmp_path / "bin"
     log = tmp_path / "gh.log"
     _stub_gh(bin_dir, exit_code=exit_code)
@@ -947,6 +956,34 @@ def test_a_successful_creation_leaves_no_stray_copy(
     assert (tmp_path / "gh-body.md").is_file()
     fallback = Path(saved.group(1))
     assert not fallback.exists() and not fallback.parent.exists()
+
+
+def test_the_fallback_never_lands_inside_the_worktree(fixture_repo: Path, monkeypatch) -> None:
+    """``TMPDIR`` im Arbeitsbaum darf die Ablage nicht ins Repository ziehen.
+
+    Sie wäre dort ein unbekannter Pfad, den ein ``git add -A`` mitnimmt – und
+    blockierte damit ausgerechnet das fail-closed Freeze-Gate, das der Rohstand
+    bestehen soll (#933-Review).
+    """
+    inside = fixture_repo / "tmp"
+    inside.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(inside))
+    root = pr.fallback_root(fixture_repo)
+    assert fixture_repo != root and fixture_repo not in root.parents
+
+    path = pr.fallback_issue_path("9.9.9", fixture_repo)
+    assert fixture_repo not in path.parents
+    pr.discard_fallback(path)
+
+
+def test_the_fallback_uses_the_temporary_directory_when_it_is_outside(
+    fixture_repo: Path, tmp_path: Path, monkeypatch
+) -> None:
+    """Der Normalfall bleibt das Tempverzeichnis – nicht der Repo-Elternpfad."""
+    outside = tmp_path / "temp"
+    outside.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(outside))
+    assert pr.fallback_root(fixture_repo) == outside.resolve()
 
 
 def test_the_help_explains_where_the_issue_text_is_kept(capsys) -> None:

@@ -724,16 +724,32 @@ def write_text_atomic(path: Path, text: str) -> None:
         Path(tmp_name).unlink(missing_ok=True)
 
 
-def fallback_issue_path(version: str) -> Path:
+def fallback_root(repo: Path) -> Path:
+    """Wurzelverzeichnis der Ablage – garantiert **ausserhalb** von *repo*.
+
+    ``tempfile`` folgt ``TMPDIR``. Zeigt das in den Arbeitsbaum, laege die
+    Ablage im Repository: ein unbekannter Pfad, den ein ``git add -A``
+    mitnaehme und der dann das fail-closed Freeze-Gate blockiert. Deshalb die
+    erste beschreibbare Wahl, die wirklich ausserhalb liegt – ``repo.parent``
+    schliesst die Kette ab, weil es das per Definition immer ist.
+    """
+    candidates = (Path(tempfile.gettempdir()), Path("/tmp"), repo.parent)
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        inside = resolved == repo or repo in resolved.parents
+        if not inside and resolved.is_dir() and os.access(resolved, os.W_OK):
+            return resolved
+    return repo.parent  # unerreichbar ausser bei unbeschreibbarem Elternpfad
+
+
+def fallback_issue_path(version: str, repo: Path) -> Path:
     """Ablage des Issue-Texts, wenn ``--issue-output`` fehlt.
 
-    Bewusst **ausserhalb** des Arbeitsbaums: Eine Datei im Repository waere
-    fuer die Pfadpolicy ein unbekannter Pfad und blockierte damit genau das
-    Gate, das der Rohstand bestehen soll. Das eigene Verzeichnis kommt von
-    ``mkdtemp`` (0700, kollisionsfrei); ein geratener Name in einem
-    weltschreibbaren ``/tmp`` waere die schlechtere Wahl.
+    Bewusst ausserhalb des Arbeitsbaums (siehe ``fallback_root``). Das eigene
+    Verzeichnis kommt von ``mkdtemp`` (0700, kollisionsfrei); ein geratener
+    Name in einem weltschreibbaren ``/tmp`` waere die schlechtere Wahl.
     """
-    directory = Path(tempfile.mkdtemp(prefix="bgremover-release-"))
+    directory = Path(tempfile.mkdtemp(prefix="bgremover-release-", dir=fallback_root(repo)))
     return directory / f"release-issue-{version}.md"
 
 
@@ -911,19 +927,19 @@ def main(argv: list[str] | None = None) -> int:
         print(issue_body)
         if args.create_issue:
             print("\nHINWEIS: --create-issue wird im Probelauf nicht ausgeführt.", file=sys.stderr)
+    elif issue_output is not None:
+        write_text_atomic(issue_output, issue_body)
+        print(f"  geschrieben: {issue_output}")
     else:
-        if issue_path is None and args.create_issue:
-            fallback = fallback_issue_path(args.version)
+        # Die Standardausgabe zuerst: Sie ist der letzte Rueckhalt, falls die
+        # Ablage selbst scheitert.
+        print(f"\n--- Release-Issue: {issue_title} ---")
+        print(issue_body)
+        if args.create_issue:
+            fallback = fallback_issue_path(args.version, repo)
             issue_path = fallback
-        if issue_path is not None:
-            write_text_atomic(issue_path, issue_body)
-        if issue_output is not None:
-            print(f"  geschrieben: {issue_output}")
-        else:
-            print(f"\n--- Release-Issue: {issue_title} ---")
-            print(issue_body)
-            if fallback is not None:
-                print(f"\n  gesichert für den Wiederanlauf: {fallback}")
+            write_text_atomic(fallback, issue_body)
+            print(f"\n  gesichert für den Wiederanlauf: {fallback}")
 
     if args.create_issue and not args.dry_run:
         # Oben gesetzt: entweder ``--issue-output`` oder die Fallback-Ablage.
