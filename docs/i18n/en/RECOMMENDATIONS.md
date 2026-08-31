@@ -11,7 +11,20 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-08-30, v2.9.0 published, open inventory fully audited)
+## Current Status (2026-08-31, v2.9.0 published, open inventory fully audited)
+
+**Daily audit 2026-08-31:** The twelve PRs merged today (#927–#932,
+#935–#938, #940, and #941) and the issues they closed (#918–#923, #933, and
+#934) were checked against their merge diffs, review follow-ups, and associated
+tests. The release automation remains fail-closed throughout; in particular,
+the release ref, retry paths, security report, runner heartbeat/dry run,
+preparation scaffold, and real Qt/GL preflight with successful provenance
+output are covered. Every review finding was closed with regression coverage
+before merge. The merge evidence records 2,908 pytest tests; Ruff passes
+locally, while pytest is unavailable because `libGL.so.1` is missing and mypy
+because Python 3.14 is active instead of a supported project version. No substantiated residual
+finding remains, so no follow-up issue is required. The open inventory and the
+three next recommendations below remain unchanged.
 
 **Routine check 2026-08-30 (delta after the full audit):** The 39 open issues
 fully and adversarially checked against `main` (product state `411d47c`) on

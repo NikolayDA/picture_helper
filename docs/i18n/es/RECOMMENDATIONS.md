@@ -11,7 +11,22 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-08-30, v2.9.0 publicado, inventario abierto auditado por completo)
+## Estado actual (2026-08-31, v2.9.0 publicado, inventario abierto auditado por completo)
+
+**Auditoría diaria 2026-08-31:** Se revisaron los doce PR fusionados hoy
+(#927–#932, #935–#938, #940 y #941) y las incidencias que cerraron
+(#918–#923, #933 y #934), contrastando diffs de fusión, correcciones de revisión
+y pruebas asociadas. La automatización de publicación mantiene un diseño
+fail-closed; quedan cubiertos, en particular, la referencia de publicación,
+los reintentos, el informe de seguridad, el heartbeat/dry run de runners, el
+andamiaje preparatorio y el preflight Qt/GL real con procedencia también en
+caso de éxito. Cada hallazgo de revisión se cerró con cobertura de regresión
+antes de fusionar. La evidencia de fusión registra 2.908 pruebas pytest; Ruff
+pasa localmente, mientras pytest no está disponible por faltar `libGL.so.1` y
+mypy por estar activo Python 3.14 en vez de una versión admitida. No queda ningún
+hallazgo residual demostrable, por lo que no se necesita una incidencia de
+seguimiento. El inventario abierto y las tres recomendaciones siguientes no
+cambian.
 
 **Revisión rutinaria 2026-08-30 (delta tras la auditoría completa):** Las 39
 incidencias abiertas comprobadas por completo y de forma adversarial contra
