@@ -1,0 +1,748 @@
+#!/usr/bin/env python3
+"""Erzeugt den Rohstand von Runbook-Schritt 1/2 (#923).
+
+Die Inhalte dieses Schritts sind hochgradig schematisch – Paketversion,
+sechs datierte CHANGELOG-Abschnitte, AppStream-Eintrag, Scope-Freeze-Dokument
+und das Release-Issue mit seinen Bindungswerten. Die **Pruefung** existiert
+laengst fail-closed (``verify_release_freeze.py``, i18n-/CHANGELOG-/Markdown-
+Waechter); Fleissarbeit mit Vertipp-Risiko war nur die **Erstellung**, und
+zwar in sechs Sprachfassungen.
+
+Dieses Skript erzeugt genau diesen Rohstand, und zwar deterministisch: Gleiche
+Version, gleiches Datum und gleicher Repository-Stand ergeben Byte-fuer-Byte
+dasselbe Ergebnis. Was es NICHT tut, ist ebenso wichtig:
+
+* Es waehlt keine Version und faellt keine Scope-Entscheidung.
+* Es schreibt keine Release-Notes-Aussagen. Auswirkung, Betroffene,
+  Upgrade-Relevanz und Einschraenkungen bleiben redaktionelle Handarbeit
+  (``NOTES-01``) und stehen im Geruest als ``TODO(release)``.
+* Es legt nichts auf GitHub an. Das Release-Issue entsteht als Datei bzw. auf
+  der Standardausgabe; ``--create-issue`` ist ein ausdruecklicher Opt-in.
+
+Die Platzhalter sind kein Schoenheitsfehler, sondern der Vertrag: Ein Geruest
+mit offenen ``TODO(release)``-Luecken macht den Vorbereitungs-PR **nicht**
+gruen. ``verify_release_freeze.py`` weist sie als blockierenden Befund aus,
+bis sie redaktionell gefuellt sind.
+
+Beispiel:
+
+    python scripts/prepare_release.py 2.10.0 --issue-output /tmp/release-issue.md
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import re
+import subprocess
+import sys
+from dataclasses import dataclass
+from datetime import date as date_type
+from pathlib import Path
+from typing import Final
+
+try:  # Dateiaufruf: ``python scripts/prepare_release.py``
+    import release_contract as rc
+    import release_path_policy as rpp
+    import verify_release_freeze as vrf
+except ModuleNotFoundError:  # Import als ``scripts.prepare_release`` in Tests
+    from scripts import release_contract as rc
+    from scripts import release_path_policy as rpp
+    from scripts import verify_release_freeze as vrf
+
+_REPO_ROOT: Final = Path(__file__).resolve().parent.parent
+
+#: Redaktionelle Luecke. Bewusst ein Token, das in normalem Fliesstext nicht
+#: vorkommt: Das Freeze-Gate sucht genau danach.
+PLACEHOLDER: Final = vrf.EDITORIAL_PLACEHOLDER
+
+#: Sprachen der uebersetzten Fassungen (Deutsch ist das Original).
+LANGUAGES: Final = vrf.LANGUAGES
+
+APPSTREAM_PATH: Final = "packaging/linux/de.bgremover.app.metainfo.xml"
+PYPROJECT_PATH: Final = "pyproject.toml"
+
+_SEMVER_RE: Final = re.compile(r"^\d+\.\d+\.\d+$")
+_ISO_DATE_RE: Final = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+#: Abschnittsueberschriften je Sprache, in der Reihenfolge des Hausstils.
+#: ``tests/test_prepare_release.py`` haelt sie gegen die tatsaechlich in den
+#: CHANGELOG-Dateien verwendeten Ueberschriften – erfundene Uebersetzungen
+#: fallen damit auf, bevor sie in sechs Dateien landen.
+SECTION_HEADINGS: Final[dict[str, tuple[str, str, str, str]]] = {
+    "de": ("Hinzugefügt", "Geändert", "Behoben", "Hinweise zu diesem Release"),
+    "en": ("Added", "Changed", "Fixed", "Notes for this release"),
+    "es": ("Añadido", "Cambiado", "Corregido", "Notas sobre esta versión"),
+    "fr": ("Ajouté", "Modifié", "Corrigé", "Notes sur cette version"),
+    "uk": ("Додано", "Змінено", "Виправлено", "Примітки до цього релізу"),
+    "zh": ("新增", "变更", "修复", "本版本说明"),
+}
+
+
+class PrepareError(RuntimeError):
+    """Abbruchgrund, der dem Menschen gehoert (nie stillschweigend geheilt)."""
+
+
+@dataclass(frozen=True)
+class ReleaseInputs:
+    """Alles, was das Geruest bestimmt – bewusst vollstaendig explizit."""
+
+    version: str
+    release_date: str
+    base_tag: str
+    base_sha: str
+
+
+@dataclass(frozen=True)
+class PlannedFile:
+    """Eine zu schreibende Datei mit ihrem vollstaendigen neuen Inhalt."""
+
+    path: str
+    content: str
+
+
+def changelog_path(language: str) -> str:
+    """Pfad der CHANGELOG-Fassung einer Sprache (``de`` = Original im Root)."""
+    return "CHANGELOG.md" if language == "de" else f"docs/i18n/{language}/CHANGELOG.md"
+
+
+def freeze_doc_path(version: str) -> str:
+    """Pfad des Scope-Freeze-Dokuments dieser Version."""
+    return vrf.FREEZE_DOC_TEMPLATE.format(version=version)
+
+
+# ── Git ────────────────────────────────────────────────────────────────
+
+
+def _git(repo: Path, *args: str) -> str:
+    """``git`` im *repo* ausfuehren; jeder Fehler ist ein Abbruchgrund."""
+    result = subprocess.run(
+        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=False
+    )
+    if result.returncode != 0:
+        raise PrepareError(f"git {' '.join(args)} fehlgeschlagen: {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
+def resolve_tag(repo: Path, tag: str) -> str:
+    """Voller Commit-SHA eines Tags (annotiert oder leichtgewichtig)."""
+    try:
+        return _git(repo, "rev-list", "-n", "1", tag)
+    except PrepareError as exc:
+        raise PrepareError(
+            f"Basis-Tag {tag} ist lokal nicht bekannt – 'git fetch --tags' ausfuehren "
+            f"oder --base-tag setzen. ({exc})"
+        ) from exc
+
+
+# ── Bausteine ──────────────────────────────────────────────────────────
+
+
+def bump_pyproject(text: str, version: str) -> str:
+    """Setzt ``project.version``; genau ein Treffer, sonst Abbruch."""
+    matches = list(re.finditer(r'(?m)^(version\s*=\s*")([^"]+)(")', text))
+    if len(matches) != 1:
+        raise PrepareError(
+            f"pyproject.toml: erwarte genau eine version-Zeile, gefunden {len(matches)}"
+        )
+    match = matches[0]
+    return text[: match.start()] + f"{match.group(1)}{version}{match.group(3)}" + text[match.end() :]
+
+
+def changelog_section(language: str, version: str, release_date: str) -> str:
+    """Der Geruest-Abschnitt einer Sprache – ohne fuehrende/abschliessende Leerzeile.
+
+    Enthaelt bewusst alle vier Pflichtmarker des Release-Bodys: Sie sind die
+    Gliederung, die der Mensch fuellt. Die Werte selbst bleiben offen und
+    blockieren bis dahin das Freeze-Gate.
+    """
+    added, changed, fixed, notes = SECTION_HEADINGS[language]
+    markers = vrf.RELEASE_BODY_MARKERS[language]
+    lines = [f"## [{version}] – {release_date}", ""]
+    for heading in (added, changed, fixed):
+        lines += [f"### {heading}", "", f"- {PLACEHOLDER}", ""]
+    lines += [f"### {notes}", ""]
+    lines += [f"- {marker} {PLACEHOLDER}" for marker in markers]
+    return "\n".join(lines)
+
+
+def insert_changelog_section(text: str, language: str, version: str, release_date: str) -> str:
+    """Setzt den Geruest-Abschnitt direkt unter ``## [Unreleased]``.
+
+    Idempotent: Ein bereits vorhandener Abschnitt derselben Version wird
+    ersetzt – aber **nur**, wenn er noch Platzhalter traegt. Ein redaktionell
+    bearbeiteter Abschnitt bleibt unangetastet und fuehrt zum Abbruch; ein
+    Vorbereitungsskript darf Handarbeit nicht ueberschreiben.
+    """
+    section = changelog_section(language, version, release_date)
+    existing = re.search(
+        rf"(?ms)^## \[{re.escape(version)}\][^\n]*\n.*?(?=^## \[|\Z)",
+        text,
+    )
+    if existing is not None:
+        if PLACEHOLDER not in existing.group(0):
+            raise PrepareError(
+                f"{changelog_path(language)}: Abschnitt [{version}] ist bereits redaktionell "
+                "bearbeitet – er wird nicht überschrieben."
+            )
+        return text[: existing.start()] + section + "\n\n" + text[existing.end() :]
+
+    # ``[ \t]*`` statt ``\s*``: ``\s`` schluckt den Zeilenumbruch und erzeugte
+    # eine zusaetzliche Leerzeile vor dem eingefuegten Abschnitt.
+    unreleased = re.search(r"(?m)^## \[Unreleased\][ \t]*$", text)
+    if unreleased is None:
+        raise PrepareError(f"{changelog_path(language)}: '## [Unreleased]' nicht gefunden")
+    cut = unreleased.end()
+    head, tail = text[:cut], text[cut:].lstrip("\n")
+    return f"{head}\n\n{section}\n\n{tail}"
+
+
+def insert_appstream_release(xml_text: str, version: str, release_date: str) -> str:
+    """Ergaenzt den AppStream-``<release>``-Eintrag als juengsten der Liste.
+
+    Textuell statt ueber ElementTree: Ein Reserialisieren wuerde Kommentare und
+    Formatierung der gesamten Datei umschreiben und den Diff unlesbar machen.
+    """
+    entry = f'    <release version="{version}" date="{release_date}"/>'
+    existing = re.search(
+        rf'(?m)^\s*<release version="{re.escape(version)}" date="[^"]*"/>\s*$', xml_text
+    )
+    if existing is not None:
+        return xml_text[: existing.start()] + entry + xml_text[existing.end() :]
+    opening = re.search(r"(?m)^(\s*)<releases>\s*$", xml_text)
+    if opening is None:
+        raise PrepareError(f"{APPSTREAM_PATH}: <releases>-Block nicht gefunden")
+    cut = opening.end()
+    return xml_text[:cut] + "\n" + entry + xml_text[cut:]
+
+
+POLICY_PATH: Final = rpp.POLICY_PATH
+
+#: Die Pfadpolicy haelt jeden Eintrag auf genau einer Zeile. Der Rollover ist
+#: deshalb eine Zeilenoperation und veraendert die Formatierung der uebrigen
+#: 500+ Zeilen nicht – ein ``json.dumps``-Roundtrip wuerde die kompakten
+#: ``evidence``-Listen aufblaehen und einen 650-Zeilen-Diff erzeugen.
+_POLICY_VERSION_RE: Final = re.compile(r'(?m)^(\s*"policy_version":\s*)(\d+)(\s*,)$')
+_CURRENT_FREEZE_RE: Final = re.compile(r'(?m)^(\s*)\{"id": "current-freeze",[^\n]*\}(,?)$')
+
+
+def roll_over_freeze_policy(
+    policy_text: str, *, version: str, predecessor_version: str
+) -> tuple[str, int]:
+    """Zeigt ``current-freeze`` auf das neue Dokument und hebt die Policy-Version.
+
+    Dieser Rollover ist kein Sonderfall, sondern faellt bei **jedem** Release
+    an: Das neue Freeze-Dokument ist ein unbekannter Pfad und blockiert das
+    Gate fail-closed, waehrend der Pfad des bisherigen aktiven Dokuments ohne
+    Regel zurueckbliebe. Beides ist vollstaendig aus den Versionsnummern
+    bestimmt – genau die schematische Arbeit, die dieses Skript abnimmt. Die
+    Begruendungstexte folgen wortgleich dem bisherigen Muster
+    (``historical-freeze-2.8.0`` als Vorlage).
+
+    Liefert den neuen Dateiinhalt und die angehobene Policy-Version.
+    """
+    version_match = _POLICY_VERSION_RE.search(policy_text)
+    if version_match is None:
+        raise PrepareError(f"{POLICY_PATH}: policy_version nicht gefunden")
+    current_version = int(version_match.group(2))
+
+    current = _CURRENT_FREEZE_RE.search(policy_text)
+    if current is None:
+        raise PrepareError(f"{POLICY_PATH}: Eintrag 'current-freeze' nicht gefunden")
+    indent, comma = current.group(1), current.group(2)
+    new_path = freeze_doc_path(version)
+    old_path = freeze_doc_path(predecessor_version)
+    if f'"path": "{new_path}"' in current.group(0):
+        # Bereits umgehaengt: ein zweiter Lauf darf die Policy-Version NICHT
+        # erneut anheben. Ohne diesen Zweig waere das Skript nicht idempotent
+        # und jede Wiederholung erzeugte eine neue Vertragsversion.
+        return policy_text, current_version
+    new_version = current_version + 1
+    if f'"path": "{old_path}"' not in current.group(0):
+        raise PrepareError(
+            f"{POLICY_PATH}: 'current-freeze' zeigt nicht auf {old_path} – "
+            "der Rollover würde einen anderen Stand überschreiben."
+        )
+    replacement = (
+        f'{indent}{{"id": "current-freeze", "kind": "exact", "path": "{new_path}", '
+        f'"sample_path": "{new_path}", "reason": "Das aktive Freeze-Dokument '
+        f'enthält Basis, Scope und Policy-Version."}},\n'
+        f'{indent}{{"id": "historical-freeze-{predecessor_version}", "kind": "exact", '
+        f'"path": "{old_path}", "sample_path": "{old_path}", "reason": '
+        f'"Vormals aktives Freeze-Dokument fuer den {predecessor_version}-Kandidaten. '
+        f"'current-freeze' zeigt seit dem {version}-Rollover nicht mehr hierher, der Pfad "
+        f'bleibt aber ein candidate-relevanter Release-Governance-Artefakt."}}{comma}'
+    )
+    text = policy_text[: current.start()] + replacement + policy_text[current.end() :]
+    return _POLICY_VERSION_RE.sub(rf"\g<1>{new_version}\g<3>", text, count=1), new_version
+
+
+def freeze_document(
+    inputs: ReleaseInputs, *, predecessor_version: str, policy_version: int
+) -> str:
+    """Geruest des Scope-Freeze-Dokuments.
+
+    Die vier maschinenlesbaren Zeilen sind vollstaendig: Sie sind vor dem Merge
+    bekannt und dieses Skript kennt sie. Der **Scope** ist die eine Aussage,
+    die ein Mensch treffen muss – er bleibt als ``TODO(release)`` offen und
+    blockiert bis dahin das Gate.
+    """
+    predecessor_doc = f"RELEASE-{predecessor_version}-scope-freeze.md"
+    return f"""# Release {inputs.version} – stabiler Scope-Freeze
+
+Nachfolger von [`{predecessor_doc}`]({predecessor_doc}).
+Dieses Dokument enthält ausschließlich Angaben, die **vor** seinem Merge
+bekannt sind. Kandidaten-SHA, Commitliste, Pfadklassifikationen und Zähler
+werden nicht nachgetragen, sondern beim Gate aus Git abgeleitet und als
+maschinenlesbare Provenienz außerhalb der Git-Historie gespeichert (#742).
+
+Erzeugt mit `scripts/prepare_release.py` (#923). Die mit `{PLACEHOLDER}`
+markierten Stellen sind redaktionelle Handarbeit; das Freeze-Gate weist sie
+als blockierenden Befund aus, bis sie gefüllt sind.
+
+## Stabile, maschinenlesbare Angaben
+
+- **Basis-Tag:** `{inputs.base_tag}` (= `{inputs.base_sha}`)
+- **Kandidatenversion:** `{inputs.version}`
+- **Release-Scope:** `release-{inputs.version}`
+- **Pfadpolicy:** `release/path-policy.json` (Version `{policy_version}`)
+
+Der volle Basis-SHA ist unveränderlich. Der Tagname allein genügt nicht: Das
+Gate weist ein verschobenes Tag zurück. Die Policy-Version bindet die Semantik,
+mit der alle Pfade im Fenster `Basis..Laufkopf` klassifiziert werden.
+
+## Scope
+
+{PLACEHOLDER}: Fachlichen Scope beschreiben – welche Issues sind
+anwender:innensichtbar, was ist reine Test-/CI-/Doku-Governance ohne
+Auswirkung auf das Programmverhalten, und welche Änderungen wirken
+ausdrücklich **nicht** im ausgelieferten Artefakt. Die übrigen Commits seit
+`{inputs.base_tag}` sind Teil des First-Parent-Fensters und werden vom Gate
+einzeln klassifiziert; der fachliche Scope entsteht hier.
+
+Änderungen außerhalb dieses Scope benötigen vor dem Build eine bewusste
+Scope-Entscheidung. Unbekannte Pfade blockieren das Gate fail-closed, auch wenn
+sie vorsichtshalber als kandidatenrelevant gelten.
+
+## Kandidat und Commit-Ledger
+
+Der Kandidaten-SHA ist der von GitHub Actions geprüfte Laufkopf
+(`GITHUB_SHA`). `scripts/verify_release_freeze.py` rekonstruiert aus der
+First-Parent-Historie seit dem Basis-SHA alle Commits, ihre geänderten Pfade,
+Regel und Klasse jedes Pfades, die primäre Klasse jedes Commits und den
+jüngsten kandidatenrelevanten Inhaltscommit. Ein exakter Post-Merge-SHA, eine
+Commit-Anzahl oder eine manuelle SHA-Tabelle stehen bewusst **nicht** in
+diesem Dokument.
+
+Lokale Prüfung:
+
+```bash
+make release-freeze-check
+python scripts/verify_release_freeze.py \\
+  --output-provenance /tmp/release-freeze-provenance.json
+python scripts/verify_release_freeze.py \\
+  --verify-provenance /tmp/release-freeze-provenance.json
+```
+
+## Pfadklassen
+
+Die einzige Quelle ist [`release/path-policy.json`](../../release/path-policy.json):
+
+- `release-neutral` ist eine enge positive Allowlist mit Begründung und
+  Build-Input-Nachweis je Eintrag.
+- `candidate-relevant` umfasst bekannte Produkt-, Metadaten-, Build-, Test-,
+  Workflow-, Release- und Evidenzpfade.
+- unbekannte Pfade sind kandidatenrelevant **und blockierend**, bis die Policy
+  bewusst ergänzt und versioniert wurde.
+
+{PLACEHOLDER}: Falls dieser Kandidat die Policy verändert hat, den
+Versionssprung hier begründen (Regel, Anlass, betroffene Pfade). Ohne
+Policy-Änderung diesen Absatz durch einen Satz ersetzen, der das festhält.
+
+## Verbindliche Konsistenzprüfungen
+
+Das Gate prüft am Laufkopf Paketversion, datierte CHANGELOG-Abschnitte und
+Release-Body-Pflichtangaben in sechs Sprachen, AppStream-Version und -Datum,
+sechs Lizenz-Snapshots, unveränderten Basis-Tag/SHA, Policy-Version und
+-Digest, die vollständige Pfadklassifikation aller First-Parent-Commits sowie
+die Bindung des Kandidaten an `GITHUB_SHA` und die Actions-Run-IDs.
+
+Die Entscheidung und verworfene Alternativen stehen in
+[`ADR-2026-release-freeze-provenienz.md`](ADR-2026-release-freeze-provenienz.md).
+
+## Noch offene Release-Schuld
+
+{PLACEHOLDER}: Offene Punkte aus dem vorherigen Freeze prüfen und entweder als
+erledigt vermerken oder als weiterhin offen übernehmen.
+"""
+
+
+#: Die neun Runbook-Schritte. Ein Test haelt sie gegen die Ueberschriften in
+#: ``docs/RELEASE_PROCESS.md`` – die Schritt-Tabelle des Issues ist eine
+#: handgepflegte Kopie des Runbooks und braucht denselben Waechter.
+RUNBOOK_STEPS: Final = (
+    "Release vorbereiten",
+    "Kandidatenstand einfrieren",
+    "Unveränderlichen Kandidaten bauen",
+    "Kandidatenartefakte und Sicherheitsbefunde vorprüfen",
+    "Abnahme auf echter Hardware durchführen",
+    "Freigabemanifest und Release-Instanz abnehmen",
+    "Tag auf exakt den abgenommenen Commit setzen",
+    "Abgenommene Bytes veröffentlichen",
+    "Öffentliche und nachgelagerte Prüfung abschließen",
+)
+
+
+def paused_x86_64_criteria(checklist: dict[str, object]) -> tuple[str, ...]:
+    """IDs der über ``ABNAHME_X86_64_ENABLED`` pausierten Hardware-Kriterien.
+
+    Abgeleitet aus dem Checklistenvertrag (``verification`` = ``platform:
+    linux-x86_64``) statt hart notiert: Kommt ein x86_64-Kriterium hinzu oder
+    faellt eines weg, wandert es ohne Codeaenderung in das Issue.
+    """
+    criteria = checklist.get("criteria")
+    if not isinstance(criteria, list):
+        raise PrepareError("Checklistenvertrag ohne Kriterienliste")
+    found: list[str] = []
+    for item in criteria:
+        if isinstance(item, dict) and item.get("verification") == "platform:linux-x86_64":
+            found.append(str(item["id"]))
+    return tuple(sorted(found))
+
+
+def release_issue(
+    inputs: ReleaseInputs,
+    *,
+    checklist_version: str,
+    checklist_sha256: str,
+    paused_criteria: tuple[str, ...],
+    policy_version: int,
+) -> str:
+    """Rendert das Release-Issue mit allen vor dem Kandidatenbau bekannten Werten.
+
+    Offen bleibt genau das, was erst spaeter entsteht: Kandidaten-SHA,
+    Build-Run, Abnahme und die Go-/No-Go-Entscheidung.
+    """
+    steps = "\n".join(
+        f"| {number} {title} | offen |" for number, title in enumerate(RUNBOOK_STEPS, start=1)
+    )
+    paused = "\n".join(
+        f"- [ ] `{criterion}` (SHOULD): bleibt `PENDING`, solange der x86_64-Pfad über "
+        "`ABNAHME_X86_64_ENABLED` pausiert ist. Erscheint in der Abschlussmatrix "
+        "ausdrücklich als „pausiert“ und wird **nicht** als bestanden umgedeutet."
+        for criterion in paused_criteria
+    )
+    return f"""## Ziel
+
+Dieses Issue ist das verbindliche Entscheidungs- und Evidenzprotokoll für die
+Abnahme und Veröffentlichung von BgRemover {inputs.version} nach
+[`docs/RELEASE_PROCESS.md`](https://github.com/NikolayDA/picture_helper/blob/main/docs/RELEASE_PROCESS.md)
+und der versionierten Checkliste `{checklist_version}`. Seine Nummer ist der
+`RELEASE_ISSUE` des Runbooks und der `target_issue`-Eingabewert von
+`release-abnahme.yml`.
+
+Erzeugt mit `scripts/prepare_release.py` (#923). Alle Bindungswerte unten sind
+vorbefüllt; die mit `{PLACEHOLDER}` markierten Stellen entstehen erst im
+Ablauf und bleiben Handarbeit.
+
+## Aktueller Stand
+
+**Offen — Runbook-Schritt 1/2 vorbereitet.**
+
+| Schritt | Stand |
+|---|---|
+{steps}
+
+## Gebundener Release-Stand
+
+- Version: `{inputs.version}`
+- Geplanter Tag: `v{inputs.version}`
+- Release-Ref: `release/v{inputs.version}` (entsteht in Schritt 2)
+- Kandidaten-Commit: {PLACEHOLDER} (entsteht in Schritt 2)
+- Kandidaten-Build: {PLACEHOLDER} (entsteht in Schritt 3)
+- Hardware-Abnahme: _steht aus_
+- Freigabeartefakt: _entsteht in Schritt 6_
+- Vorgänger-Release: `{inputs.base_tag}` (= `{inputs.base_sha}`, zugleich Freeze-Basis)
+- Scope-Freeze: [`{freeze_doc_path(inputs.version)}`](https://github.com/NikolayDA/picture_helper/blob/main/{freeze_doc_path(inputs.version)}), Pfadpolicy `{policy_version}`
+- Checklistenvertrag: `{checklist_version}`, Schema `{rc.CHECKLIST_SCHEMA}`, Datei-SHA-256 `{checklist_sha256}`
+- Produktumfang: fünf Artefakte mit gebündeltem KI-Backend (`with_ai=true`); Windows ist nicht Teil dieses Releasevertrags
+- Aktive Hardware: macOS arm64 und Linux arm64
+- Bewusst pausiert: Linux-x86_64-Hardwarekriterien bleiben `PENDING` (`ABNAHME_X86_64_ENABLED`)
+
+### Fachlicher Scope
+
+{PLACEHOLDER}: Anwender:innensichtbare Änderungen benennen und von reiner
+Test-/CI-/Doku-Governance abgrenzen (dieselbe Aussage wie im Scope-Freeze).
+
+## Sichtbar offene und bewusst pausierte Punkte
+
+{paused}
+- [ ] `UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` (POST_RELEASE): werden nach der Veröffentlichung mit einem echten `{inputs.base_tag}`-Vorgängerartefakt nachgewiesen (Runbook-Schritt 9, `predecessor_tag={inputs.base_tag}`).
+
+## Voraussetzungen für Schritt 5
+
+- [ ] `macos-arm64` und `linux-arm64` sind online und haben eine grafische Sitzung.
+- [ ] Der Release-Ref `release/v{inputs.version}` zeigt unverändert auf den Kandidaten-Commit; `candidate-source` vergleicht den Workflow-SHA damit und bricht bei Abweichung ab.
+
+## Go/No-Go
+
+_Offen._ Die Entscheidung wird nach Schritt 6 hier protokolliert. Ein
+Malware-Fund oder ein offenes MUST ist ein hartes NO-GO.
+
+## Wiederanlauf
+
+- Bei Code-, Dokument- oder Policyänderungen beginnt die Abnahme wieder bei Schritt 1 mit einem neuen Kandidaten.
+- Bei reinem Runner- oder Infrastrukturfehler darf derselbe unveränderte Kandidat mit einer neuen Run-ID wiederholt werden.
+- Fehlende aktive Hardware oder ein fachlicher Fehler bleibt blockierend; ein MUST-Kriterium wird nicht umgangen.
+- Frühere Kandidaten- und Abnahmeläufe bleiben historische Evidenz und werden nicht weiterverwendet.
+"""
+
+
+# ── Planung und Anwendung ──────────────────────────────────────────────
+
+
+def _read(repo: Path, relative: str) -> str:
+    path = repo / relative
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise PrepareError(f"{relative} kann nicht gelesen werden: {exc}") from exc
+
+
+def unknown_paths_since(repo: Path, base_sha: str, head: str = "HEAD") -> tuple[str, ...]:
+    """Pfade im Fenster ``base..head`` ohne explizite Klassifikation.
+
+    Sie blockieren das Gate fail-closed. Der Hinweis gehoert in die
+    Vorbereitung, nicht in den Kandidatenbau: Dort kostet er einen ganzen Lauf.
+    """
+    policy = rpp.load_policy()
+    unknown: set[str] = set()
+    for sha in vrf.commits_between(repo, base_sha, vrf.rev_parse(repo, head)):
+        for path in vrf.changed_paths(repo, sha):
+            if not rpp.classify_path(path, policy).explicit:
+                unknown.add(path)
+    return tuple(sorted(unknown))
+
+
+@dataclass(frozen=True)
+class PlannedRelease:
+    """Der vollstaendige Rohstand plus die dabei entstandene Policy-Version."""
+
+    files: list[PlannedFile]
+    policy_version: int
+
+
+def plan(repo: Path, inputs: ReleaseInputs, *, predecessor_version: str) -> PlannedRelease:
+    """Alle zu schreibenden Dateien mit ihrem vollstaendigen Inhalt.
+
+    Getrennt von ``apply``, damit ein Lauf ohne Schreibzugriff denselben Code
+    durchlaeuft: Determinismus und Idempotenz sind so pruefbar, ohne dass ein
+    Test ein Repository veraendern muss.
+    """
+    planned: list[PlannedFile] = [
+        PlannedFile(PYPROJECT_PATH, bump_pyproject(_read(repo, PYPROJECT_PATH), inputs.version))
+    ]
+    for language in ("de", *LANGUAGES):
+        relative = changelog_path(language)
+        planned.append(
+            PlannedFile(
+                relative,
+                insert_changelog_section(
+                    _read(repo, relative), language, inputs.version, inputs.release_date
+                ),
+            )
+        )
+    planned.append(
+        PlannedFile(
+            APPSTREAM_PATH,
+            insert_appstream_release(
+                _read(repo, APPSTREAM_PATH), inputs.version, inputs.release_date
+            ),
+        )
+    )
+    # Der Rollover der Pfadpolicy gehoert in denselben Stand: Das neue
+    # Freeze-Dokument ist sonst ein unbekannter Pfad und blockiert das Gate.
+    policy_text, policy_version = roll_over_freeze_policy(
+        _read(repo, POLICY_PATH), version=inputs.version, predecessor_version=predecessor_version
+    )
+    planned.append(PlannedFile(POLICY_PATH, policy_text))
+
+    freeze_relative = freeze_doc_path(inputs.version)
+    existing_freeze = repo / freeze_relative
+    if existing_freeze.is_file() and PLACEHOLDER not in existing_freeze.read_text(encoding="utf-8"):
+        raise PrepareError(
+            f"{freeze_relative}: bereits redaktionell bearbeitet – wird nicht überschrieben."
+        )
+    planned.append(
+        PlannedFile(
+            freeze_relative,
+            freeze_document(
+                inputs,
+                predecessor_version=predecessor_version,
+                policy_version=policy_version,
+            ),
+        )
+    )
+    return PlannedRelease(files=planned, policy_version=policy_version)
+
+
+def apply(repo: Path, planned: list[PlannedFile]) -> None:
+    """Schreibt den geplanten Stand; legt fehlende Verzeichnisse an."""
+    for item in planned:
+        target = repo / item.path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(item.content, encoding="utf-8")
+
+
+def sha256_file(path: Path) -> str:
+    """SHA-256 einer Datei als Hexstring (Bindungswert des Issues)."""
+    digest = hashlib.sha256()
+    digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def create_issue(repo: Path, title: str, body: str) -> str:
+    """Legt das Release-Issue ueber ``gh`` an – nur auf ausdruecklichen Wunsch."""
+    result = subprocess.run(
+        ["gh", "issue", "create", "--title", title, "--body-file", "-"],
+        cwd=repo,
+        input=body,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise PrepareError(f"gh issue create fehlgeschlagen: {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
+# ── CLI ────────────────────────────────────────────────────────────────
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("version", help="Zielversion, z. B. 2.10.0")
+    parser.add_argument(
+        "--date",
+        default="",
+        help="Release-Datum (JJJJ-MM-TT). Ohne Angabe: heute (UTC-Datum des Systems).",
+    )
+    parser.add_argument(
+        "--base-tag",
+        default="",
+        help="Vorgänger-Tag. Ohne Angabe aus der bisherigen pyproject-Version abgeleitet.",
+    )
+    parser.add_argument("--repo", type=Path, default=_REPO_ROOT, help="Repository-Wurzel")
+    parser.add_argument(
+        "--issue-output",
+        type=Path,
+        default=None,
+        help="Zieldatei des Release-Issues. Ohne Angabe auf die Standardausgabe.",
+    )
+    parser.add_argument(
+        "--create-issue",
+        action="store_true",
+        help="Legt das Issue über 'gh issue create' an (ausdrücklicher Opt-in).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Nur berichten, welche Dateien entstünden – nichts schreiben.",
+    )
+    args = parser.parse_args(argv)
+
+    if not _SEMVER_RE.fullmatch(args.version):
+        parser.error(f"Version muss X.Y.Z sein: {args.version!r}")
+    release_date = args.date or date_type.today().isoformat()
+    if not _ISO_DATE_RE.fullmatch(release_date):
+        parser.error(f"Datum muss JJJJ-MM-TT sein: {release_date!r}")
+
+    repo = args.repo.resolve()
+    try:
+        previous = vrf._PYPROJECT_VERSION_RE.search(_read(repo, PYPROJECT_PATH))
+        if previous is None:
+            raise PrepareError("pyproject.toml ohne version")
+        predecessor_version = previous.group(1)
+        if predecessor_version == args.version:
+            raise PrepareError(
+                f"pyproject.toml steht bereits auf {args.version} – "
+                "Zielversion und Vorgänger dürfen nicht gleich sein."
+            )
+        base_tag = args.base_tag or f"v{predecessor_version}"
+        base_sha = resolve_tag(repo, base_tag)
+
+        inputs = ReleaseInputs(
+            version=args.version,
+            release_date=release_date,
+            base_tag=base_tag,
+            base_sha=base_sha,
+        )
+        prepared = plan(repo, inputs, predecessor_version=predecessor_version)
+
+        checklist_path = repo / rc.CHECKLIST_PATH
+        checklist = rc.load_release_checklist(checklist_path)
+        issue_body = release_issue(
+            inputs,
+            checklist_version=str(checklist["checklist_version"]),
+            checklist_sha256=sha256_file(checklist_path),
+            paused_criteria=paused_x86_64_criteria(checklist),
+            policy_version=prepared.policy_version,
+        )
+        unknown = unknown_paths_since(repo, base_sha)
+    except (PrepareError, rc.ContractError) as exc:
+        print(f"FEHLER: {exc}", file=sys.stderr)
+        return 2
+
+    if args.dry_run:
+        print(f"Vorbereitung {predecessor_version} → {args.version} ({release_date}), nur Bericht:")
+    else:
+        apply(repo, prepared.files)
+    for item in prepared.files:
+        print(f"  {'geplant' if args.dry_run else 'geschrieben'}: {item.path}")
+    print(f"  Pfadpolicy: Version {prepared.policy_version} (current-freeze umgehängt)")
+
+    issue_title = f"[Release {args.version}] Abnahme- und Veröffentlichungsprotokoll"
+    if args.dry_run:
+        # Ein Probelauf soll ALLES zeigen, was entstuende – auch das Issue.
+        # Geschrieben oder angelegt wird dabei nichts.
+        print(f"\n--- Release-Issue (Vorschau): {issue_title} ---")
+        print(issue_body)
+        if args.create_issue:
+            print("\nHINWEIS: --create-issue wird im Probelauf nicht ausgeführt.", file=sys.stderr)
+    elif args.issue_output is not None:
+        args.issue_output.parent.mkdir(parents=True, exist_ok=True)
+        args.issue_output.write_text(issue_body, encoding="utf-8")
+        print(f"  geschrieben: {args.issue_output}")
+    else:
+        print(f"\n--- Release-Issue: {issue_title} ---")
+        print(issue_body)
+
+    if args.create_issue and not args.dry_run:
+        try:
+            print(f"Issue angelegt: {create_issue(repo, issue_title, issue_body)}")
+        except PrepareError as exc:
+            print(f"FEHLER: {exc}", file=sys.stderr)
+            return 2
+
+    # Der Policy-Hinweis steht bewusst am Ende: Er ist die einzige Stelle, an
+    # der dieses Skript etwas ueber den *Inhalt* des Fensters sagen kann.
+    if unknown:
+        print(
+            f"\nHINWEIS: {len(unknown)} Pfad(e) seit {base_tag} ohne explizite Klassifikation. "
+            "Sie blockieren das Freeze-Gate fail-closed, bis release/path-policy.json "
+            "ergänzt und ihre policy_version angehoben ist:",
+            file=sys.stderr,
+        )
+        for path in unknown:
+            print(f"  - {path}", file=sys.stderr)
+
+    print(
+        f"\nNächste Schritte: redaktionelle {PLACEHOLDER}-Lücken füllen, "
+        "Lizenz-Snapshots über scripts/generate_license_report.py neu erzeugen, "
+        "dann 'make check' und 'python scripts/verify_release_freeze.py'."
+    )
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover - CLI-Einstieg
+    sys.exit(main())
