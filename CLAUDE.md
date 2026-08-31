@@ -1063,6 +1063,19 @@ nie überschrieben (Abbruch statt Datenverlust), und das Release-Issue entsteht
 als Datei bzw. auf der Standardausgabe — `--create-issue` ruft `gh` nur auf
 ausdrücklichen Wunsch.
 
+**Wiederanlauf nach einem gescheiterten `--create-issue` (#933).** Der
+Issue-Text liegt vor jedem GitHub-Aufruf atomar als Datei vor — unter
+`--issue-output`, sonst in einer eigenen `mkdtemp`-Ablage außerhalb des
+Arbeitsbaums (im Repository wäre sie ein unbekannter Pfad und blockierte das
+Gate), deren Pfad die Ausgabe nennt. `issue_create_argv` ist die **einzige**
+Quelle des `gh`-Aufrufs: Der ausgegebene Wiederanlauf (`resume_command`)
+rendert dieselbe Argumentliste, die soeben scheiterte, `shlex`-gequotet und mit
+dem `cd` in den per `--repo` gewählten Zielkontext — er kann also nicht von dem
+abweichen, was das Skript selbst versucht hat, und schreibt keine Release-Datei
+erneut. Ein zweiter Skriptlauf ist **kein** Ersatz (er bricht ab, weil
+`pyproject.toml` bereits auf der Zielversion steht). Nach erfolgreichem Anlegen
+wird die Fallback-Ablage entfernt.
+
 Die Bindungswerte des Issues stammen aus den Verträgen selbst: Checklisten-
 Version und Datei-SHA-256 über `release_contract.load_release_checklist`, die
 pausierten x86_64-Kriterien über `verification == "platform:linux-x86_64"`

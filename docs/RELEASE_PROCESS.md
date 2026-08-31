@@ -96,6 +96,15 @@ Danach die Lizenz-Snapshots neu erzeugen
 öffnen. Das Issue legt ein Mensch an; `--create-issue` ruft `gh` nur auf
 ausdrücklichen Wunsch.
 
+Scheitert dieser Aufruf an einem GitHub-/Netzfehler, bleibt der Rohstand
+vollständig geschrieben, und der gerenderte Issue-Text liegt als Datei bereit:
+unter dem mit `--issue-output` gewählten Pfad, sonst in einer temporären Datei,
+deren Pfad die Ausgabe nennt. Die Fehlermeldung gibt dazu den fertigen
+Wiederanlaufbefehl aus — `cd <repo> && gh issue create --title … --body-file …`.
+Er legt genau dieses Issue an und schreibt keine Release-Datei erneut. Ein
+zweiter Skriptlauf ist **kein** Ersatz: Er bricht ab, weil `pyproject.toml`
+dann bereits auf der Zielversion steht (#933).
+
 Prüfe, dass `CHANGELOG.md` und der geplante Release-Text Auswirkung,
 unterstützte Plattformen, bekannte Einschränkungen sowie Upgrade- und
 Rollback-Hinweis enthalten. Starte danach die Dokumentprüfung:
