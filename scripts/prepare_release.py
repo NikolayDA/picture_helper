@@ -41,6 +41,7 @@ import hashlib
 import os
 import re
 import shlex
+import stat
 import subprocess
 import sys
 import tempfile
@@ -72,8 +73,13 @@ PYPROJECT_PATH: Final = "pyproject.toml"
 
 #: Bewusst ASCII-Ziffern: ``\d`` akzeptiert auch Unicode-Ziffern, und ``２.１０.０``
 #: liefe bis in Dateinamen, Tags und Metadaten durch – der Freigabevertrag
-#: (``release_contract``) nutzt aus demselben Grund ``[0-9]``.
-_SEMVER_RE: Final = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+#: (``release_contract``) nutzt aus demselben Grund ``[0-9]``. Führende Nullen
+#: sind ebenfalls abgewiesen (#944-Review): ``2.09.0`` bei Stand ``2.9.0``
+#: umging sonst beide Prüfungen – der String-Vergleich sieht Ungleichheit, der
+#: numerische Ordnungsvergleich Gleichheit – und erzeugte Release-Dateien für
+#: eine Schreibweise, die Packaging-Werkzeuge auf die bereits aktuelle
+#: Version normalisieren.
+_SEMVER_RE: Final = re.compile(r"^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$")
 
 
 def _semver_key(version: str) -> tuple[int, ...]:
@@ -731,6 +737,18 @@ def write_text_atomic(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
     try:
+        # Modus erhalten (#944-Review): ``mkstemp`` erzeugt 0600, und
+        # ``os.replace`` installierte diesen Inode über die getrackte
+        # 0644-Datei – pyproject/CHANGELOGs wären danach für andere Konten
+        # eines geteilten Checkouts unlesbar. Bestehende Dateien behalten
+        # ihren Modus, neue folgen der umask wie bei ``write_text``.
+        try:
+            mode = stat.S_IMODE(path.stat().st_mode)
+        except FileNotFoundError:
+            mask = os.umask(0)
+            os.umask(mask)
+            mode = 0o666 & ~mask
+        os.fchmod(fd, mode)
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(text)
         os.replace(tmp_name, path)
@@ -906,11 +924,16 @@ def main(argv: list[str] | None = None) -> int:
                 f"pyproject.toml-Version {predecessor_version!r} ist nicht X.Y.Z – "
                 "Downgrade-Schutz nicht prüfbar, Vorbereitung abgebrochen."
             )
-        if _semver_key(args.version) < _semver_key(predecessor_version):
+        # ``<=`` statt ``<``: Numerische Gleichheit bei abweichender
+        # Schreibweise fängt zwar schon die verschärfte ``_SEMVER_RE`` ab –
+        # sollte sie je gelockert werden, bleibt der Ordnungsvergleich die
+        # zweite Verteidigungslinie (#944-Review).
+        if _semver_key(args.version) <= _semver_key(predecessor_version):
             raise PrepareError(
-                f"Zielversion {args.version} liegt unter der pyproject-Version "
-                f"{predecessor_version} – ein Tippfehler erzeugte sonst ein "
-                "konsistentes Downgrade-Gerüst statt eines Fehlers."
+                f"Zielversion {args.version} liegt nicht über der "
+                f"pyproject-Version {predecessor_version} – ein Tippfehler "
+                "erzeugte sonst ein konsistentes Downgrade-Gerüst statt "
+                "eines Fehlers."
             )
         base_tag = args.base_tag or f"v{predecessor_version}"
         base_sha = resolve_tag(repo, base_tag)
