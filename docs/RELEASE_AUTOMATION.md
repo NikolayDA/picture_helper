@@ -770,9 +770,25 @@ Der Lauf-Watchdog (#915) meldet einen Ausfall **im** Abnahme-Lauf – also
 frühestens beim Release. Beim v2.9.0-Verzug war der Pi-Runner tagelang
 offline, und genau das fiel erst beim Dispatch auf (#881). Der Workflow
 [`runner-heartbeat.yml`](../.github/workflows/runner-heartbeat.yml) schließt
-die Lücke davor: Er läuft **täglich um 05:30 UTC** (und auf Zuruf), gibt
-jedem aktiven Runner einen minimalen Job und meldet, wenn einer ihn nicht
-binnen 15 Minuten annimmt.
+die Lücke davor: Er läuft **täglich um 05:30 UTC** (und auf Zuruf) und gibt
+jedem aktiven Runner einen minimalen Job.
+
+**Zwei Fristen, weil zwei verschiedene Fragen** (#921-Nachprüfung). Eine
+einzige Frist beantwortete beide falsch: Die Doku versprach 15 Minuten, die
+Auswertung wartete das volle Fenster ab und meldete „wartet nach 1500 s".
+
+| Frist | Wert | Frage | Ausgang beim Ablauf |
+|---|---|---|---|
+| Annahme | **15 min** (900 s) | Hat der Runner den Job *angenommen*? | noch `queued` → `FAIL` (offline), sofort |
+| Bereitschaft | **25 min** (1500 s) | Ist die *Prüfung abgeschlossen*? | noch `running` → `UNOBSERVED`, kein Verdikt |
+
+Die Gesamtfrist ist die Summe aus Annahmefrist und dem Jobbudget des
+Readiness-Jobs (`timeout-minutes: 10`), nicht frei gewählt. Das
+Offline-Verdikt fällt zur **Annahmefrist** — auf das Gesamtfenster zu warten
+verzögerte nur die Meldung, und die Zusage „binnen 15 Minuten" hielte nicht.
+Beide Werte stehen als Voreinstellung im Skript und werden im Workflow
+ausdrücklich übergeben; `tests/test_runner_heartbeat_workflow.py` hält
+Doku, Workflow und Konstanten gegeneinander.
 
 Der Job auf dem Runner ist bewusst kein `echo`, sondern der Preflight aus
 §2/§2.1/§2.2 mit `--hardening-strict`. Damit fällt nicht nur ein *offline*
@@ -848,7 +864,8 @@ Pflichtvariable oben: Dieser Lauf endet dann am Folgetag ebenfalls als
 „cancelled". Auf die Actions-Fehlermail ist im Offline-Fall daher **kein**
 Verlass — sie kommt nur, wenn der Lauf regulär abschließt (alle Runner haben
 den Job angenommen, mindestens einer die Prüfung nicht bestanden). Der
-Issue-Kommentar der Auswertung fällt dagegen sofort nach der Frist. Kann die
+Issue-Kommentar der Auswertung fällt dagegen zur Annahmefrist, also lange
+bevor der wartende Job überhaupt endet. Kann die
 Job-Liste nicht abgefragt werden (API-Fehler), meldet der Heartbeat
 `UNOBSERVED` und schlägt keinen Alarm – ein Monitor ohne Beobachtung darf
 kein Verdikt fällen.
