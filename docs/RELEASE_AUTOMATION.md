@@ -856,6 +856,22 @@ Grün-Nachweis: Der Bericht meldet sie als „unvollständig — kein Ergebnis"
 statt als bestanden. Ein abgebrochener Lauf wäre sonst ein Beleg dafür, dass
 der Release-Pfad trägt.
 
-Anders als beim Heartbeat (§7) ist hier auf die **Actions-Fehlermail**
-Verlass: Der Dry-Run-Lauf schließt regulär mit `failure` ab, während ein
-offline Runner den Heartbeat-Lauf gar nicht erst abschließen lässt.
+**Meldeweg — und seine Grenze.** Für den *gefallenen* Ausgang ist auf die
+Actions-Fehlermail Verlass: Der Lauf schließt regulär mit `failure` ab, anders
+als der Heartbeat, den ein offline Runner gar nicht erst abschließen lässt
+(§7).
+
+Für „hat nicht stattgefunden" gilt das **nicht**. Der Ausgang *unvollständig*
+endet mit `exit 0`, der Lauf also als `cancelled` — dafür verschickt Actions
+keine Mail. Ebenso wenig, wenn der geplante Lauf gar nicht erst startet (etwa
+weil GitHub Schedules unter Last auslässt oder sie nach 60 Tagen ohne
+Repository-Aktivität abschaltet). Das ist dieselbe Lücke wie beim Heartbeat für
+den offline Runner, hier bewusst **ohne** dessen Gegenmittel: Ein
+verpflichtender Issue-Kommentar wäre für einen monatlichen Pipeline-Test
+unverhältnismäßig.
+
+Getragen wird der Fall stattdessen von der Sichtprüfung in
+[Runbook-Schritt 1](RELEASE_PROCESS.md): `gh run list --workflow
+release-linux.yml --event schedule` zeigt sowohl einen ausgebliebenen als auch
+einen unvollständig gebliebenen Lauf. Der Termin dafür ist genau der richtige —
+unmittelbar bevor der Kandidatenbau denselben Pfad fährt.

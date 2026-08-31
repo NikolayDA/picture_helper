@@ -311,8 +311,14 @@ def test_automation_documents_purpose_cost_and_delimitation_of_the_dry_run() -> 
         "3 Tagen",        # Aufbewahrung
         "Owner: Repository-Owner",
         "Kosten",
+        # Die Grenze des Meldewegs steht ausdruecklich dabei: Die
+        # Actions-Fehlermail traegt nur den gefallenen Ausgang, nicht "hat
+        # nicht stattgefunden" (abgebrochen oder gar nicht gestartet).
+        "gh run list --workflow\nrelease-linux.yml --event schedule",
     ):
         assert required in section, required
+    # ... und die genannte Ersatzpruefung existiert im Runbook wirklich.
+    assert "release-linux.yml --event schedule" in RUNBOOK
 
 
 def test_documented_dry_run_schedule_matches_the_workflow() -> None:
