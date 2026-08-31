@@ -23,11 +23,28 @@ on:
         description: 'Exakter Name des Manifests, z. B. release-approval-manifest-1.'
         type: string
         required: true
+      create_tag:
+        description: >-
+          Den annotierten Release-Tag im Workflow auf candidate.head_sha des
+          Freigabemanifests anlegen (#919). Aus = der Tag muss wie bisher von
+          Hand gesetzt sein. Ein bereits korrekt zeigender Tag wird nur
+          verifiziert; ein abweichender bricht ab und wird nie verschoben.
+        type: boolean
+        default: false
+      predecessor_tag:
+        description: >-
+          Vorgaenger-Release-Tag (z. B. v2.9.0) fuer den automatisch
+          angestossenen Post-Release-Update-Nachweis (#919, Stufe 2). Leer =
+          kein Dispatch; UPDATE-LINUX-ARM-01/UPDATE-MACOS-ARM-01 bleiben
+          PENDING und werden ueber Runbook-Schritt 9 nachgezogen. Der
+          Vorgaenger wird bewusst nie geraten.
+        type: string
+        default: ''
       target_issue:
         description: >-
           Optional: Issue-Nummer fuer den Kommentar mit dem oeffentlichen
-          Download-Protokoll (PUBLIC-DOWNLOAD-01). Leer = nur Artefakt und
-          Job-Summary.
+          Download-Protokoll (PUBLIC-DOWNLOAD-01) und der Release-Instanz
+          (#919). Leer = nur Artefakt und Job-Summary.
         type: string
         default: ''
 
@@ -43,6 +60,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      candidate_sha: ${{ steps.approval.outputs.candidate_sha }}
+      version: ${{ steps.approval.outputs.version }}
     permissions:
       contents: write
       actions: read
@@ -100,6 +120,60 @@ jobs:
             --acceptance-run-id "$ACCEPTANCE_RUN_ID" \
             --approval-artifact-name "$APPROVAL_ARTIFACT_NAME" \
             --tag "$RELEASE_TAG"
+
+      # Stufe 1 aus #919: Der Tag entsteht erst NACH der vollstaendigen
+      # Manifestpruefung und ausschliesslich auf candidate.head_sha - nie auf
+      # dem aktuellen Checkout und nie aus einem Eingabewert. Der Schritt liegt
+      # bewusst vor dem candidate-source-Checkout: Der laeuft mit
+      # fetch-depth: 0 und bringt den soeben angelegten Tag mit, sodass die
+      # bestehende Tag-Verifikation unveraendert greift.
+      - name: Tag-Plan aus dem Freigabemanifest ableiten
+        id: tag-plan
+        if: inputs.create_tag
+        run: |
+          set -euo pipefail
+          refs_json="${RUNNER_TEMP}/tag-matching-refs.json"
+          tag_object_json="${RUNNER_TEMP}/tag-object.json"
+          # git/matching-refs antwortet immer mit HTTP 200 und einer (ggf.
+          # leeren) Liste. Damit ist "Tag fehlt" vom Fehlerfall unterscheidbar,
+          # ohne 404 aus stderr zu lesen. Die Praefix-Semantik des Endpunkts
+          # (v2.9.0 trifft auch v2.9.0-rc1) filtert select_tag_ref exakt weg.
+          gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${RELEASE_TAG}" > "$refs_json"
+          # Ein annotiertes Tag zeigt im Ref auf das Tag-Objekt; erst dessen
+          # Ziel ist der Commit (siehe resolve_tag_commit).
+          object_sha="$(jq -r --arg r "refs/tags/${RELEASE_TAG}" \
+            '[.[] | select(.ref == $r and .object.type == "tag")] | first | .object.sha // empty' \
+            "$refs_json")"
+          if [ -n "$object_sha" ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" > "$tag_object_json"
+          fi
+          # Schreibt action und candidate_sha nach GITHUB_OUTPUT; ein
+          # abweichender Tag laesst diesen Schritt mit Exit 2 scheitern.
+          python3 scripts/release_contract.py plan-tag \
+            --manifest "${RUNNER_TEMP}/approval/release-approval-manifest.json" \
+            --tag "$RELEASE_TAG" \
+            --matching-refs-json "$refs_json" \
+            --tag-object-json "$tag_object_json"
+
+      # Getrennter Schritt, damit die Verzweigung am maschinenlesbaren
+      # Step-Output haengt statt an der Klartextausgabe des Vertrags. Der Fall
+      # "Tag zeigt bereits richtig" wird dadurch ein sichtbar uebersprungener
+      # Schritt statt eines stillen exit 0.
+      - name: Release-Tag anlegen
+        if: inputs.create_tag && steps.tag-plan.outputs.action == 'create'
+        env:
+          CANDIDATE_SHA: ${{ steps.tag-plan.outputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          # Annotiertes Tag wie in Runbook-Schritt 7: erst das Tag-Objekt, dann
+          # der Ref darauf. Ein reiner Ref-Push erzeugte ein leichtgewichtiges
+          # Tag ohne Datum und Nachricht.
+          tag_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags" \
+            -f tag="$RELEASE_TAG" -f message="Release $RELEASE_TAG" \
+            -f object="$CANDIDATE_SHA" -f type=commit --jq .sha)"
+          gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${RELEASE_TAG}" -f sha="$tag_sha" --jq .ref
+          echo "::notice title=Tag angelegt::$RELEASE_TAG -> $CANDIDATE_SHA (annotiert)."
 
       - name: Kandidaten-Commit fuer Provenienz und Release-Notes auschecken
         uses: actions/checkout@v5
@@ -228,9 +302,11 @@ jobs:
   # NACH "gh release edit --draft=false" entstehen - Draft-Assets sind anonym
   # gar nicht abrufbar, der Verifikationsschritt im publish-Job oben laedt
   # deshalb authentifiziert und belegt genau diesen Anwenderpfad nicht.
-  # Eigener Job aus zwei Gruenden: Nur er traegt "issues: write" (der
-  # publish-Job bleibt bei contents/actions), und sein Asset-Download laeuft
-  # nachweislich ohne Token im Environment.
+  # Eigener Job aus zwei Gruenden: Er traegt "issues: write" (der publish-Job
+  # bleibt bei contents/actions), und sein Asset-Download laeuft nachweislich
+  # ohne Token im Environment. Seit #919 traegt auch update-dispatch dieses
+  # Recht - ebenfalls, weil er wirklich kommentiert. Der Job, der den Release
+  # mutiert, bleibt der einzige ohne jedes Kommentarrecht.
   public-download:
     name: Oeffentlicher Download-Nachweis (PUBLIC-DOWNLOAD-01)
     needs: publish
@@ -366,3 +442,193 @@ jobs:
           }
           gh issue comment "$TARGET_ISSUE" --repo "${GITHUB_REPOSITORY}" \
             --body-file "$REPORT_MD"
+
+  # Stufe 3a aus #919: Die Release-Instanz entsteht nicht mehr per Hand aus
+  # sieben set-criterion-Aufrufen im Runbook, sondern hier - mit genau den
+  # Evidenz-URLs dieses Laufs. Bewusst nur die Kriterien, fuer die dieser Lauf
+  # auch Nachweise hat: Die beiden Post-Release-Update-Kriterien bleiben
+  # PENDING und werden vom Abnahme-Lauf nachgetragen (Stufe 3b), der sie
+  # tatsaechlich erbringt.
+  release-instance:
+    name: Release-Instanz der Publish-Pflichten
+    needs: [publish, public-download]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Bewusst ohne issues: write - dieser Job schreibt Artefakt und
+    # Job-Summary. Kommentiert wird die FINALE Instanz, und die entsteht im
+    # ausgeloesten Abnahme-Lauf (Stufe 3b), nicht hier.
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+      ACCEPTANCE_RUN_ID: ${{ inputs.acceptance_run_id }}
+      APPROVAL_ARTIFACT_NAME: ${{ inputs.approval_artifact_name }}
+      CANDIDATE_SHA: ${{ needs.publish.outputs.candidate_sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      # Die Instanz pinnt Pfad, Version und SHA-256 der Checkliste am
+      # Kandidaten-Commit; set-criterion vergleicht den Dateihash. Ein
+      # spaeterer Checkliste-Merge auf main wuerde die Pflege sonst brechen -
+      # deshalb ausschliesslich die Fassung des Kandidaten.
+      - name: Kandidaten-Commit fuer die gepinnte Checkliste auschecken
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.publish.outputs.candidate_sha }}
+          path: candidate-source
+          persist-credentials: false
+
+      - name: Freigabemanifest nur aus dem Abnahme-Run laden
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.approval_artifact_name }}
+          path: ${{ runner.temp }}/approval
+          run-id: ${{ inputs.acceptance_run_id }}
+          github-token: ${{ github.token }}
+
+      # Eigener Job, eigene Pruefung: Ohne sie wuerde ein untergeschobenes
+      # Manifest hier ungeprueft zur Instanzquelle (dasselbe Argument wie im
+      # Nachweis-Job).
+      - name: Manifestbindung erneut pruefen
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/run-metadata"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN_ID}" \
+            > "${RUNNER_TEMP}/run-metadata/candidate.json"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${ACCEPTANCE_RUN_ID}" \
+            > "${RUNNER_TEMP}/run-metadata/acceptance.json"
+          python3 scripts/release_contract.py verify-approval \
+            --manifest "${RUNNER_TEMP}/approval/release-approval-manifest.json" \
+            --candidate-run-json "${RUNNER_TEMP}/run-metadata/candidate.json" \
+            --acceptance-run-json "${RUNNER_TEMP}/run-metadata/acceptance.json" \
+            --candidate-run-id "$CANDIDATE_RUN_ID" \
+            --acceptance-run-id "$ACCEPTANCE_RUN_ID" \
+            --approval-artifact-name "$APPROVAL_ARTIFACT_NAME" \
+            --tag "$RELEASE_TAG"
+
+      - name: Publish-Pflichten mit den Evidenz-URLs dieses Laufs setzen
+        run: |
+          set -euo pipefail
+          instance_dir="${RUNNER_TEMP}/release-instance"
+          mkdir -p "$instance_dir"
+          instance="${instance_dir}/release-acceptance-instance.json"
+          checklist="candidate-source/docs/RELEASE_ACCEPTANCE_CHECKLIST.md"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          python3 scripts/release_contract.py extract-instance \
+            --manifest "${RUNNER_TEMP}/approval/release-approval-manifest.json" \
+            --output "$instance"
+          for criterion in PUBLISH-01 PUBLISH-02 PUBLISH-03; do
+            python3 scripts/release_contract.py set-criterion \
+              --checklist "$checklist" --instance "$instance" \
+              --criterion "$criterion" --status PASS \
+              --evidence "$run_url" --output "$instance"
+          done
+          # PUBLIC-DOWNLOAD-01 haengt am Bericht des Nachweis-Jobs, nicht an
+          # der blossen Lauf-URL: Die Downloads des publish-Jobs erfolgen
+          # authentifiziert aus dem Draft und belegen den Anwenderpfad nicht.
+          python3 scripts/release_contract.py set-criterion \
+            --checklist "$checklist" --instance "$instance" \
+            --criterion PUBLIC-DOWNLOAD-01 --status PASS \
+            --evidence "$run_url" \
+            --evidence "Artefakt public-download-report-${GITHUB_RUN_ATTEMPT}" \
+            --output "$instance"
+          # Bewusst nur bis 'publish': Die beiden Post-Release-Kriterien sind
+          # hier noch PENDING und wuerden --through-phase post-release zurecht
+          # scheitern lassen. Ihr Nachweis entsteht erst im Abnahme-Lauf.
+          python3 scripts/release_contract.py validate-instance \
+            --checklist "$checklist" --instance "$instance" \
+            --through-phase publish
+          {
+            echo "## Release-Instanz $(jq -r .release_version "$instance") (Publish-Pflichten)"
+            echo
+            echo "| Kriterium | Phase | Status |"
+            echo "|---|---|---|"
+            jq -r '.criteria[] | "| `\(.id)` | \(.phase) | `\(.status)` |"' "$instance"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Release-Instanz als Actions-Artefakt sichern
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-acceptance-instance-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-instance/
+          if-no-files-found: error
+          retention-days: 90
+
+  # Stufe 2 aus #919: Der Post-Release-Update-Nachweis wird hier angestossen
+  # statt in Runbook-Schritt 9 von Hand. Ein mit GITHUB_TOKEN ausgeloester
+  # workflow_dispatch erzeugt tatsaechlich einen Lauf - das ist laut
+  # GitHub-Ereignisreferenz die ausdrueckliche Ausnahme der Rekursionssperre
+  # ("With the exception of workflow_dispatch and repository_dispatch, other
+  # GITHUB_TOKEN-triggered events do not create workflow runs at all").
+  update-dispatch:
+    name: Post-Release-Update-Nachweis anstossen
+    needs: [publish, public-download, release-instance]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Abnahme-Lauf idempotent ausloesen und korrelieren
+        id: dispatch
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+          PREDECESSOR_TAG: ${{ inputs.predecessor_tag }}
+          TARGET_ISSUE: ${{ inputs.target_issue }}
+        run: |
+          set -euo pipefail
+          # Dispatch-Ref ist der Release-Tag: Er existiert an dieser Stelle,
+          # ist unveraenderlich und wurde von verify-approval --tag-sha gegen
+          # candidate.head_sha geprueft. Der Release-Ref aus #918 ist dem
+          # Publish-Lauf nicht als Wert bekannt; der Tag zeigt auf denselben
+          # Commit und traegt dieselbe Bindung.
+          python3 scripts/release_update_dispatch.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$RELEASE_TAG" \
+            --tag "$RELEASE_TAG" \
+            --candidate-run-id "$CANDIDATE_RUN_ID" \
+            --publish-run-id "$GITHUB_RUN_ID" \
+            --predecessor-tag "$PREDECESSOR_TAG" \
+            --target-issue "$TARGET_ISSUE" \
+            --markdown "${RUNNER_TEMP}/update-dispatch/update-dispatch.md"
+
+      - name: Ergebnis als Job-Summary rendern
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          report="${RUNNER_TEMP}/update-dispatch/update-dispatch.md"
+          if [ -f "$report" ]; then
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Kein Dispatch-Protokoll erzeugt; Ursache steht im vorherigen Schritt."
+          fi
+
+      - name: Dispatch-Protokoll als Issue-Kommentar posten
+        if: ${{ !cancelled() && inputs.target_issue != '' }}
+        env:
+          TARGET_ISSUE: ${{ inputs.target_issue }}
+        run: |
+          set -euo pipefail
+          [[ "$TARGET_ISSUE" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::target_issue muss eine positive Issue-Nummer sein."; exit 1; }
+          report="${RUNNER_TEMP}/update-dispatch/update-dispatch.md"
+          test -f "$report" || {
+            echo "::warning::Kein Dispatch-Protokoll zum Posten vorhanden."
+            exit 0
+          }
+          gh issue comment "$TARGET_ISSUE" --repo "${GITHUB_REPOSITORY}" \
+            --body-file "$report"

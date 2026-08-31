@@ -227,3 +227,51 @@ def test_workflow_run_sources_are_documented_at_all_three_places() -> None:
             f"workflow_run-Quellworkflows in {doc} decken sich nicht mit dem "
             f"Trigger: erwartet {sorted(expected)}, gefunden {[sorted(m) for m in segments]}"
         )
+
+
+def test_claude_md_lists_exactly_the_strictly_typed_scripts() -> None:
+    """Handgepflegte Aufzählung gegen ihre Quelle (`pyproject.toml`).
+
+    Für diese Liste gab es – anders als bei der Qt-apt-Paketliste, den
+    Markerlisten oder dem Lizenzdatum – bis #919 keinen Wächter: Ein neues
+    streng getyptes Skript ließ `make check` grün und die Aufzählung still
+    falsch. Geprüft werden Zahlwort **und** Namensmenge, weil ein Eintrag ohne
+    Zahlkorrektur genauso driftet wie umgekehrt.
+    """
+    claude = (_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    pyproject = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+    block = re.search(r'(?ms)^files = \[(.*?)^\]', pyproject)
+    assert block is not None, "mypy-files-Block nicht gefunden"
+    declared = set(re.findall(r'"(scripts/[^"]+\.py)"', block.group(1)))
+    assert declared, declared
+
+    sentence = re.search(
+        r"Strenge gilt für \*\*(\w+)\*\* Skripte:(.*?)– als", claude, flags=re.S
+    )
+    assert sentence is not None, "Satz über die streng getypten Skripte fehlt"
+    listed = set(re.findall(r"`(scripts/[^`]+\.py)`", sentence.group(2)))
+    assert listed == declared, (
+        f"CLAUDE.md nennt {sorted(listed - declared)} zu viel und "
+        f"{sorted(declared - listed)} zu wenig"
+    )
+
+    numerals = {
+        9: "neun", 10: "zehn", 11: "elf", 12: "zwölf", 13: "dreizehn",
+        14: "vierzehn", 15: "fünfzehn",
+    }
+    expected = numerals.get(len(declared))
+    assert expected is not None, (
+        f"{len(declared)} Skripte: Zahlwort in der Testtabelle ergänzen"
+    )
+    assert sentence.group(1) == expected, (
+        f"CLAUDE.md sagt {sentence.group(1)!r}, es sind {len(declared)} ({expected})"
+    )
+
+    # Jedes Skript braucht zusätzlich den Modul-Override (Modulname =
+    # Dateibasisname), sonst greift die Strenge nur über den Dateipfad.
+    override = re.search(r'(?m)^module = \[(.*?)\]$', pyproject)
+    assert override is not None
+    modules = set(re.findall(r'"([^"]+)"', override.group(1)))
+    for path in declared:
+        assert Path(path).stem in modules, f"Modul-Override fehlt für {path}"

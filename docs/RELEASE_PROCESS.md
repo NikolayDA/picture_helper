@@ -51,8 +51,12 @@ ACCEPTANCE_RUN_ID="RUN_ID"
 APPROVAL_ARTIFACT_NAME="release-approval-manifest-1"
 # Erst nach Schritt 8 bekannt – Quelle des PUBLIC-DOWNLOAD-01-Berichts.
 PUBLISH_RUN_ID="RUN_ID"
-# Zuletzt veroeffentlichter Release – Vorgaenger fuer die Update-Kriterien (Schritt 9).
+# Zuletzt veroeffentlichter Release – Vorgaenger fuer die Update-Kriterien.
+# Seit #919 bereits in Schritt 8 gebraucht: Der Publish-Lauf stoesst den
+# Post-Release-Nachweis selbst an.
 PREDECESSOR_TAG="vX.Y.Z"
+# Erst nach Schritt 8 bekannt – der vom Publish-Lauf ausgeloeste Abnahme-Lauf.
+UPDATE_ACCEPTANCE_RUN_ID="RUN_ID"
 ```
 
 ## Ablauf
@@ -316,6 +320,19 @@ bei Schema-/Bindungsfehler Ursache per PR beheben und mit neuem Kandidaten bei S
 **Owner:** Release-Owner.
 **Input:** Tag aus Manifest und dortiger `candidate.head_sha`.
 
+Zwei gleichwertige Wege. Beide setzen denselben annotierten Tag auf denselben
+Commit; der Unterschied ist nur, wer ihn setzt.
+
+**a) Vom Publish-Workflow (Regelfall seit #919).** Diesen Schritt überspringen
+und in Schritt 8 `create_tag=true` mitgeben. Der Workflow legt den Tag **erst
+nach** der vollständigen Manifestprüfung an, ausschließlich auf
+`candidate.head_sha` — nie auf einem Eingabewert und nie auf dem aktuellen
+Checkout. Ein bereits korrekt zeigender Tag wird nur verifiziert
+(Wiederanlauf ist idempotent), ein abweichender bricht ab und wird **nie**
+verschoben.
+
+**b) Von Hand (weiterhin gültig).** Genau der bisherige Ablauf:
+
 ```bash
 CANDIDATE_SHA="VOLLSTAENDIGER_SHA_AUS_DEM_MANIFEST"
 test "$(git rev-parse "$CANDIDATE_SHA")" = "$CANDIDATE_SHA"
@@ -323,6 +340,10 @@ git tag -a "$RELEASE_TAG" "$CANDIDATE_SHA" -m "Release $RELEASE_TAG"
 test "$(git rev-parse "${RELEASE_TAG}^{commit}")" = "$CANDIDATE_SHA"
 git push origin "$RELEASE_TAG"
 ```
+
+In beiden Fällen prüft der Publish-Workflow den Tag anschließend erneut gegen
+`candidate.head_sha` (`verify-approval --tag-sha`). Die Anlage ersetzt diese
+Prüfung nicht, sie kommt dazu.
 
 **Output/Evidenz:** Tag-URL und aufgelöster vollständiger SHA im Issue.
 **Erwartetes Ergebnis:** Tag zeigt bytegenau auf den vom Manifest gebundenen Kandidaten.
@@ -347,6 +368,8 @@ python scripts/release_contract.py verify-release-ref \
   -f candidate_run_id="$CANDIDATE_RUN_ID" \
   -f acceptance_run_id="$ACCEPTANCE_RUN_ID" \
   -f approval_artifact_name="$APPROVAL_ARTIFACT_NAME" \
+  -f create_tag=true \
+  -f predecessor_tag="$PREDECESSOR_TAG" \
   -f target_issue="$RELEASE_ISSUE"
 gh run list --workflow release-publish.yml --branch "$RELEASE_REF" --event workflow_dispatch --limit 5
 ```
@@ -366,10 +389,29 @@ Job-Summary und – bei gesetztem `target_issue` – als Issue-Kommentar. Er ist
 ein eigener Job, weil ein Draft-Asset anonym gar nicht erreichbar ist: Der
 Nachweis kann erst nach `--draft=false` entstehen.
 
-**Output/Evidenz:** Publish-Run-URL, Release-URL, Ergebnis der erneuten Hashprüfung und
-`public-download-report.json` des Nachweis-Jobs.
+`create_tag=true` setzt den Tag (Schritt 7a); wurde er von Hand gesetzt
+(Schritt 7b), ist `create_tag=false` richtig — beide Wege enden in derselben
+Verifikation. `predecessor_tag` steuert den Post-Release-Update-Nachweis: Der
+Lauf stößt `release-abnahme.yml` am Ende selbst an (#919). Leer bleibt er
+zulässig; dann wird der Nachweis sichtbar übersprungen und über den
+Rückfallweg in Schritt 9 nachgezogen. Der Vorgänger wird **nie geraten** —
+`/releases/latest` wäre durch Backfills und Pre-Releases verfälschbar.
+
+Der Lauf hat damit vier Jobs in fester Reihenfolge:
+
+| Job | Ergebnis |
+|---|---|
+| `publish` | Tag (optional), Draft, byteidentischer Upload, Veröffentlichung |
+| `public-download` | `PUBLIC-DOWNLOAD-01` anonym über `browser_download_url` |
+| `release-instance` | Release-Instanz mit `PUBLISH-01..03` + `PUBLIC-DOWNLOAD-01` auf `PASS`, validiert bis `publish` |
+| `update-dispatch` | löst den Abnahme-Lauf für beide Update-Kriterien aus und verlinkt ihn |
+
+**Output/Evidenz:** Publish-Run-URL, Release-URL, Ergebnis der erneuten Hashprüfung,
+`public-download-report.json` des Nachweis-Jobs, Artefakt
+`release-acceptance-instance-<attempt>` und die verlinkte Abnahme-Run-ID des Dispatch-Jobs.
 **Erwartetes Ergebnis:** veröffentlichter, nicht als Draft markierter Release mit exakt fünf Manifestdateien;
-Nachweis-Job grün mit Gesamtverdikt `PASS`.
+Nachweis-Job grün mit Gesamtverdikt `PASS`; Instanz bis `publish` validiert; Update-Nachweis ausgelöst
+oder sichtbar als übersprungen protokolliert.
 **Fehler/Wiederanlauf:** Nicht mit `--clobber` reparieren. Bei leerem Draft darf derselbe Run erneut starten;
 bei partiellem oder abweichendem Draft stoppt der Vertrag. Abschnitt „Rollback und Teilzustände“ anwenden.
 Ein roter Nachweis-Job (Hash-Abweichung, fehlendes Asset, HTTP-Fehler) ist ein Incident: Zuerst den Bericht
@@ -379,7 +421,13 @@ lesen, dann nach „Rollback und Teilzustände“ entscheiden — nie stillschwe
 
 **Trigger:** Schritt 8 ist erfolgreich und der Release ist öffentlich.
 **Owner:** Release-Owner; Update-E2E durch Hardware-Abnahme.
-**Input:** `public-download-report.json` aus Schritt 8, Release-URL und Vorgängerartefakt.
+**Input:** `public-download-report.json` und Release-Instanz aus Schritt 8, Release-URL,
+Run-ID des vom Publish-Lauf ausgelösten Abnahme-Laufs.
+
+Dieser Schritt ist seit #919 im Regelfall **Prüfen und Protokollieren**: Tag,
+Update-Dispatch und Instanzpflege laufen im Publish- bzw. im davon ausgelösten
+Abnahme-Lauf. Die Handprozeduren bleiben als Rückfallwege darunter stehen und
+gelten unverändert, wenn die Automatisierung nicht greifen konnte.
 
 `PUBLIC-DOWNLOAD-01` wird seit #916 nicht mehr von Hand erbracht: Der
 Nachweis-Job aus Schritt 8 hat alle fünf Assets bereits anonym über ihre
@@ -418,12 +466,26 @@ gh api "repos/NikolayDA/picture_helper/releases/tags/${RELEASE_TAG}" \
   --jq '.assets[] | [.name, .browser_download_url] | @tsv'
 ```
 
-Führe danach `UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` gemäß #748/#917
-mit einem echten Vorgängerartefakt aus. Erst jetzt ist das möglich: vor dem Tag
-meldet `/releases/latest` die neue Version nicht. Starte dazu
-`release-abnahme.yml` erneut — mit **derselben** `run_id` wie in Schritt 5 und
-dem Tag des Vorgängers. `platforms` bestimmt, welche der beiden Kriterien der
-Lauf erbringt:
+`UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` (#748/#917) stößt der
+Publish-Lauf seit #919 selbst an, sofern `predecessor_tag` gesetzt war. Der
+Dispatch-Job verlinkt den erzeugten Abnahme-Lauf in der Job-Summary und — bei
+gesetztem `target_issue` — im Release-Issue. Prüfe dort das Ergebnis:
+
+```bash
+gh run view "$PUBLISH_RUN_ID" --json jobs \
+  --jq '.jobs[] | select(.name | startswith("Post-Release")) | .conclusion'
+gh run watch "$UPDATE_ACCEPTANCE_RUN_ID" --exit-status
+```
+
+Der Marker `update-check:<tag>:<candidate_run_id>` macht den Lauf idempotent
+auffindbar: Ein Wiederanlauf des Publish-Laufs löst **keinen** zweiten Nachweis
+aus. Ein fehlgeschlagener Nachweis wird bewusst nicht automatisch wiederholt —
+er ist laut Abschnitt „Rollback und Teilzustände" ein Incident.
+
+**Rückfallweg (nur wenn kein `predecessor_tag` gesetzt war oder der Dispatch
+sichtbar übersprungen wurde):** Starte `release-abnahme.yml` von Hand — mit
+**derselben** `run_id` wie in Schritt 5 und dem Tag des Vorgängers.
+`platforms` bestimmt, welche der beiden Kriterien der Lauf erbringt:
 
 ```bash
 # Beide Kanäle in einem Lauf (Regelfall seit #917):
@@ -476,8 +538,30 @@ Grenzen und die manuelle Ersatzprozedur ohne Runner:
 [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md) §4.2 bzw.
 [PACKAGING_SMOKE.md](PACKAGING_SMOKE.md) §4.1.
 
-Pflege die separate Instanz mit `set-criterion`. Setze zuerst die drei
-automatisierten Publish-Pflichten auf die verknüpfte Publish-Evidenz,
+Die Release-Instanz entsteht seit #919 ebenfalls automatisch, in zwei
+Hälften: Der Publish-Lauf setzt `PUBLISH-01..03` und `PUBLIC-DOWNLOAD-01` mit
+den Evidenz-URLs seines eigenen Laufs (Artefakt
+`release-acceptance-instance-<attempt>`); der von ihm ausgelöste Abnahme-Lauf
+trägt `UPDATE-LINUX-ARM-01`/`UPDATE-MACOS-ARM-01` aus seiner eigenen
+`update_check.json` nach und validiert erstmals `--through-phase post-release`
+(Artefakt `release-acceptance-instance-final-<attempt>`, zusätzlich als
+Issue-Kommentar). Lade die finale Instanz und prüfe sie:
+
+```bash
+gh run download "$UPDATE_ACCEPTANCE_RUN_ID" \
+  --pattern 'release-acceptance-instance-final-*' --dir /tmp/release-instance
+find /tmp/release-instance -name release-acceptance-instance.json \
+  -exec jq -r '.criteria[] | select(.phase != "pre-release")
+    | "\(.id) \(.requirement) \(.status)"' {} +
+```
+
+Erwartet ist `PASS` für alle `MUST`- und `POST_RELEASE`-Kriterien;
+`ROLLBACK-01` (`SHOULD`, manuelle Go-/No-Go-Protokollierung) bleibt in der
+Hand des Release-Owners.
+
+**Rückfallweg (nur ohne automatische Instanz, etwa nach einem
+Einzelplattform-Nachlauf):** Pflege die Instanz von Hand mit `set-criterion` —
+zuerst die drei Publish-Pflichten auf die verknüpfte Publish-Evidenz,
 `PUBLIC-DOWNLOAD-01` auf das anonyme Download- und Hashprotokoll und danach
 `UPDATE-LINUX-ARM-01`/`UPDATE-MACOS-ARM-01` auf den jeweiligen
 Plattform-Nachweis:
@@ -579,6 +663,8 @@ Ablauf; ältere Tag-basierte oder manuelle Veröffentlichungswege sind ungültig
 | **Merge nach `main` während eines laufenden Releases** | **kein Wiederanlauf nötig — der Kandidat liegt auf dem geschützten Release-Ref und bleibt gültig (#918)** | auf den Release-Ref nachschieben, um `main` einzuholen |
 | Release-Ref zeigt nicht auf den Kandidaten-SHA (verwechselt, bewegt) | Ursache klären; bei falschem Ref den richtigen dispatchen, bei bewegtem Ref Kandidat verwerfen und ab Schritt 1 neu | Ref zurücksetzen und so tun, als sei nichts geschehen |
 | Merge nach `main` entfernt oder benennt eine der drei Release-Workflow-Dateien um | Pfad auf `main` per PR wiederherstellen (Datei muss dort existieren, damit `workflow_dispatch` überhaupt auslöst), danach denselben Dispatch auf `$RELEASE_REF` wiederholen — der Kandidat bleibt gültig | Workflow ersatzweise auf `main` starten oder den Ref anpassen |
+| Tag existiert schon und zeigt woanders hin (`create_tag=true`) | Publish bricht ab, bevor etwas veröffentlicht wird; Ursache klären. Sobald ein Release oder ein externer Download existiert, gilt der Hotfix-Pfad mit neuer Patch-Version | Tag verschieben, löschen und neu setzen oder `create_tag=false` als Umgehung nutzen |
+| Update-Dispatch übersprungen (kein `predecessor_tag`) oder Abnahme-Lauf nicht auffindbar | Actions-Übersicht auf einen Lauf mit dem Marker `update-check:<tag>:<run_id>` prüfen; fehlt er, den Rückfallweg aus Schritt 9 von Hand starten | blind ein zweites Mal dispatchen oder die Update-Kriterien ohne Nachweis auf `PASS` setzen |
 | Abnahme-Runner fällt aus oder der Watchdog bricht wegen Offline-Runner ab (#915) | Runner wieder online bringen, neuer Abnahmelauf mit derselben Kandidaten-Run-ID | fehlende Plattform als `PASS` markieren |
 | Fachlicher Hardware-Smoke schlägt fehl | Fix-PR und neuer Kandidat ab Schritt 1 | Waiver für nicht waiverfähiges `MUST` |
 | Kandidaten-/Manifestartefakt nach 90 Tagen abgelaufen | neuer Kandidat ab Schritt 1 | gleichnamiges Artefakt aus anderem Lauf einsetzen |
@@ -613,6 +699,7 @@ nur per PR zusammen mit Checklisten-/Workflow-Tests.
 
 | Datum | Änderung | Referenz |
 |---|---|---|
+| 2026-08-31 | Tag-Anlage (`create_tag`), Post-Release-Update-Dispatch und Release-Instanz laufen im Publish- bzw. im davon ausgelösten Abnahme-Lauf; Schritt 9 ist Prüfen und Protokollieren, die Handprozeduren bleiben Rückfallwege | #919 |
 | 2026-08-30 | Release läuft auf dem unveränderlichen `release/vX.Y.Z`-Ref statt auf `main`; `MAIN_SHA`-Gleichheitsprüfung durch `verify-release-ref` ersetzt, `main` bleibt mergebar; Ref-Anlage anlege-only, Ruleset-Prüfung maschinell, Default-Branch-Voraussetzung von `workflow_dispatch` dokumentiert | #918 |
 | 2026-08-30 | `UPDATE-01` in `UPDATE-LINUX-ARM-01`/`UPDATE-MACOS-ARM-01` geteilt; macOS-Nachweis über den In-Prozess-Hook, `platforms`-Wahl in Schritt 9 beschrieben (Checkliste 2.0.0) | #917 |
 | 2026-08-30 | `PUBLIC-DOWNLOAD-01` als anonymer Nachweis-Job im Publish-Workflow; Schritt 8/9 auf den Bericht umgestellt, Handprozedur bleibt Rückfallweg (Checkliste 1.1.0) | #916 |

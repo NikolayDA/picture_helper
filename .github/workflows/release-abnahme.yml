@@ -11,6 +11,10 @@ name: Release-Abnahme (Self-hosted Hardware)
 # Issue-Kommentar im Aggregations-Job (#646) und der Run-Abbruch im
 # Runner-Watchdog (#915).
 
+run-name: >-
+  Release-Abnahme ${{ inputs.platforms }}${{ inputs.dispatch_marker
+  && format(' [{0}]', inputs.dispatch_marker) || '' }}
+
 on:
   workflow_dispatch:
     inputs:
@@ -32,7 +36,11 @@ on:
         type: boolean
         default: false
       target_issue:
-        description: 'Issue fuer den Kommentar mit der Abschlussmatrix'
+        description: >-
+          Issue fuer den Kommentar mit der Abschlussmatrix. Leer =
+          ausdruecklich kein Kommentar (nur Artefakt und Job-Summary) - der
+          automatisierte Dispatch aus dem Publish-Lauf reicht dessen eigenen,
+          womoeglich leeren Wert durch (#919).
         type: string
         default: '595'
       predecessor_tag:
@@ -42,6 +50,22 @@ on:
           Linux arm64 und macOS arm64. macOS setzt einen Vorgaenger >= 2.7.3
           voraus (In-Prozess-Hook). Leer = Update-Check wird uebersprungen
           (bleibt PENDING statt fabriziert PASS).
+        type: string
+        default: ''
+      dispatch_marker:
+        description: >-
+          Korrelationsmarker des ausloesenden Publish-Laufs (#919, Stufe 2).
+          Er landet im run-name, weil workflow_dispatch keine Run-ID
+          zurueckliefert - erst damit findet der Publish-Lauf den von ihm
+          ausgeloesten Nachweislauf wieder. Leer = manueller Start.
+        type: string
+        default: ''
+      publish_run_id:
+        description: >-
+          Run-ID des Publish-Laufs (#919, Stufe 3). Gesetzt = dieser Lauf
+          zieht dessen Release-Instanz nach, ergaenzt die beiden
+          Post-Release-Kriterien und validiert sie bis post-release.
+          Leer = keine Instanzpflege.
         type: string
         default: ''
 
@@ -534,6 +558,10 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      # actions: read ist fuer den Artefaktbezug aus einem FREMDEN Lauf noetig
+      # (Release-Instanz des Publish-Laufs, #919). Der Job-Block ersetzt die
+      # Workflow-Permissions vollstaendig, der Wert muss hier also stehen.
+      actions: read
       issues: write
     steps:
       - uses: actions/checkout@v5
@@ -659,6 +687,95 @@ jobs:
         if: inputs.platforms != 'alle'
         run: |
           echo "::notice title=Kein Freigabemanifest::Dieser Lauf deckt bewusst nur '${{ inputs.platforms }}' ab (z. B. Runbook-Schritt 9/Update-Nachweis) statt der vollen Drei-Plattform-Matrix und erzeugt daher kein Freigabemanifest. Fuer eine Veroeffentlichung ist ein separater Lauf mit platforms=alle noetig."
+      # Stufe 3b aus #919: Dieser Lauf ist der letzte der Kette und der
+      # einzige, der die beiden Post-Release-Kriterien tatsaechlich erbringt.
+      # Er zieht deshalb die publish-seitige Instanz nach, ergaenzt sie um die
+      # eigenen Update-Check-Befunde und validiert erstmals bis post-release.
+      - name: Release-Instanz des Publish-Laufs laden
+        # !cancelled(): Ein fehlgeschlagener Update-Check macht die
+        # Abschlussmatrix blockierend, create-approval oben bricht dann ab -
+        # und genau in diesem Incident-Fall wird die Instanz mit dem FAIL
+        # gebraucht. Ein gewoehnliches "if" haette sie stillschweigend
+        # uebersprungen (GitHub ergaenzt implizit success()).
+        if: ${{ !cancelled() && inputs.publish_run_id != '' }}
+        uses: actions/download-artifact@v8
+        with:
+          # Bewusst OHNE merge-multiple: Ein wiederholter Publish-Lauf haelt
+          # mehrere Versuchsartefakte mit derselben Datei an der Wurzel; sie in
+          # ein Verzeichnis zu entpacken machte den geltenden Versuch von der
+          # Entpackreihenfolge abhaengig. Das benannte Layout behaelt je
+          # Artefakt ein Verzeichnis, select_instance_payload waehlt daraus
+          # deterministisch den juengsten Versuch (Regel aus #760/#761).
+          pattern: release-acceptance-instance-*
+          path: ${{ runner.temp }}/publish-instance
+          run-id: ${{ inputs.publish_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Post-Release-Kriterien nachtragen und bis post-release validieren
+        if: ${{ !cancelled() && inputs.publish_run_id != '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/release-instance-final"
+          # Die Checkliste dieses Checkouts ist die des Kandidaten-Commits:
+          # candidate-source vergleicht GITHUB_SHA hart mit dem Kandidaten-SHA,
+          # der Dispatch laeuft also zwangslaeufig auf dessen Stand. Die
+          # Instanz pinnt genau diesen Dateihash.
+          python3 scripts/release_contract.py finalize-instance \
+            --checklist "docs/RELEASE_ACCEPTANCE_CHECKLIST.md" \
+            --instance "${RUNNER_TEMP}/publish-instance" \
+            --evidence-dir "${RUNNER_TEMP}/abnahme-evidenz" \
+            --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --output "${RUNNER_TEMP}/release-instance-final/release-acceptance-instance.json" \
+            | tee "${RUNNER_TEMP}/release-instance-final/finalize.log"
+
+      - name: Finale Release-Instanz sichern und rendern
+        # !cancelled() statt success(): Blockiert die Validierung oben (ein
+        # FAIL oder ein noch offenes Kriterium), ist genau diese Instanz die
+        # Evidenz dafuer - sie darf nicht mit dem roten Schritt verschwinden.
+        if: ${{ !cancelled() && inputs.publish_run_id != '' }}
+        run: |
+          set -euo pipefail
+          instance="${RUNNER_TEMP}/release-instance-final/release-acceptance-instance.json"
+          test -f "$instance" || {
+            echo "::warning::Keine finale Release-Instanz erzeugt; Ursache steht im vorherigen Schritt."
+            exit 0
+          }
+          {
+            echo "## Finale Release-Instanz $(jq -r .release_version "$instance")"
+            echo
+            echo "| Kriterium | Phase | Pflichtgrad | Status |"
+            echo "|---|---|---|---|"
+            jq -r '.criteria[] | "| `\(.id)` | \(.phase) | \(.requirement) | `\(.status)` |"' \
+              "$instance"
+          } | tee "${RUNNER_TEMP}/release-instance-final/release-instance.md" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Finale Release-Instanz als Actions-Artefakt sichern
+        if: ${{ !cancelled() && inputs.publish_run_id != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-acceptance-instance-final-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-instance-final/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Finale Release-Instanz als Issue-Kommentar posten
+        if: ${{ !cancelled() && inputs.publish_run_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ISSUE: ${{ inputs.target_issue }}
+        run: |
+          set -euo pipefail
+          report="${RUNNER_TEMP}/release-instance-final/release-instance.md"
+          test -f "$report" || exit 0
+          if [ -z "$TARGET_ISSUE" ]; then
+            echo "::notice title=Kein Issue-Kommentar::target_issue ist leer; Instanz bleibt Artefakt und Job-Summary."
+            exit 0
+          fi
+          [[ "$TARGET_ISSUE" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::target_issue muss leer oder eine positive Issue-Nummer sein."; exit 1; }
+          gh issue comment "$TARGET_ISSUE" --repo "${GITHUB_REPOSITORY}" --body-file "$report"
+
       - name: Matrix als Issue-Kommentar posten
         if: always()
         env:
@@ -666,8 +783,17 @@ jobs:
           TARGET_ISSUE: ${{ inputs.target_issue }}
         run: |
           set -euo pipefail
+          # Leer heisst ausdruecklich "nicht kommentieren" (#919): Der
+          # Publish-Lauf reicht seinen eigenen leeren Wert durch, und dessen
+          # Zusage "Leer = nur Artefakt und Job-Summary" muss auch im
+          # ausgeloesten Lauf gelten. Ein Nicht-Wunsch darf nicht als
+          # Schreibvorgang in ein fremdes Issue enden.
+          if [ -z "$TARGET_ISSUE" ]; then
+            echo "::notice title=Kein Issue-Kommentar::target_issue ist leer; Matrix bleibt Artefakt und Job-Summary."
+            exit 0
+          fi
           if [[ ! "$TARGET_ISSUE" =~ ^[1-9][0-9]*$ ]]; then
-            echo "::error::target_issue muss eine positive Issue-Nummer sein."
+            echo "::error::target_issue muss leer oder eine positive Issue-Nummer sein."
             exit 1
           fi
           gh issue comment "$TARGET_ISSUE" --repo "${GITHUB_REPOSITORY}" \

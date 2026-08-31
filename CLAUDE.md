@@ -557,16 +557,20 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **zehn** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **elf** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
   (#699/#742), `scripts/gl_stress_probe.py` (#684),
   `scripts/release_path_policy.py` (#743), `scripts/release_contract.py`
-  (#744/#747), `scripts/public_download_check.py` (#916) und
+  (#744/#747), `scripts/public_download_check.py` (#916),
+  `scripts/release_update_dispatch.py` (#919) und
   `scripts/recommendations_live_check.py` (#752) – als
   eigenständige Dateien ohne `scripts/__init__.py` explizit per Dateipfad in
   `files` sowie per Modul-Override (Modulname = Dateibasisname) erfasst.
+  `tests/test_process_documentation.py` hält Zahl und Namensliste gegen
+  `pyproject.toml`; ohne diesen Wächter bliebe `make check` grün und die
+  Aufzählung still falsch (Drift-Disziplin).
 - **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit) plus
   `gl_smoke` (Offscreen-3D-Render-Smokes, brauchen einen echten GL-Kontext und
   überspringen sich auf Plattformen ohne renderbaren FBO, z. B. `offscreen`;
@@ -744,12 +748,39 @@ Entscheidung: ADR
 
 - **Unterkommandos:** `prepare-candidate` / `create-approval` /
   `verify-approval` / `verify-release-ref` / `verify-artifacts` /
-  `plan-publish` sowie die
+  `plan-tag` / `plan-publish` sowie die
   Checklisten-Seite `validate-checklist` / `extract-instance` /
-  `set-criterion` / `validate-instance`. `release-abnahme.yml` ruft
-  `prepare-candidate`, `create-approval` und `extract-instance` auf,
-  `release-publish.yml` ausschließlich `verify-approval`, `verify-artifacts`
-  und `plan-publish` (kein Neubau, kein Clobber).
+  `set-criterion` / `finalize-instance` / `validate-instance`.
+  `release-abnahme.yml` ruft `prepare-candidate`, `create-approval`,
+  `extract-instance` und (nur mit `publish_run_id`) `finalize-instance` auf,
+  `release-publish.yml` `verify-approval`, `verify-artifacts`, `plan-tag`,
+  `plan-publish`, `extract-instance`, `set-criterion` und `validate-instance`
+  (kein Neubau, kein Clobber).
+- **Automatisierter Abschluss (#919):** Drei Handgriffe aus Runbook-Schritt 7
+  bis 9 laufen im Workflow, ohne dass eine Prüfung entfällt. `create_tag`
+  legt den annotierten Tag **nach** der Manifestprüfung auf
+  `candidate.head_sha` an — `plan-tag` entscheidet netzfrei aus dem Manifest
+  und `git/matching-refs/tags/<tag>` (immer HTTP 200, leere Liste = fehlt;
+  `select_tag_ref` filtert die **Präfix**-Treffer des Endpunkts exakt weg,
+  annotierte Tags werden vor dem SHA-Vergleich dereferenziert). Ein
+  abweichender Tag bricht ab, wird nie verschoben; der manuelle Weg bleibt
+  gültig. Der Job `update-dispatch` (`scripts/release_update_dispatch.py`,
+  einziger Träger von `actions: write`) startet den
+  Post-Release-Update-Nachweis auf dem Release-Tag: Weil `workflow_dispatch`
+  mit HTTP 204 ohne Run-ID antwortet, kennzeichnet sich der Lauf über
+  `dispatch_marker` im `run-name` und wird per Polling korreliert; der Marker
+  `update-check:<tag>:<candidate_run_id>` ist deterministisch und macht einen
+  Wiederanlauf idempotent (auch ein fehlgeschlagener Nachweis wird nie
+  automatisch wiederholt — er ist ein Incident). Ohne `predecessor_tag` wird
+  sichtbar übersprungen; geraten wird der Vorgänger nie. Die Release-Instanz
+  entsteht in zwei Hälften, jede dort, wo die Evidenz anfällt: der
+  Publish-Lauf setzt `PUBLISH-01..03`/`PUBLIC-DOWNLOAD-01` und validiert bis
+  `publish`, der ausgelöste Abnahme-Lauf trägt beide Update-Kriterien aus
+  seiner `update_check.json` nach (`finalize-instance`, fail-closed: keine
+  Evidenz → `PENDING` ohne Evidenzeintrag, `ok: false` → `FAIL`, unbekanntes
+  Schema → Abbruch) und validiert erstmals `--through-phase post-release`.
+  Beide nutzen die Checkliste des **Kandidaten-Commits**, weil die Instanz
+  deren Dateihash pinnt. Betrieb: [`RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §4.3.
 - **Öffentlicher Download-Nachweis (#916):** `release-publish.yml` trägt nach
   dem Publish einen zweiten Job, der `PUBLIC-DOWNLOAD-01` maschinell erbringt.
   `scripts/public_download_check.py` (Qt-frei, streng getypt, nur
@@ -765,8 +796,9 @@ Entscheidung: ADR
   `public-download-report.json` (Schema 1, `release-public-download`; je Datei
   Name, URL, Größe, SHA-256, Zeitstempel, Ergebnis plus Gesamtverdikt), 90 Tage
   als Artefakt, als Job-Summary gerendert und bei gesetztem `target_issue` als
-  Issue-Kommentar — auch im Fehlerfall. `issues: write` trägt ausschließlich
-  dieser Job. Betrieb: [`RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md)
+  Issue-Kommentar — auch im Fehlerfall. `issues: write` tragen nur
+  die Jobs, die tatsächlich kommentieren (seit #919 zusätzlich
+  `update-dispatch`); der Release-mutierende `publish`-Job trägt es nie. Betrieb: [`RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md)
   §4.1.1, Ablauf: Runbook Schritt 8/9 (die Handprozedur bleibt Rückfallweg).
 - **Versionierte Abnahme-Checkliste (#746):**
   [`docs/RELEASE_ACCEPTANCE_CHECKLIST.md`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md)

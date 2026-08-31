@@ -355,8 +355,11 @@ dem Publish von Hand nachgeholt wurde (#881).
   nennt deshalb beide Ursachen (nicht öffentlich vs. Kontingent), und der
   Wiederanlauf ist ein erneuter Publish-Lauf mit denselben gebundenen Inputs —
   er ist idempotent und meldet `already-complete`.
-- **Berechtigung:** `issues: write` trägt ausschließlich dieser Job; der
-  `publish`-Job bleibt bei `contents: write` und `actions: read`.
+- **Berechtigung:** `issues: write` tragen nur die Jobs, die tatsächlich
+  kommentieren — dieser und seit #919 `update-dispatch`. Der `publish`-Job,
+  der als einziger den Release mutiert, bleibt bei `contents: write` und
+  `actions: read`; `release-instance` kommt mit Leserechten aus, weil er
+  Artefakt und Job-Summary schreibt statt zu kommentieren.
 
 ### 4.2 Post-Release-Update-Nachweis (#748/#917)
 
@@ -366,8 +369,9 @@ sehen; als Pre-Release-Gate wäre der Nachweis logisch unmöglich. Er läuft
 deshalb **nach** Schritt 8 des [Release-Runbooks](RELEASE_PROCESS.md), blockiert
 den Tag nicht und schließt die Veröffentlichung fachlich ab.
 
-**Aufruf.** Denselben `release-abnahme.yml`-Dispatch erneut starten, diesmal mit
-gesetztem `predecessor_tag`:
+**Aufruf.** Seit #919 stößt der Publish-Lauf diesen Dispatch selbst an, sobald
+ihm `predecessor_tag` mitgegeben wurde (Job `update-dispatch`); der manuelle
+Start bleibt der Rückfallweg. In beiden Fällen laufen dieselben Eingaben:
 
 | Eingabe | Wert |
 |---|---|
@@ -442,6 +446,78 @@ Runner die Ausgabe der Teilschritte abfängt. Die Evidenz enthält ausschließli
 **Fehlschlag.** Kein stiller Wiederanlauf: Ein fehlgeschlagenes Update-Kriterium
 ist ein Incident nach Schritt 9 des Runbooks und löst den dort beschriebenen
 Rollback-/Hotfix-Entscheid aus.
+
+### 4.3 Automatisierter Abschluss aus dem Publish-Lauf (#919)
+
+Drei Handgriffe aus Runbook-Schritt 7 bis 9 laufen seitdem im Workflow. Was
+sich **nicht** ändert: Jede Prüfung, die vorher galt, gilt weiter — die
+Automatisierung ersetzt keine Verifikation, sie ersetzt Tipparbeit.
+
+**Tag (`create_tag`, Stufe 1).** Der `publish`-Job legt den annotierten Tag
+**nach** der vollständigen Manifestprüfung auf `candidate.head_sha` an. Die
+Entscheidung trifft `release_contract.py plan-tag` netzfrei aus dem Manifest
+und der Antwort von `git/matching-refs/tags/<tag>`:
+
+| Lage | Ergebnis |
+|---|---|
+| Tag fehlt | `create` — annotiertes Tag-Objekt, dann Ref darauf |
+| Tag zeigt auf `candidate.head_sha` | `already-correct` — Wiederanlauf ist idempotent |
+| Tag zeigt woanders hin | Abbruch; ein Tag wird **nie** verschoben |
+
+`matching-refs` statt `git/ref` ist Absicht: Der Endpunkt antwortet immer mit
+HTTP 200 und einer (ggf. leeren) Liste, "Tag fehlt" ist damit ohne
+404-Sonderfall im Shell vom Fehlerfall unterscheidbar. Weil er per **Präfix**
+sucht, filtert `select_tag_ref` exakt auf `refs/tags/<tag>` — sonst hätte ein
+`v2.9.0-rc1` den Anschein erweckt, `v2.9.0` existiere bereits. Annotierte Tags
+werden vor dem SHA-Vergleich dereferenziert; ihr Ref zeigt auf das Tag-Objekt,
+nicht auf den Commit.
+
+**Update-Dispatch (Stufe 2).** Der Job `update-dispatch` startet
+`release-abnahme.yml` mit `platforms=alle` und dem übergebenen
+`predecessor_tag`. Zwei Eigenschaften tragen ihn:
+
+- **Korrelation.** `workflow_dispatch` antwortet mit HTTP 204 ohne Body, die
+  Run-ID entsteht erst serverseitig. Der Lauf kennzeichnet sich deshalb selbst:
+  `dispatch_marker` landet im `run-name` (dieser darf laut Workflow-Syntax die
+  Kontexte `github` und `inputs` referenzieren), ein kurzes Polling findet ihn
+  über `displayTitle`. Dass ein mit `GITHUB_TOKEN` ausgelöster
+  `workflow_dispatch` überhaupt einen Lauf erzeugt, ist die ausdrückliche
+  Ausnahme der Rekursionssperre: "With the exception of `workflow_dispatch`
+  and `repository_dispatch`, other `GITHUB_TOKEN`-triggered events do not
+  create workflow runs at all".
+- **Idempotenz.** Der Marker `update-check:<tag>:<candidate_run_id>` ist
+  deterministisch und enthält den Publish-Lauf bewusst **nicht**. Ein
+  Wiederanlauf findet den vorhandenen Lauf und dispatcht nicht erneut — auch
+  dann nicht, wenn dieser fehlgeschlagen ist: Ein fehlgeschlagener
+  Update-Nachweis ist ein Incident, kein Wiederholungsfall.
+
+Dispatch-Ref ist der Release-**Tag**. Er existiert an dieser Stelle, ist
+unveränderlich und wurde von `verify-approval --tag-sha` gegen
+`candidate.head_sha` geprüft; der Release-Ref aus #918 ist dem Publish-Lauf
+nicht als Wert bekannt, zeigt aber auf denselben Commit. `actions: write`
+trägt ausschließlich dieser Job.
+
+**Release-Instanz (Stufe 3).** Sie entsteht in zwei Hälften, jede dort, wo die
+Evidenz anfällt:
+
+| Lauf | Kriterien | Validierung |
+|---|---|---|
+| `release-instance` (Publish) | `PUBLISH-01..03`, `PUBLIC-DOWNLOAD-01` → `PASS` | `--through-phase publish` |
+| `aggregation` (ausgelöste Abnahme) | `UPDATE-LINUX-ARM-01`, `UPDATE-MACOS-ARM-01` aus der eigenen `update_check.json` | `--through-phase post-release` |
+
+Der Publish-Lauf kann `post-release` nicht validieren — die beiden
+Update-Kriterien sind dort noch `PENDING`, und
+`validate_release_instance_completion` verlangt für `POST_RELEASE` ein `PASS`.
+Beide Hälften benutzen die Checkliste **des Kandidaten-Commits**, weil die
+Instanz deren Dateihash pinnt.
+
+Die Statusabbildung ist fail-closed: keine Evidenz → `PENDING` (ohne
+Evidenzeintrag, sonst sähe ein nicht erbrachter Nachweis belegt aus),
+`ok: true` → `PASS`, `ok: false` → `FAIL`, unbekanntes Schema → Abbruch. Ein
+`FAIL` blockiert den Abschluss und wird nie auf `WAIVED` gesetzt; die Instanz
+wird trotzdem geschrieben und hochgeladen, weil sie genau dann die Evidenz des
+Fehlschlags ist. Ein Lauf ohne `publish_run_id` lässt die Instanzpflege
+unverändert aus.
 
 ## 5. Pausiert: Linux x86_64 (GPU)
 
