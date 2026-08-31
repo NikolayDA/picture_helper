@@ -856,6 +856,16 @@ Grün-Nachweis: Der Bericht meldet sie als „unvollständig — kein Ergebnis"
 statt als bestanden. Ein abgebrochener Lauf wäre sonst ein Beleg dafür, dass
 der Release-Pfad trägt.
 
+**Einordnung eines roten `verify-candidate`.** Das Freeze-Gate liest
+`docs/history/RELEASE-<version>-scope-freeze.md` zur jeweils aktuellen
+`pyproject`-Version — ein Versionsbump ohne zugehöriges Freeze-Dokument macht
+jeden geplanten Lauf rot. Das ist aber kein Zustand, den `main` erreichen
+kann: `pr-ci.yml` fährt `make pr-check`, und dieses Ziel enthält
+`release-freeze-check` — denselben fail-closed Aufruf. Bump und Freeze-Dokument
+müssen also ohnehin im selben PR landen. Ein rotes `verify-candidate` im
+Dry-Run ist damit **kein** erwarteter Nebeneffekt der Release-Vorbereitung,
+sondern ein Befund.
+
 **Meldeweg — und seine Grenze.** Für den *gefallenen* Ausgang ist auf die
 Actions-Fehlermail Verlass: Der Lauf schließt regulär mit `failure` ab, anders
 als der Heartbeat, den ein offline Runner gar nicht erst abschließen lässt
