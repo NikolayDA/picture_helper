@@ -13,9 +13,14 @@ Drei Eigenschaften tragen dieses Skript, und alle drei sind hier festgehalten:
 from __future__ import annotations
 
 import difflib
+import hashlib
 import json
+import os
 import re
+import shlex
+import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -494,13 +499,23 @@ def test_unknown_paths_are_reported_before_the_candidate_build(fixture_repo: Pat
 
 
 def _stub_gh(directory: Path, *, exit_code: int = 0) -> None:
-    """Legt ein ``gh`` an, das seinen Aufruf protokolliert statt GitHub zu rufen."""
+    """Legt ein ``gh`` an, das seinen Aufruf protokolliert statt GitHub zu rufen.
+
+    Der Body kommt seit #933 als Datei. Der Stub legt sie unter
+    ``$GH_STUB_BODY`` ab – erst das macht den bytegenauen Vergleich möglich.
+    """
     directory.mkdir(parents=True, exist_ok=True)
     stub = directory / "gh"
     stub.write_text(
         "#!/bin/sh\n"
-        'printf "%s\\n" "$@" >> "$GH_STUB_LOG"\n'
-        'cat >> "$GH_STUB_LOG"\n'
+        'previous=""\n'
+        "for argument do\n"
+        '  printf "%s\\n" "$argument" >> "$GH_STUB_LOG"\n'
+        '  if [ "$previous" = "--body-file" ] && [ -n "$GH_STUB_BODY" ]; then\n'
+        '    cp "$argument" "$GH_STUB_BODY"\n'
+        "  fi\n"
+        '  previous="$argument"\n'
+        "done\n"
         f'echo "https://github.com/example/repo/issues/1"\nexit {exit_code}\n',
         encoding="utf-8",
     )
@@ -552,25 +567,59 @@ def test_cli_reports_unknown_paths_as_a_policy_hint(fixture_repo: Path, capsys) 
     assert "unbekannt.xyz" in err
 
 
-def _with_gh_stub(tmp_path: Path, monkeypatch, *, exit_code: int = 0) -> Path:
-    """Setzt einen ``gh``-Stub auf den PATH und liefert seine Protokolldatei."""
-    import os
+#: Die eine ausführbare Zeile, die der Fehlerpfad ausgibt.
+_RESUME_LINE = re.compile(r"(?m)^\s*(cd .+ && gh issue create .+)$")
 
+
+def _resume_command(stderr: str) -> str:
+    """Zieht den ausgegebenen Wiederanlaufbefehl aus der Fehlermeldung."""
+    match = _RESUME_LINE.search(stderr)
+    assert match is not None, stderr
+    return match.group(1)
+
+
+def _worktree_hashes(repo: Path) -> dict[str, str]:
+    """SHA-256 jeder Arbeitsbaumdatei – ``.git`` bleibt außen vor."""
+    return {
+        str(path.relative_to(repo)): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(repo.rglob("*"))
+        if path.is_file() and ".git" not in path.relative_to(repo).parts
+    }
+
+
+def _with_gh_stub(tmp_path: Path, monkeypatch, *, exit_code: int = 0) -> Path:
+    """Setzt einen ``gh``-Stub auf den PATH und liefert seine Protokolldatei.
+
+    Zieht dabei auch die Fallback-Ablage unter die pytest-Aufräumung: Der
+    Fehlerpfad räumt bewusst nicht auf, sonst bliebe je Lauf ein
+    ``bgremover-release-*`` im System-Tempverzeichnis liegen. ``tempfile``
+    cacht ``gettempdir()``, ein gesetztes ``TMPDIR`` wirkte hier also nicht
+    mehr – deshalb direkt ``tempfile.tempdir``.
+    """
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     bin_dir = tmp_path / "bin"
     log = tmp_path / "gh.log"
     _stub_gh(bin_dir, exit_code=exit_code)
     monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
     monkeypatch.setenv("GH_STUB_LOG", str(log))
+    monkeypatch.setenv("GH_STUB_BODY", str(tmp_path / "gh-body.md"))
     return log
 
 
 def test_no_github_call_happens_without_the_opt_in(
-    fixture_repo: Path, tmp_path: Path, monkeypatch
+    fixture_repo: Path, tmp_path: Path, monkeypatch, capsys
 ) -> None:
-    """Nicht-Ziel des Issues: kein automatisches Anlegen ohne expliziten Opt-in."""
+    """Nicht-Ziel des Issues: kein automatisches Anlegen ohne expliziten Opt-in.
+
+    Und ohne Opt-in bleibt es bei der Standardausgabe: Die Ablage aus #933
+    entsteht nur, wenn wirklich ein ``gh``-Aufruf bevorsteht.
+    """
     log = _with_gh_stub(tmp_path, monkeypatch)
     assert pr.main(["9.9.9", "--date", "2026-09-15", "--repo", str(fixture_repo)]) == 0
     assert not log.exists(), "ohne --create-issue darf gh nicht laufen"
+    out = capsys.readouterr().out
+    assert "--- Release-Issue:" in out and "## Gebundener Release-Stand" in out
+    assert "gesichert für den Wiederanlauf" not in out
 
 
 def test_create_issue_passes_title_and_body_to_gh(
@@ -595,8 +644,11 @@ def test_create_issue_passes_title_and_body_to_gh(
     recorded = log.read_text("utf-8")
     assert "issue" in recorded and "create" in recorded
     assert "[Release 9.9.9] Abnahme- und Veröffentlichungsprotokoll" in recorded
-    # Der Body kommt über stdin, nicht als Argument: sonst sprengt er die Kommandozeile.
-    assert "--body-file" in recorded and "## Ziel" in recorded
+    # Der Body kommt als Datei, nicht als Argument: sonst sprengt er die
+    # Kommandozeile. Übergeben wird genau die mit --issue-output erzeugte Datei.
+    assert "--body-file" in recorded and "## Ziel" not in recorded
+    assert str(tmp_path / "issue.md") in recorded
+    assert (tmp_path / "gh-body.md").read_bytes() == (tmp_path / "issue.md").read_bytes()
 
 
 def test_a_failing_gh_is_reported_and_not_swallowed(
@@ -767,6 +819,193 @@ def test_a_failed_issue_creation_names_the_retry_path(
     err = capsys.readouterr().err
     assert "gh issue create" in err and str(issue) in err
     assert issue.is_file(), "die Issue-Datei muss vor dem gh-Aufruf geschrieben sein"
+    # Der Wiederanlauf trägt den mit --repo gewählten Zielkontext: ``gh`` liest
+    # das Zielrepository aus dem Arbeitsverzeichnis.
+    command = _resume_command(err)
+    assert command.startswith(f"cd {shlex.quote(str(fixture_repo))} && gh issue create ")
+
+
+def test_the_default_call_leaves_an_executable_resume(
+    fixture_repo: Path, tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """Der Standardfehlerfall **ohne** ``--issue-output`` (#933).
+
+    Bis dahin verwies die Meldung auf einen Platzhalter statt auf eine Datei:
+    Der Rohstand stand, der gerenderte Issue-Text war nur Standardausgabe, und
+    ein zweiter Skriptlauf bricht ab ("pyproject steht bereits auf ...").
+
+    Der Test führt deshalb **genau** die ausgegebene Zeile aus und vergleicht
+    den übergebenen Body bytegenau mit dem eines sauberen Laufs.
+    """
+    # Vergleichsmaßstab auf einer Kopie – unabhängig von der Datei, die der
+    # Fehlerpfad selbst schreibt (sonst prüfte der Test sich selbst).
+    reference = tmp_path / "reference"
+    shutil.copytree(fixture_repo, reference)
+    expected = tmp_path / "expected.md"
+    assert (
+        pr.main(
+            [
+                "9.9.9",
+                "--date",
+                "2026-09-15",
+                "--repo",
+                str(reference),
+                "--issue-output",
+                str(expected),
+            ]
+        )
+        == 0
+    )
+
+    _with_gh_stub(tmp_path, monkeypatch, exit_code=1)
+    assert (
+        pr.main(["9.9.9", "--date", "2026-09-15", "--repo", str(fixture_repo), "--create-issue"])
+        == 2
+    )
+    err = capsys.readouterr().err
+    command = _resume_command(err)
+    assert command.startswith(f"cd {shlex.quote(str(fixture_repo))} && gh issue create ")
+
+    body_file = Path(shlex.split(command[command.index("gh issue create") :])[-1])
+    assert body_file.is_file(), "der Wiederanlauf darf nur vorhandene Eingaben nennen"
+    # Außerhalb des Arbeitsbaums: im Repository wäre die Ablage ein unbekannter
+    # Pfad und blockierte damit das Freeze-Gate.
+    assert fixture_repo not in body_file.parents
+
+    before = _worktree_hashes(fixture_repo)
+    delivered = tmp_path / "delivered.md"
+    success_bin = tmp_path / "bin-ok"
+    _stub_gh(success_bin)
+    result = subprocess.run(
+        command,
+        # Genau die ausgegebene Zeile, unverändert – das ist der Kern des Tests.
+        shell=True,
+        env={
+            **os.environ,
+            "PATH": f"{success_bin}:{os.environ['PATH']}",
+            "GH_STUB_LOG": str(tmp_path / "resume.log"),
+            "GH_STUB_BODY": str(delivered),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert delivered.read_bytes() == expected.read_bytes()
+    # Idempotent gegenüber den Release-Dateien: der Wiederanlauf legt das Issue
+    # an und sonst nichts.
+    assert _worktree_hashes(fixture_repo) == before
+
+
+def test_a_relative_issue_output_stays_valid_for_gh_and_the_resume(
+    fixture_repo: Path, tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """Relativer ``--issue-output`` (#933-Review).
+
+    Geschrieben wird relativ zum **Prozess-CWD**, ``gh`` läuft aber mit
+    ``cwd=repo``: Unaufgelöst zeigte derselbe Pfad damit auf zwei verschiedene
+    Dateien – und die Wiederanlaufzeile auf gar keine. Der Fallback verdeckte
+    das, weil ``mkdtemp`` absolut liefert.
+    """
+    log = _with_gh_stub(tmp_path, monkeypatch, exit_code=1)
+    workdir = tmp_path / "cwd"
+    workdir.mkdir()
+    monkeypatch.chdir(workdir)
+    assert (
+        pr.main(
+            [
+                "9.9.9",
+                "--date",
+                "2026-09-15",
+                "--repo",
+                str(fixture_repo),
+                "--issue-output",
+                "issue.md",
+                "--create-issue",
+            ]
+        )
+        == 2
+    )
+    written = workdir / "issue.md"
+    assert written.is_file() and not (fixture_repo / "issue.md").exists()
+    # ``gh`` bekommt den absoluten Pfad – sonst suchte es <repo>/issue.md.
+    assert str(written) in log.read_text("utf-8")
+    command = _resume_command(capsys.readouterr().err)
+    body_file = Path(shlex.split(command[command.index("gh issue create") :])[-1])
+    assert body_file == written and body_file.is_file()
+
+
+def test_a_successful_creation_leaves_no_stray_copy(
+    fixture_repo: Path, tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """Die Ablage trägt den Wiederanlauf – nach Erfolg ist sie überflüssig.
+
+    Eine zurückbleibende zweite Fassung des Issue-Texts wäre nur noch eine
+    alternde Kopie dessen, was auf GitHub steht.
+    """
+    _with_gh_stub(tmp_path, monkeypatch)
+    assert (
+        pr.main(["9.9.9", "--date", "2026-09-15", "--repo", str(fixture_repo), "--create-issue"])
+        == 0
+    )
+    out = capsys.readouterr().out
+    saved = re.search(r"(?m)^\s*gesichert für den Wiederanlauf: (.+)$", out)
+    assert saved is not None, out
+    assert "Issue angelegt" in out
+    # Der Body war da, als gh lief – nur die Ablage ist danach weg.
+    assert (tmp_path / "gh-body.md").is_file()
+    fallback = Path(saved.group(1))
+    assert not fallback.exists() and not fallback.parent.exists()
+
+
+def test_the_fallback_never_lands_inside_the_worktree(fixture_repo: Path, monkeypatch) -> None:
+    """``TMPDIR`` im Arbeitsbaum darf die Ablage nicht ins Repository ziehen.
+
+    Sie wäre dort ein unbekannter Pfad, den ein ``git add -A`` mitnimmt – und
+    blockierte damit ausgerechnet das fail-closed Freeze-Gate, das der Rohstand
+    bestehen soll (#933-Review).
+    """
+    inside = fixture_repo / "tmp"
+    inside.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(inside))
+    root = pr.fallback_root(fixture_repo)
+    assert fixture_repo != root and fixture_repo not in root.parents
+
+    path = pr.fallback_issue_path("9.9.9", fixture_repo)
+    assert fixture_repo not in path.parents
+    pr.discard_fallback(path)
+
+
+def test_the_fallback_uses_the_temporary_directory_when_it_is_outside(
+    fixture_repo: Path, tmp_path: Path, monkeypatch
+) -> None:
+    """Der Normalfall bleibt das Tempverzeichnis – nicht der Repo-Elternpfad."""
+    outside = tmp_path / "temp"
+    outside.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(outside))
+    assert pr.fallback_root(fixture_repo) == outside.resolve()
+
+
+def test_the_help_explains_where_the_issue_text_is_kept(capsys) -> None:
+    """Akzeptanzkriterium: Die Hilfe nennt Speicherort und Wiederanlauf."""
+    with pytest.raises(SystemExit):
+        pr.main(["--help"])
+    # argparse bricht die Hilfe auf die Terminalbreite um.
+    help_text = " ".join(capsys.readouterr().out.split())
+    assert "temporäre Datei" in help_text and "Wiederanlauf" in help_text
+    assert "Wiederanlaufbefehl" in help_text
+
+
+def test_the_runbook_describes_the_resume_after_a_github_error() -> None:
+    """Akzeptanzkriterium: Schritt 1 nennt Speicherort und Wiederanlauf."""
+    runbook = (ROOT / "docs" / "RELEASE_PROCESS.md").read_text("utf-8")
+    step_one = runbook.split("### 1. Release vorbereiten", 1)[1].split("### 2. ", 1)[0]
+    # "Wiederanlauf" allein trägt nicht: das Wort steht ohnehin in der
+    # Fehlerzeile jedes Schritts.
+    assert "Wiederanlaufbefehl" in step_one
+    assert "gh issue create" in step_one
+    # Speicherort: beide Fälle – gewählter Pfad und temporäre Ablage.
+    assert "--issue-output" in step_one and "temporär" in step_one
 
 
 def test_an_appstream_entry_that_is_not_first_is_moved_to_the_front() -> None:
