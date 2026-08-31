@@ -19,6 +19,52 @@ sys.modules["abnahme_preflight"] = preflight
 _SPEC.loader.exec_module(preflight)
 
 
+def _check_names() -> list[str]:
+    """Alle Check-Funktionen des Preflights – **automatisch** ermittelt.
+
+    Eine handgepflegte Liste driftet: Der Qt-/GL-Check aus #934 fehlte in der
+    Patch-Liste von ``test_run_preflight_includes_deb_sudo_only_on_linux``,
+    weil es ihn beim Schreiben jenes Tests nicht gab. Der als hermetisch
+    gedachte Lauf baute daraufhin real ein Qt-venv im ``$HOME`` und lud
+    ~100 MB von PyPI, ohne dass ein Test das bemerkt hätte.
+    """
+    return [name for name in dir(preflight) if name.startswith("check_")]
+
+
+@pytest.fixture
+def hermetic_preflight(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Neutralisiert jeden umgebungsberührenden Check von ``run_preflight``."""
+    for name in _check_names():
+        monkeypatch.setattr(preflight, name, lambda *a, **k: None)
+
+
+def test_no_check_escapes_the_hermetic_fixture(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Wächter gegen genau die Drift von #934.
+
+    Kommt ein Check hinzu, den ``_check_names`` nicht erfasst, liefert
+    ``run_preflight`` hier einen anderen Wert als die Markierung – und der
+    nächste „hermetische" Test würde wieder die echte Umgebung anfassen.
+    """
+    marker = "neutralisiert"
+    for name in _check_names():
+        monkeypatch.setattr(preflight, name, lambda *a, **k: marker)
+    for platform in preflight.KNOWN_PLATFORMS:
+        results = preflight.run_preflight(platform)
+        assert results
+        for name, value in results:
+            # `qt-gl` ist hier der Kurzschluss, weil session/gl beanstandet sind.
+            assert value in (marker, preflight.PROBE_SKIPPED), (
+                f"{name} wird von _check_names nicht erfasst"
+            )
+    # Zweiter Durchgang ohne Kurzschluss – sonst bliebe ungeprüft, ob die
+    # Sonde selbst erfasst ist (sie käme nie zum Zug).
+    for name in ("check_graphical_session", "check_gl"):
+        monkeypatch.setattr(preflight, name, lambda *a, **k: None)
+    for platform in preflight.KNOWN_PLATFORMS:
+        values = dict(preflight.run_preflight(platform))
+        assert values["qt-gl"] == marker, f"check_qt_gl nicht erfasst ({platform})"
+
+
 class _Usage:
     def __init__(self, free: int) -> None:
         self.free = free
@@ -93,6 +139,312 @@ def test_check_gl_macos_checks_framework(tmp_path: Path) -> None:
     assert preflight.check_gl("macos-arm64", macos_framework=tmp_path) is None
     error = preflight.check_gl("macos-arm64", macos_framework=tmp_path / "fehlt")
     assert error is not None and "OpenGL-Framework" in error
+
+
+# ── Echter Qt-/GL-Probeaufruf (#934) ───────────────────────────────────
+
+
+def _probe_result(stdout: str = "", stderr: str = "", code: int = 0):
+    return subprocess.CompletedProcess(["probe"], code, stdout, stderr)
+
+
+def _probe_runner(payload: dict | None, *, stderr: str = "", code: int = 0):
+    """Runner, der die Sonde durch ihre JSON-Zeile ersetzt."""
+    import json as _json
+
+    stdout = "" if payload is None else _json.dumps(payload)
+    return lambda *_a, **_kw: _probe_result(stdout, stderr, code)
+
+
+def _check(runner, *, runtime: Path | None = None, **kwargs) -> str | None:
+    return preflight.check_qt_gl(
+        "linux-arm64",
+        ensure_runtime=(lambda: runtime or Path("/usr/bin/python3")),
+        runner=runner,
+        **kwargs,
+    )
+
+
+def test_qt_probe_success_needs_a_real_renderer() -> None:
+    ok = _check(_probe_runner({
+        "ok": True, "platform": "cocoa",
+        "vendor": "Apple", "renderer": "Apple M2", "version": "2.1 Metal",
+    }))
+    assert ok is None
+
+
+def test_qt_probe_reports_a_missing_runtime_by_name() -> None:
+    """Fehlende PyQt-/Qt-Runtime ist ein benannter Befund, kein stiller Skip."""
+    def _no_runtime() -> Path:
+        raise preflight.PreflightError("pip install fehlgeschlagen: no wheel")
+
+    error = preflight.check_qt_gl("linux-arm64", ensure_runtime=_no_runtime)
+    assert error is not None
+    assert "PyQt6/Qt-Runtime nicht ladbar" in error and "no wheel" in error
+
+
+def test_qt_probe_names_each_failing_stage() -> None:
+    """Jede Stufe der Sonde wird als eigener Befund gemeldet."""
+    cases = {
+        "import": "PyQt6/Qt-Runtime nicht ladbar",
+        "plugin": "Natives Qt-Platform-Plugin startet nicht",
+        "kontext": "Kein gueltiger OpenGL-Kontext",
+        "renderer": "Unerwuenschter Software-Renderer",
+    }
+    assert set(cases) == set(preflight.PROBE_STAGE_HINTS)
+    for stage, hint in cases.items():
+        error = _check(_probe_runner(
+            {"ok": False, "stage": stage, "detail": f"detail-{stage}"}, code=1
+        ))
+        assert error is not None and error.startswith(hint), stage
+        assert f"detail-{stage}" in error
+
+
+def test_qt_probe_treats_a_hard_qt_abort_as_a_plugin_failure() -> None:
+    """Qt ruft bei fehlendem Platform-Plugin ``qFatal`` – es gibt kein JSON.
+
+    Real beobachtet (Exit 134/SIGABRT): Ohne diesen Zweig sähe der
+    schwerwiegendste Ausfallmodus wie „keine Ausgabe, also nichts gefunden" aus.
+    """
+    stderr = (
+        'qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in ""\n'
+        "This application failed to start because no Qt platform plugin could "
+        "be initialized.\n"
+        "Available platform plugins are: offscreen, xcb, wayland.\n"
+    )
+    error = _check(_probe_runner(None, stderr=stderr, code=134))
+    assert error is not None
+    assert error.startswith("Natives Qt-Platform-Plugin startet nicht")
+    # Die tragende Zeile darf nicht von der Plugin-Liste verdrängt werden.
+    assert "no Qt platform plugin could be initialized" in error
+
+
+def test_qt_probe_reports_a_timeout_instead_of_hanging() -> None:
+    def _timeout(*_a, **_kw):
+        raise subprocess.TimeoutExpired(["probe"], 90.0)
+
+    error = _check(_timeout, timeout=90.0)
+    assert error is not None and "nach 90s ohne Ergebnis" in error
+
+
+def test_qt_probe_reports_an_unstartable_process() -> None:
+    def _oserror(*_a, **_kw):
+        raise OSError("Permission denied")
+
+    error = _check(_oserror)
+    assert error is not None and "nicht startbar" in error
+
+
+def test_qt_probe_ignores_qt_chatter_before_the_json_line() -> None:
+    """Qt schreibt gern Warnungen auf stdout – die letzte JSON-Zeile zählt."""
+    import json as _json
+
+    noisy = "qt.qpa: irgendeine Warnung\n" + _json.dumps({"ok": True})
+    assert _check(lambda *_a, **_kw: _probe_result(noisy)) is None
+
+
+def test_the_preflight_runs_the_real_probe_on_every_platform(
+    hermetic_preflight: None,
+) -> None:
+    """Kein Plattform-Sonderweg: Der Nachweis gehört zu jedem Readiness-Job.
+
+    Die Aussage ist „``qt-gl`` steht in der Liste, nach ``gl``", nicht „die
+    Sonde läuft" – letzteres prüft ``tests/test_qt_gl_probe.py``.
+    """
+    for platform in preflight.KNOWN_PLATFORMS:
+        names = [name for name, _ in preflight.run_preflight(platform)]
+        assert "qt-gl" in names, platform
+        # Der billige Ladetest bleibt und läuft davor.
+        assert names.index("gl") < names.index("qt-gl"), platform
+
+
+def test_the_probe_is_skipped_but_never_silently_when_session_or_gl_failed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Kurzschluss ohne Auslassung (#937-Review).
+
+    Ohne Sitzung könnte die Sonde nur ``plugin`` melden — die Information
+    steht schon im ``session``-Befund. Der erste Lauf zahlte dafür aber den
+    ~100-MB-Bau der Runtime. Übersprungen heißt hier **nicht** bestanden:
+    Der Eintrag bleibt ein Fehler und zählt in ``main`` mit.
+    """
+    for name in _check_names():
+        monkeypatch.setattr(preflight, name, lambda *a, **k: None)
+    monkeypatch.setattr(preflight, "check_graphical_session", lambda *a, **k: "keine Sitzung")
+
+    def _must_not_run(*_a, **_kw) -> str | None:
+        raise AssertionError("Sonde lief trotz beanstandeter Sitzung")
+
+    monkeypatch.setattr(preflight, "check_qt_gl", _must_not_run)
+    values = dict(preflight.run_preflight("linux-arm64"))
+    assert values["qt-gl"] == preflight.PROBE_SKIPPED
+    assert values["qt-gl"] is not None, "ein Skip darf nie wie ein Erfolg aussehen"
+
+
+# ── Bereitstellung der schlanken Runtime (#934) ────────────────────────
+
+
+def test_probe_requirements_come_from_the_release_constraints() -> None:
+    """Dieselbe Quelle wie das Release-venv – kein zweiter Pin-Stand."""
+    pins = preflight.probe_requirements()
+    assert pins and all(pin.lower().startswith("pyqt6") for pin in pins)
+    assert any(pin.startswith("PyQt6==") for pin in pins)
+
+
+def test_probe_requirements_fail_closed_without_pins(tmp_path: Path) -> None:
+    missing = tmp_path / "fehlt.txt"
+    with pytest.raises(preflight.PreflightError, match="nicht lesbar"):
+        preflight.probe_requirements(missing)
+    empty = tmp_path / "constraints.txt"
+    empty.write_text("# nur ein Kommentar\nPillow==11.0.0\n", encoding="utf-8")
+    with pytest.raises(preflight.PreflightError, match="Keine pyqt6-Pins"):
+        preflight.probe_requirements(empty)
+
+
+def test_a_changed_pin_changes_the_runtime_key() -> None:
+    """Das ist die Aktualisierung bei Dependency-Änderungen: neuer Schlüssel."""
+    old = preflight.probe_runtime_key(["PyQt6==6.7.1"], python_version="3.11")
+    new = preflight.probe_runtime_key(["PyQt6==6.8.0"], python_version="3.11")
+    other_python = preflight.probe_runtime_key(["PyQt6==6.7.1"], python_version="3.12")
+    assert old != new and old != other_python
+    assert old == preflight.probe_runtime_key(["PyQt6==6.7.1"], python_version="3.11")
+
+
+class _FakeBuilder:
+    """Baut das venv wie ``python -m venv`` es täte – ohne Netz."""
+
+    def __init__(self, venv: Path, *, fail_at: str = "") -> None:
+        self.venv = venv
+        self.fail_at = fail_at
+        self.commands: list[list[str]] = []
+
+    def __call__(self, command, **_kwargs):
+        self.commands.append(list(command))
+        if self.fail_at and self.fail_at in " ".join(command):
+            return _probe_result(code=1, stderr="Netzwerkfehler beim Wheel-Download")
+        if "venv" in command:
+            (self.venv / "bin").mkdir(parents=True, exist_ok=True)
+            (self.venv / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
+        return _probe_result()
+
+
+def test_the_runtime_is_built_once_and_then_reused(tmp_path: Path) -> None:
+    venv = tmp_path / "qt"
+    builder = _FakeBuilder(venv)
+    first = preflight.ensure_probe_runtime(
+        venv=venv, requirements=["PyQt6==6.7.1"], runner=builder
+    )
+    assert first == venv / "bin" / "python"
+    built = len(builder.commands)
+    assert built == 2, builder.commands
+    # Wheels statt Quellbau: ein Compilerlauf auf dem Pi spränge jedes Budget.
+    assert any("--only-binary=:all:" in cmd for cmd in builder.commands)
+
+    preflight.ensure_probe_runtime(
+        venv=venv, requirements=["PyQt6==6.7.1"], runner=builder
+    )
+    assert len(builder.commands) == built, "Runtime wurde erneut gebaut"
+
+
+def test_a_changed_pin_rebuilds_the_runtime(tmp_path: Path) -> None:
+    venv = tmp_path / "qt"
+    builder = _FakeBuilder(venv)
+    preflight.ensure_probe_runtime(venv=venv, requirements=["PyQt6==6.7.1"], runner=builder)
+    preflight.ensure_probe_runtime(venv=venv, requirements=["PyQt6==6.8.0"], runner=builder)
+    assert len(builder.commands) == 4, builder.commands
+
+
+def test_a_failed_build_never_looks_fresh(tmp_path: Path) -> None:
+    """Marker erst nach erfolgreicher Installation – sonst bliebe ein halbes
+    venv liegen und der nächste Lauf hielte es für einsatzbereit."""
+    venv = tmp_path / "qt"
+    builder = _FakeBuilder(venv, fail_at="pip")
+    with pytest.raises(preflight.PreflightError, match="Netzwerkfehler"):
+        preflight.ensure_probe_runtime(
+            venv=venv, requirements=["PyQt6==6.7.1"], runner=builder
+        )
+    assert not (venv / preflight.PROBE_MARKER_NAME).exists()
+
+
+def test_a_build_timeout_is_a_named_error(tmp_path: Path) -> None:
+    """Das Budget kommt aus der Quelle, nicht aus einem Literal im Test."""
+    budget = preflight.RUNTIME_BUILD_TIMEOUT_S
+
+    def _timeout(*_a, **_kw):
+        raise subprocess.TimeoutExpired(["venv"], budget)
+
+    with pytest.raises(preflight.PreflightError, match=f"nach {budget:.0f}s abgebrochen"):
+        preflight.ensure_probe_runtime(
+            venv=tmp_path / "qt", requirements=["PyQt6==6.7.1"], runner=_timeout
+        )
+
+
+def test_a_foreign_directory_is_never_deleted(tmp_path: Path) -> None:
+    """``BGREMOVER_PREFLIGHT_VENV`` ist frei setzbar (#937-Review).
+
+    Ein Tippfehler oder ein geerbtes Env (``=$HOME``) machte aus dem Rollover
+    sonst ein rekursives Löschen fremder Daten — und ``ignore_errors=True``
+    schluckte jede Rückmeldung.
+    """
+    foreign = tmp_path / "wichtig"
+    foreign.mkdir()
+    (foreign / "daten.txt").write_text("nicht loeschen", encoding="utf-8")
+    with pytest.raises(preflight.PreflightError, match="keine Preflight-Runtime"):
+        preflight.ensure_probe_runtime(
+            venv=foreign, requirements=["PyQt6==6.7.1"], runner=_FakeBuilder(foreign)
+        )
+    assert (foreign / "daten.txt").is_file()
+
+
+def test_a_real_runtime_is_replaced_on_a_key_change(tmp_path: Path) -> None:
+    """Das Gegenstück: Ein erkennbares venv wird sehr wohl ersetzt."""
+    venv = tmp_path / "qt"
+    builder = _FakeBuilder(venv)
+    preflight.ensure_probe_runtime(venv=venv, requirements=["PyQt6==6.7.1"], runner=builder)
+    assert (venv / "pyvenv.cfg").is_file() or (venv / preflight.PROBE_MARKER_NAME).is_file()
+    preflight.ensure_probe_runtime(venv=venv, requirements=["PyQt6==6.8.0"], runner=builder)
+    assert len(builder.commands) == 4
+
+
+def test_filesystem_errors_become_named_findings(tmp_path: Path, monkeypatch) -> None:
+    """Ein read-only ``$HOME`` darf den Preflight nicht mit Traceback beenden.
+
+    Sonst blieben die noch nicht ausgewerteten Checks (``netz``, ``deb-sudo``)
+    ungemeldet — gegen die Zusage „meldet **alle** Verstöße gesammelt".
+    """
+    venv = tmp_path / "tief" / "qt"
+
+    def _no_mkdir(self, *a, **k):
+        raise OSError("Read-only file system")
+
+    monkeypatch.setattr(Path, "mkdir", _no_mkdir)
+    with pytest.raises(preflight.PreflightError, match="nicht anlegbar"):
+        preflight.ensure_probe_runtime(
+            venv=venv, requirements=["PyQt6==6.7.1"], runner=_FakeBuilder(venv)
+        )
+
+
+def test_an_unwritable_marker_is_a_named_finding(tmp_path: Path, monkeypatch) -> None:
+    venv = tmp_path / "qt"
+    builder = _FakeBuilder(venv)
+    real_write = Path.write_text
+
+    def _fail_marker(self, *a, **k):
+        if self.name == preflight.PROBE_MARKER_NAME:
+            raise OSError("Disk quota exceeded")
+        return real_write(self, *a, **k)
+
+    monkeypatch.setattr(Path, "write_text", _fail_marker)
+    with pytest.raises(preflight.PreflightError, match="nicht schreibbar"):
+        preflight.ensure_probe_runtime(
+            venv=venv, requirements=["PyQt6==6.7.1"], runner=builder
+        )
+
+
+def test_the_runtime_location_is_overridable(tmp_path: Path) -> None:
+    assert preflight.probe_venv_path({}) == preflight.PROBE_VENV_DEFAULT
+    chosen = preflight.probe_venv_path({preflight.PROBE_VENV_ENV: str(tmp_path / "eigen")})
+    assert chosen == tmp_path / "eigen"
 
 
 def test_check_network_counts_http_error_as_reachable() -> None:
@@ -175,14 +527,7 @@ def test_main_passes_when_all_checks_ok(
     assert "::error" not in out
 
 
-def test_run_preflight_includes_deb_sudo_only_on_linux(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # Netz-/Session-/GL-Checks neutralisieren, damit der Test hermetisch bleibt.
-    monkeypatch.setattr(preflight, "check_network", lambda *a, **k: None)
-    monkeypatch.setattr(preflight, "check_graphical_session", lambda *a, **k: None)
-    monkeypatch.setattr(preflight, "check_gl", lambda *a, **k: None)
-    monkeypatch.setattr(preflight, "check_deb_sudo", lambda *a, **k: None)
+def test_run_preflight_includes_deb_sudo_only_on_linux(hermetic_preflight: None) -> None:
     linux_names = [name for name, _ in preflight.run_preflight("linux-arm64")]
     macos_names = [name for name, _ in preflight.run_preflight("macos-arm64")]
     assert "deb-sudo" in linux_names

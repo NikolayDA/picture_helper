@@ -244,6 +244,38 @@ def test_runner_jobs_run_the_hardening_tier_strictly() -> None:
     assert "--hardening-strict" not in acceptance
 
 
+def test_every_readiness_job_can_afford_the_runtime_build() -> None:
+    """#934/#937-Review: Das Baubudget muss in **jedes** Jobbudget passen.
+
+    Der Preflight wird an zwei Orten gerufen — Abnahme und Heartbeat. Ein
+    Budget nur gegen den einen Workflow zu halten wäre genau die Drift, die
+    diese Datei sonst maschinell abfängt: Im Heartbeat stünden die zehn
+    Minuten heute passend da, aber an nichts gebunden. Reicht das Jobbudget
+    nicht, schneidet GitHub den Lauf ab, bevor der benannte Fehler entsteht —
+    der Befund wäre ein nacktes „job timed out".
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "abnahme_preflight_budget", ROOT / "scripts" / "abnahme_preflight.py"
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    budgets: dict[str, int] = {}
+    for workflow in (HEARTBEAT, ACCEPTANCE):
+        for name, job in _jobs(workflow).items():
+            steps = " ".join(str(step.get("run", "")) for step in job.get("steps", []))
+            if "abnahme_preflight.py" in steps:
+                budgets[f"{workflow.name}:{name}"] = int(job["timeout-minutes"])
+    # Beide Workflows, drei Plattformen – der pausierte x86_64-Pfad zählt mit,
+    # weil sein Budget beim Reaktivieren sonst unbemerkt zu klein wäre.
+    assert len(budgets) == 6, budgets
+    for job, minutes in budgets.items():
+        assert minutes * 60 > module.RUNTIME_BUILD_TIMEOUT_S, (job, minutes)
+
+
 def test_the_notification_channel_is_mandatory_not_optional() -> None:
     """Der Issue-Kommentar ist im Offline-Fall der einzige Kanal, der trägt.
 

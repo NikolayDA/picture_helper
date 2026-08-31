@@ -238,9 +238,100 @@ Runnerpflege sind die Eingaben des Abnahme-Jobs:
 läuft je angeforderter Plattform ein Preflight-Job
 (`scripts/abnahme_preflight.py`) auf dem Self-hosted Runner: grafische
 Sitzung, ladbare GL-Bibliothek, freier Speicher (≥ 2 GB), `python3` ≥ 3.10
-mit venv, Netzzugang zu `api.github.com` und unter Linux das eng begrenzte
-`sudo` für den `.deb`-Zyklus (§3) — bewusst ohne venv-Installation, in
-Sekunden; die vollständige Qt-/GL-Probe bleibt Teil der Plattform-Jobs.
+mit venv, Netzzugang zu `api.github.com`, unter Linux das eng begrenzte
+`sudo` für den `.deb`-Zyklus (§3) — und seit #934 ein **echter Qt-/GL-Smoke**
+(siehe unten).
+**Echter Qt-/GL-Probeaufruf im Preflight (#934).** Der ursprüngliche
+Ladetest prüfte nur, ob `libGL.so.1` beziehungsweise das
+macOS-OpenGL-Framework **ladbar** ist. Das fand den real beobachteten Fehler
+„GL-Bibliothek fehlt", belegte aber nicht, dass PyQt6 lädt, dass das native
+Platform-Plugin in der angemeldeten Sitzung startet, dass ein
+`QOpenGLContext` wirklich aktuell wird und dass er auf echter Hardware läuft.
+Ein so defekter Runner bestand den Preflight und fiel erst Minuten später im
+schweren Plattform-Job aus.
+
+`scripts/qt_gl_probe.py` schließt genau diese Lücke: ein eigener Prozess mit
+`QGuiApplication`, `QOffscreenSurface` und `QOpenGLContext`, der den Kontext
+aktuell macht und Vendor/Renderer/Version ausliest. Vier benannte
+Fehlerzustände statt eines pauschalen „Qt kaputt":
+
+| Stufe | Bedeutung |
+|---|---|
+| `import` | PyQt-/Qt-Runtime fehlt oder ist unbrauchbar |
+| `plugin` | natives Platform-Plugin startet nicht (oder Headless erzwungen) |
+| `kontext` | kein gültiger, aktueller GL-Kontext |
+| `renderer` | Software-Rasterizer statt Hardware (`renderer_provenance`) |
+
+Ein Abbruch **ohne** Ergebniszeile ist ebenfalls ein Befund: Qt beendet den
+Prozess bei fehlendem Platform-Plugin hart (`qFatal`, real als SIGABRT
+beobachtet), statt eine Ausnahme zu werfen. Der Preflight wertet das als
+`plugin` und hängt die tragenden stderr-Zeilen an. Damit dieser Zweig der
+**reine** `qFatal`-Fall bleibt, ist die gesamte Qt-Sequenz nach dem
+Anwendungsstart abgesichert: Ein Treiber- oder Bindings-Fehler wird als
+`kontext` gemeldet, nicht als Plugin-Problem.
+
+Akzeptiert werden nur die Platform-Plugins einer echten Desktop-Sitzung
+(`cocoa`, `xcb`, `wayland`, `wayland-egl`) — bewusst eine **Whitelist**. Qt
+liefert unter Linux weitere Plugins ohne Sitzung, die trotzdem
+hardwarebeschleunigt sind (`eglfs`, `minimalegl`, `vnc`, `linuxfb`,
+`vkkhrdisplay`); eine Blacklist aus `offscreen`/`minimal` ließe eine kaputte
+Desktop-Sitzung den Preflight bestehen und erst in den nativen
+Abnahme-Schritten scheitern.
+
+Zwei weitere Regeln übernimmt die Sonde vom Produktivpfad, damit Preflight
+und Artefakt denselben Vertrag prüfen: Ein reiner **OpenGL-ES-Kontext** wird
+abgewiesen (PyQt6 bindet keine ES-Funktionssätze, ADR #591), und Erfolg setzt
+**alle drei** Provenienzfelder voraus — fiele ausgerechnet der Renderer aus,
+hätte die Software-Regel nichts zu bewerten und die Sonde meldete Hardware
+ohne Beleg.
+
+Einen stillen Skip gibt es nicht — ein nicht erbrachter Nachweis ist ein
+Fehler, keine Auslassung. Sind `session` oder `gl` bereits beanstandet, wird
+die Sonde allerdings **übersprungen und das sichtbar als Folgebefund
+ausgewiesen**: Sie könnte dort nur `plugin` melden, und der erste Lauf zahlte
+dafür den vollen Runtime-Bau.
+
+**Woher die Runtime kommt.** Die Sonde läuft **nicht** im Release-venv,
+sondern in einer schlanken Runtime mit nur den Qt-Pins — sonst kostete jeder
+Heartbeat eine vollständige `.[test]`-Installation. Sie liegt unter
+`~/.cache/bgremover/preflight-qt` (überschreibbar über
+`BGREMOVER_PREFLIGHT_VENV`) und trägt einen Marker mit dem Schlüssel aus
+Qt-Pins und Python-Minor:
+
+- Die Pins kommen aus **derselben** `requirements/constraints.txt`, aus der
+  das Release-venv installiert wird. Ein geänderter Pin ändert den Schlüssel
+  und erzwingt den Neubau — das ist die Aktualisierung bei
+  Dependency-Änderungen, ohne dass jemand daran denken muss.
+- Der Marker wird **erst nach** erfolgreicher Installation geschrieben; ein
+  abgebrochener Bau sieht damit nie frisch aus.
+- Installiert wird ausschließlich aus Wheels (`--only-binary=:all:`): Ein
+  Qt-Quellbau auf dem Pi spränge jedes Budget, ein benannter Fehler ist
+  besser als ein stundenlanger Compilerlauf.
+- Fehlende Pins, gescheiterter Bau, Timeout und Dateisystemfehler (read-only
+  `$HOME`, volle Platte) sind benannte Preflight-Fehler (fail-closed), keine
+  Warnungen und kein Traceback — sonst blieben die noch nicht ausgewerteten
+  Checks ungemeldet.
+- Ersetzt wird beim Rollover nur, was erkennbar die eigene Ablage ist
+  (`pyvenv.cfg` oder Marker vorhanden). `BGREMOVER_PREFLIGHT_VENV` ist frei
+  setzbar; ohne diese Schranke machte ein Tippfehler oder ein geerbtes Env
+  aus dem Rollover ein rekursives Löschen fremder Daten.
+
+Zeitbudgets: Der Aufruf selbst hat 90 Sekunden, der einmalige Bau 7 Minuten —
+bewusst kleiner als die `timeout-minutes: 10` der Readiness-Jobs, damit der
+benannte Fehler entsteht, bevor GitHub den Job abschneidet. Nur der erste
+Lauf je Pin-Stand zahlt den Bau.
+
+**Was der schnelle Probeaufruf ausdrücklich *nicht* ersetzt.** Er beweist,
+dass der GUI-/Renderer-Pfad grundsätzlich trägt — nicht, dass das
+**Artefakt** funktioniert. Im Plattform-Job bleiben unverändert: der Start
+der gepackten Artefakte samt Fork-Bomb-/Hänger-Wächter
+(`abnahme_smoke.py`), die GL-Provenance des Artefakts
+(`abnahme_probe.py`), die devicePixelRatio-/Retina-Probe
+(`abnahme_scale_probe.py`), der native 3D-Screenshot mit Sidecar-Nachweis,
+der `.deb`-Zyklus, der EufyMake-/2.7.0-Zusatznachweis und der
+Update-Check-Nachweis. Der Preflight sagt „dieser Runner kann rendern"; die
+Abnahme sagt „dieser Kandidat läuft".
+
 Parallel überwacht ein GitHub-hosted Watchdog (`scripts/abnahme_watchdog.py`)
 die Queue: Steht ein Preflight nach zehn Minuten ohne Runner-Zuweisung,
 beendet er den gesamten Lauf per **force-cancel** mit einer Fehlermeldung,

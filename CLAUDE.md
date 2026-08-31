@@ -557,7 +557,7 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **vierzehn** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **fünfzehn** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
@@ -565,6 +565,7 @@ Ein Paket, `bgremover/`:
   `scripts/release_path_policy.py` (#743), `scripts/release_contract.py`
   (#744/#747), `scripts/prepare_release.py` (#923),
   `scripts/public_download_check.py` (#916),
+  `scripts/qt_gl_probe.py` (#934),
   `scripts/release_update_dispatch.py` (#919),
   `scripts/scan_release_artifacts.py` (#920),
   `scripts/runner_heartbeat.py` (#921) und
@@ -931,7 +932,7 @@ nie), `abnahme_aggregate.py` (Evidenz-Aggregation + Abschlussmatrix;
 kennzeichnet Stände mit blockierenden Lücken seit #915 selbst als „Diagnose –
 kein Abnahmeergebnis") sowie `abnahme_preflight.py`/`abnahme_watchdog.py`
 (#915): je Plattform ein schneller Readiness-Preflight vor den schweren
-Jobs (Session/GL/Speicher/venv/Netz/sudo, ohne venv-Installation) und ein
+Jobs (Session/GL/Speicher/venv/Netz/sudo) und ein
 GitHub-hosted Queue-Watchdog, der den Lauf nach zehn Minuten ohne
 Runner-Zuweisung per force-cancel beendet (GitHub bräche erst nach 24 h ab;
 ein regulärer Cancel ließe die `!cancelled()`-Aggregation weiterlaufen –
@@ -1019,6 +1020,55 @@ Offline-Fall bleibt der Lauf unabgeschlossen (der wartende Job hängt bis zu
 24 h) und endet am Folgetag über `cancel-in-progress` als „cancelled" — die
 Actions-Fehlermail bleibt also genau dann aus, wenn sie gebraucht würde. Der
 Issue-Kommentar der Auswertung ist der einzige Kanal, der rechtzeitig trägt. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7.
+
+### Echter Qt-/GL-Probeaufruf im Preflight (#934)
+
+Der Preflight prüfte anfangs nur, ob `libGL.so.1` bzw. das
+macOS-OpenGL-Framework **ladbar** ist. Das fand den real beobachteten Fehler
+„GL-Bibliothek fehlt", belegte aber nicht, dass PyQt6 lädt, dass das native
+Platform-Plugin in der angemeldeten Sitzung startet, dass ein
+`QOpenGLContext` aktuell wird und dass er auf echter Hardware läuft — ein so
+defekter Runner bestand den Preflight und fiel erst Minuten später im
+schweren Plattform-Job aus.
+
+`scripts/qt_gl_probe.py` ist die Sonde: eigener Prozess mit
+`QGuiApplication`/`QOffscreenSurface`/`QOpenGLContext`, liest
+Vendor/Renderer/Version und meldet **vier benannte** Stufen (`import`,
+`plugin`, `kontext`, `renderer`) als eine JSON-Zeile. Ein Abbruch **ohne**
+diese Zeile ist ebenfalls ein Befund: Qt beendet den Prozess bei fehlendem
+Platform-Plugin hart (`qFatal`, real als SIGABRT beobachtet) — der Preflight
+wertet das als `plugin` und hängt die tragenden stderr-Zeilen an. Einen
+stillen Skip gibt es nicht. Akzeptiert werden nur Sitzungs-Plugins (`cocoa`,
+`xcb`, `wayland`, `wayland-egl`) — eine **Whitelist**, weil Qt unter Linux
+weitere Plugins ohne Sitzung liefert, die trotzdem hardwarebeschleunigt sind
+(`eglfs` & Co.). Die gesamte Qt-Sequenz nach dem Anwendungsstart ist
+abgesichert, damit der „kein JSON"-Zweig der reine `qFatal`-Fall bleibt; ein
+reiner ES-Kontext wird wie im Produktivpfad abgewiesen (ADR #591), und Erfolg
+setzt alle drei Provenienzfelder voraus. Sind `session`/`gl` schon
+beanstandet, wird die Sonde übersprungen und das als Folgebefund ausgewiesen —
+sie könnte dort nur `plugin` melden und zahlte den Runtime-Bau umsonst.
+
+Die Software-Renderer-Regel kommt aus `renderer_provenance` (#642) — geladen
+über den **Dateipfad**, nicht als Paketimport: `bgremover.constants` zöge
+Pillow nach, das die schlanke Runtime bewusst nicht hat. Die GL-Konstanten
+hält `tests/test_qt_gl_probe.py` gegen `preview3d_capability`, damit
+Preflight und Plattform-Job nicht verschiedene Werte auslesen.
+
+Die Runtime ist **nicht** das Release-venv, sondern ein zwischengespeichertes
+venv mit nur den Qt-Pins (`~/.cache/bgremover/preflight-qt`, überschreibbar
+per `BGREMOVER_PREFLIGHT_VENV`). Sein Marker trägt den Schlüssel aus Pins und
+Python-Minor; die Pins kommen aus **derselben** `requirements/constraints.txt`
+wie das Release-venv, ein geänderter Pin erzwingt den Neubau also von selbst.
+Geschrieben wird der Marker erst nach erfolgreicher Installation (ein
+abgebrochener Bau sieht nie frisch aus), installiert wird nur aus Wheels
+(`--only-binary=:all:`; ein Qt-Quellbau auf dem Pi spränge jedes Budget).
+Das Baubudget (7 min) liegt bewusst unter den `timeout-minutes: 10` der
+Readiness-Jobs, damit der benannte Fehler entsteht, bevor GitHub abschneidet.
+
+Der Probeaufruf ersetzt **nichts** aus dem Plattform-Job: Artefaktstart,
+GL-Provenance des Artefakts, devicePixelRatio-Probe, nativer 3D-Screenshot,
+`.deb`-Zyklus und Update-Nachweis bleiben dort. Abgrenzung:
+[`RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §4.1.
 
 ### Dry-Run des Kandidatenpfads (#922)
 

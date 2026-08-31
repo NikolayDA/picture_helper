@@ -225,6 +225,45 @@ def test_approval_manifest_gated_to_full_platform_matrix() -> None:
     assert "platforms=alle" in notice_block
 
 
+def test_the_real_qt_probe_runs_in_every_active_readiness_job(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#934: Der echte Qt-/GL-Probeaufruf gehört in **jeden** Readiness-Job.
+
+    Er hängt nicht an einem Workflow-Schritt, sondern an ``run_preflight`` —
+    damit erfasst er beide Aufruforte (Abnahme und Heartbeat) und alle drei
+    Plattformen ohne kopierte Kommandozeile. Dieser Wächter hält fest, dass
+    genau das so bleibt: Ein Sonderweg, der den Nachweis in einem Job
+    ausließe, wäre still (der Job bliebe grün) und fiele erst im schweren
+    Plattform-Job auf — der Ausfallmodus, den #934 beseitigt.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "abnahme_preflight_wf", ROOT / "scripts" / "abnahme_preflight.py"
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # Ungepatcht bauten diese drei run_preflight-Aufrufe real ein Qt-venv im
+    # ``$HOME`` und lüden ~100 MB von PyPI. Automatisch statt handgepflegt:
+    # Genau eine vergessene Zeile in einer solchen Liste war die Ursache.
+    for name in [attr for attr in dir(module) if attr.startswith("check_")]:
+        monkeypatch.setattr(module, name, lambda *a, **k: None)
+
+    assert (ROOT / "scripts" / "qt_gl_probe.py").is_file()
+    for platform in module.KNOWN_PLATFORMS:
+        names = [name for name, _ in module.run_preflight(platform)]
+        assert "qt-gl" in names, platform
+
+    # Und der Nachweis läuft vor den schweren Jobs, nicht neben ihnen.
+    text = _workflow_text()
+    for platform in ("macos-arm64", "linux-arm64", "linux-x86_64"):
+        assert f"needs: [candidate-source, preflight-{platform}]" in text
+    # Das Jobbudget prueft `tests/test_runner_heartbeat_workflow.py` – dort
+    # fuer **beide** Aufruforte, nicht nur fuer diesen Workflow.
+
+
 def test_workflow_preflight_gates_platform_jobs() -> None:
     """#915: Je Zielplattform läuft ein schneller Readiness-Preflight auf dem
     Self-hosted-Runner, bevor der schwere Abnahme-Job startet."""

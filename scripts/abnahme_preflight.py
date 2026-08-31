@@ -6,11 +6,17 @@ schweren Abnahme-Jobs starten: prüft die realen Einsatzvoraussetzungen aus
 ``docs/RELEASE_AUTOMATION.md`` §1–§2.1 und meldet **alle** Verstöße gesammelt
 als ``::error``-Annotationen, statt beim ersten abzubrechen.
 
-Bewusst nur Standardbibliothek: ein echter Qt-Aufruf bräuchte das
-PyQt6-venv (Minuten statt Sekunden). Der GL-Ladetest plus Session-Prüfung
-deckt die real beobachteten Ausfallmodi ab (headless gestarteter Dienst,
-fehlende GL-Bibliotheken); die vollständige Qt-/GL-Probe bleibt Teil der
-Plattform-Jobs (``abnahme_probe.py``) und wird hier nicht ersetzt.
+Der Preflight selbst kommt mit der Standardbibliothek aus. Die eine
+Ausnahme ist seit #934 der **echte Qt-/GL-Probeaufruf**: Der reine GL-Ladetest
+fand zwar den real beobachteten Fehler „GL-Bibliothek fehlt", belegte aber
+nicht, dass PyQt6 lädt, das native Platform-Plugin in der angemeldeten Sitzung
+startet, ein ``QOpenGLContext`` aktuell wird und der Kontext auf echter
+Hardware läuft — ein so defekter Runner bestand den Preflight und fiel erst
+Minuten später im Plattform-Job aus. Die Sonde (``qt_gl_probe.py``) läuft
+deshalb in einer **schlanken, zwischengespeicherten Runtime** mit nur PyQt6,
+nicht im Release-venv; gebaut wird sie einmal je Pin-Stand, danach kostet der
+Aufruf Sekunden. Die vollständige native Abnahme (E2E, Screenshots,
+``abnahme_probe.py``) bleibt unverändert Sache der Plattform-Jobs.
 
 Der zugehörige Queue-Watchdog (``abnahme_watchdog.py``) bricht den Lauf ab,
 wenn dieser Preflight mangels Online-Runner gar nicht erst startet.
@@ -21,6 +27,8 @@ import argparse
 import ctypes
 import ctypes.util
 import getpass
+import hashlib
+import json
 import os
 import plistlib
 import re
@@ -33,6 +41,11 @@ from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 from typing import Protocol
 
+
+class PreflightError(RuntimeError):
+    """Abbruchgrund der Runtime-Bereitstellung (nie stillschweigend geheilt)."""
+
+
 MIN_PYTHON = (3, 10)
 MIN_FREE_GB = 2.0
 NETWORK_TIMEOUT_S = 10.0
@@ -43,6 +56,29 @@ MACOS_OPENGL_FRAMEWORK = Path("/System/Library/Frameworks/OpenGL.framework")
 # (RELEASE_AUTOMATION §3): geprüft wird nur die Berechtigung (``sudo -l``),
 # ausgeführt wird nichts.
 DEB_SUDO_CHECKS = (("apt-get", ("install", "bgremover")), ("dpkg", ("-r", "bgremover")))
+
+# ── Echter Qt-/GL-Probeaufruf (#934) ───────────────────────────────────
+REPO_ROOT = Path(__file__).resolve().parent.parent
+PROBE_SCRIPT = REPO_ROOT / "scripts" / "qt_gl_probe.py"
+CONSTRAINTS_PATH = REPO_ROOT / "requirements" / "constraints.txt"
+# Die Sonde braucht genau die Qt-Pins des Releases – mehr nicht. Sie aus
+# derselben Datei zu ziehen, aus der das Release-venv installiert wird, ist
+# die Aktualisierung bei Dependency-Aenderungen: Ein geaenderter Pin aendert
+# den Schluessel und erzwingt den Neubau, ohne dass jemand daran denken muss.
+PROBE_REQUIREMENT_PREFIX = "pyqt6"
+# Ablage der schlanken Runtime. Bewusst ausserhalb des Arbeitsbaums (ein
+# Verzeichnis im Checkout waere bei jedem Lauf weg) und ueberschreibbar,
+# damit Tests und Sonderfaelle nicht am Home des Runners haengen.
+PROBE_VENV_ENV = "BGREMOVER_PREFLIGHT_VENV"
+PROBE_VENV_DEFAULT = Path.home() / ".cache" / "bgremover" / "preflight-qt"
+PROBE_MARKER_NAME = ".preflight-key"
+# Zeitbudgets: Der Aufruf selbst ist kurz; der einmalige Bau der Runtime darf
+# laenger dauern (Qt-Wheels sind ~100 MB und werden auf dem Pi entpackt).
+PROBE_TIMEOUT_S = 90.0
+# Bewusst kleiner als ``timeout-minutes`` der Readiness-Jobs (10): Ein zu
+# grosses Budget liesse GitHub den Job abschneiden, bevor der benannte Fehler
+# ueberhaupt entsteht – und der Befund waere ein nacktes "job timed out".
+RUNTIME_BUILD_TIMEOUT_S = 420.0
 
 # ── Geraete-Haertung (#921) ────────────────────────────────────────────
 # Zwei Befunde aus den offiziellen Runner-Vorlagen (actions/runner, main):
@@ -190,6 +226,229 @@ def check_gl(
             f"GL-Bibliothek {candidate!r} nicht ladbar ({exc}) – "
             "Qt-Systembibliotheken der Desktop-Session prüfen."
         )
+    return None
+
+
+def probe_requirements(constraints: Path = CONSTRAINTS_PATH) -> list[str]:
+    """Die Qt-Pins aus ``requirements/constraints.txt`` – Quelle des Releases.
+
+    Fail-closed: Fehlt die Datei oder enthaelt sie keine Qt-Zeile, ist das ein
+    Fehler und keine leere Installation. Eine Runtime "ohne Qt" wuerde sonst
+    gebaut und die Sonde meldete danach ``import`` – der wahre Grund (die
+    Pins sind unauffindbar) waere verloren.
+    """
+    try:
+        text = constraints.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise PreflightError(f"Qt-Pins nicht lesbar ({constraints}): {exc}") from exc
+    pins = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip().lower().startswith(PROBE_REQUIREMENT_PREFIX)
+        and not line.lstrip().startswith("#")
+    ]
+    if not pins:
+        raise PreflightError(f"Keine {PROBE_REQUIREMENT_PREFIX}-Pins in {constraints}.")
+    return sorted(pins)
+
+
+def probe_runtime_key(requirements: Iterable[str], *, python_version: str = "") -> str:
+    """Kennung des Runtime-Standes: Pins + Interpreterversion.
+
+    Die Interpreterversion gehoert dazu, weil ein venv an seine Python-Minor
+    gebunden ist – nach einem Systemupdate zeigt der Cache sonst auf ein venv,
+    dessen Interpreter es nicht mehr gibt.
+    """
+    version = python_version or f"{sys.version_info[0]}.{sys.version_info[1]}"
+    payload = "\n".join([version, *requirements])
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def probe_venv_path(env: Mapping[str, str] = os.environ) -> Path:
+    """Ablageort der schlanken Runtime (ueberschreibbar)."""
+    override = env.get(PROBE_VENV_ENV, "").strip()
+    return Path(override).expanduser() if override else PROBE_VENV_DEFAULT
+
+
+def venv_python(venv: Path) -> Path:
+    return venv / "bin" / "python"
+
+
+def ensure_probe_runtime(
+    *,
+    venv: Path | None = None,
+    requirements: list[str] | None = None,
+    runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    build_timeout: float = RUNTIME_BUILD_TIMEOUT_S,
+) -> Path:
+    """Liefert den Interpreter der schlanken Qt-Runtime; baut sie bei Bedarf.
+
+    Der Marker traegt den Schluessel aus :func:`probe_runtime_key` und wird
+    **erst nach** erfolgreicher Installation geschrieben: Ein abgebrochener
+    Bau sieht damit nie frisch aus, sondern wird beim naechsten Lauf
+    wiederholt. Geaenderte Pins aendern den Schluessel und erzwingen denselben
+    Weg – das ist die dokumentierte Aktualisierung bei Dependency-Aenderungen.
+
+    Wirft :class:`PreflightError`; ein stiller Skip existiert nicht.
+    """
+    target = probe_venv_path() if venv is None else venv
+    pins = probe_requirements() if requirements is None else requirements
+    key = probe_runtime_key(pins)
+    marker = target / PROBE_MARKER_NAME
+    interpreter = venv_python(target)
+    if interpreter.exists() and marker.is_file():
+        try:
+            if marker.read_text(encoding="utf-8").strip() == key:
+                return interpreter
+        except OSError:  # Marker unlesbar: neu bauen statt raten
+            pass
+
+    # Ein vorhandener, aber veralteter Baum wird ersetzt, nicht ergaenzt:
+    # ``pip install`` in ein venv mit anderem Pin liesse die alte Version
+    # moeglicherweise stehen. Geloescht wird aber **nur**, was erkennbar
+    # unsere Ablage ist: ``BGREMOVER_PREFLIGHT_VENV`` ist frei setzbar, und
+    # ein Tippfehler oder ein geerbtes Env (``=$HOME``) machte aus dem
+    # Rollover sonst ein rekursives Loeschen fremder Daten.
+    if target.exists():
+        if not (target / "pyvenv.cfg").is_file() and not (target / PROBE_MARKER_NAME).is_file():
+            raise PreflightError(
+                f"{target} ist keine Preflight-Runtime (weder pyvenv.cfg noch "
+                f"{PROBE_MARKER_NAME}) – wird nicht geloescht. "
+                f"{PROBE_VENV_ENV} pruefen."
+            )
+        shutil.rmtree(target, ignore_errors=True)
+    # Dateisystemfehler (read-only $HOME, volle Platte, falsche Rechte) sind
+    # benannte Befunde. Ungefangen fielen sie durch ``run_preflight`` bis in
+    # ``main()`` und beendeten den Job mit einem Traceback – die noch nicht
+    # ausgewerteten Checks (netz, deb-sudo) waeren nie gemeldet worden,
+    # entgegen der Zusage "meldet alle Verstoesse gesammelt".
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise PreflightError(f"Ablage {target.parent} nicht anlegbar: {exc}") from exc
+    _run_build([sys.executable, "-m", "venv", str(target)], runner, build_timeout, "venv")
+    _run_build(
+        [
+            str(interpreter), "-m", "pip", "install",
+            "--disable-pip-version-check", "--no-input",
+            # Qt aus Quellen zu bauen sprengte jedes Budget – lieber ein
+            # benannter Fehler als ein stundenlanger Compilerlauf auf dem Pi.
+            "--only-binary=:all:",
+            *pins,
+        ],
+        runner, build_timeout, "pip",
+    )
+    if not interpreter.exists():
+        raise PreflightError(f"Runtime gebaut, aber {interpreter} fehlt.")
+    try:
+        marker.write_text(key, encoding="utf-8")
+    except OSError as exc:
+        raise PreflightError(f"Marker {marker} nicht schreibbar: {exc}") from exc
+    return interpreter
+
+
+def _run_build(
+    command: list[str],
+    runner: Callable[..., subprocess.CompletedProcess[str]],
+    timeout: float,
+    label: str,
+) -> None:
+    """Ein Bauschritt der Runtime; jeder Fehlausgang ist ein Abbruchgrund."""
+    try:
+        result = runner(command, capture_output=True, text=True, timeout=timeout, check=False)
+    except subprocess.TimeoutExpired:
+        raise PreflightError(
+            f"Aufbau der Qt-Runtime ({label}) nach {timeout:.0f}s abgebrochen."
+        ) from None
+    except OSError as exc:
+        raise PreflightError(f"Aufbau der Qt-Runtime ({label}) nicht startbar: {exc}") from exc
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip().splitlines()
+        tail = detail[-1] if detail else f"Exit {result.returncode}"
+        raise PreflightError(f"Aufbau der Qt-Runtime ({label}) fehlgeschlagen: {tail}")
+
+
+#: Folgebefund statt stiller Auslassung: Ohne Sitzung oder GL-Bibliothek kann
+#: die Sonde nur ``plugin`` melden – die Information steht schon im
+#: vorangehenden Befund. Der erste Lauf zahlte dafuer aber den ~100-MB-Bau der
+#: Runtime. Uebersprungen heisst hier **nicht** bestanden.
+PROBE_SKIPPED = (
+    "Uebersprungen – Sitzung/GL sind bereits beanstandet; der Nachweis ist "
+    "damit nicht erbracht. Nach deren Behebung erneut laufen lassen."
+)
+
+#: Fehlertexte je benannter Sonden-Stufe. Der Preflight meldet damit einen
+#: konkreten Befund statt „irgendwas mit Qt".
+PROBE_STAGE_HINTS: Mapping[str, str] = {
+    "import": "PyQt6/Qt-Runtime nicht ladbar",
+    "plugin": "Natives Qt-Platform-Plugin startet nicht",
+    "kontext": "Kein gueltiger OpenGL-Kontext",
+    "renderer": "Unerwuenschter Software-Renderer",
+}
+
+
+def check_qt_gl(
+    platform: str,
+    *,
+    ensure_runtime: Callable[[], Path] = ensure_probe_runtime,
+    runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    timeout: float = PROBE_TIMEOUT_S,
+    probe_script: Path = PROBE_SCRIPT,
+) -> str | None:
+    """Echter Qt-/GL-Smoke in der realen grafischen Sitzung (#934).
+
+    Startet die Sonde als eigenen Prozess in der schlanken Runtime. Der
+    Prozess kann auf zwei Weisen scheitern, und beide sind Befunde: mit
+    JSON-Ergebnis und benannter Stufe – oder ohne, weil Qt bei fehlendem
+    Platform-Plugin ``qFatal`` ruft und den Prozess hart beendet. Ein
+    ausgelassener Nachweis ist nie ein Erfolg.
+    """
+    del platform  # dieselbe Prüfung auf beiden Plattformen
+    try:
+        interpreter = ensure_runtime()
+    except PreflightError as exc:
+        return f"{PROBE_STAGE_HINTS['import']}: {exc}"
+    try:
+        result = runner(
+            [str(interpreter), str(probe_script)],
+            capture_output=True, text=True, timeout=timeout, check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return (
+            f"Qt-/GL-Probe nach {timeout:.0f}s ohne Ergebnis abgebrochen – "
+            "haengende Sitzung oder blockierender Treiber."
+        )
+    except OSError as exc:
+        return f"Qt-/GL-Probe nicht startbar ({exc})."
+
+    payload = _last_json_line(result.stdout or "")
+    if payload is None:
+        # Real beobachtet: Qt beendet den Prozess mit SIGABRT und schreibt die
+        # Ursache ueber mehrere Zeilen ("Could not load the Qt platform
+        # plugin", danach die Liste der verfuegbaren Plugins). Die letzte
+        # Zeile allein waere die Liste - also die letzten drei.
+        tail = [line for line in (result.stderr or "").strip().splitlines() if line.strip()]
+        reason = " | ".join(tail[-3:]) if tail else f"Exit {result.returncode}, keine Ausgabe"
+        return f"{PROBE_STAGE_HINTS['plugin']}: {reason}"
+    if payload.get("ok"):
+        return None
+    stage = str(payload.get("stage") or "")
+    hint = PROBE_STAGE_HINTS.get(stage, "Qt-/GL-Probe fehlgeschlagen")
+    return f"{hint}: {payload.get('detail') or 'ohne Detail'}"
+
+
+def _last_json_line(stdout: str) -> dict[str, object] | None:
+    """Letzte JSON-Zeile der Ausgabe (Qt schreibt gern Warnungen davor)."""
+    for line in reversed(stdout.strip().splitlines()):
+        candidate = line.strip()
+        if not candidate.startswith("{"):
+            continue
+        try:
+            value = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            return value
     return None
 
 
@@ -433,12 +692,18 @@ def run_preflight(
     platform: str, *, min_free_gb: float = MIN_FREE_GB,
 ) -> list[tuple[str, str | None]]:
     """Alle Checks der Plattform ausführen; je Check ``(name, fehler-oder-None)``."""
+    session = check_graphical_session(platform, os.environ)
+    gl = check_gl(platform)
     checks: list[tuple[str, str | None]] = [
         ("python", check_python()),
         ("venv", check_venv()),
         ("speicher", check_disk(Path.cwd(), min_free_gb)),
-        ("session", check_graphical_session(platform, os.environ)),
-        ("gl", check_gl(platform)),
+        ("session", session),
+        ("gl", gl),
+        # Kurzschluss statt Doppelbefund: Ohne Sitzung oder GL koennte die
+        # Sonde nur "plugin" melden – und zahlte dafuer beim ersten Lauf den
+        # vollen Runtime-Bau.
+        ("qt-gl", PROBE_SKIPPED if (session or gl) else check_qt_gl(platform)),
         ("netz", check_network(default_api_url())),
     ]
     if platform != MACOS_PLATFORM:
