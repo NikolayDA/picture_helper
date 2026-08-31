@@ -211,7 +211,14 @@ def test_an_undetectable_run_fails_loudly_instead_of_reporting_success() -> None
     assert len(gh.calls) == 3
 
 
-def test_target_issue_is_omitted_when_empty(tmp_path: Path) -> None:
+def test_empty_target_issue_is_passed_through_instead_of_omitted(tmp_path: Path) -> None:
+    """Weglassen liesse den Default 595 des Abnahme-Laufs greifen.
+
+    Der Publish-Lauf sagt fuer den leeren Wert ausdruecklich "nur Artefakt und
+    Job-Summary" zu. Wuerde das Feld weggelassen, kommentierte der ausgeloeste
+    Lauf Abschlussmatrix und finale Instanz in Issue 595 - ein Schreibvorgang
+    nach aussen, der aus einer Nicht-Angabe entsteht.
+    """
     gh = FakeGh([[], [_run_entry()]])
     rud.run(
         repo=REPO, ref=REF, tag=TAG, candidate_run_id=CANDIDATE_RUN,
@@ -219,7 +226,7 @@ def test_target_issue_is_omitted_when_empty(tmp_path: Path) -> None:
         markdown=tmp_path / "report.md", runner=gh, sleep=lambda _s: None,
     )
     (dispatch,) = gh.dispatches
-    assert not any(part.startswith("target_issue=") for part in dispatch)
+    assert "target_issue=" in dispatch, dispatch
 
 
 def test_cli_reports_failures_as_exit_two(tmp_path: Path, capsys) -> None:

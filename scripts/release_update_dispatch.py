@@ -170,6 +170,14 @@ def dispatch_acceptance_run(
     (``UPDATE-LINUX-ARM-01`` und ``UPDATE-MACOS-ARM-01``) entstehen nur in einem
     Lauf ueber beide Plattformen; ein Einzelplattform-Lauf liesse das jeweils
     andere Kriterium ``PENDING`` zurueck.
+
+    ``target_issue`` wird **immer** uebergeben, auch leer. Wuerde es beim
+    leeren Wert weggelassen, griffe im ausgeloesten Lauf dessen eigener
+    Default (``595``) - der Release-Owner hat den Kommentar im Publish-Lauf
+    aber ausdruecklich abgewaehlt ("Leer = nur Artefakt und Job-Summary"), und
+    aus dieser Nicht-Angabe duerfte kein Schreibvorgang in ein fremdes Issue
+    werden. Der Abnahme-Lauf behandelt den leeren Wert seit #919 als
+    ausdrueckliches "nicht kommentieren".
     """
     args = [
         "workflow", "run", ACCEPTANCE_WORKFLOW, "--repo", repo, "--ref", ref,
@@ -179,9 +187,8 @@ def dispatch_acceptance_run(
         "-f", f"predecessor_tag={predecessor_tag}",
         "-f", f"dispatch_marker={marker}",
         "-f", f"publish_run_id={publish_run_id}",
+        "-f", f"target_issue={target_issue}",
     ]
-    if target_issue:
-        args += ["-f", f"target_issue={target_issue}"]
     runner(args)
 
 

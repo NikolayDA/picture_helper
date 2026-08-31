@@ -63,7 +63,15 @@ def test_aggregation_job_scoped_and_posts() -> None:
     assert "default: '595'" in text
     assert "TARGET_ISSUE: ${{ inputs.target_issue }}" in text
     assert 'gh issue comment "$TARGET_ISSUE"' in text
-    assert "target_issue muss eine positive Issue-Nummer sein" in text
+    # Seit #919 ist ein leeres target_issue ausdruecklich "nicht kommentieren"
+    # statt Abbruch: Der automatisierte Dispatch aus dem Publish-Lauf reicht
+    # dessen eigenen, womoeglich leeren Wert durch, und dessen Zusage "Leer =
+    # nur Artefakt und Job-Summary" muss auch hier gelten. Ein Muell-Wert
+    # bricht weiterhin ab.
+    assert "target_issue muss leer oder eine positive Issue-Nummer sein" in text
+    assert text.count('if [ -z "$TARGET_ISSUE" ]; then') == 2, (
+        "Beide Kommentar-Schritte muessen den leeren Wert sichtbar ueberspringen"
+    )
     for script in ("abnahme_aggregate.py", "abnahme_vision_check.py"):
         assert (ROOT / "scripts" / script).is_file(), f"{script} fehlt"
 

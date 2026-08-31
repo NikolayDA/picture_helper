@@ -36,7 +36,11 @@ on:
         type: boolean
         default: false
       target_issue:
-        description: 'Issue fuer den Kommentar mit der Abschlussmatrix'
+        description: >-
+          Issue fuer den Kommentar mit der Abschlussmatrix. Leer =
+          ausdruecklich kein Kommentar (nur Artefakt und Job-Summary) - der
+          automatisierte Dispatch aus dem Publish-Lauf reicht dessen eigenen,
+          womoeglich leeren Wert durch (#919).
         type: string
         default: '595'
       predecessor_tag:
@@ -688,17 +692,27 @@ jobs:
       # Er zieht deshalb die publish-seitige Instanz nach, ergaenzt sie um die
       # eigenen Update-Check-Befunde und validiert erstmals bis post-release.
       - name: Release-Instanz des Publish-Laufs laden
-        if: inputs.publish_run_id != ''
+        # !cancelled(): Ein fehlgeschlagener Update-Check macht die
+        # Abschlussmatrix blockierend, create-approval oben bricht dann ab -
+        # und genau in diesem Incident-Fall wird die Instanz mit dem FAIL
+        # gebraucht. Ein gewoehnliches "if" haette sie stillschweigend
+        # uebersprungen (GitHub ergaenzt implizit success()).
+        if: ${{ !cancelled() && inputs.publish_run_id != '' }}
         uses: actions/download-artifact@v8
         with:
+          # Bewusst OHNE merge-multiple: Ein wiederholter Publish-Lauf haelt
+          # mehrere Versuchsartefakte mit derselben Datei an der Wurzel; sie in
+          # ein Verzeichnis zu entpacken machte den geltenden Versuch von der
+          # Entpackreihenfolge abhaengig. Das benannte Layout behaelt je
+          # Artefakt ein Verzeichnis, select_instance_payload waehlt daraus
+          # deterministisch den juengsten Versuch (Regel aus #760/#761).
           pattern: release-acceptance-instance-*
           path: ${{ runner.temp }}/publish-instance
-          merge-multiple: true
           run-id: ${{ inputs.publish_run_id }}
           github-token: ${{ github.token }}
 
       - name: Post-Release-Kriterien nachtragen und bis post-release validieren
-        if: inputs.publish_run_id != ''
+        if: ${{ !cancelled() && inputs.publish_run_id != '' }}
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/release-instance-final"
@@ -708,7 +722,7 @@ jobs:
           # Instanz pinnt genau diesen Dateihash.
           python3 scripts/release_contract.py finalize-instance \
             --checklist "docs/RELEASE_ACCEPTANCE_CHECKLIST.md" \
-            --instance "${RUNNER_TEMP}/publish-instance/release-acceptance-instance.json" \
+            --instance "${RUNNER_TEMP}/publish-instance" \
             --evidence-dir "${RUNNER_TEMP}/abnahme-evidenz" \
             --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
             --output "${RUNNER_TEMP}/release-instance-final/release-acceptance-instance.json" \
@@ -754,8 +768,12 @@ jobs:
           set -euo pipefail
           report="${RUNNER_TEMP}/release-instance-final/release-instance.md"
           test -f "$report" || exit 0
+          if [ -z "$TARGET_ISSUE" ]; then
+            echo "::notice title=Kein Issue-Kommentar::target_issue ist leer; Instanz bleibt Artefakt und Job-Summary."
+            exit 0
+          fi
           [[ "$TARGET_ISSUE" =~ ^[1-9][0-9]*$ ]] \
-            || { echo "::error::target_issue muss eine positive Issue-Nummer sein."; exit 1; }
+            || { echo "::error::target_issue muss leer oder eine positive Issue-Nummer sein."; exit 1; }
           gh issue comment "$TARGET_ISSUE" --repo "${GITHUB_REPOSITORY}" --body-file "$report"
 
       - name: Matrix als Issue-Kommentar posten
@@ -765,8 +783,17 @@ jobs:
           TARGET_ISSUE: ${{ inputs.target_issue }}
         run: |
           set -euo pipefail
+          # Leer heisst ausdruecklich "nicht kommentieren" (#919): Der
+          # Publish-Lauf reicht seinen eigenen leeren Wert durch, und dessen
+          # Zusage "Leer = nur Artefakt und Job-Summary" muss auch im
+          # ausgeloesten Lauf gelten. Ein Nicht-Wunsch darf nicht als
+          # Schreibvorgang in ein fremdes Issue enden.
+          if [ -z "$TARGET_ISSUE" ]; then
+            echo "::notice title=Kein Issue-Kommentar::target_issue ist leer; Matrix bleibt Artefakt und Job-Summary."
+            exit 0
+          fi
           if [[ ! "$TARGET_ISSUE" =~ ^[1-9][0-9]*$ ]]; then
-            echo "::error::target_issue muss eine positive Issue-Nummer sein."
+            echo "::error::target_issue muss leer oder eine positive Issue-Nummer sein."
             exit 1
           fi
           gh issue comment "$TARGET_ISSUE" --repo "${GITHUB_REPOSITORY}" \

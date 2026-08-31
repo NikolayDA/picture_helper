@@ -497,22 +497,52 @@ def test_update_check_constants_stay_in_sync_with_the_smoke_writer() -> None:
     assert rc.UPDATE_CHECK_CRITERIA["macos-arm64"] == "UPDATE-MACOS-ARM-01"
 
 
+def _status(payload: dict | None) -> tuple[str, str]:
+    return rc.update_check_status(payload, expected_version=VERSION)
+
+
 def test_update_status_maps_evidence_to_pass_fail_pending() -> None:
-    assert rc.update_check_status(_update_payload(True))[0] == "PASS"
+    assert _status(_update_payload(True))[0] == "PASS"
     # FAIL statt WAIVED: Der Fund betrifft alle ausgelieferten Installationen.
-    status, detail = rc.update_check_status(_update_payload(False))
+    status, detail = _status(_update_payload(False))
     assert status == "FAIL" and "STATUS_UNERWARTET" in detail
-    assert rc.update_check_status(None)[0] == "PENDING"
+    assert _status(None)[0] == "PENDING"
 
 
 def test_unknown_update_payload_throws_instead_of_looking_like_pending() -> None:
     """Ein Schemabruch darf nicht wie ein nicht gelaufener Nachweis aussehen."""
     with pytest.raises(rc.ContractError, match="Unbekannte Update-Check-Nutzlast"):
-        rc.update_check_status(_update_payload(schema=2))
+        _status(_update_payload(schema=2))
     with pytest.raises(rc.ContractError, match="Unbekannte Update-Check-Nutzlast"):
-        rc.update_check_status(_update_payload(kind="etwas-anderes"))
+        _status(_update_payload(kind="etwas-anderes"))
     with pytest.raises(rc.ContractError, match="ok-Feld"):
-        rc.update_check_status(_update_payload(ok="ja"))
+        _status(_update_payload(ok="ja"))
+
+
+def test_pass_needs_more_than_the_aggregate_boolean() -> None:
+    """`ok: true` allein schliesst kein nicht waiverfaehiges Kriterium ab.
+
+    Eine veraltete oder leere Nutzlast traegt denselben Wahrheitswert wie ein
+    echter Nachweis. Weil das Ergebnis direkt ein POST_RELEASE-Kriterium auf
+    PASS setzt, wird die Bindung geprueft, die die Nutzlast belegt haben soll.
+    """
+    # Fremde Kandidatenversion: gehoert zu einem anderen Release.
+    with pytest.raises(rc.ContractError, match="gehoert zu Version"):
+        _status(_update_payload(True, kandidaten_version="9.9.9"))
+    # Leere Pruefungsliste: nichts wurde tatsaechlich geprueft.
+    with pytest.raises(rc.ContractError, match="ohne Rollen"):
+        _status(_update_payload(True, pruefungen=[]))
+    # Nur eine Rolle: der Vorgaengernachweis fehlt.
+    with pytest.raises(rc.ContractError, match="ohne Rollen"):
+        _status(_update_payload(True, pruefungen=[{"rolle": "kandidat", "befund": "ok"}]))
+    with pytest.raises(rc.ContractError, match="ohne Pruefungsliste"):
+        _status(_update_payload(True, pruefungen="ok"))
+    # Widerspruch in der Evidenz selbst: ok, aber eine Rolle nicht ok.
+    with pytest.raises(rc.ContractError, match="meldet ok"):
+        _status(_update_payload(True, pruefungen=[
+            {"rolle": "kandidat", "befund": "ok"},
+            {"rolle": "vorgaenger", "befund": "HOOK_FEHLT"},
+        ]))
 
 
 def test_evidence_loader_picks_the_newest_attempt_per_platform(tmp_path: Path) -> None:
@@ -522,7 +552,10 @@ def test_evidence_loader_picks_the_newest_attempt_per_platform(tmp_path: Path) -
     _write_update_evidence(root, "macos-arm64", _update_payload(True), attempt=1)
     payloads = rc.load_update_check_payloads(root)
     assert set(payloads) == {"linux-arm64", "macos-arm64"}
-    assert payloads["linux-arm64"]["ok"] is True
+    # Der Versuch bleibt erhalten - das hochgeladene Artefakt heisst
+    # abnahme-<plattform>-<versuch>, ein Verweis ohne ihn zeigt ins Leere.
+    assert payloads["linux-arm64"] == (2, payloads["linux-arm64"][1])
+    assert payloads["linux-arm64"][1]["ok"] is True
     assert rc.load_update_check_payloads(tmp_path / "fehlt") == {}
 
 
@@ -554,6 +587,9 @@ def test_both_platform_criteria_are_filled_from_their_own_evidence(tmp_path: Pat
     assert states["UPDATE-LINUX-ARM-01"] == "PASS"
     assert states["UPDATE-MACOS-ARM-01"] == "PASS"
     assert len(log) == 2
+    # Evidenzverweis nennt das Artefakt so, wie es wirklich heisst.
+    evidence = {item["id"]: item["evidence"] for item in updated["criteria"]}
+    assert "Artefakt abnahme-linux-arm64-1" in evidence["UPDATE-LINUX-ARM-01"]
     rc.validate_release_instance_completion(
         updated, checklist=checklist, checklist_path=checklist_path,
         through_phase="post-release",
@@ -604,6 +640,80 @@ def test_a_failed_update_check_blocks_completion_and_is_never_waived(
             updated, checklist=checklist, checklist_path=checklist_path,
             through_phase="post-release",
         )
+
+
+def test_instance_download_picks_the_newest_attempt_deterministically(
+    tmp_path: Path,
+) -> None:
+    """Ein wiederholter Publish-Lauf legt mehrere Versuchsartefakte ab.
+
+    Werden sie in ein Verzeichnis entpackt, gewinnt die zuletzt entpackte
+    Datei - und die Reihenfolge ist nicht zugesichert. Der Abnahme-Lauf traege
+    dann still die Instanz eines ueberholten Versuchs nach. Dieselbe Regel wie
+    fuer die Freeze-Provenienz (#760/#761): juengster Versuch, alles
+    Mehrdeutige bricht ab.
+    """
+    root = tmp_path / "publish-instance"
+    for attempt, marker in ((1, "alt"), (2, "neu")):
+        target = root / f"release-acceptance-instance-{attempt}"
+        target.mkdir(parents=True)
+        (target / "release-acceptance-instance.json").write_text(
+            json.dumps({"marker": marker}), encoding="utf-8"
+        )
+    selected = rc.select_instance_payload(root)
+    assert json.loads(selected.read_text(encoding="utf-8"))["marker"] == "neu"
+
+
+def test_flat_instance_download_is_accepted_but_never_mixed(tmp_path: Path) -> None:
+    """Ein einzelner Treffer wird flach entpackt - das bleibt gueltig."""
+    root = tmp_path / "flach"
+    root.mkdir()
+    payload = root / "release-acceptance-instance.json"
+    payload.write_text("{}", encoding="utf-8")
+    assert rc.select_instance_payload(root) == payload
+
+    # Flach UND benannt zugleich ist kein deterministisches Layout.
+    (root / "release-acceptance-instance-2").mkdir()
+    with pytest.raises(rc.ContractError, match="genau eine regulaere Datei"):
+        rc.select_instance_payload(root)
+
+
+def test_instance_download_rejects_unknown_entries_and_missing_payloads(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "kaputt"
+    (root / "release-acceptance-instance-1").mkdir(parents=True)
+    with pytest.raises(rc.ContractError, match="ohne Nutzlast"):
+        rc.select_instance_payload(root)
+
+    other = tmp_path / "fremd"
+    (other / "irgendwas").mkdir(parents=True)
+    with pytest.raises(rc.ContractError, match="Unerwarteter Eintrag"):
+        rc.select_instance_payload(other)
+
+    with pytest.raises(rc.ContractError, match="Instanz-Download fehlt"):
+        rc.select_instance_payload(tmp_path / "gibt-es-nicht")
+
+
+def test_finalize_cli_accepts_a_directory_and_selects_the_newest(tmp_path: Path) -> None:
+    instance, _, _ = _instance_for(tmp_path)
+    root = tmp_path / "publish-instance"
+    for attempt in (1, 2):
+        target = root / f"release-acceptance-instance-{attempt}"
+        target.mkdir(parents=True)
+        (target / "release-acceptance-instance.json").write_text(
+            json.dumps(instance), encoding="utf-8"
+        )
+    evidence = tmp_path / "evidenz"
+    for platform in ("linux-arm64", "macos-arm64"):
+        _write_update_evidence(evidence, platform, _update_payload(True))
+    output = tmp_path / "final.json"
+    assert rc.main([
+        "finalize-instance", "--checklist", str(CHECKLIST),
+        "--instance", str(root), "--evidence-dir", str(evidence),
+        "--run-url", "https://example.invalid/abnahme", "--output", str(output),
+    ]) == 0
+
 
 
 def test_finalize_cli_writes_the_instance_even_when_it_blocks(tmp_path: Path) -> None:

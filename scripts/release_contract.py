@@ -765,9 +765,12 @@ def plan_release_tag(
 ) -> tuple[str, str]:
     """Entscheidet netzfrei, ob der Release-Tag angelegt werden darf (#919).
 
-    ``ref_payload is None`` heisst "Tag existiert nicht" (HTTP 404 beim
-    Aufrufer). Sollwert ist ausschliesslich ``candidate.head_sha`` aus dem
-    Freigabemanifest - nie der aktuelle Checkout, nie ein Eingabewert.
+    ``ref_payload is None`` heisst "Tag existiert nicht" - beim Aufrufer die
+    leere Auswahl aus :func:`select_tag_ref`. Bewusst **kein** 404-Pfad: Der
+    Endpunkt ``git/matching-refs`` antwortet immer mit HTTP 200 und einer
+    (ggf. leeren) Liste. Sollwert ist ausschliesslich ``candidate.head_sha``
+    aus dem Freigabemanifest - nie der aktuelle Checkout, nie ein
+    Eingabewert.
 
     Drei Ausgaenge, davon einer fail-closed:
 
@@ -1120,14 +1123,22 @@ UPDATE_CHECK_CRITERIA: Final = {
 UPDATE_CHECK_SCHEMA: Final = 1
 UPDATE_CHECK_KIND: Final = "abnahme-update-check"
 UPDATE_CHECK_SUMMARY_NAME: Final = "update_check.json"
+#: Beide Rollen muessen in der Nutzlast stehen; eine leere oder halbe
+#: Pruefungsliste ist kein bestandener Nachweis.
+UPDATE_CHECK_ROLES: Final = ("kandidat", "vorgaenger")
+UPDATE_CHECK_VERDICT_OK: Final = "ok"
 
 
-def load_update_check_payloads(root: Path) -> dict[str, dict[str, Any]]:
+def load_update_check_payloads(root: Path) -> dict[str, tuple[int, dict[str, Any]]]:
     """Sammelt ``update_check/update_check.json`` je Plattform aus der Evidenz.
 
     Attempt-Auswahl wie in :func:`_load_platform_evidence`: Bei einem
     Wiederanlauf liegt dieselbe Plattform mehrfach im Artefaktbaum, und nur der
     juengste Versuch beschreibt den geltenden Stand.
+
+    Der Versuch wird **mitgeliefert**, nicht verworfen: Hochgeladen wird
+    ``abnahme-<plattform>-<versuch>``, ein Evidenzverweis ohne Versuchsnummer
+    zeigte also auf ein Artefakt, das es so nie gibt.
     """
     selected: dict[str, tuple[int, dict[str, Any]]] = {}
     if not root.is_dir():
@@ -1146,23 +1157,86 @@ def load_update_check_payloads(root: Path) -> dict[str, dict[str, Any]]:
             if platform not in selected or attempt >= selected[platform][0]:
                 selected[platform] = (attempt, _load_json(path))
             break
-    return {platform: item[1] for platform, item in selected.items()}
+    return selected
 
 
-def update_check_status(payload: dict[str, Any] | None) -> tuple[str, str]:
+#: Name des Instanz-Artefakts, das der Publish-Lauf je Versuch hochlaedt.
+_INSTANCE_ARTIFACT_RE: Final = re.compile(r"^release-acceptance-instance-([1-9][0-9]*)$")
+INSTANCE_PAYLOAD_NAME: Final = "release-acceptance-instance.json"
+
+
+def select_instance_payload(root: Path) -> Path:
+    """Waehlt aus dem Instanz-Download deterministisch den juengsten Versuch.
+
+    Ein wiederholter Publish-Lauf legt in **einem** Lauf mehrere Artefakte ab
+    (``…-instance-1``, ``…-instance-2``), jedes mit derselben Datei an seiner
+    Wurzel. Ohne Auswahl gaebe es zwei Wege in den Fehler: ``merge-multiple``
+    entpackt beide in dasselbe Verzeichnis, wobei die zuletzt entpackte Datei
+    gewinnt (Reihenfolge nicht zugesichert), oder das Verzeichnis enthaelt
+    mehrere Kandidaten und irgendeiner wird genommen. Der Abnahme-Lauf traege
+    dann die Instanz eines ueberholten Versuchs nach - still, im genau dem
+    Artefakt, das anschliessend die Post-Release-Kriterien traegt.
+
+    Dieselbe Regel wie fuer die Freeze-Provenienz (#760/#761): der juengste
+    Versuch gewinnt, alles Mehrdeutige bricht ab.
+    """
+    if not root.is_dir():
+        raise ContractError(f"Instanz-Download fehlt: {root}")
+    entries = sorted(root.iterdir())
+    if any(entry.is_symlink() for entry in entries):
+        raise ContractError("Instanz-Download enthaelt einen symbolischen Link")
+
+    # Flaches Layout: genau ein Artefakt, Datei direkt in der Wurzel.
+    flat = root / INSTANCE_PAYLOAD_NAME
+    if flat in entries:
+        if entries != [flat] or not flat.is_file():
+            raise ContractError(
+                "Flacher Instanz-Download muss genau eine regulaere Datei enthalten"
+            )
+        return flat
+
+    # Benanntes Layout: je Artefakt ein Verzeichnis mit der Versuchsnummer.
+    attempts: list[tuple[int, Path]] = []
+    for entry in entries:
+        match = _INSTANCE_ARTIFACT_RE.fullmatch(entry.name)
+        if match is None or not entry.is_dir():
+            raise ContractError(f"Unerwarteter Eintrag im Instanz-Download: {entry.name!r}")
+        payload = entry / INSTANCE_PAYLOAD_NAME
+        if not payload.is_file():
+            raise ContractError(f"Instanz-Artefakt {entry.name!r} ohne Nutzlast")
+        attempts.append((int(match.group(1)), payload))
+    if not attempts:
+        raise ContractError("Instanz-Download enthaelt keine Release-Instanz")
+    numbers = [attempt for attempt, _ in attempts]
+    if len(numbers) != len(set(numbers)):
+        raise ContractError("Instanz-Download enthaelt mehrdeutige Versuchsnummern")
+    return max(attempts, key=lambda item: item[0])[1]
+
+
+def update_check_status(
+    payload: dict[str, Any] | None, *, expected_version: str
+) -> tuple[str, str]:
     """Bildet eine Update-Check-Nutzlast auf Kriteriumsstatus und Begruendung ab.
 
     Drei Ausgaenge, keiner davon geschoent:
 
     * keine Evidenz -> ``PENDING`` (der Lauf hat den Nachweis nicht erbracht)
-    * ``ok: true``  -> ``PASS``
+    * ``ok: true`` **und** vollstaendige, passende Nutzlast -> ``PASS``
     * ``ok: false`` -> ``FAIL``
 
     ``FAIL`` ist Absicht: Ein fehlgeschlagener Update-Check betrifft alle
     bereits ausgelieferten Installationen und wird laut Runbook nie auf
-    ``WAIVED`` gesetzt. Eine unbekannte Nutzlast wirft, statt als ``PENDING``
-    durchzugehen - sonst saehe ein Schemabruch wie ein nicht gelaufener
-    Nachweis aus.
+    ``WAIVED`` gesetzt.
+
+    Der Wahrheitswert allein traegt das ``PASS`` bewusst **nicht**. Er
+    schliesst ein nicht waiverfaehiges Post-Release-Kriterium ab, also wird
+    die Nutzlast gegen die Bindung geprueft, die sie belegt haben soll:
+    Schema und Art, die Kandidatenversion gegen die Release-Instanz und die
+    Anwesenheit **beider** Rollen mit eigenem ``ok``-Befund. Sonst schloesse
+    eine veraltete oder leere Nutzlast (fremde Version, ``pruefungen: []``)
+    den Release ab, ohne je etwas geprueft zu haben. Jede Abweichung wirft,
+    statt als ``PENDING`` durchzugehen - ein Schemabruch darf nicht wie ein
+    nicht gelaufener Nachweis aussehen.
     """
     if payload is None:
         return "PENDING", "keine Update-Check-Evidenz in diesem Lauf"
@@ -1174,19 +1248,39 @@ def update_check_status(payload: dict[str, Any] | None) -> tuple[str, str]:
     ok = payload.get("ok")
     if not isinstance(ok, bool):
         raise ContractError("Update-Check-Nutzlast ohne belastbares ok-Feld")
-    checks = payload.get("pruefungen")
-    findings = (
-        ", ".join(
-            f"{item.get('rolle')}={item.get('befund')}"
-            for item in checks
-            if isinstance(item, dict)
+    reported_version = str(payload.get("kandidaten_version") or "")
+    if reported_version != expected_version:
+        raise ContractError(
+            f"Update-Check-Evidenz gehoert zu Version {reported_version!r}, "
+            f"die Release-Instanz zu {expected_version!r}"
         )
-        if isinstance(checks, list)
-        else ""
+    checks = payload.get("pruefungen")
+    if not isinstance(checks, list):
+        raise ContractError("Update-Check-Nutzlast ohne Pruefungsliste")
+    by_role = {
+        str(item.get("rolle") or ""): item
+        for item in cast(list[Any], checks)
+        if isinstance(item, dict)
+    }
+    missing = sorted(set(UPDATE_CHECK_ROLES) - set(by_role))
+    if missing:
+        raise ContractError(f"Update-Check-Evidenz ohne Rollen {missing}")
+    findings = ", ".join(
+        f"{role}={by_role[role].get('befund')}" for role in sorted(by_role)
     )
-    if ok:
-        return "PASS", findings or "alle Rollen ok"
-    return "FAIL", findings or "Update-Check nicht bestanden"
+    if not ok:
+        return "FAIL", findings
+    unclear = sorted(
+        role for role in UPDATE_CHECK_ROLES
+        if by_role[role].get("befund") != UPDATE_CHECK_VERDICT_OK
+    )
+    if unclear:
+        # ok:true bei nicht-ok Rollen ist ein Widerspruch in der Evidenz
+        # selbst - er darf nie zum PASS werden.
+        raise ContractError(
+            f"Update-Check meldet ok, aber die Rollen {unclear} sind nicht ok: {findings}"
+        )
+    return "PASS", findings
 
 
 def apply_update_criteria(
@@ -1194,7 +1288,7 @@ def apply_update_criteria(
     *,
     checklist: dict[str, Any],
     checklist_path: Path,
-    payloads: dict[str, dict[str, Any]],
+    payloads: dict[str, tuple[int, dict[str, Any]]],
     run_url: str,
 ) -> tuple[dict[str, Any], list[str]]:
     """Traegt beide Post-Release-Kriterien in die Instanz ein (#919, Stufe 3).
@@ -1206,8 +1300,11 @@ def apply_update_criteria(
     """
     updated = instance
     log: list[str] = []
+    expected_version = str(instance.get("release_version") or "")
     for platform, criterion in sorted(UPDATE_CHECK_CRITERIA.items()):
-        status, detail = update_check_status(payloads.get(platform))
+        found = payloads.get(platform)
+        attempt, payload = found if found is not None else (0, None)
+        status, detail = update_check_status(payload, expected_version=expected_version)
         log.append(f"{criterion}: {status} ({platform}) - {detail}")
         if status == "PENDING":
             # PENDING braucht (und duldet) keine Evidenz; ein Eintrag hier
@@ -1219,7 +1316,8 @@ def apply_update_criteria(
             checklist_path=checklist_path,
             criterion_id=criterion,
             status=status,
-            evidence=[run_url, f"Artefakt abnahme-{platform}"],
+            # Mit Versuchsnummer: Genau so heisst das hochgeladene Artefakt.
+            evidence=[run_url, f"Artefakt abnahme-{platform}-{attempt}"],
         )
     return updated, log
 
@@ -1803,8 +1901,13 @@ def main(argv: list[str] | None = None) -> int:
             _write_json(args.output, instance)
         elif args.command == "finalize-instance":
             checklist = load_release_checklist(args.checklist)
+            instance_path = (
+                select_instance_payload(args.instance)
+                if args.instance.is_dir()
+                else args.instance
+            )
             updated, log = apply_update_criteria(
-                _load_json(args.instance),
+                _load_json(instance_path),
                 checklist=checklist,
                 checklist_path=args.checklist,
                 payloads=load_update_check_payloads(args.evidence_dir),

@@ -557,16 +557,20 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **zehn** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **elf** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
   (#699/#742), `scripts/gl_stress_probe.py` (#684),
   `scripts/release_path_policy.py` (#743), `scripts/release_contract.py`
-  (#744/#747), `scripts/public_download_check.py` (#916) und
+  (#744/#747), `scripts/public_download_check.py` (#916),
+  `scripts/release_update_dispatch.py` (#919) und
   `scripts/recommendations_live_check.py` (#752) – als
   eigenständige Dateien ohne `scripts/__init__.py` explizit per Dateipfad in
   `files` sowie per Modul-Override (Modulname = Dateibasisname) erfasst.
+  `tests/test_process_documentation.py` hält Zahl und Namensliste gegen
+  `pyproject.toml`; ohne diesen Wächter bliebe `make check` grün und die
+  Aufzählung still falsch (Drift-Disziplin).
 - **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit) plus
   `gl_smoke` (Offscreen-3D-Render-Smokes, brauchen einen echten GL-Kontext und
   überspringen sich auf Plattformen ohne renderbaren FBO, z. B. `offscreen`;
