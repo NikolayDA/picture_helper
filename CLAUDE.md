@@ -1063,6 +1063,14 @@ setzt alle drei Provenienzfelder voraus. Sind `session`/`gl` schon
 beanstandet, wird die Sonde übersprungen und das als Folgebefund ausgewiesen —
 sie könnte dort nur `plugin` melden und zahlte den Runtime-Bau umsonst.
 
+Die gemessene Provenienz überlebt auch den **grünen** Lauf: Der Erfolgsfall
+druckt `[preflight] ok: qt-gl (<Vendor> / <Renderer> / <Version>)` statt nur
+`ok: qt-gl` — dieselbe Abwägung wie bei `laufzeit_herkunft` (#738): nicht
+bewertet, aber immer gedruckt. Ohne diese Zeile fiele ein Treiberwechsel auf
+einen Software-Renderer erst auf, wenn er die Schwelle bereits reißt. Der Weg
+führt über den optionalen `notes`-Parameter von `run_preflight`, damit der
+`(name, fehler)`-Vertrag unangetastet bleibt, auf dem die Aufrufer aufsetzen.
+
 Die Software-Renderer-Regel kommt aus `renderer_provenance` (#642) — geladen
 über den **Dateipfad**, nicht als Paketimport: `bgremover.constants` zöge
 Pillow nach, das die schlanke Runtime bewusst nicht hat. Die GL-Konstanten

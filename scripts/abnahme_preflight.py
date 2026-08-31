@@ -394,6 +394,7 @@ def check_qt_gl(
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
     timeout: float = PROBE_TIMEOUT_S,
     probe_script: Path = PROBE_SCRIPT,
+    note: Callable[[str], None] | None = None,
 ) -> str | None:
     """Echter Qt-/GL-Smoke in der realen grafischen Sitzung (#934).
 
@@ -402,6 +403,10 @@ def check_qt_gl(
     JSON-Ergebnis und benannter Stufe – oder ohne, weil Qt bei fehlendem
     Platform-Plugin ``qFatal`` ruft und den Prozess hart beendet. Ein
     ausgelassener Nachweis ist nie ein Erfolg.
+
+    ``note`` nimmt im Erfolgsfall die gemessene GL-Provenienz entgegen. Sie
+    geht **nicht** ins Verdikt ein – das entscheidet allein die Sonde – wird
+    aber bei jedem gruenen Lauf gemeldet.
     """
     del platform  # dieselbe Prüfung auf beiden Plattformen
     try:
@@ -431,6 +436,15 @@ def check_qt_gl(
         reason = " | ".join(tail[-3:]) if tail else f"Exit {result.returncode}, keine Ausgabe"
         return f"{PROBE_STAGE_HINTS['plugin']}: {reason}"
     if payload.get("ok"):
+        # Provenienz ueberlebt den gruenen Lauf (Muster von
+        # ``laufzeit_herkunft``, #738): Vendor/Renderer/Version sind hier
+        # bereits gemessen; ohne diese Zeile stuende im Joblog nur
+        # ``ok: qt-gl``. Ein Treiberwechsel auf einen Software-Renderer –
+        # etwa nach einem Mesa-Update – faellt sonst erst auf, wenn er die
+        # Schwelle bereits reisst.
+        diagnostic = str(payload.get("diagnostic") or "").strip()
+        if note is not None and diagnostic:
+            note(diagnostic)
         return None
     stage = str(payload.get("stage") or "")
     hint = PROBE_STAGE_HINTS.get(stage, "Qt-/GL-Probe fehlgeschlagen")
@@ -690,10 +704,22 @@ def default_api_url(env: Mapping[str, str] = os.environ) -> str:
 
 def run_preflight(
     platform: str, *, min_free_gb: float = MIN_FREE_GB,
+    notes: dict[str, str] | None = None,
 ) -> list[tuple[str, str | None]]:
-    """Alle Checks der Plattform ausführen; je Check ``(name, fehler-oder-None)``."""
+    """Alle Checks der Plattform ausführen; je Check ``(name, fehler-oder-None)``.
+
+    ``notes`` sammelt optional Zusatzangaben je Checkname, die **kein** Befund
+    sind – derzeit die GL-Provenienz der Sonde (#934). Bewusst ein
+    Ausgabe-Parameter statt eines zweiten Rueckgabewerts: Das
+    ``(name, fehler)``-Paar ist der Vertrag, auf dem die Aufrufer aufsetzen
+    (``dict(run_preflight(…))``), und eine Zusatzangabe darf ihn nicht brechen.
+    """
     session = check_graphical_session(platform, os.environ)
     gl = check_gl(platform)
+
+    def _note(text: str) -> None:
+        if notes is not None:
+            notes["qt-gl"] = text
     checks: list[tuple[str, str | None]] = [
         ("python", check_python()),
         ("venv", check_venv()),
@@ -703,7 +729,7 @@ def run_preflight(
         # Kurzschluss statt Doppelbefund: Ohne Sitzung oder GL koennte die
         # Sonde nur "plugin" melden – und zahlte dafuer beim ersten Lauf den
         # vollen Runtime-Bau.
-        ("qt-gl", PROBE_SKIPPED if (session or gl) else check_qt_gl(platform)),
+        ("qt-gl", PROBE_SKIPPED if (session or gl) else check_qt_gl(platform, note=_note)),
         ("netz", check_network(default_api_url())),
     ]
     if platform != MACOS_PLATFORM:
@@ -726,9 +752,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     failures = 0
-    for name, error in run_preflight(args.platform, min_free_gb=args.min_free_gb):
+    notes: dict[str, str] = {}
+    for name, error in run_preflight(
+        args.platform, min_free_gb=args.min_free_gb, notes=notes,
+    ):
         if error is None:
-            print(f"[preflight] ok: {name}")
+            detail = notes.get(name, "")
+            print(f"[preflight] ok: {name}" + (f" ({detail})" if detail else ""))
         else:
             failures += 1
             print(f"::error title=Preflight {args.platform}::{name}: {error}")
