@@ -282,3 +282,70 @@ def test_workflows_create_and_verify_pinned_release_instance() -> None:
     assert '--checklist "candidate-source/docs/RELEASE_ACCEPTANCE_CHECKLIST.md"' in publish
     assert "release-checklist-json:start" in CHECKLIST
     assert "release-checklist-json:end" in CHECKLIST
+
+
+# ── #922: der monatliche Pipeline-Dry-Run in der Prozessdokumentation ───────
+
+AUTOMATION = (ROOT / "docs" / "RELEASE_AUTOMATION.md").read_text(encoding="utf-8")
+RELEASE_WORKFLOW = (
+    ROOT / ".github" / "workflows" / "release-linux.yml"
+).read_text(encoding="utf-8")
+
+
+def _automation_section(number: str) -> str:
+    """Text eines ``## <number>.``-Abschnitts bis zur naechsten gleichen Ebene."""
+    head = re.search(rf"(?m)^## {re.escape(number)}\. ", AUTOMATION)
+    assert head, f"Abschnitt {number} fehlt in RELEASE_AUTOMATION.md"
+    rest = AUTOMATION[head.start() :]
+    following = re.search(r"(?m)^## (?!" + re.escape(number) + r"\.)", rest[1:])
+    return rest if following is None else rest[: following.start() + 1]
+
+
+def test_automation_documents_purpose_cost_and_delimitation_of_the_dry_run() -> None:
+    section = _automation_section("8")
+    for required in (
+        "#880",           # Anlass
+        "base-tag-missing",
+        "WITH_AI=1",      # produktiver Pfad
+        "workflow_dispatch",  # bindende Schranke
+        "3 Tagen",        # Aufbewahrung
+        "Owner: Repository-Owner",
+        "Kosten",
+        # Die Grenze des Meldewegs steht ausdruecklich dabei: Die
+        # Actions-Fehlermail traegt nur den gefallenen Ausgang, nicht "hat
+        # nicht stattgefunden" (abgebrochen oder gar nicht gestartet).
+        "gh run list --workflow\nrelease-linux.yml --event schedule",
+    ):
+        assert required in section, required
+    # ... und die genannte Ersatzpruefung existiert im Runbook wirklich.
+    assert "release-linux.yml --event schedule" in RUNBOOK
+
+
+def test_documented_dry_run_schedule_matches_the_workflow() -> None:
+    """Handgepflegte Kopie gegen ihre Quelle: der Takt steht in zwei Dateien.
+
+    Ohne Waechter bliebe ``make check`` gruen und die Betriebsanleitung
+    nennte einen Termin, an dem nichts laeuft - dasselbe Muster wie beim
+    Datums-Ausdruck der Lizenzpruefung (#879).
+    """
+    crons = re.findall(r"(?m)^\s*- cron: '([^']+)'", RELEASE_WORKFLOW)
+    assert len(crons) == 1, crons
+    minute, hour, day_of_month, _month, _dow = crons[0].split()
+    expected = f"am {int(day_of_month)}. um {int(hour):02d}:{int(minute):02d} UTC"
+    assert expected in _automation_section("8"), expected
+
+
+def test_runbook_separates_the_three_meanings_of_dry_run() -> None:
+    """Drei Bedeutungen desselben Wortes in einer Prozessdokumentation.
+
+    Der Release-Owner liest sie unter Zeitdruck; ohne ausdrueckliche
+    Abgrenzung wird aus "Dry-Run war gruen" schnell die falsche Aussage.
+    """
+    section = RUNBOOK.split("## Dry-Run und Pflege", 1)[1].split("\n## ", 1)[0]
+    for meaning in ("Runbook-Probe", "Pipeline-Dry-Run", "Abnahme ohne Auswertung"):
+        assert meaning in section, meaning
+    # Schritt 1 verweist auf den geplanten Lauf, damit er vor dem
+    # Kandidatenbau ueberhaupt jemand ansieht.
+    step_one = RUNBOOK.split("### 1. Release vorbereiten", 1)[1].split("### 2. ", 1)[0]
+    assert "release-linux.yml --event schedule" in step_one
+    assert "RELEASE_AUTOMATION.md) §8" in step_one

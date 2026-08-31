@@ -752,3 +752,136 @@ Issue-Kommentar der Auswertung fällt dagegen sofort nach der Frist. Kann die
 Job-Liste nicht abgefragt werden (API-Fehler), meldet der Heartbeat
 `UNOBSERVED` und schlägt keinen Alarm – ein Monitor ohne Beobachtung darf
 kein Verdikt fällen.
+
+## 8. Monatlicher Dry-Run des Kandidatenpfads (#922)
+
+Beim v2.9.0-Release scheiterte der **erste** Kandidatenlauf an
+`base-tag-missing` (#880): `ci.yml` lief als wiederverwendbarer Workflow ohne
+vollen Checkout, das darin enthaltene Freeze-Gate fand deshalb weder Basis-Tag
+noch First-Parent-Historie. Der Fehler war auf jedem PR unsichtbar — er
+entsteht ausschließlich im Kandidatenkontext — und fiel am Release-Tag auf,
+mit einem verbrannten Lauf und einem Fix unter Zeitdruck.
+
+`release-linux.yml` läuft deshalb zusätzlich **monatlich am 3. um 04:40 UTC**
+per `schedule`. Das ist die einzige Ausnahme von „dispatch-only": Ein
+Tag-Trigger, Schreibrechte oder ein Publish-Job kommen dadurch **nicht**
+zurück (`tests/test_release_gate.py` hält beides fest).
+
+### 8.1 Was der Dry-Run prüft — und was nicht
+
+Geprüft wird genau das, was nur dieser Workflow fährt:
+
+| Stufe | Deckt ab |
+| --- | --- |
+| `verify-candidate` | Freeze-Gate, Pfadklassifikation, Kandidatenprovenienz, Artefakt-Upload der Provenienz |
+| `test` | Full-CI-Matrix als **wiederverwendbarer** Workflow — genau der Aufrufpfad aus #880 |
+| `build` | drei Build-Legs (2 × Linux, 1 × macOS), Smoke-Launches, `.deb`-Zyklus, Artefakt-Scan inkl. ClamAV-Cache-Restore, Artefakt-Upload |
+
+Gebaut wird mit dem **produktiven** KI-Bündel (`WITH_AI=1`), weil ein Release
+rembg bündelt (#881); ein Dry-Run mit `with_ai=false` prüfte einen anderen als
+den ausgelieferten Pfad. Im `schedule`-Kontext gibt es kein `inputs.with_ai` —
+die Bedingung steht deshalb als Workflow-`env` an genau einer Stelle und
+speist auch den `--ai`-Schalter der Build-Schritte.
+
+Der geplante Lauf hängt dabei **nicht** an der Verfügbarkeit des
+`inputs`-Kontexts: In `env.WITH_AI` steht `github.event_name == 'schedule'`
+links vom `||`, das Ergebnis ist für einen Dry-Run also `1` *by construction* —
+unabhängig davon, was `inputs.with_ai` dort liefert. Das ist beabsichtigt: Die
+Kontextreferenz führt `inputs` nur für `workflow_dispatch` und
+wiederverwendbare Workflows; diese Formulierung muss die Frage gar nicht
+beantworten.
+
+Zusätzlich bricht der erste Job ab, wenn ein Dry-Run mit `WITH_AI=0` starten
+würde (*Dry-Run ohne KI-Bündel*). Diese Zusicherung kann mit dem heutigen
+Ausdruck **nicht** auslösen; sie sichert die *Folge* statt der Herleitung: Der
+Test pinnt den Ausdruckstext, der Abbruch sein Ergebnis. Wer `env.WITH_AI`
+später umformuliert und den Test mitzieht, fällt im ersten Job auf statt nach
+~22 Minuten Build mit dem falschen Bündel.
+
+**Nicht** geprüft wird alles, was am Kandidaten hängt: Abnahme auf echter
+Hardware, Freigabemanifest, Veröffentlichung. Der Dry-Run ist ein
+Pipeline-Test, kein Release-Test.
+
+### 8.2 Warum ein Dry-Run nie ein Kandidat werden kann
+
+Drei unabhängige Schranken, die erste ist die bindende:
+
+1. **Freigabevertrag (fail-closed).** `release_contract.validate_workflow_run`
+   verlangt `event == workflow_dispatch`. `release-abnahme.yml` ruft
+   `prepare-candidate` im Job `candidate-source` auf — also **vor** jeder
+   Hardware-Arbeit. Eine Dry-Run-Run-ID scheitert dort mit klarer Meldung,
+   nicht erst irgendwo im Manifest.
+2. **Sichtbare Kennzeichnung.** Der `run-name` lautet „Dry-Run — kein
+   Kandidat" (Laufliste), ein `::notice::` und eine Job-Zusammenfassung stehen
+   am Lauf, und jedes Build-Leg schreibt den Modus in seine Provenienzzeilen.
+   Die Kennzeichnung steht bewusst **vor** dem Checkout: Gerade ein
+   abgebrochener Lauf verleitet sonst dazu, seine Run-ID für einen Kandidaten
+   zu halten.
+3. **Kurze Aufbewahrung.** Die Produktartefakte eines Dry-Runs verfallen nach
+   **3 Tagen** statt nach 90.
+
+### 8.3 Kosten
+
+Je Lauf: die Full-CI-Matrix (8 Legs) plus drei Build-Legs (~22 Minuten) und
+~1,1 GB Artefakte. Bei monatlicher Frequenz und 3 Tagen Aufbewahrung ist der
+Speicheranteil vernachlässigbar; der Rechenanteil entspricht etwa einem
+zusätzlichen Kandidatenlauf pro Monat. Die kleinen Evidenzartefakte
+(`release-freeze-provenance-<versuch>`, `security-scan-<plattform>`) behalten
+bewusst 90 Tage — sie tragen die Diagnose eines roten Laufs und kosten kaum
+Speicher.
+
+Der Workflow bekommt **bewusst keine** `concurrency`-Gruppe: Sie würde einen
+manuell gestarteten Kandidatenlauf entweder hinter einem laufenden Dry-Run
+einreihen oder — mit `cancel-in-progress` — abbrechen. Beides wäre im Release
+teurer als die seltene Gleichzeitigkeit. Gemeinsamen Zustand gibt es nicht;
+der ClamAV-Signaturcache wird nur gelesen, Artefakte gehören je Lauf.
+
+### 8.4 Reaktion auf einen roten Dry-Run
+
+Der Job **Dry-Run-Ergebnis** fasst die drei Stufen an einer Stelle zusammen
+und macht den Lauf rot, sobald eine gefallen ist — mit Ursache,
+Diagnosematerial und Reaktionsweg in der Job-Zusammenfassung (dasselbe Muster
+wie `recommendations-live-check.yml`).
+
+**Owner: Repository-Owner.** Ein roter Dry-Run bleibt ein aktiver
+Pipeline-Befund, bis die Ursache behoben oder bewusst als bekannt eingeordnet
+ist. Reaktion vor dem nächsten Kandidatenbau, spätestens beim nächsten
+Release — genau dort wäre sie sonst wieder Zeitdruckarbeit. Nach der Korrektur
+lässt sich derselbe Pfad ohne Wartezeit erneut prüfen: `release-linux.yml`
+manuell starten (dann als Kandidatenlauf gekennzeichnet) oder den nächsten
+geplanten Lauf abwarten.
+
+Abgebrochene oder übersprungene Stufen sind ausdrücklich **kein**
+Grün-Nachweis: Der Bericht meldet sie als „unvollständig — kein Ergebnis"
+statt als bestanden. Ein abgebrochener Lauf wäre sonst ein Beleg dafür, dass
+der Release-Pfad trägt.
+
+**Einordnung eines roten `verify-candidate`.** Das Freeze-Gate liest
+`docs/history/RELEASE-<version>-scope-freeze.md` zur jeweils aktuellen
+`pyproject`-Version — ein Versionsbump ohne zugehöriges Freeze-Dokument macht
+jeden geplanten Lauf rot. Das ist aber kein Zustand, den `main` erreichen
+kann: `pr-ci.yml` fährt `make pr-check`, und dieses Ziel enthält
+`release-freeze-check` — denselben fail-closed Aufruf. Bump und Freeze-Dokument
+müssen also ohnehin im selben PR landen. Ein rotes `verify-candidate` im
+Dry-Run ist damit **kein** erwarteter Nebeneffekt der Release-Vorbereitung,
+sondern ein Befund.
+
+**Meldeweg — und seine Grenze.** Für den *gefallenen* Ausgang ist auf die
+Actions-Fehlermail Verlass: Der Lauf schließt regulär mit `failure` ab, anders
+als der Heartbeat, den ein offline Runner gar nicht erst abschließen lässt
+(§7).
+
+Für „hat nicht stattgefunden" gilt das **nicht**. Der Ausgang *unvollständig*
+endet mit `exit 0`, der Lauf also als `cancelled` — dafür verschickt Actions
+keine Mail. Ebenso wenig, wenn der geplante Lauf gar nicht erst startet (etwa
+weil GitHub Schedules unter Last auslässt oder sie nach 60 Tagen ohne
+Repository-Aktivität abschaltet). Das ist dieselbe Lücke wie beim Heartbeat für
+den offline Runner, hier bewusst **ohne** dessen Gegenmittel: Ein
+verpflichtender Issue-Kommentar wäre für einen monatlichen Pipeline-Test
+unverhältnismäßig.
+
+Getragen wird der Fall stattdessen von der Sichtprüfung in
+[Runbook-Schritt 1](RELEASE_PROCESS.md): `gh run list --workflow
+release-linux.yml --event schedule` zeigt sowohl einen ausgebliebenen als auch
+einen unvollständig gebliebenen Lauf. Der Termin dafür ist genau der richtige —
+unmittelbar bevor der Kandidatenbau denselben Pfad fährt.

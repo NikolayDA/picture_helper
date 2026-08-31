@@ -86,6 +86,18 @@ python scripts/release_contract.py validate-checklist \
 python -m pytest tests/test_markdown_links.py -q
 ```
 
+Sieh außerdem nach, ob der letzte **monatliche Pipeline-Dry-Run** grün war
+(#922, [`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §8). Er fährt denselben
+Kandidatenpfad und macht Pipeline-Rot sichtbar, bevor es in Schritt 3 unter
+Zeitdruck auffällt — genau der Fall aus #880:
+
+```bash
+gh run list --workflow release-linux.yml --event schedule --limit 3
+```
+
+Ein roter letzter Lauf ist kein Stopp-Kriterium für den Release, aber die
+Ursache ist vor Schritt 3 zu klären: Sie trifft den Kandidatenbau sonst erneut.
+
 **Output/Evidenz:** Version, vollständiger Commit-SHA und Ergebnis der Dokumentprüfung im Release-Issue.
 **Erwartetes Ergebnis:** Version ist eindeutig, Tag existiert noch nicht, Release Notes erfüllen `NOTES-01`.
 **Fehler/Wiederanlauf:** Inkonsistenzen auf einem neuen PR beheben. Danach Schritt 1 vollständig wiederholen; nicht taggen.
@@ -715,6 +727,15 @@ Ablauf; ältere Tag-basierte oder manuelle Veröffentlichungswege sind ungültig
 - Kein Zeitdruck, ablaufendes Artefakt und kein geplanter Termin rechtfertigt das Umgehen eines `MUST`-Kriteriums.
 
 ## Dry-Run und Pflege
+
+**Begriffe.** „Dry-Run" bezeichnet in diesem Repository drei verschiedene
+Dinge; sie werden hier bewusst auseinandergehalten:
+
+| Gemeint ist | Wo | Zweck |
+| --- | --- | --- |
+| Runbook-Probe | dieser Abschnitt | dieses Runbook ohne Release-Mutation durchspielen |
+| Pipeline-Dry-Run | `release-linux.yml` per `schedule` (#922) | den Kandidatenpfad zwischen den Releases fahren |
+| Abnahme ohne Auswertung | Eingabe `dry_run` von `release-abnahme.yml` | nur die Smokes, ohne Vision-/Aggregationsschritt |
 
 Vor einer strukturellen Änderung an Workflows, Manifest oder Checkliste wird
 dieses Runbook ohne Release-Mutation geprobt: Befehle und Inputs werden gegen
