@@ -19,6 +19,42 @@ sys.modules["abnahme_preflight"] = preflight
 _SPEC.loader.exec_module(preflight)
 
 
+def _check_names() -> list[str]:
+    """Alle Check-Funktionen des Preflights – **automatisch** ermittelt.
+
+    Eine handgepflegte Liste driftet: Der Qt-/GL-Check aus #934 fehlte in der
+    Patch-Liste von ``test_run_preflight_includes_deb_sudo_only_on_linux``,
+    weil es ihn beim Schreiben jenes Tests nicht gab. Der als hermetisch
+    gedachte Lauf baute daraufhin real ein Qt-venv im ``$HOME`` und lud
+    ~100 MB von PyPI, ohne dass ein Test das bemerkt hätte.
+    """
+    return [name for name in dir(preflight) if name.startswith("check_")]
+
+
+@pytest.fixture
+def hermetic_preflight(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Neutralisiert jeden umgebungsberührenden Check von ``run_preflight``."""
+    for name in _check_names():
+        monkeypatch.setattr(preflight, name, lambda *a, **k: None)
+
+
+def test_no_check_escapes_the_hermetic_fixture(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Wächter gegen genau die Drift von #934.
+
+    Kommt ein Check hinzu, den ``_check_names`` nicht erfasst, liefert
+    ``run_preflight`` hier einen anderen Wert als die Markierung – und der
+    nächste „hermetische" Test würde wieder die echte Umgebung anfassen.
+    """
+    marker = "neutralisiert"
+    for name in _check_names():
+        monkeypatch.setattr(preflight, name, lambda *a, **k: marker)
+    for platform in preflight.KNOWN_PLATFORMS:
+        results = preflight.run_preflight(platform)
+        assert results
+        for name, value in results:
+            assert value == marker, f"{name} wird von _check_names nicht erfasst"
+
+
 class _Usage:
     def __init__(self, free: int) -> None:
         self.free = free
@@ -197,8 +233,14 @@ def test_qt_probe_ignores_qt_chatter_before_the_json_line() -> None:
     assert _check(lambda *_a, **_kw: _probe_result(noisy)) is None
 
 
-def test_the_preflight_runs_the_real_probe_on_every_platform() -> None:
-    """Kein Plattform-Sonderweg: Der Nachweis gehört zu jedem Readiness-Job."""
+def test_the_preflight_runs_the_real_probe_on_every_platform(
+    hermetic_preflight: None,
+) -> None:
+    """Kein Plattform-Sonderweg: Der Nachweis gehört zu jedem Readiness-Job.
+
+    Die Aussage ist „``qt-gl`` steht in der Liste, nach ``gl``", nicht „die
+    Sonde läuft" – letzteres prüft ``tests/test_qt_gl_probe.py``.
+    """
     for platform in preflight.KNOWN_PLATFORMS:
         names = [name for name, _ in preflight.run_preflight(platform)]
         assert "qt-gl" in names, platform
@@ -390,14 +432,7 @@ def test_main_passes_when_all_checks_ok(
     assert "::error" not in out
 
 
-def test_run_preflight_includes_deb_sudo_only_on_linux(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # Netz-/Session-/GL-Checks neutralisieren, damit der Test hermetisch bleibt.
-    monkeypatch.setattr(preflight, "check_network", lambda *a, **k: None)
-    monkeypatch.setattr(preflight, "check_graphical_session", lambda *a, **k: None)
-    monkeypatch.setattr(preflight, "check_gl", lambda *a, **k: None)
-    monkeypatch.setattr(preflight, "check_deb_sudo", lambda *a, **k: None)
+def test_run_preflight_includes_deb_sudo_only_on_linux(hermetic_preflight: None) -> None:
     linux_names = [name for name, _ in preflight.run_preflight("linux-arm64")]
     macos_names = [name for name, _ in preflight.run_preflight("macos-arm64")]
     assert "deb-sudo" in linux_names

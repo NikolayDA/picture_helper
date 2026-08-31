@@ -226,7 +226,9 @@ def test_approval_manifest_gated_to_full_platform_matrix() -> None:
     assert "platforms=alle" in notice_block
 
 
-def test_the_real_qt_probe_runs_in_every_active_readiness_job() -> None:
+def test_the_real_qt_probe_runs_in_every_active_readiness_job(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """#934: Der echte Qt-/GL-Probeaufruf gehört in **jeden** Readiness-Job.
 
     Er hängt nicht an einem Workflow-Schritt, sondern an ``run_preflight`` —
@@ -244,6 +246,11 @@ def test_the_real_qt_probe_runs_in_every_active_readiness_job() -> None:
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    # Ungepatcht bauten diese drei run_preflight-Aufrufe real ein Qt-venv im
+    # ``$HOME`` und lüden ~100 MB von PyPI. Automatisch statt handgepflegt:
+    # Genau eine vergessene Zeile in einer solchen Liste war die Ursache.
+    for name in [attr for attr in dir(module) if attr.startswith("check_")]:
+        monkeypatch.setattr(module, name, lambda *a, **k: None)
 
     assert (ROOT / "scripts" / "qt_gl_probe.py").is_file()
     for platform in module.KNOWN_PLATFORMS:
