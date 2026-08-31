@@ -1119,16 +1119,20 @@ def test_dry_run_builds_the_productive_ai_path() -> None:
     assert not leaked, leaked
 
 
-def test_a_dry_run_without_the_ai_bundle_fails_before_it_builds() -> None:
-    """Fail-closed gegen eine nicht dokumentierte Annahme.
+def test_the_run_mode_invariant_is_asserted_at_runtime_too() -> None:
+    """Laufzeit-Zusicherung fuer eine spaetere Umformulierung von ``env.WITH_AI``.
 
-    Die GitHub-Kontextreferenz fuehrt ``inputs`` nur fuer ``workflow_dispatch``
-    und wiederverwendbare Workflows. Dass ``inputs.with_ai`` im
-    ``schedule``-Lauf zum leeren String wird, folgt aus der allgemeinen Regel
-    "eine nicht existierende Eigenschaft ergibt einen leeren String" - nicht
-    aus einer Aussage ueber diesen Fall. Traegt die Regel nicht, buende der
-    Dry-Run still ohne KI. Der Waechter macht daraus einen Abbruch im ersten
-    Job, also vor Full-CI und Build.
+    Mit dem heutigen Ausdruck kann der Abbruch NICHT ausloesen: In
+    ``env.WITH_AI`` steht ``github.event_name == 'schedule'`` links vom ``||``,
+    ein Dry-Run ergibt also ``1`` unabhaengig von ``inputs.with_ai``. Genau
+    deshalb haengt der geplante Lauf nicht an der Verfuegbarkeit des
+    ``inputs``-Kontexts, den die Kontextreferenz nur fuer
+    ``workflow_dispatch`` und wiederverwendbare Workflows fuehrt.
+
+    Der Waechter sichert die Folge statt der Herleitung ab: Dieser Test pinnt
+    den Ausdruckstext (oben), der Abbruch pinnt sein Ergebnis. Wer den Ausdruck
+    spaeter umformuliert und den Test mitzieht, faellt im ersten Job auf statt
+    nach ~22 Minuten Build mit dem falschen Buendel.
     """
     marker = _load(_RELEASE)["jobs"]["verify-candidate"]["steps"][0]["run"]
     assert 'if [ "$DRY_RUN" = "1" ] && [ "$WITH_AI" != "1" ]; then' in marker

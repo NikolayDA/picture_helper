@@ -108,15 +108,16 @@ jobs:
       - name: Laufmodus kennzeichnen (Dry-Run oder Kandidat)
         run: |
           set -euo pipefail
-          # Fail-closed gegen eine Annahme, die die GitHub-Doku nicht ausdruecklich
-          # abdeckt: Der ``inputs``-Kontext ist laut Kontextreferenz nur in
-          # ``workflow_dispatch``- und wiederverwendbaren Workflows verfuegbar; fuer
-          # den ``schedule``-Lauf stuetzt sich ``WITH_AI`` auf die dokumentierte
-          # Regel "eine nicht existierende Eigenschaft ergibt einen leeren String".
-          # Traegt diese Regel nicht, buende der Dry-Run STILL ohne KI und pruefte
-          # damit einen anderen als den ausgelieferten Pfad. Der Abbruch hier kostet
-          # nichts (erster Job, vor Full-CI und Build) und macht aus dem stillen
-          # Fehler einen lauten.
+          # Laufzeit-Zusicherung des Modus-Invariants. Sie kann mit dem heutigen
+          # Ausdruck NICHT ausloesen, und das ist die Absicht: In ``env.WITH_AI``
+          # steht ``github.event_name == 'schedule'`` links vom ``||``, ein
+          # Dry-Run ergibt also ``1`` unabhaengig davon, was ``inputs.with_ai``
+          # im schedule-Kontext liefert. Der geplante Lauf haengt damit gar nicht
+          # an der Verfuegbarkeit des ``inputs``-Kontexts.
+          # Abgesichert wird die *Folge*, nicht die Herleitung: Der Test pinnt den
+          # Ausdruckstext, dieser Abbruch pinnt sein Ergebnis. Wer ``env.WITH_AI``
+          # spaeter umformuliert und den Test mitzieht, faellt hier im ersten Job
+          # auf statt nach ~22 Minuten Build mit dem falschen Buendel.
           if [ "$DRY_RUN" = "1" ] && [ "$WITH_AI" != "1" ]; then
             echo "::error title=Dry-Run ohne KI-Buendel::WITH_AI=${WITH_AI}, erwartet 1. Der Dry-Run muss den produktiven Pfad bauen (#922/#881) - Ausdruck in env.WITH_AI pruefen."
             exit 1

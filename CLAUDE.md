@@ -1014,11 +1014,14 @@ zusätzlich **monatlich** per `schedule`. Das ist die einzige Ausnahme von
 und `tests/test_release_gate.py` hält beides fest.
 
 Der Dry-Run baut mit dem **produktiven** KI-Bündel — ein Lauf ohne rembg
-prüfte einen anderen als den ausgelieferten Pfad (#881). Weil es im
-`schedule`-Kontext kein `inputs.with_ai` gibt, steht der Modus als
+prüfte einen anderen als den ausgelieferten Pfad (#881). Der Modus steht als
 Workflow-`env` (`DRY_RUN`/`WITH_AI`) an genau einer Stelle und speist auch den
 `--ai`-Schalter der Build-Schritte; zuvor waren das zwei unabhängige
-Ausdrücke, die nur zufällig übereinstimmten.
+`inputs.with_ai`-Ausdrücke, die nur zufällig übereinstimmten. In `WITH_AI`
+steht `github.event_name == 'schedule'` bewusst **links** vom `||`: Ein Dry-Run
+ergibt damit `1` by construction und hängt nicht an der Verfügbarkeit des
+`inputs`-Kontexts, den die Kontextreferenz nur für `workflow_dispatch` und
+wiederverwendbare Workflows führt.
 
 **Er wird nie ein Kandidat.** Bindend ist der Freigabevertrag:
 `release_contract.validate_workflow_run` verlangt fail-closed

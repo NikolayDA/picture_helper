@@ -783,13 +783,20 @@ den ausgelieferten Pfad. Im `schedule`-Kontext gibt es kein `inputs.with_ai` —
 die Bedingung steht deshalb als Workflow-`env` an genau einer Stelle und
 speist auch den `--ai`-Schalter der Build-Schritte.
 
-Dass `inputs.with_ai` im geplanten Lauf zum leeren String wird, folgt aus der
-allgemeinen Ausdrucksregel („eine nicht existierende Eigenschaft ergibt einen
-leeren String"), nicht aus einer Aussage der Kontextreferenz über genau diesen
-Fall. Deshalb bricht der erste Job fail-closed ab, wenn ein Dry-Run mit
-`WITH_AI=0` starten würde — *Dry-Run ohne KI-Bündel*. Diese Meldung heißt: Die
-Annahme trägt nicht, der Ausdruck in `env.WITH_AI` muss korrigiert werden. Sie
-kostet nichts, weil sie vor Full-CI und Build fällt.
+Der geplante Lauf hängt dabei **nicht** an der Verfügbarkeit des
+`inputs`-Kontexts: In `env.WITH_AI` steht `github.event_name == 'schedule'`
+links vom `||`, das Ergebnis ist für einen Dry-Run also `1` *by construction* —
+unabhängig davon, was `inputs.with_ai` dort liefert. Das ist beabsichtigt: Die
+Kontextreferenz führt `inputs` nur für `workflow_dispatch` und
+wiederverwendbare Workflows; diese Formulierung muss die Frage gar nicht
+beantworten.
+
+Zusätzlich bricht der erste Job ab, wenn ein Dry-Run mit `WITH_AI=0` starten
+würde (*Dry-Run ohne KI-Bündel*). Diese Zusicherung kann mit dem heutigen
+Ausdruck **nicht** auslösen; sie sichert die *Folge* statt der Herleitung: Der
+Test pinnt den Ausdruckstext, der Abbruch sein Ergebnis. Wer `env.WITH_AI`
+später umformuliert und den Test mitzieht, fällt im ersten Job auf statt nach
+~22 Minuten Build mit dem falschen Bündel.
 
 **Nicht** geprüft wird alles, was am Kandidaten hängt: Abnahme auf echter
 Hardware, Freigabemanifest, Veröffentlichung. Der Dry-Run ist ein
