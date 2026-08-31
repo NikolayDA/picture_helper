@@ -94,6 +94,32 @@ def _fail(stage: str, detail: str, **extra: Any) -> dict[str, Any]:
     return {"ok": False, "stage": stage, "detail": detail, **extra}
 
 
+def success_payload(
+    *, platform: str, vendor: str, renderer: str, version: str,
+) -> dict[str, Any]:
+    """Das Erfolgs-Payload der Sonde – **der** Vertrag zum Preflight.
+
+    Bewusst eine eigene Funktion: In der Offscreen-CI erreicht ``probe`` diesen
+    Zweig nie, und der Preflight liest ``diagnostic`` fail-open. Ein
+    umbenannter Schluessel bliebe damit still – ``make check`` gruen, im
+    Joblog wieder nur ``ok: qt-gl`` (#941-Review). So kann ein Test beide
+    Seiten aneinander binden, ohne einen GL-Kontext zu brauchen.
+
+    ``probe`` bewertet die Software-Renderer-Regel auf **diesem** Ergebnis;
+    die abgewiesene und die gemeldete Diagnose sind daher bitgleich.
+    """
+    return {
+        "ok": True,
+        "stage": "",
+        "detail": "",
+        "platform": platform,
+        "vendor": vendor,
+        "renderer": renderer,
+        "version": version,
+        "diagnostic": f"{vendor} / {renderer} / {version}",
+    }
+
+
 def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
     """Fuehrt den Qt-/GL-Smoke aus und liefert das strukturierte Ergebnis.
 
@@ -200,7 +226,10 @@ def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
                 f"GL-Provenienz unvollstaendig – ohne {', '.join(missing)}",
                 platform=platform_name,
             )
-        diagnostic = f"{vendor} / {renderer} / {version}"
+        payload = success_payload(
+            platform=platform_name, vendor=vendor, renderer=renderer, version=version,
+        )
+        diagnostic = str(payload["diagnostic"])
         if load_software_renderer_rule()(diagnostic):
             return _fail(
                 "renderer",
@@ -210,16 +239,7 @@ def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
                 renderer=renderer,
                 version=version,
             )
-        return {
-            "ok": True,
-            "stage": "",
-            "detail": "",
-            "platform": platform_name,
-            "vendor": vendor,
-            "renderer": renderer,
-            "version": version,
-            "diagnostic": diagnostic,
-        }
+        return payload
     except Exception as exc:  # noqa: BLE001 - Sonde darf nie ohne JSON enden
         return _fail("kontext", f"{type(exc).__name__}: {exc}", platform=platform_name)
     finally:

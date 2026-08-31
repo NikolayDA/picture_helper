@@ -18,6 +18,17 @@ preflight = importlib.util.module_from_spec(_SPEC)
 sys.modules["abnahme_preflight"] = preflight
 _SPEC.loader.exec_module(preflight)
 
+# Die Sonde als *Quelle* des Erfolgs-Payloads – gebraucht fuer den
+# Vertragstest weiter unten, damit der Konsument nicht gegen ein
+# fabriziertes Payload prueft.
+_PROBE_SPEC = importlib.util.spec_from_file_location(
+    "qt_gl_probe", ROOT / "scripts" / "qt_gl_probe.py"
+)
+assert _PROBE_SPEC is not None and _PROBE_SPEC.loader is not None
+qt_gl_probe = importlib.util.module_from_spec(_PROBE_SPEC)
+sys.modules["qt_gl_probe"] = qt_gl_probe
+_PROBE_SPEC.loader.exec_module(qt_gl_probe)
+
 
 def _check_names() -> list[str]:
     """Alle Check-Funktionen des Preflights – **automatisch** ermittelt.
@@ -212,6 +223,24 @@ def test_qt_probe_reports_the_measured_renderer_on_success() -> None:
         note=seen.append,
     )
     assert ok is None
+    assert seen == ["Apple / Apple M3 Max / 2.1 Metal - 90.5"]
+
+
+def test_the_preflight_reads_the_key_the_probe_actually_writes() -> None:
+    """Bindet Sonde und Konsument aneinander (#941-Review).
+
+    Die uebrigen Tests **fabrizieren** das Payload und pruefen den Vertrag
+    deshalb nie. Wird ``diagnostic`` in ``qt_gl_probe`` umbenannt oder
+    zugunsten der Einzelfelder fallengelassen, bliebe der fail-open-Zugriff
+    still: ``make check`` gruen, mypy stumm (JSON-``dict``) – und im Joblog
+    stuende wieder genau das ``ok: qt-gl``, das dieser PR abschafft.
+    """
+    payload = qt_gl_probe.success_payload(
+        platform="cocoa", vendor="Apple", renderer="Apple M3 Max",
+        version="2.1 Metal - 90.5",
+    )
+    seen: list[str] = []
+    assert _check(_probe_runner(payload), note=seen.append) is None
     assert seen == ["Apple / Apple M3 Max / 2.1 Metal - 90.5"]
 
 

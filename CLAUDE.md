@@ -1070,6 +1070,10 @@ bewertet, aber immer gedruckt. Ohne diese Zeile fiele ein Treiberwechsel auf
 einen Software-Renderer erst auf, wenn er die Schwelle bereits reißt. Der Weg
 führt über den optionalen `notes`-Parameter von `run_preflight`, damit der
 `(name, fehler)`-Vertrag unangetastet bleibt, auf dem die Aufrufer aufsetzen.
+Das Erfolgs-Payload liegt dafür als `qt_gl_probe.success_payload` frei: Der
+Preflight liest `diagnostic` fail-open, und die Offscreen-CI erreicht diesen
+Zweig der Sonde nie — ein umbenannter Schlüssel bliebe ohne den Vertragstest
+still (`make check` grün, im Joblog wieder nur `ok: qt-gl`).
 
 Die Software-Renderer-Regel kommt aus `renderer_provenance` (#642) — geladen
 über den **Dateipfad**, nicht als Paketimport: `bgremover.constants` zöge
