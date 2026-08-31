@@ -239,34 +239,47 @@ def test_tag_is_created_only_after_the_full_approval_check() -> None:
     steps = _load(_PUBLISH)["jobs"]["publish"]["steps"]
     names = [str(step.get("name") or step.get("uses") or "") for step in steps]
     approval = next(i for i, n in enumerate(names) if n.startswith("Manifest, Workflows"))
-    creation = next(i for i, n in enumerate(names) if n.startswith("Release-Tag anlegen"))
+    plan = next(i for i, n in enumerate(names) if n.startswith("Tag-Plan aus dem"))
+    creation = next(i for i, n in enumerate(names) if n == "Release-Tag anlegen")
     checkout = next(i for i, n in enumerate(names) if n.startswith("Kandidaten-Commit fuer"))
     verify = next(i for i, n in enumerate(names) if n.startswith("Tag muss auf exakt"))
-    assert approval < creation < checkout < verify, names
+    assert approval < plan < creation < checkout < verify, names
 
+    assert steps[plan]["if"] == "inputs.create_tag"
     step = steps[creation]
-    assert step["if"] == "inputs.create_tag"
-    # Sollwert ausschliesslich aus der Manifestpruefung, nie aus einem Input.
-    assert step["env"]["CANDIDATE_SHA"] == "${{ steps.approval.outputs.candidate_sha }}"
+    # Verzweigung am maschinenlesbaren Step-Output, nicht an der
+    # Klartextausgabe: Ein umformulierter Meldungstext darf nie entscheiden,
+    # ob ein Tag angelegt wird.
+    assert step["if"] == "inputs.create_tag && steps.tag-plan.outputs.action == 'create'"
+    # Sollwert ausschliesslich aus dem Vertrag, nie aus einem Input.
+    assert step["env"]["CANDIDATE_SHA"] == "${{ steps.tag-plan.outputs.candidate_sha }}"
     assert "inputs.tag" not in str(step.get("env"))
 
 
 def test_tag_creation_asks_the_contract_and_creates_an_annotated_tag() -> None:
-    run = next(
-        step["run"] for step in _load(_PUBLISH)["jobs"]["publish"]["steps"]
-        if str(step.get("name") or "").startswith("Release-Tag anlegen")
-    )
+    steps = {
+        str(step.get("name") or ""): step
+        for step in _load(_PUBLISH)["jobs"]["publish"]["steps"]
+    }
+    plan = steps["Tag-Plan aus dem Freigabemanifest ableiten"]["run"]
+    create = steps["Release-Tag anlegen"]["run"]
+
     # Die Entscheidung faellt netzfrei im Vertrag, nicht im Shell.
-    assert "release_contract.py plan-tag" in run
+    assert "release_contract.py plan-tag" in plan
     # matching-refs statt git/ref: immer HTTP 200, leere Liste = Tag fehlt.
-    assert "git/matching-refs/tags/" in run
-    assert "git/ref/tags/" not in run, "404-Sonderfall gehoert nicht in den Shell"
+    assert "git/matching-refs/tags/" in plan
+    assert "git/ref/tags/" not in plan, "404-Sonderfall gehoert nicht in den Shell"
+    # Der Anlege-Schritt entscheidet nichts mehr selbst.
+    assert "plan-tag" not in create
+    assert "grep" not in create, "Verzweigung gehoert an den Step-Output"
+
     # Annotiert wie in Runbook-Schritt 7: Tag-Objekt, dann Ref darauf.
-    assert 'gh api "repos/${GITHUB_REPOSITORY}/git/tags"' in run
-    assert "-f type=commit" in run
+    assert 'gh api "repos/${GITHUB_REPOSITORY}/git/tags"' in create
+    assert "-f type=commit" in create
     # Kein Verschieben: weder force noch delete auf dem Tag-Ref.
-    assert "--method PATCH" not in run and "--method DELETE" not in run
-    assert "-X DELETE" not in run
+    for run in (plan, create):
+        assert "--method PATCH" not in run and "--method DELETE" not in run
+        assert "-X DELETE" not in run
 
 
 def test_publish_keeps_verifying_the_tag_even_when_it_created_it() -> None:

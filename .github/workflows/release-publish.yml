@@ -127,10 +127,9 @@ jobs:
       # bewusst vor dem candidate-source-Checkout: Der laeuft mit
       # fetch-depth: 0 und bringt den soeben angelegten Tag mit, sodass die
       # bestehende Tag-Verifikation unveraendert greift.
-      - name: Release-Tag anlegen, falls angefordert
+      - name: Tag-Plan aus dem Freigabemanifest ableiten
+        id: tag-plan
         if: inputs.create_tag
-        env:
-          CANDIDATE_SHA: ${{ steps.approval.outputs.candidate_sha }}
         run: |
           set -euo pipefail
           refs_json="${RUNNER_TEMP}/tag-matching-refs.json"
@@ -148,16 +147,24 @@ jobs:
           if [ -n "$object_sha" ]; then
             gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" > "$tag_object_json"
           fi
+          # Schreibt action und candidate_sha nach GITHUB_OUTPUT; ein
+          # abweichender Tag laesst diesen Schritt mit Exit 2 scheitern.
           python3 scripts/release_contract.py plan-tag \
             --manifest "${RUNNER_TEMP}/approval/release-approval-manifest.json" \
             --tag "$RELEASE_TAG" \
             --matching-refs-json "$refs_json" \
-            --tag-object-json "$tag_object_json" \
-            | tee "${RUNNER_TEMP}/tag-plan.txt"
-          if grep -q 'already-correct' "${RUNNER_TEMP}/tag-plan.txt"; then
-            echo "::notice title=Tag unveraendert::$RELEASE_TAG zeigt bereits auf $CANDIDATE_SHA."
-            exit 0
-          fi
+            --tag-object-json "$tag_object_json"
+
+      # Getrennter Schritt, damit die Verzweigung am maschinenlesbaren
+      # Step-Output haengt statt an der Klartextausgabe des Vertrags. Der Fall
+      # "Tag zeigt bereits richtig" wird dadurch ein sichtbar uebersprungener
+      # Schritt statt eines stillen exit 0.
+      - name: Release-Tag anlegen
+        if: inputs.create_tag && steps.tag-plan.outputs.action == 'create'
+        env:
+          CANDIDATE_SHA: ${{ steps.tag-plan.outputs.candidate_sha }}
+        run: |
+          set -euo pipefail
           # Annotiertes Tag wie in Runbook-Schritt 7: erst das Tag-Objekt, dann
           # der Ref darauf. Ein reiner Ref-Push erzeugte ein leichtgewichtiges
           # Tag ohne Datum und Nachricht.
