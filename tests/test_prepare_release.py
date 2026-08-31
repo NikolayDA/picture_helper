@@ -571,6 +571,48 @@ def test_cli_refuses_a_downgrade_target(fixture_repo: Path, capsys) -> None:
     assert after == before, "ein abgewiesenes Downgrade darf nichts schreiben"
 
 
+def test_an_unwritable_issue_output_leaves_the_repo_untouched(
+    fixture_repo: Path, tmp_path: Path, capsys
+) -> None:
+    """#943 Befund 4: ``apply`` lief vor der Issue-Ablage – ein nicht
+    beschreibbarer ``--issue-output`` hinterließ ein bereits mutiertes Repo,
+    dessen Wiederanlauf abbricht („pyproject steht bereits auf …")."""
+    blocked = tmp_path / "blocked"
+    blocked.mkdir()  # ein Verzeichnis als Zieldatei scheitert beim os.replace
+    before = {
+        path: path.read_bytes() for path in sorted(fixture_repo.rglob("*")) if path.is_file()
+    }
+    code = pr.main(
+        ["9.9.9", "--date", "2026-09-15", "--repo", str(fixture_repo),
+         "--issue-output", str(blocked)]
+    )
+    assert code == 2
+    assert "nicht beschreibbar" in capsys.readouterr().err
+    after = {path: path.read_bytes() for path in sorted(fixture_repo.rglob("*")) if path.is_file()}
+    assert after == before, "eine gescheiterte Issue-Ablage darf nichts mutiert haben"
+
+
+def test_the_issue_file_is_persisted_before_the_repo_is_touched(
+    fixture_repo: Path, tmp_path: Path, monkeypatch
+) -> None:
+    """Die Reihenfolge selbst ist der Vertrag: Erst die externe Ablage, dann
+    ``apply`` – sonst kehrt der Fehler aus Befund 4 mit dem nächsten Umbau
+    zurück."""
+    issue = tmp_path / "issue.md"
+
+    def boom(repo: Path, planned) -> None:
+        raise RuntimeError("apply erreicht")
+
+    monkeypatch.setattr(pr, "apply", boom)
+    with pytest.raises(RuntimeError, match="apply erreicht"):
+        pr.main(
+            ["9.9.9", "--date", "2026-09-15", "--repo", str(fixture_repo),
+             "--issue-output", str(issue)]
+        )
+    assert issue.is_file(), "Issue-Text muss vor der ersten Repo-Schreibung liegen"
+    assert 'version = "9.9.9"' not in (fixture_repo / "pyproject.toml").read_text("utf-8")
+
+
 def test_the_downgrade_guard_compares_numerically_not_lexicographically(
     fixture_repo: Path, capsys
 ) -> None:

@@ -698,11 +698,16 @@ def plan(repo: Path, inputs: ReleaseInputs, *, predecessor_version: str) -> Plan
 
 
 def apply(repo: Path, planned: list[PlannedFile]) -> None:
-    """Schreibt den geplanten Stand; legt fehlende Verzeichnisse an."""
+    """Schreibt den geplanten Stand; legt fehlende Verzeichnisse an.
+
+    Jede Datei atomar (``write_text_atomic``): Ein Abbruch hinterlässt nie
+    eine halb geschriebene Datei. Ein Abbruch **zwischen** den Dateien bleibt
+    möglich, ist im Arbeitsbaum aber per ``git checkout`` umkehrbar – die
+    einzige Ablage außerhalb der Versionskontrolle (der Issue-Text) liegt
+    seit #943 Befund 4 bereits vor dem ersten Schreiben hier.
+    """
     for item in planned:
-        target = repo / item.path
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(item.content, encoding="utf-8")
+        write_text_atomic(repo / item.path, item.content)
 
 
 def sha256_file(path: Path) -> str:
@@ -932,6 +937,34 @@ def main(argv: list[str] | None = None) -> int:
         print(f"FEHLER: {exc}", file=sys.stderr)
         return 2
 
+    issue_title = f"[Release {args.version}] Abnahme- und Veröffentlichungsprotokoll"
+    # Externe Ablagen ZUERST, dann erst die Repo-Mutation (#943 Befund 4).
+    # Vorher lief ``apply`` zuerst: Ein nicht beschreibbarer ``--issue-output``
+    # (oder eine scheiternde Fallback-Ablage) hinterliess ein bereits
+    # mutiertes Repo, und der zweite Skriptlauf brach ab, weil
+    # ``pyproject.toml`` schon auf der Zielversion stand. Scheitert die Ablage
+    # jetzt, ist noch nichts geschrieben – Pfad korrigieren und erneut
+    # ausführen ist der vollständige Wiederanlauf. Vor jedem GitHub-Aufruf
+    # liegt der Issue-Text damit weiterhin als Datei vor (#933).
+    fallback: Path | None = None
+    issue_path: Path | None = issue_output
+    if not args.dry_run:
+        try:
+            if issue_output is not None:
+                write_text_atomic(issue_output, issue_body)
+            elif args.create_issue:
+                fallback = fallback_issue_path(args.version, repo)
+                issue_path = fallback
+                write_text_atomic(fallback, issue_body)
+        except OSError as exc:
+            print(
+                f"FEHLER: Issue-Ablage nicht beschreibbar ({exc}). Es wurde noch "
+                "keine Release-Datei geschrieben – Pfad korrigieren und das "
+                "Skript unverändert erneut ausführen.",
+                file=sys.stderr,
+            )
+            return 2
+
     if args.dry_run:
         print(f"Vorbereitung {predecessor_version} → {args.version} ({release_date}), nur Bericht:")
     else:
@@ -940,14 +973,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {'geplant' if args.dry_run else 'geschrieben'}: {item.path}")
     print(f"  Pfadpolicy: Version {prepared.policy_version} (current-freeze umgehängt)")
 
-    issue_title = f"[Release {args.version}] Abnahme- und Veröffentlichungsprotokoll"
-    # Vor jedem GitHub-Aufruf liegt der Issue-Text als Datei vor. Ohne
-    # ``--issue-output`` gab es bisher nur die Standardausgabe: Ein transienter
-    # gh-Fehler hinterliess damit einen fertigen Rohstand, aber keinen
-    # ausfuehrbaren Weg zum Issue – ein zweiter Skriptlauf bricht ab, weil
-    # ``pyproject.toml`` bereits auf der Zielversion steht (#933).
-    fallback: Path | None = None
-    issue_path: Path | None = issue_output
     if args.dry_run:
         # Ein Probelauf soll ALLES zeigen, was entstuende – auch das Issue.
         # Geschrieben oder angelegt wird dabei nichts.
@@ -956,17 +981,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.create_issue:
             print("\nHINWEIS: --create-issue wird im Probelauf nicht ausgeführt.", file=sys.stderr)
     elif issue_output is not None:
-        write_text_atomic(issue_output, issue_body)
         print(f"  geschrieben: {issue_output}")
     else:
-        # Die Standardausgabe zuerst: Sie ist der letzte Rueckhalt, falls die
-        # Ablage selbst scheitert.
         print(f"\n--- Release-Issue: {issue_title} ---")
         print(issue_body)
-        if args.create_issue:
-            fallback = fallback_issue_path(args.version, repo)
-            issue_path = fallback
-            write_text_atomic(fallback, issue_body)
+        if fallback is not None:
             print(f"\n  gesichert für den Wiederanlauf: {fallback}")
 
     if args.create_issue and not args.dry_run:
