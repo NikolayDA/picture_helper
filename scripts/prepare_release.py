@@ -967,8 +967,12 @@ def main(argv: list[str] | None = None) -> int:
     # mutiertes Repo, und der zweite Skriptlauf brach ab, weil
     # ``pyproject.toml`` schon auf der Zielversion stand. Scheitert die Ablage
     # jetzt, ist noch nichts geschrieben – Pfad korrigieren und erneut
-    # ausführen ist der vollständige Wiederanlauf. Vor jedem GitHub-Aufruf
-    # liegt der Issue-Text damit weiterhin als Datei vor (#933).
+    # ausführen ist der vollständige Wiederanlauf. Die frühere Regel „Die
+    # Standardausgabe zuerst, als letzter Rückhalt" entfällt damit bewusst:
+    # Sie schützte nur den Fall, dass das Repo bereits mutiert war und der
+    # Text sonst verloren ginge – genau den gibt es nicht mehr, der saubere
+    # Wiederanlauf erzeugt den Text erneut (#944-Review). Vor jedem
+    # GitHub-Aufruf liegt der Issue-Text damit weiterhin als Datei vor (#933).
     fallback: Path | None = None
     issue_path: Path | None = issue_output
     if not args.dry_run:

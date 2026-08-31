@@ -174,15 +174,24 @@ def expected_jobs(*, x86_enabled: bool) -> tuple[str, ...]:
     return tuple(HEARTBEAT_JOB_NAMES[platform] for platform in platforms)
 
 
-# Ergebnisse, die einen Runner als nicht einsatzbereit ausweisen. ``cancelled``
-# gehört bewusst nicht dazu: Das ist eine menschliche Handlung (oder die
-# ``cancel-in-progress``-Aufräumung), kein Geräteurteil. Bestanden ist ein Job
-# aber ausschließlich mit ``success`` – jede andere abgeschlossene Konklusion
-# (``cancelled``, ``skipped``, ``stale``, ``startup_failure``, …) belegt keine
-# Bereitschaft und landet als ``inconclusive`` im ``UNOBSERVED``-Zweig, statt
-# still als bestanden zu gelten (#943 Befund 1: ``evaluate`` meldete sonst
-# PASS „Bereitschaftsprüfung bestanden" für ein abgebrochenes Ergebnis).
-FAILED_CONCLUSIONS: Final = ("failure", "timed_out")
+# Ergebnisse, die einen Runner als nicht einsatzbereit ausweisen.
+# ``startup_failure`` gehört dazu (#944-Review): Der Runner hat den Job
+# angenommen und konnte ihn nicht starten (kaputter Workspace, volles
+# ``_work``, Dienst am Ende) – dieselbe Aussage wie ``failure``/``timed_out``,
+# nur früher im Lebenszyklus, und nur der FAIL-Zweig erreicht den
+# Issue-Kommentar (``if: failure()`` im Workflow). ``cancelled`` bleibt
+# draußen: menschliche Handlung (oder die ``cancel-in-progress``-Aufräumung),
+# kein Geräteurteil. Bestanden ist ein Job aber ausschließlich mit
+# ``success`` – jede andere abgeschlossene Konklusion (``cancelled``,
+# ``skipped``, ``stale``, …) belegt keine Bereitschaft und landet als
+# ``inconclusive`` im ``UNOBSERVED``-Zweig, statt still als bestanden zu
+# gelten (#943 Befund 1: ``evaluate`` meldete sonst PASS
+# „Bereitschaftsprüfung bestanden" für ein abgebrochenes Ergebnis).
+# ``stale`` zählt bewusst nicht wie ``queued`` als Offline-Beleg: GitHub
+# setzt es erst nach Laufabschluss für nie zugewiesene Jobs – während der
+# Beobachtung des eigenen, laufenden Runs erscheint derselbe Zustand als
+# ``queued`` und trägt dort bereits das fristgebundene Offline-Verdikt.
+FAILED_CONCLUSIONS: Final = ("failure", "timed_out", "startup_failure")
 SUCCESS_CONCLUSION: Final = "success"
 
 

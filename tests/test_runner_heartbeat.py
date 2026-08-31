@@ -437,21 +437,33 @@ def test_a_job_still_running_at_the_deadline_yields_no_verdict() -> None:
 @pytest.mark.parametrize(
     ("shape", "conclusion"),
     [
-        ("startup", "startup_failure"),
         ("stale", "stale"),
         ("skipped", "skipped"),
         ("cancelled", "cancelled"),
     ],
 )
 def test_a_non_success_conclusion_never_passes(shape: str, conclusion: str) -> None:
-    """``startup_failure``/``stale``/… landeten vor #943 in keiner der drei
-    Mengen – waren alle erwarteten Jobs vorhanden, meldete ``evaluate`` PASS
-    „Bereitschaftsprüfung bestanden" ohne jeden Beleg."""
+    """``stale``/``skipped``/``cancelled`` landeten vor #943 in keiner der
+    drei Mengen – waren alle erwarteten Jobs vorhanden, meldete ``evaluate``
+    PASS „Bereitschaftsprüfung bestanden" ohne jeden Beleg."""
     state = hb.queue_state(_jobs("ok", shape), EXPECTED)
     assert state.inconclusive == (("Heartbeat Linux aarch64", conclusion),)
     verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
     assert verdict == hb.VERDICT_UNOBSERVED
     assert "Heartbeat Linux aarch64" in detail and conclusion in detail
+
+
+def test_a_startup_failure_is_a_device_finding_with_an_alert_path() -> None:
+    """#944-Review: ``startup_failure`` heißt „angenommen, konnte nicht
+    starten" – dieselbe Geräteklasse wie ``failure``/``timed_out``. Als
+    ``inconclusive`` endete der Lauf mit Exit 0 und der Issue-Kommentar
+    (``if: failure()``) bliebe aus – der laut §7 einzige rechtzeitige Kanal."""
+    state = hb.queue_state(_jobs("ok", "startup"), EXPECTED)
+    assert state.failed == ("Heartbeat Linux aarch64",)
+    assert state.inconclusive == ()
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
+    assert verdict == hb.VERDICT_FAIL
+    assert "nicht einsatzbereit" in detail
 
 
 def test_a_completed_job_without_conclusion_never_passes() -> None:
