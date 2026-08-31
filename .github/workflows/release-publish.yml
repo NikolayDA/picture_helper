@@ -582,23 +582,48 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Release-Ref bestimmen und gegen den Kandidaten pruefen
+        id: release_ref
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          CANDIDATE_SHA: ${{ needs.publish.outputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          # Schritt 9 dispatcht auf denselben Ref wie die Schritte 3, 5 und 8
+          # (#918). Der Ref ist deterministisch aus dem Tag ableitbar, muss dem
+          # Publish-Lauf also nicht uebergeben werden - und wird hier wie bei
+          # jedem anderen Dispatch vorher gegen candidate.head_sha geprueft.
+          # Tag und Ref zeigen zwar auf denselben Commit, aber zwei
+          # Prozessquellen fuer dieselbe Handlung sind eine Quelle zu viel.
+          release_ref="release/${RELEASE_TAG}"
+          ref_json="${RUNNER_TEMP}/release-ref.json"
+          if ! gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${release_ref}" > "$ref_json"; then
+            echo "::error title=Release-Ref fehlt::${release_ref} ist nicht abrufbar. Der" \
+              "Post-Release-Nachweis wird nicht ausgeloest; Runbook-Schritt 9 von Hand fahren."
+            exit 1
+          fi
+          python3 scripts/release_contract.py verify-release-ref \
+            --ref-json "$ref_json" \
+            --ref "$release_ref" \
+            --expected-sha "$CANDIDATE_SHA"
+          echo "ref=${release_ref}" >> "$GITHUB_OUTPUT"
+
       - name: Abnahme-Lauf idempotent ausloesen und korrelieren
         id: dispatch
         env:
           RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_REF: ${{ steps.release_ref.outputs.ref }}
           CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
           PREDECESSOR_TAG: ${{ inputs.predecessor_tag }}
           TARGET_ISSUE: ${{ inputs.target_issue }}
         run: |
           set -euo pipefail
-          # Dispatch-Ref ist der Release-Tag: Er existiert an dieser Stelle,
-          # ist unveraenderlich und wurde von verify-approval --tag-sha gegen
-          # candidate.head_sha geprueft. Der Release-Ref aus #918 ist dem
-          # Publish-Lauf nicht als Wert bekannt; der Tag zeigt auf denselben
-          # Commit und traegt dieselbe Bindung.
+          # Dispatch-Ref ist der unveraenderliche Release-Ref, im Schritt davor
+          # gegen candidate.head_sha geprueft. Der Tag bleibt die
+          # veroeffentlichte Version, nicht die Dispatch-Quelle.
           python3 scripts/release_update_dispatch.py \
             --repo "$GITHUB_REPOSITORY" \
-            --ref "$RELEASE_TAG" \
+            --ref "$RELEASE_REF" \
             --tag "$RELEASE_TAG" \
             --candidate-run-id "$CANDIDATE_RUN_ID" \
             --publish-run-id "$GITHUB_RUN_ID" \

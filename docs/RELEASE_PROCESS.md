@@ -30,7 +30,7 @@ bestanden sind.
 - `main` enthält sämtliche Release-Änderungen und ist lokal aktuell.
 - `gh auth status` ist erfolgreich; Release-Owner darf Workflows starten und Releases verwalten.
 - Die selbst gehosteten Runner `macos-arm64` und `linux-arm64` sind online und haben eine grafische Sitzung.
-- Ein Repository-Ruleset schützt `release/*` gegen Force-Push, weitere Commits und Löschen durch Nicht-Owner (#918).
+- Ein Repository-Ruleset schützt `release/*` gegen Force-Push (`non_fast_forward`), weitere Commits (`update`) und Löschen (`deletion`) (#918). Schritt 2 prüft das fail-closed und nennt das Anlage-Rezept, falls es fehlt — der Release beginnt nicht auf einem ungeschützten Ref.
 - Die drei Release-Workflows bleiben während eines laufenden Releases unter ihren Pfaden auf `main` vorhanden: `workflow_dispatch` löst laut GitHub-Referenz nur aus, wenn die Workflow-Datei auf dem Default-Branch existiert („This event will only trigger a workflow run if the workflow file exists on the default branch"). Ausgeführt wird danach die Definition aus `$RELEASE_REF`. Ein Merge, der eine dieser Dateien auf `main` umbenennt oder entfernt, blockiert also die restlichen Dispatches — siehe Wiederanlaufmatrix.
 - Ein offenes Release-Issue dient als Entscheidungsprotokoll; seine Nummer wird als `RELEASE_ISSUE` verwendet.
 - Kandidaten-, Abnahme- und Publish-Run-ID, vollständiger Commit-SHA, Tag und Manifestname werden im Issue notiert.
@@ -44,6 +44,16 @@ RELEASE_VERSION="X.Y.Z"
 RELEASE_TAG="v${RELEASE_VERSION}"
 # Unveraenderlicher Release-Ref (#918): traegt alle vier Dispatches, damit
 # main waehrend des Releases mergebar bleibt.
+#
+# Die beiden Namen haben getrennte Rollen und sind nicht austauschbar:
+#   RELEASE_TAG  = die veroeffentlichte Version. Er entsteht erst in Schritt 7,
+#                  benennt das Release und seine Assets.
+#   RELEASE_REF  = Dispatch- und Wiederanlaufquelle. Er existiert ab Schritt 2,
+#                  traegt den Ruleset-Schutz und ist die einzige Quelle, aus der
+#                  ein Release-Workflow gestartet wird - auch der automatisierte
+#                  Schritt-9-Dispatch im Publish-Lauf.
+# Beide zeigen auf denselben Commit; genau deshalb ist die Verwechslung
+# folgenlos-aussehend und muss benannt werden.
 RELEASE_REF="release/${RELEASE_TAG}"
 RELEASE_ISSUE="ISSUE_NUMMER"
 CANDIDATE_RUN_ID="RUN_ID"
@@ -165,17 +175,39 @@ esac
 ```
 
 Prüfe danach, dass das Ruleset für `release/*` tatsächlich greift — nicht in der
-Weboberfläche, sondern an den aktiven Regeln des konkreten Refs:
+Weboberfläche, sondern an den aktiven Regeln des konkreten Refs. Die Prüfung
+**bewertet** und bricht ab; eine bloß ausgegebene Regelliste ließe eine leere
+Antwort wie eine bestandene Prüfung aussehen:
 
 ```bash
-gh api "repos/NikolayDA/picture_helper/rules/branches/${RELEASE_REF}" \
-  --jq '[.[].type] | sort | unique'
+gh api "repos/NikolayDA/picture_helper/rules/branches/${RELEASE_REF}" > /tmp/release-ref-rules.json
+python scripts/release_contract.py verify-ref-protection \
+  --rules-json /tmp/release-ref-rules.json --ref "$RELEASE_REF"
 ```
 
-Erwartet werden mindestens `non_fast_forward` (kein Force-Push), `update`
-(keine weiteren Commits) und `deletion`. Eine leere Liste bedeutet: Der Ref ist
-ungeschützt — dann nicht weitermachen, sondern das Ruleset in Ordnung bringen.
-Der Ref ist ein Branch und kein Tag, weil nur Branches diesen Schutz tragen.
+Verlangt werden `non_fast_forward` (kein Force-Push), `update` (keine weiteren
+Commits) und `deletion`. Fehlt eine davon — oder liefert der Endpunkt eine leere
+Liste, weil gar kein Ruleset existiert —, endet das Kommando mit einem Fehler:
+dann nicht weitermachen, sondern das Ruleset in Ordnung bringen. Der Endpunkt
+liefert ausschließlich Regeln aus Rulesets im Zustand `active`; ein Ruleset in
+`evaluate` oder `disabled` zählt also nicht als Schutz. Der Ref ist ein Branch
+und kein Tag, weil nur Branches diesen Schutz tragen.
+
+Fehlt das Ruleset noch, legt der Repository-Owner es einmalig an (danach gilt es
+für jedes weitere Release):
+
+```bash
+gh api --method POST "repos/NikolayDA/picture_helper/rulesets" \
+  --input - <<'JSON'
+{
+  "name": "release-refs",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {"ref_name": {"include": ["refs/heads/release/*"], "exclude": []}},
+  "rules": [{"type": "deletion"}, {"type": "non_fast_forward"}, {"type": "update"}]
+}
+JSON
+```
 
 **Output/Evidenz:** lokale Freeze-Provenienz als Vorprüfung; Release-Ref mit aufgelöstem SHA im Issue;
 später die unveränderliche `release-freeze-provenance-<attempt>` aus dem Kandidatenlauf.
@@ -191,8 +223,14 @@ Ein Release-Ref auf dem verworfenen Kandidaten wird gelöscht, bevor der neue en
 **Input:** `$RELEASE_REF`, `with_ai=true`.
 
 ```bash
+gh api "repos/NikolayDA/picture_helper/rules/branches/${RELEASE_REF}" > /tmp/release-ref-rules.json
 gh api "repos/NikolayDA/picture_helper/git/ref/heads/${RELEASE_REF}" > /tmp/release-ref.json
-python scripts/release_contract.py verify-release-ref \
+# Der Schutz bedingt den ersten Dispatch, statt ihm nur voranzugehen: Ohne die
+# &&-Kopplung liefe er in einer Shell ohne `set -e` trotz Fehlers weiter —
+# dieselbe Falle wie bei der SHA-Prüfung.
+python scripts/release_contract.py verify-ref-protection \
+  --rules-json /tmp/release-ref-rules.json --ref "$RELEASE_REF" \
+  && python scripts/release_contract.py verify-release-ref \
   --ref-json /tmp/release-ref.json --ref "$RELEASE_REF" --expected-sha "$CANDIDATE_SHA" \
   && gh workflow run release-linux.yml --ref "$RELEASE_REF" -f with_ai=true
 gh run list --workflow release-linux.yml --branch "$RELEASE_REF" --event workflow_dispatch --limit 5
@@ -531,8 +569,12 @@ gh api "repos/NikolayDA/picture_helper/releases/tags/${RELEASE_TAG}" \
 
 `UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` (#748/#917) stößt der
 Publish-Lauf seit #919 selbst an, sofern `predecessor_tag` gesetzt war. Der
-Dispatch-Job verlinkt den erzeugten Abnahme-Lauf in der Job-Summary und — bei
-gesetztem `target_issue` — im Release-Issue. Prüfe dort das Ergebnis:
+Dispatch läuft wie die Schritte 3, 5 und 8 auf `$RELEASE_REF` — er leitet ihn
+deterministisch aus dem Tag ab und prüft seinen SHA vorher mit
+`verify-release-ref` gegen `candidate.head_sha`; fehlt der Ref, bricht der Job
+ab, statt auf eine andere Quelle auszuweichen. Der Job verlinkt den erzeugten
+Abnahme-Lauf in der Job-Summary und — bei gesetztem `target_issue` — im
+Release-Issue. Prüfe dort das Ergebnis:
 
 ```bash
 gh run view "$PUBLISH_RUN_ID" --json jobs \

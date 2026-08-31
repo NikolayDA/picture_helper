@@ -289,6 +289,58 @@ def test_release_ref_uses_the_same_version_rule_as_the_rest_of_the_contract() ->
     assert rc._SEMVER_RE.pattern.strip("^$") in rc._RELEASE_REF_RE.pattern
 
 
+# ── Ruleset-Schutz des Release-Refs (#918-Nachprüfung) ──────────────────────
+
+
+def _rules(*types: str) -> list[dict]:
+    """Antwort von ``gh api repos/OWNER/REPO/rules/branches/release/vX.Y.Z``."""
+    return [{"type": kind, "ruleset_id": 7, "ruleset_source_type": "Repository"} for kind in types]
+
+
+def test_ref_protection_accepts_the_three_required_rules() -> None:
+    assert rc.validate_ref_protection(
+        _rules(*rc.REQUIRED_REF_RULES), expected_ref=f"release/{TAG}"
+    ) == rc.REQUIRED_REF_RULES
+    # Zusaetzliche Regeln sind erlaubt: Der Vertrag fordert ein Minimum.
+    assert "creation" in rc.validate_ref_protection(
+        _rules(*rc.REQUIRED_REF_RULES, "creation"), expected_ref=f"release/{TAG}"
+    )
+
+
+def test_an_unprotected_ref_is_the_loudest_failure() -> None:
+    """Der haeufigste und gefaehrlichste Fall: Es gibt gar kein Ruleset.
+
+    Die berichtende Vorgaengerfassung gab hier eine leere Liste aus – nicht zu
+    unterscheiden von einer bestandenen Pruefung.
+    """
+    with pytest.raises(rc.ContractError, match="keine aktive Regel"):
+        rc.validate_ref_protection([], expected_ref=f"release/{TAG}")
+
+
+@pytest.mark.parametrize("missing", rc.REQUIRED_REF_RULES)
+def test_each_missing_rule_blocks_on_its_own(missing: str) -> None:
+    """Jede der drei Operationen traegt fuer sich: Force-Push, Nachschub, Loeschen."""
+    present = tuple(rule for rule in rc.REQUIRED_REF_RULES if rule != missing)
+    with pytest.raises(rc.ContractError, match=f"es fehlen: {missing}"):
+        rc.validate_ref_protection(_rules(*present), expected_ref=f"release/{TAG}")
+
+
+def test_ref_protection_rejects_a_malformed_answer() -> None:
+    """Eine unerwartete Antwortform darf nicht als 'ungeprueft, aber ok' enden."""
+    with pytest.raises(rc.ContractError, match="keine Liste"):
+        rc.validate_ref_protection({"message": "Not Found"}, expected_ref=f"release/{TAG}")
+    with pytest.raises(rc.ContractError, match="kein Objekt"):
+        rc.validate_ref_protection(["non_fast_forward"], expected_ref=f"release/{TAG}")
+    with pytest.raises(rc.ContractError, match="ohne 'type'"):
+        rc.validate_ref_protection([{"ruleset_id": 7}], expected_ref=f"release/{TAG}")
+
+
+def test_ref_protection_enforces_the_same_naming_scheme() -> None:
+    """Dieselbe Ref-Regel wie die SHA-Pruefung – nicht eine zweite, laxere."""
+    with pytest.raises(rc.ContractError, match="Schema"):
+        rc.validate_ref_protection(_rules(*rc.REQUIRED_REF_RULES), expected_ref="main")
+
+
 def test_acceptance_run_on_a_foreign_ref_is_rejected() -> None:
     """Das harte Gate bleibt der SHA-Vergleich, nicht der Ref-Name (#918).
 

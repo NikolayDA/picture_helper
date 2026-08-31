@@ -60,6 +60,12 @@ RELEASE_REF_PREFIX: Final = "release/"
 _RELEASE_REF_RE = re.compile(
     rf"^{RELEASE_REF_PREFIX}v(?:{_SEMVER_RE.pattern.strip('^$')})$"
 )
+#: Schutzoperationen, die der Release-Ref tragen muss (#918). ``update``
+#: verhindert **jede** Bewegung des Refs und damit auch nachgeschobene Commits,
+#: ``non_fast_forward`` den Force-Push, ``deletion`` das Loeschen. Zusammen
+#: ergeben sie die Unveraenderlichkeit, auf der die ganze Entscheidung ruht -
+#: ohne sie waere der Ref nur eine Verabredung.
+REQUIRED_REF_RULES: Final = ("deletion", "non_fast_forward", "update")
 
 CHECKLIST_STATES: Final = ("PASS", "FAIL", "WAIVED", "NOT_APPLICABLE", "PENDING")
 CHECKLIST_PHASES: Final = ("pre-release", "publish", "post-release")
@@ -110,6 +116,22 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ContractError(f"JSON-Wurzel muss ein Objekt sein: {path}")
     return cast(dict[str, Any], value)
+
+
+def _load_json_array(path: Path) -> list[Any]:
+    """Wie :func:`_load_json`, aber fuer Endpunkte mit Listen-Wurzel.
+
+    ``rules/branches/<ref>`` antwortet mit einem Array; eine eigene Funktion
+    ist ehrlicher als ein aufgeweichtes ``_load_json``, das dann ueberall
+    ``dict | list`` zurueckgaebe.
+    """
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ContractError(f"JSON kann nicht gelesen werden: {path}: {exc}") from exc
+    if not isinstance(value, list):
+        raise ContractError(f"JSON-Wurzel muss eine Liste sein: {path}")
+    return cast(list[Any], value)
 
 
 def _write_json(path: Path, value: dict[str, Any]) -> None:
@@ -676,6 +698,56 @@ def validate_release_ref(
             "Kandidat verwerfen oder Ref korrigieren, nicht dispatchen."
         )
     return actual_sha
+
+
+def validate_ref_protection(
+    payload: Any, *, expected_ref: str, required: tuple[str, ...] = REQUIRED_REF_RULES
+) -> tuple[str, ...]:
+    """Prueft die **aktiven** Schutzregeln eines Release-Refs (#918).
+
+    Der Ref traegt die Unveraenderlichkeit dieser Entscheidung; ohne Ruleset
+    ist er nur eine Verabredung. Bis #933 gab das Runbook die Regeltypen
+    lediglich aus und ueberliess die Bewertung dem Augenschein - eine leere
+    Liste sah damit aus wie eine bestandene Pruefung. Diese Funktion ist die
+    fail-closed Fassung derselben Kontrolle: Sie laeuft vor dem ersten
+    Dispatch und wirft, statt zu berichten.
+
+    Der Aufrufer reicht die Antwort von
+    ``gh api repos/OWNER/REPO/rules/branches/release/vX.Y.Z`` als JSON herein -
+    netzfrei wie der Rest des Vertrags. Der Endpunkt liefert laut
+    GitHub-Referenz ausschliesslich die *aktiven* Regeln des konkreten Refs;
+    ein Ruleset in ``evaluate`` oder ``disabled`` erscheint dort nicht.
+    Vorhandensein bedeutet hier also tatsaechlich "greift".
+
+    Liefert die gefundenen Regeltypen sortiert; jede Luecke wirft.
+    """
+    if not _RELEASE_REF_RE.fullmatch(expected_ref):
+        raise ContractError(
+            f"Release-Ref muss dem Schema {RELEASE_REF_PREFIX}vX.Y.Z entsprechen: {expected_ref!r}"
+        )
+    if not isinstance(payload, list):
+        raise ContractError(
+            f"Regelantwort fuer {expected_ref} ist keine Liste, sondern {type(payload).__name__}"
+        )
+    found: set[str] = set()
+    for index, entry in enumerate(cast(list[Any], payload)):
+        if not isinstance(entry, dict):
+            raise ContractError(f"Regeleintrag {index} von {expected_ref} ist kein Objekt")
+        rule_type = cast(dict[str, Any], entry).get("type")
+        if not isinstance(rule_type, str) or not rule_type:
+            raise ContractError(f"Regeleintrag {index} von {expected_ref} ohne 'type'")
+        found.add(rule_type)
+    missing = tuple(sorted(set(required) - found))
+    if missing:
+        # Die leere Liste ist der haeufigste und gefaehrlichste Fall: Das
+        # Ruleset wurde nie angelegt, der Ref ist voellig ungeschuetzt.
+        state = "keine aktive Regel" if not found else f"aktiv: {', '.join(sorted(found))}"
+        raise ContractError(
+            f"Release-Ref {expected_ref} ist nicht ausreichend geschuetzt ({state}); "
+            f"es fehlen: {', '.join(missing)}. Ruleset fuer {RELEASE_REF_PREFIX}* in Ordnung "
+            "bringen, nicht dispatchen."
+        )
+    return tuple(sorted(found))
 
 
 #: Ergebnisse von :func:`plan_release_tag`. Ein dritter Zustand ist bewusst
@@ -1741,6 +1813,10 @@ def _parser() -> argparse.ArgumentParser:
     release_ref.add_argument("--ref", required=True)
     release_ref.add_argument("--expected-sha", required=True)
 
+    ref_protection = commands.add_parser("verify-ref-protection")
+    ref_protection.add_argument("--rules-json", type=Path, required=True)
+    ref_protection.add_argument("--ref", required=True)
+
     artifacts = commands.add_parser("verify-artifacts")
     artifacts.add_argument("--manifest", type=Path, required=True)
     artifacts.add_argument("--directory", type=Path, required=True)
@@ -1846,6 +1922,11 @@ def main(argv: list[str] | None = None) -> int:
                 expected_sha=args.expected_sha,
             )
             print(f"Release-Ref {args.ref} zeigt auf {sha}.")
+        elif args.command == "verify-ref-protection":
+            rules = validate_ref_protection(
+                _load_json_array(args.rules_json), expected_ref=args.ref
+            )
+            print(f"Release-Ref {args.ref} geschuetzt durch: {', '.join(rules)}.")
         elif args.command == "verify-artifacts":
             verify_artifact_directory(_load_json(args.manifest), args.directory)
         elif args.command == "plan-tag":

@@ -574,11 +574,16 @@ nicht auf den Commit.
   dann nicht, wenn dieser fehlgeschlagen ist: Ein fehlgeschlagener
   Update-Nachweis ist ein Incident, kein Wiederholungsfall.
 
-Dispatch-Ref ist der Release-**Tag**. Er existiert an dieser Stelle, ist
-unveränderlich und wurde von `verify-approval --tag-sha` gegen
-`candidate.head_sha` geprüft; der Release-Ref aus #918 ist dem Publish-Lauf
-nicht als Wert bekannt, zeigt aber auf denselben Commit. `actions: write`
-trägt ausschließlich dieser Job.
+Dispatch-Ref ist der unveränderliche **Release-Ref** `release/vX.Y.Z` — dieselbe
+Quelle wie in den Runbook-Schritten 3, 5 und 8 (#918). Er muss dem Publish-Lauf
+nicht übergeben werden: Er ist deterministisch aus dem Tag ableitbar. Ein
+eigener Schritt holt ihn über `git/ref/heads/…` und prüft ihn mit
+`release_contract.py verify-release-ref` gegen `needs.publish.outputs.candidate_sha`;
+fehlt der Ref oder zeigt er woandershin, bricht der Job ab, statt auf eine
+andere Quelle auszuweichen. Der Tag bleibt die *veröffentlichte Version*, nicht
+die Dispatch-Quelle — beide zeigen auf denselben Commit, und genau deshalb wäre
+die Verwechslung folgenlos-aussehend: fail-closed bliebe sie, nur eben aus einer
+zweiten Prozessquelle. `actions: write` trägt ausschließlich dieser Job.
 
 **Release-Instanz (Stufe 3).** Sie entsteht in zwei Hälften, jede dort, wo die
 Evidenz anfällt:
