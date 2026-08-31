@@ -14,8 +14,13 @@ einkompilierte Build-Pfade), die sich mit jedem Versions-Bump unvorhersehbar
 from __future__ import annotations
 
 import importlib.util
+import inspect
+import json
+import re
 import shutil
 import subprocess
+import sys
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -26,17 +31,27 @@ _SCRIPT = _ROOT / "scripts" / "scan_release_artifacts.py"
 _spec = importlib.util.spec_from_file_location("scan_release_artifacts", _SCRIPT)
 assert _spec is not None and _spec.loader is not None
 scan_release_artifacts = importlib.util.module_from_spec(_spec)
+# Ohne Eintrag in sys.modules kann @dataclass seinen Namensraum nicht aufloesen
+sys.modules["scan_release_artifacts"] = scan_release_artifacts
 _spec.loader.exec_module(scan_release_artifacts)
 
 _AWS_KEY = b"AKIAIOSFODNN7EXAMPLE"  # oeffentliches AWS-Beispiel, kein echtes Secret.
 
-pytestmark = pytest.mark.skipif(
+# Frueher ein modulweiter Skip. Seit #920 enthaelt das Modul auch Bericht-,
+# Register- und Summary-Tests, die kein dpkg-deb brauchen und deshalb auch auf
+# den macOS-Legs der Full-CI laufen sollen – ein modulweiter Skip haette sie
+# dort stillschweigend mituebersprungen. ``_build_deb`` selbst ueberspringt
+# zusaetzlich zur Laufzeit, damit ein vergessener Marker nie zu einem
+# Fehlschlag statt zu einem Skip fuehrt.
+_needs_dpkg = pytest.mark.skipif(
     shutil.which("dpkg-deb") is None, reason="dpkg-deb not available"
 )
 
 
 def _build_deb(stage: Path, out: Path, payload_files: dict[str, bytes]) -> None:
     """Baut ein reales .deb (nur fuer Tests) mit den gegebenen Nutzdateien."""
+    if shutil.which("dpkg-deb") is None:  # pragma: no cover - plattformabhaengig
+        pytest.skip("dpkg-deb not available")
     (stage / "DEBIAN").mkdir(parents=True, exist_ok=True)
     (stage / "DEBIAN" / "control").write_text(
         "Package: test\nVersion: 1.0\nArchitecture: amd64\n"
@@ -182,6 +197,7 @@ def test_is_own_package_path_false_for_third_party_dependency() -> None:
 
 # ── extract_payload: reales .deb (echtes dpkg-deb) ───────────────────────
 
+@_needs_dpkg
 def test_extract_payload_deb_recovers_compressed_payload(tmp_path: Path) -> None:
     """Codex P2: ein Secret in einer normalen Payload-Datei darf nicht durch
     die .deb-Kompression verdeckt werden."""
@@ -234,6 +250,7 @@ def test_extract_payload_appimage_invokes_extract_flag(tmp_path, monkeypatch) ->
     assert (dest / "squashfs-root" / "embedded.txt").read_bytes() == _AWS_KEY
 
 
+@_needs_dpkg
 def test_extract_payload_deb_recurses_into_wrapped_appimage(tmp_path, monkeypatch) -> None:
     """Eine in der .deb gewrappte AppImage wird ebenfalls entpackt (#584)."""
     real_run = subprocess.run
@@ -315,6 +332,7 @@ def test_extract_payload_dmg_detaches_even_if_copy_fails(tmp_path, monkeypatch) 
 
 # ── main(): Ende-zu-Ende über ein reales .deb ───────────────────────────
 
+@_needs_dpkg
 def test_main_passes_for_clean_deb(tmp_path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     dist = tmp_path / "dist"
@@ -327,6 +345,7 @@ def test_main_passes_for_clean_deb(tmp_path, monkeypatch) -> None:
     assert scan_release_artifacts.main([str(dist)]) == 0
 
 
+@_needs_dpkg
 def test_main_fails_for_deb_with_secret(tmp_path) -> None:
     dist = tmp_path / "dist"
     dist.mkdir()
@@ -334,6 +353,7 @@ def test_main_fails_for_deb_with_secret(tmp_path) -> None:
     assert scan_release_artifacts.main([str(dist)]) == 1
 
 
+@_needs_dpkg
 def test_main_fails_for_deb_with_unknown_dev_path_in_own_package(tmp_path) -> None:
     """Codex P2: ein unbekannter Entwicklerpfad im eigenen bgremover-Paket
     muss den Scan fehlschlagen lassen."""
@@ -346,6 +366,7 @@ def test_main_fails_for_deb_with_unknown_dev_path_in_own_package(tmp_path) -> No
     assert scan_release_artifacts.main([str(dist)]) == 1
 
 
+@_needs_dpkg
 def test_main_passes_for_deb_with_unknown_dev_path_in_third_party_dependency(tmp_path) -> None:
     """Derselbe unbekannte Pfad-Benutzer in einer Drittanbieter-Abhaengigkeit
     (kein bgremover-Pfad) ist nur informativ – reale CI-Laeufe zeigten, dass
@@ -365,6 +386,7 @@ def test_main_returns_one_for_empty_directory(tmp_path: Path) -> None:
     assert rc == 1
 
 
+@_needs_dpkg
 def test_main_with_clamav_scans_each_raw_deb_and_its_extracted_payload(
     tmp_path: Path, monkeypatch,
 ) -> None:
@@ -383,10 +405,10 @@ def test_main_with_clamav_scans_each_raw_deb_and_its_extracted_payload(
         scan_release_artifacts, "verify_clamav_eicar", lambda db, workdir: True,
     )
 
-    def fake_scan(artifact: Path, extracted: Path, db: Path) -> bool:
+    def fake_scan(artifact: Path, extracted: Path, db: Path):
         scanned.append((artifact, extracted, db))
         assert (extracted / "opt" / "test" / "readme.txt").is_file()
-        return True
+        return scan_release_artifacts.ArtifactMalwareResult(ok=True, detail="ok", targets=())
 
     monkeypatch.setattr(scan_release_artifacts, "scan_artifact_with_clamav", fake_scan)
     assert scan_release_artifacts.main(
@@ -395,3 +417,804 @@ def test_main_with_clamav_scans_each_raw_deb_and_its_extracted_payload(
     assert scanned == [
         (dist / "clean.deb", scanned[0][1], database),
     ]
+
+
+# ── #920: Anomalie-Register ─────────────────────────────────────────────
+
+_REGISTER_PATH = _ROOT / "release" / "build-anomalies.json"
+_FINGERPRINT = (
+    "bgremover.ai_process.InferenceError: Inferenzprozess hat die Verbindung geschlossen:"
+)
+_MACOS_LOG = (
+    "Traceback (most recent call last):\n"
+    '  File "bgremover/ai_process.py", line 294, in _request\n'
+    "    raise InferenceError(\n"
+    f"{_FINGERPRINT} \n"
+    "smoke_launch OK: sauber gestartet\n"
+)
+
+
+def _register(**overrides: object) -> str:
+    entry: dict = {
+        "id": "beispiel",
+        "fingerprint": "x" * scan_release_artifacts.MIN_FINGERPRINT_LENGTH,
+        "platforms": ["macos-arm64"],
+        "phases": ["smoke-launch-macos-app"],
+        "reason": "Begruendung",
+        "owner": "Release-Owner",
+        "reference": "https://github.com/NikolayDA/picture_helper/issues/881",
+        "expires": "2099-01-01",
+    }
+    entry.update(overrides.pop("entry", {}))  # type: ignore[arg-type]
+    payload: dict = {
+        "schema": scan_release_artifacts.REGISTER_SCHEMA,
+        "kind": scan_release_artifacts.REGISTER_KIND,
+        "register_version": 1,
+        "entries": [entry],
+    }
+    payload.update(overrides)
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def test_shipped_register_is_valid_and_starts_with_the_rembg_warmup_entry() -> None:
+    """Akzeptanzkriterium #920: erster Eintrag = rembg-Warmup-Meldung (#881)."""
+    register = scan_release_artifacts.load_register(_REGISTER_PATH)
+    assert register.version >= 1
+    first = register.entries[0]
+    assert first.fingerprint == _FINGERPRINT
+    assert first.reference.endswith("/881")
+    assert first.owner
+    assert first.reason
+    assert first.expires > date(2026, 8, 31)
+    assert first.platforms == ("macos-arm64",)
+    assert first.phases == ("smoke-launch-macos-app",)
+
+
+def test_shipped_register_entries_are_not_expired_today() -> None:
+    """Ein bereits abgelaufener Eintrag waere ab dem naechsten Lauf wirkungslos."""
+    register = scan_release_artifacts.load_register(_REGISTER_PATH)
+    stale = scan_release_artifacts.expired_entries(
+        register, today=datetime.now(timezone.utc).date()
+    )
+    assert stale == [], f"abgelaufene Registereintraege: {[e.entry_id for e in stale]}"
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (json.dumps({"schema": 2, "kind": "release-build-anomalies", "entries": []}), "Schema"),
+        (json.dumps({"schema": 1, "kind": "etwas-anderes", "entries": []}), "Art"),
+        ("{kein json", "JSON"),
+        (json.dumps({"schema": 1, "kind": "release-build-anomalies",
+                     "register_version": 0, "entries": []}), "register_version"),
+    ],
+)
+def test_register_rejects_malformed_documents(payload: str, message: str) -> None:
+    with pytest.raises(scan_release_artifacts.RegisterError, match=message):
+        scan_release_artifacts.parse_register(payload)
+
+
+def test_register_rejects_a_fingerprint_short_enough_to_act_as_a_broad_filter() -> None:
+    """#920-Nicht-Ziel: keine breiten Suppressionen, nur exakte Fingerprints."""
+    with pytest.raises(scan_release_artifacts.RegisterError, match="zu kurz"):
+        scan_release_artifacts.parse_register(_register(entry={"fingerprint": "Error:"}))
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("platforms", ["windows-x86_64"], "unbekannte platforms"),
+        ("phases", ["smoke-lunch-macos-app"], "unbekannte phases"),
+        ("platforms", [], "nichtleere Liste"),
+        ("reference", "https://example.invalid/issues/1", "reference"),
+        ("expires", "irgendwann", "ISO-Datum"),
+        ("owner", "", "owner"),
+        ("reason", "   ", "reason"),
+    ],
+)
+def test_register_rejects_incomplete_or_unknown_entry_fields(
+    field: str, value: object, message: str
+) -> None:
+    with pytest.raises(scan_release_artifacts.RegisterError, match=message):
+        scan_release_artifacts.parse_register(_register(entry={field: value}))
+
+
+def test_register_rejects_duplicate_entry_ids() -> None:
+    payload = json.loads(_register())
+    payload["entries"].append(dict(payload["entries"][0]))
+    with pytest.raises(scan_release_artifacts.RegisterError, match="doppelte"):
+        scan_release_artifacts.parse_register(json.dumps(payload))
+
+
+def test_missing_register_file_is_an_error_not_an_empty_register(tmp_path: Path) -> None:
+    with pytest.raises(scan_release_artifacts.RegisterError, match="nicht lesbar"):
+        scan_release_artifacts.load_register(tmp_path / "fehlt.json")
+
+
+def test_main_refuses_to_run_with_an_unreadable_register(tmp_path: Path, capsys) -> None:
+    """Fail-closed: ein kaputtes Register darf nicht als "nichts bekannt" gelten."""
+    broken = tmp_path / "register.json"
+    broken.write_text("{", encoding="utf-8")
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "x.AppImage").write_bytes(b"egal")
+    assert scan_release_artifacts.main([
+        "--anomaly-register", str(broken), "--platform", "macos-arm64", str(dist),
+    ]) == 1
+    assert "Anomalie-Register ungueltig" in capsys.readouterr().out
+
+
+# ── #920: Anomalie-Erkennung in den Phasen-Logs ─────────────────────────
+
+def test_traceback_is_reported_through_its_exception_line_only() -> None:
+    """Die Kopfzeile allein traegt keine Meldung, an der ein Eintrag ansetzt."""
+    found = scan_release_artifacts.detect_log_anomalies(
+        _MACOS_LOG, phase="smoke-launch-macos-app"
+    )
+    assert [item.text for item in found] == [_FINGERPRINT]
+    assert found[0].kind == "traceback"
+
+
+def test_truncated_traceback_still_reports_its_header() -> None:
+    found = scan_release_artifacts.detect_log_anomalies(
+        "Traceback (most recent call last):\n  File \"x.py\", line 1\n", phase="deb-install-smoke",
+    )
+    assert [item.text for item in found] == ["Traceback (most recent call last):"]
+
+
+def test_repeated_identical_anomalies_are_counted_not_repeated() -> None:
+    found = scan_release_artifacts.detect_log_anomalies(
+        "ValueError: doppelt\nharmlos\nValueError: doppelt\n", phase="smoke-launch-appimage",
+    )
+    assert len(found) == 1 and found[0].occurrences == 2
+
+
+def test_a_clean_log_produces_no_anomalies() -> None:
+    assert scan_release_artifacts.detect_log_anomalies(
+        "smoke_launch OK: sauber gestartet (peak Instanzen=2, erlaubt=5)\n",
+        phase="smoke-launch-appimage",
+    ) == []
+
+
+def test_annotation_and_fatal_lines_count_as_anomalies() -> None:
+    found = scan_release_artifacts.detect_log_anomalies(
+        "::warning::etwas\nFatal Python error: Segmentation fault\n",
+        phase="smoke-launch-appimage",
+    )
+    assert {item.kind for item in found} == {"annotation", "fatal"}
+
+
+# ── #920: bekannt vs. unbekannt, Ablaufdatum ────────────────────────────
+
+def _classify(today: date, *, platform: str = "macos-arm64", expires: str = "2099-01-01"):
+    register = scan_release_artifacts.parse_register(_register(
+        entry={"fingerprint": _FINGERPRINT, "expires": expires}
+    ))
+    anomalies = scan_release_artifacts.detect_log_anomalies(
+        _MACOS_LOG, phase="smoke-launch-macos-app"
+    )
+    return register, scan_release_artifacts.classify_anomalies(
+        anomalies, register, platform=platform, today=today,
+    )
+
+
+def test_a_matching_entry_annotates_instead_of_hiding() -> None:
+    _, (known, unknown) = _classify(date(2026, 8, 31))
+    assert unknown == []
+    assert len(known) == 1
+    assert known[0]["entry_id"] == "beispiel"
+    assert known[0]["text"] == _FINGERPRINT      # Wortlaut bleibt sichtbar
+    assert known[0]["reference"].endswith("/881")
+
+
+def test_an_entry_does_not_apply_to_another_platform() -> None:
+    _, (known, unknown) = _classify(date(2026, 8, 31), platform="linux-x86_64")
+    assert known == [] and len(unknown) == 1
+
+
+def test_an_expired_entry_stops_annotating_and_is_reported_visibly() -> None:
+    """#920: abgelaufen heisst Warnung statt stiller Weitergeltung."""
+    register, (known, unknown) = _classify(date(2026, 8, 31), expires="2026-08-30")
+    assert known == [], "ein abgelaufener Eintrag darf nicht mehr annotieren"
+    assert len(unknown) == 1
+    stale = scan_release_artifacts.expired_entries(register, today=date(2026, 8, 31))
+    assert [entry.entry_id for entry in stale] == ["beispiel"]
+
+
+def test_the_expiry_boundary_day_still_annotates() -> None:
+    _, (known, _) = _classify(date(2026, 8, 30), expires="2026-08-30")
+    assert len(known) == 1
+
+
+# ── #920: Register unterdrueckt niemals Scanner-Befunde ─────────────────
+
+def test_overall_verdict_takes_no_register_argument_at_all() -> None:
+    """Struktureller Beleg der Invariante: das Verdikt kann das Register nicht sehen."""
+    parameters = inspect.signature(scan_release_artifacts.overall_verdict).parameters
+    assert list(parameters) == ["hard_findings", "unavailable"]
+    assert scan_release_artifacts.overall_verdict(["ein Fund"], []) == "FAIL"
+    assert scan_release_artifacts.overall_verdict([], ["kein Scanner"]) == "UNAVAILABLE"
+    assert scan_release_artifacts.overall_verdict([], []) == "PASS"
+
+
+def test_a_register_entry_matching_a_secret_finding_never_suppresses_it(
+    tmp_path: Path, capsys
+) -> None:
+    """Das Register annotiert Log-Muster, keine Befunde – auch nicht zufaellig.
+
+    Der Eintrag hier traegt den Wortlaut des Secret-Befundes als Fingerprint
+    und die passende Plattform. Trotzdem muss der Fund hart bleiben: Exit 1,
+    Verdikt FAIL, Eintrag unter ``hard_findings`` – und nichts davon in
+    ``anomalies.known``.
+    """
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    leaky = dist / "leaky.AppImage"
+    leaky.write_bytes(b"header " + _AWS_KEY + b" tail")
+    register = tmp_path / "register.json"
+    register.write_text(_register(entry={
+        "fingerprint": "AWS Access Key ID (Position 7, Fingerprint",
+        "platforms": ["macos-arm64"],
+    }), encoding="utf-8")
+    report = tmp_path / "report.json"
+
+    def fake_extract(archive: Path, dest: Path) -> None:
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "inner.bin").write_bytes(b"harmlos")
+
+    original = scan_release_artifacts.extract_payload
+    scan_release_artifacts.extract_payload = fake_extract  # type: ignore[assignment]
+    try:
+        code = scan_release_artifacts.main([
+            "--anomaly-register", str(register), "--platform", "macos-arm64",
+            "--report", str(report), str(dist),
+        ])
+    finally:
+        scan_release_artifacts.extract_payload = original  # type: ignore[assignment]
+
+    assert code == 1
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["verdict"] == "FAIL"
+    assert payload["counts"]["secrets"] == 1
+    assert any("AWS Access Key ID" in item for item in payload["hard_findings"])
+    assert payload["anomalies"]["known"] == []
+    assert "möglicher Fund" in capsys.readouterr().out
+
+
+# ── #920: Berichtsformat ────────────────────────────────────────────────
+
+def _run_report(tmp_path: Path, *extra: str, logs: dict[str, str] | None = None):
+    dist = tmp_path / "dist"
+    dist.mkdir(exist_ok=True)
+    artifact = dist / "BgRemover-9.9.9-macos-arm64-ai.AppImage"
+    artifact.write_bytes(b"a" * 64)
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir(exist_ok=True)
+    for phase, text in (logs or {}).items():
+        (log_dir / f"{phase}.log").write_text(text, encoding="utf-8")
+    report = tmp_path / "security-scan-report.json"
+    summary = tmp_path / "security-scan-summary.md"
+
+    def fake_extract(archive: Path, dest: Path) -> None:
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "inner.bin").write_bytes(b"b" * 100)
+
+    original = scan_release_artifacts.extract_payload
+    scan_release_artifacts.extract_payload = fake_extract  # type: ignore[assignment]
+    try:
+        code = scan_release_artifacts.main([
+            "--report", str(report), "--summary", str(summary),
+            "--anomaly-register", str(_REGISTER_PATH), "--platform", "macos-arm64",
+            "--build-log-dir", str(log_dir), *extra, str(dist),
+        ])
+    finally:
+        scan_release_artifacts.extract_payload = original  # type: ignore[assignment]
+    return code, json.loads(report.read_text(encoding="utf-8")), summary.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_report_holds_every_field_the_runbook_step_needs(tmp_path: Path) -> None:
+    code, report, _ = _run_report(tmp_path, logs={"smoke-launch-macos-app": _MACOS_LOG})
+    assert code == 0
+    assert report["schema"] == scan_release_artifacts.REPORT_SCHEMA
+    assert report["kind"] == scan_release_artifacts.REPORT_KIND
+    assert report["platform"] == "macos-arm64"
+    # Ohne Signaturcache ist nur der Malware-Teil unbekannt, nicht der Scan.
+    assert report["verdict"] == "UNAVAILABLE"
+    assert report["malware_scan"]["status"] == "UNAVAILABLE"
+    assert report["eicar_selftest"]["status"] == "UNAVAILABLE"
+    assert set(report["counts"]) == {
+        "secrets", "dev_paths_blocking", "dev_paths_informational",
+        "malware_infected", "malware_failed_artifacts", "scan_errors",
+    }
+    assert report["limit_warnings"] == []
+    assert report["signature_database"]["max_age_days"] == 14
+    assert report["register"]["entries"] >= 1
+    assert report["register"]["expired"] == []
+
+
+def test_report_counts_raw_and_payload_bytes_separately(tmp_path: Path) -> None:
+    """Runbook-Schritt 4 verlangt beide Teilmengen getrennt, nicht als Summe."""
+    _, report, _ = _run_report(tmp_path)
+    (artifact,) = report["artifacts"]
+    assert artifact["raw_bytes"] == 64
+    assert artifact["payload_bytes"] == 100
+    assert artifact["payload_files"] == 1
+
+
+def test_unavailable_malware_scan_is_visible_but_never_blocking(tmp_path: Path) -> None:
+    code, report, summary = _run_report(tmp_path, "--malware-unavailable", "kein Cache-Treffer")
+    assert code == 0, "UNAVAILABLE darf den Kandidatenbau nicht faellen"
+    assert report["verdict"] == "UNAVAILABLE"
+    assert any("kein Cache-Treffer" in item for item in report["unavailable"])
+    assert "kein Cache-Treffer" in summary
+
+
+def test_report_and_summary_exist_even_when_the_scan_fails(tmp_path: Path) -> None:
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "leaky.AppImage").write_bytes(b" " + _AWS_KEY + b" ")
+    report = tmp_path / "report.json"
+    summary = tmp_path / "summary.md"
+
+    def fake_extract(archive: Path, dest: Path) -> None:
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "inner.bin").write_bytes(b"harmlos")
+
+    original = scan_release_artifacts.extract_payload
+    scan_release_artifacts.extract_payload = fake_extract  # type: ignore[assignment]
+    try:
+        code = scan_release_artifacts.main(
+            ["--report", str(report), "--summary", str(summary), str(dist)]
+        )
+    finally:
+        scan_release_artifacts.extract_payload = original  # type: ignore[assignment]
+    assert code == 1
+    assert json.loads(report.read_text(encoding="utf-8"))["verdict"] == "FAIL"
+    assert "Harte Befunde" in summary.read_text(encoding="utf-8")
+
+
+def test_summary_separates_known_from_unknown_so_nothing_familiar_hides_it(
+    tmp_path: Path,
+) -> None:
+    """Akzeptanzkriterium: nichts Bekanntes darf etwas Neues verdecken."""
+    _, report, summary = _run_report(tmp_path, logs={
+        "smoke-launch-macos-app": _MACOS_LOG + "RuntimeError: etwas voellig Neues\n",
+    })
+    for heading in (
+        "### 1. Harte Befunde",
+        "### 2. `UNAVAILABLE`-Zustände",
+        "### 3. Als bekannt annotierte Anomalien",
+        "### 4. Unbekannte Auffälligkeiten",
+    ):
+        assert heading in summary, heading
+    known = [item["text"] for item in report["anomalies"]["known"]]
+    unknown = [item["text"] for item in report["anomalies"]["unknown"]]
+    assert known == [_FINGERPRINT]
+    assert unknown == ["RuntimeError: etwas voellig Neues"]
+    assert "RuntimeError: etwas voellig Neues" in summary.split("### 4.")[1]
+
+
+def test_expired_entry_produces_a_visible_warning_in_log_report_and_summary(
+    tmp_path: Path, capsys
+) -> None:
+    register = tmp_path / "register.json"
+    register.write_text(
+        _register(entry={"fingerprint": _FINGERPRINT, "expires": "2000-01-01"}),
+        encoding="utf-8",
+    )
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "x.AppImage").write_bytes(b"harmlos")
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    (log_dir / "smoke-launch-macos-app.log").write_text(_MACOS_LOG, encoding="utf-8")
+    report = tmp_path / "report.json"
+    summary = tmp_path / "summary.md"
+
+    def fake_extract(archive: Path, dest: Path) -> None:
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "inner.bin").write_bytes(b"harmlos")
+
+    original = scan_release_artifacts.extract_payload
+    scan_release_artifacts.extract_payload = fake_extract  # type: ignore[assignment]
+    try:
+        code = scan_release_artifacts.main([
+            "--anomaly-register", str(register), "--platform", "macos-arm64",
+            "--build-log-dir", str(log_dir), "--report", str(report),
+            "--summary", str(summary), str(dist),
+        ])
+    finally:
+        scan_release_artifacts.extract_payload = original  # type: ignore[assignment]
+
+    assert code == 0, "ein abgelaufener Eintrag warnt, blockiert aber nicht"
+    assert "::warning::Registereintrag 'beispiel' ist am 2000-01-01 abgelaufen" in (
+        capsys.readouterr().out
+    )
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert [item["id"] for item in payload["register"]["expired"]] == ["beispiel"]
+    assert payload["anomalies"]["known"] == []
+    assert len(payload["anomalies"]["unknown"]) == 1
+    assert "Abgelaufene Einträge" in summary.read_text(encoding="utf-8")
+
+
+# ── #920: ClamAV-Kennzahlen im Bericht ──────────────────────────────────
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Data scanned: 1.28 GiB\n", int(1.28 * 1024**3)),
+        ("Data scanned: 2.00 MiB\n", 2 * 1024**2),
+        ("Data scanned: 4.00 KiB\n", 4 * 1024),
+        ("Data scanned: 68 B\n", 68),
+        ("Data read: 1.00 MiB (ratio 1.00:1)\n", None),
+    ],
+)
+def test_parse_scanned_bytes_covers_the_units_clamav_emits(
+    text: str, expected: int | None
+) -> None:
+    """``loggBytes`` (clamav/clamscan/clamscan.c) kennt genau diese vier."""
+    assert scan_release_artifacts.parse_scanned_bytes(text) == expected
+
+
+def test_a_decimal_unit_yields_no_number_instead_of_a_wrong_one() -> None:
+    """Dezimale Labels erzeugt clamscan nicht.
+
+    Sie als Zehnerpotenz zu deuten hiesse, aus einer Einheit unbekannter
+    Semantik eine exakt aussehende Zahl zu raten – im Bericht die
+    schaedlichere Variante als ein ehrliches "keine Evidenz".
+    """
+    assert scan_release_artifacts.parse_scanned_bytes("Data scanned: 2.00 MB\n") is None
+
+
+def test_an_unparsable_unit_does_not_weaken_the_fail_closed_gate() -> None:
+    """Das Gate liest die Rohzeile, nicht die Bytezahl – es bleibt unberuehrt."""
+    result = subprocess.CompletedProcess(
+        ["clamscan"], 0,
+        stdout="Infected files: 0\nData scanned: 2.00 MB\n",
+    )
+    assert scan_release_artifacts.clamav_scan_succeeded(result) is True
+    assert scan_release_artifacts.parse_scanned_bytes(result.stdout) is None
+
+
+def test_signature_state_reports_age_and_staleness(monkeypatch, tmp_path: Path) -> None:
+    """Frueher ein YAML-Heredoc im Workflow, seit #920 getestete Funktion."""
+    def fake_run(cmd, **kwargs):
+        assert cmd[:2] == ["clamscan", "--database"]
+        return subprocess.CompletedProcess(
+            cmd, 0, stdout="ClamAV 1.4.3/27812/Fri Aug 14 08:32:01 2026\n"
+        )
+
+    monkeypatch.setattr(scan_release_artifacts.subprocess, "run", fake_run)
+    state = scan_release_artifacts.clamav_signature_state(
+        tmp_path, now=datetime(2026, 8, 31, tzinfo=timezone.utc)
+    )
+    assert state["age_days"] == 16
+    assert state["stale"] is True
+    assert state["signature_date"].startswith("2026-08-14")
+
+
+def test_signature_state_survives_an_unparsable_version_line(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        scan_release_artifacts.subprocess, "run",
+        lambda cmd, **kwargs: subprocess.CompletedProcess(cmd, 0, stdout="ClamAV 1.4.3\n"),
+    )
+    state = scan_release_artifacts.clamav_signature_state(tmp_path)
+    assert state["age_days"] is None and state["stale"] is False
+
+
+# ── #920: Drift gegen den Kandidatenbau ─────────────────────────────────
+
+def test_known_platforms_match_the_release_matrix() -> None:
+    """Ein Tippfehler machte einen Registereintrag sonst still wirkungslos."""
+    yaml = pytest.importorskip("yaml")
+    workflow = yaml.safe_load(
+        (_ROOT / ".github" / "workflows" / "release-linux.yml").read_text(encoding="utf-8")
+    )
+    tags = {
+        leg["platform_tag"]
+        for leg in workflow["jobs"]["build"]["strategy"]["matrix"]["include"]
+    }
+    assert set(scan_release_artifacts.KNOWN_PLATFORMS) == tags
+
+
+def test_known_phases_match_the_logs_the_workflow_actually_writes() -> None:
+    yaml = pytest.importorskip("yaml")
+    workflow = yaml.safe_load(
+        (_ROOT / ".github" / "workflows" / "release-linux.yml").read_text(encoding="utf-8")
+    )
+    written = set()
+    for step in workflow["jobs"]["build"]["steps"]:
+        for match in re.finditer(r'phase_log="build-logs/([\w-]+)\.log"', step.get("run", "")):
+            written.add(match.group(1))
+    assert set(scan_release_artifacts.KNOWN_PHASES) == written
+
+
+def test_summary_surfaces_warnings_that_are_neither_findings_nor_gaps(tmp_path: Path) -> None:
+    """Eine unbekannte Log-Phase darf nicht nur im JSON stehen."""
+    _, report, summary = _run_report(tmp_path, logs={"smoke-launch-des-nachbarn": "alles ok\n"})
+    assert any("smoke-launch-des-nachbarn" in item for item in report["warnings"])
+    assert "Hinweise" in summary
+    assert "smoke-launch-des-nachbarn" in summary
+
+
+# ── #920-Review: Nachtrag im Fehlerfall (--logs-only) ───────────────────
+
+def test_logs_only_classifies_the_phase_logs_without_touching_dist(tmp_path: Path) -> None:
+    """Faellt ein Build-/Smoke-Schritt, laeuft der Artefaktscan nicht mehr.
+
+    Genau dann liegen die Phasen-Logs aber vor – und genau dann ist die
+    Unterscheidung "bekannte kosmetische Meldung vs. der eigentliche Fehler"
+    am wertvollsten. ``dist/`` existiert in diesem Fall womoeglich gar nicht.
+    """
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    (log_dir / "smoke-launch-macos-app.log").write_text(
+        _MACOS_LOG + "RuntimeError: Prozessbaum musste hart beendet werden\n",
+        encoding="utf-8",
+    )
+    report = tmp_path / "report.json"
+    summary = tmp_path / "summary.md"
+
+    code = scan_release_artifacts.main([
+        "--logs-only", "--report", str(report), "--summary", str(summary),
+        "--anomaly-register", str(_REGISTER_PATH), "--platform", "macos-arm64",
+        "--build-log-dir", str(log_dir), str(tmp_path / "gibt-es-nicht"),
+    ])
+
+    assert code == 0
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["verdict"] == "UNAVAILABLE"
+    assert payload["artifacts"] == []
+    assert any("--logs-only" in item for item in payload["unavailable"])
+    assert [item["entry_id"] for item in payload["anomalies"]["known"]] == [
+        "rembg-warmup-connection-closed"
+    ]
+    assert [item["text"] for item in payload["anomalies"]["unknown"]] == [
+        "RuntimeError: Prozessbaum musste hart beendet werden"
+    ]
+
+
+def test_logs_only_never_claims_artifacts_were_clean(tmp_path: Path, capsys) -> None:
+    """Ein Erfolgssatz ueber ungescannte Artefakte waere schlicht unwahr."""
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    (log_dir / "smoke-launch-appimage.log").write_text("alles ok\n", encoding="utf-8")
+    assert scan_release_artifacts.main([
+        "--logs-only", "--build-log-dir", str(log_dir), str(tmp_path / "nichts"),
+    ]) == 0
+    output = capsys.readouterr().out
+    assert "keine hochkonfidenten Funde in allen" not in output
+    assert "Nur Phasen-Logs ausgewertet" in output
+
+
+def test_an_empty_dist_stays_a_hard_error_without_logs_only(tmp_path: Path, capsys) -> None:
+    """Das ist die Eigenschaft, wegen der der Scan-Schritt kein always() traegt."""
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    assert scan_release_artifacts.main([str(dist)]) == 1
+    assert "Keine Dateien in" in capsys.readouterr().out
+
+
+def test_logs_only_and_clamav_are_mutually_exclusive(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        scan_release_artifacts.main(
+            ["--logs-only", "--clamav-database", str(tmp_path), str(tmp_path)]
+        )
+
+
+# ── #920-Review: fehlendes Phasen-Log ist nicht "unauffaellig" ──────────
+
+def test_a_missing_expected_phase_log_is_warned_not_silently_clean(tmp_path: Path) -> None:
+    """Der gefaehrlichere Fall ist nicht die unbekannte, sondern die FEHLENDE Phase.
+
+    ``build-logs/`` kann von einem anderen Schritt des Legs angelegt worden
+    sein. Fehlt darin das erwartete Log, saehe der Bericht ohne diese Pruefung
+    exakt wie ein sauberer Lauf aus – Abschnitt 4 der Summary meldete "Keine.",
+    ohne dass je eine Zeile gelesen wurde.
+    """
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    (log_dir / "smoke-launch-appimage.log").write_text("alles ok\n", encoding="utf-8")
+
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "x.AppImage").write_bytes(b"harmlos")
+    report = tmp_path / "report.json"
+    summary = tmp_path / "summary.md"
+
+    def fake_extract(archive: Path, dest: Path) -> None:
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "inner.bin").write_bytes(b"harmlos")
+
+    original = scan_release_artifacts.extract_payload
+    scan_release_artifacts.extract_payload = fake_extract  # type: ignore[assignment]
+    try:
+        # linux-x86_64 erwartet zwei Logs; das .deb-Log fehlt hier.
+        assert scan_release_artifacts.main([
+            "--platform", "linux-x86_64", "--build-log-dir", str(log_dir),
+            "--report", str(report), "--summary", str(summary), str(dist),
+        ]) == 0
+    finally:
+        scan_release_artifacts.extract_payload = original  # type: ignore[assignment]
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["build_logs"]["missing_phases"] == ["deb-install-smoke"]
+    assert payload["build_logs"]["expected_phases"] == [
+        "smoke-launch-appimage", "deb-install-smoke",
+    ]
+    assert any("deb-install-smoke" in item for item in payload["warnings"])
+    assert "ungeprueft, nicht unauffaellig" in " ".join(payload["warnings"])
+    assert "deb-install-smoke" in summary.read_text(encoding="utf-8")
+
+
+def test_all_expected_phase_logs_present_produces_no_warning(tmp_path: Path) -> None:
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    (log_dir / "smoke-launch-macos-app.log").write_text("alles ok\n", encoding="utf-8")
+    assert scan_release_artifacts.main([
+        "--logs-only", "--platform", "macos-arm64", "--build-log-dir", str(log_dir),
+        "--report", str(tmp_path / "r.json"), str(tmp_path / "nix"),
+    ]) == 0
+    payload = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
+    assert payload["build_logs"]["missing_phases"] == []
+    assert not any("fehlt fuer Plattform" in item for item in payload["warnings"])
+
+
+def test_phase_to_platform_mapping_matches_the_workflow_legs() -> None:
+    """Handgepflegte Zuordnung gegen ihre Quelle – dieselbe Drift-Disziplin.
+
+    Welcher Schritt auf welchem Leg laeuft, steht in seiner ``if``-Bedingung;
+    welches Log er schreibt, in seiner ``phase_log``-Zuweisung.
+    """
+    yaml = pytest.importorskip("yaml")
+    workflow = yaml.safe_load(
+        (_ROOT / ".github" / "workflows" / "release-linux.yml").read_text(encoding="utf-8")
+    )
+    os_by_tag = {
+        leg["platform_tag"]: leg["os"]
+        for leg in workflow["jobs"]["build"]["strategy"]["matrix"]["include"]
+    }
+    from_workflow: dict[str, set[str]] = {tag: set() for tag in os_by_tag}
+    for step in workflow["jobs"]["build"]["steps"]:
+        phases = re.findall(r'phase_log="build-logs/([\w-]+)\.log"', step.get("run", ""))
+        if not phases:
+            continue
+        condition = str(step.get("if", ""))
+        for tag, leg_os in os_by_tag.items():
+            if f"matrix.os == '{leg_os}'" in condition:
+                from_workflow[tag].update(phases)
+    assert {
+        tag: set(phases) for tag, phases in scan_release_artifacts.PHASES_BY_PLATFORM.items()
+    } == from_workflow
+
+
+def test_known_phases_is_derived_from_the_platform_mapping() -> None:
+    """Zwei Listen waeren zwei Driftquellen; KNOWN_PHASES wird abgeleitet."""
+    assert set(scan_release_artifacts.KNOWN_PHASES) == {
+        phase
+        for phases in scan_release_artifacts.PHASES_BY_PLATFORM.values()
+        for phase in phases
+    }
+
+
+# ── #920-Review: Entpackfehler ist kein bestandener Malware-Scan ────────
+
+def test_an_unextractable_artifact_never_counts_as_malware_scanned(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """EICAR bestanden heisst nicht, dass JEDES Artefakt geprueft wurde.
+
+    Ohne entpackte Nutzlast fehlen beide geforderten ClamAV-Teilnachweise –
+    ein danach unveraendertes ``malware_scan: PASS`` behauptete im Bericht das
+    Gegenteil.
+    """
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "kaputt.AppImage").write_bytes(b"harmlos")
+    database = tmp_path / "db"
+    database.mkdir()
+    (database / "daily.cvd").write_bytes(b"marker")
+    report = tmp_path / "report.json"
+
+    monkeypatch.setattr(scan_release_artifacts, "verify_clamav_eicar", lambda db, wd: True)
+
+    def broken_extract(archive: Path, dest: Path) -> None:
+        raise ValueError("unbekanntes Artefaktformat: .AppImage")
+
+    monkeypatch.setattr(scan_release_artifacts, "extract_payload", broken_extract)
+    code = scan_release_artifacts.main([
+        "--clamav-database", str(database), "--report", str(report), str(dist),
+    ])
+
+    assert code == 1
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["verdict"] == "FAIL"
+    assert payload["malware_scan"]["status"] == "FAIL"
+    assert payload["counts"]["malware_failed_artifacts"] == 1
+    assert payload["counts"]["scan_errors"] == 1
+    assert payload["artifacts"][0]["malware"]["status"] == "FAIL"
+    assert payload["eicar_selftest"]["status"] == "PASS"  # der Selbsttest galt ja
+
+
+# ── #920-Review: Teilnachweis-Labels bleiben unteilbar ─────────────────
+
+def test_clamav_target_labels_are_shared_between_scan_and_summary() -> None:
+    """Doppelt getippte Labels liessen die Summary still auf "keine Evidenz" fallen."""
+    source = _SCRIPT.read_text(encoding="utf-8")
+    for label in ("Rohdatei", "entpackte Nutzlast"):
+        # Quote-unabhaengig: eine Kopie in einfachen Anfuehrungszeichen ist
+        # dieselbe Drift wie eine in doppelten.
+        occurrences = re.findall(rf"""['"]{re.escape(label)}['"]""", source)
+        assert len(occurrences) == 1, (
+            f"{label!r} darf nur an der Konstanten-Definition als Literal stehen, "
+            f"gefunden: {len(occurrences)}x – sonst driften Scan und Summary auseinander"
+        )
+    assert scan_release_artifacts._LABEL_RAW == "Rohdatei"
+    assert scan_release_artifacts._LABEL_PAYLOAD == "entpackte Nutzlast"
+
+
+# ── #920-Review: greift der Registereintrag am echten Waechter-Output? ──
+
+def test_the_watchdog_passes_a_child_traceback_through_to_the_phase_log(
+    tmp_path: Path,
+) -> None:
+    """Der erste Registereintrag haengt an einer Annahme ueber ``smoke_launch``.
+
+    Er kann nur greifen, wenn der Waechter die Ausnahmezeile des Kindprozesses
+    unveraendert und ohne Praefix durchreicht (er startet es ohne
+    ``stdout=``/``stderr=``, das Kind erbt also die Deskriptoren) und die Zeile
+    am Zeilenanfang steht. Das ist aus dem Diff des Scanners heraus nicht
+    belegbar – hier laeuft deshalb der echte ``scripts/smoke_launch.py`` gegen
+    ein Kind, das die reale Warmup-Kette nachstellt, und danach der echte
+    Scanner ueber genau dieses Log.
+    """
+    package = tmp_path / "bgremover"
+    package.mkdir()
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    # Qualifizierter Name im Traceback: Python druckt "<modul>.<Klasse>", und
+    # genau darauf zeigt der Fingerprint des Registereintrags.
+    (package / "ai_process.py").write_text(
+        "class InferenceError(RuntimeError):\n    pass\n", encoding="utf-8"
+    )
+    child = tmp_path / "FakeBundle.py"
+    child.write_text(
+        "import sys, traceback\n"
+        f"sys.path.insert(0, {str(tmp_path)!r})\n"
+        "from bgremover.ai_process import InferenceError\n"
+        "try:\n"
+        "    raise InferenceError('Inferenzprozess hat die Verbindung geschlossen: ')\n"
+        "except InferenceError:\n"
+        "    traceback.print_exc()\n"
+        "sys.exit(0)\n",
+        encoding="utf-8",
+    )
+
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    phase_log = log_dir / "smoke-launch-macos-app.log"
+    completed = subprocess.run(
+        [sys.executable, str(_ROOT / "scripts" / "smoke_launch.py"),
+         "--match", "FakeBundle", "--max-instances", "3", "--timeout", "60",
+         "--", sys.executable, str(child)],
+        check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    assert completed.returncode == 0, completed.stdout
+    phase_log.write_text(completed.stdout, encoding="utf-8")
+    assert "smoke_launch OK" in completed.stdout, "der Start selbst muss sauber sein"
+
+    report = tmp_path / "report.json"
+    assert scan_release_artifacts.main([
+        "--logs-only", "--anomaly-register", str(_REGISTER_PATH),
+        "--platform", "macos-arm64", "--build-log-dir", str(log_dir),
+        "--report", str(report), str(tmp_path / "kein-dist"),
+    ]) == 0
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert [item["entry_id"] for item in payload["anomalies"]["known"]] == [
+        "rembg-warmup-connection-closed"
+    ]
+    assert payload["anomalies"]["unknown"] == [], (
+        "die Quellzeile des Tracebacks ist eingerueckt und darf nicht zusaetzlich "
+        "als eigene Auffaelligkeit zaehlen"
+    )

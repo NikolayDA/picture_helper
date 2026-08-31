@@ -194,7 +194,9 @@ derselbe Workflow auf demselben unveränderten SHA neu gestartet werden, erhält
 
 ```bash
 gh api "repos/NikolayDA/picture_helper/actions/runs/${CANDIDATE_RUN_ID}/artifacts?per_page=100"
-gh run view "$CANDIDATE_RUN_ID" --log
+gh run download "$CANDIDATE_RUN_ID" --pattern 'security-scan-*' --dir security-scan-evidence
+jq -r '.platform + " " + .verdict' security-scan-evidence/*/security-scan/security-scan-report.json
+gh run view "$CANDIDATE_RUN_ID" --log   # nur noch bei Rueckfragen zum Bericht
 ```
 
 `release-linux.yml` erzeugt an dieser Stelle **noch keinen Kandidatenvertrag**.
@@ -209,17 +211,46 @@ GitHub-Metadaten erzeugt. Nur `MALWARE-01` wird bereits hier abschließend durch
 den Security-Owner entschieden.
 
 Ein Malware-Fund ist immer No-Go. Bei vorhandenem Signaturcache muss jedes
-Build-Leg zuerst den EICAR-Selbsttest bestehen. Danach muss das Log für jedes
-Artefakt den separaten Scan von Rohdatei und entpackter Nutzlast sowie mehr als
+Build-Leg zuerst den EICAR-Selbsttest bestehen. Danach muss für jedes
+Artefakt der separate Scan von Rohdatei und entpackter Nutzlast mehr als
 0 gescannte Bytes und keine `Heuristics.Limits.Exceeded`-Meldung zeigen.
 `Data read` ohne `Data scanned` ist ausdrücklich keine Evidenz. Nicht
 verfügbare Scanner bleiben sichtbar und erfordern die in der Checkliste
 erlaubte, begründete Entscheidung.
 
-**Output/Evidenz:** Links auf Lauf, Build-Artefaktcontainer, Provenienz und Security-Entscheidung.
+Diese Angaben stehen seit #920 nicht mehr nur als Logzeilen da: Jedes
+Build-Leg lädt `security-scan-<platform_tag>` mit
+`security-scan/security-scan-report.json` (Schema 1, `release-security-scan`)
+und den erfassten Phasen-Logs hoch und rendert dieselbe Auswertung als
+Job-Summary. Der Bericht führt je Artefakt die getrennt gescannten Bytes von
+Rohdatei und Nutzlast, die Befundzahlen je Kategorie, den EICAR-Selbsttest,
+Limitwarnungen, das Alter der Signaturdatenbank und das Gesamtverdikt
+`PASS`/`FAIL`/`UNAVAILABLE`. Die Summary gliedert in **harte Befunde**,
+**`UNAVAILABLE`-Zustände**, **als bekannt annotierte Anomalien** und
+**unbekannte Auffälligkeiten**. Prüfe alle vier Abschnitte je Leg; Abschnitt 4
+ist der eigentliche Arbeitsvorrat.
+
+Das kuratierte Register [`release/build-anomalies.json`](../release/build-anomalies.json)
+liefert Abschnitt 3. Es annotiert ausschließlich bekannte, begründete
+**Log-Muster** der Bau-Phasen und kann kein Secret-, Entwicklerpfad- oder
+Malware-Ergebnis verändern — der fail-closed Scanner-Vertrag (Exit 0 ∧ null
+Funde ∧ keine Limitwarnung ∧ > 0 gescannte Bytes) bleibt unberührt. Jeder
+Eintrag nennt exakten Fingerprint, Plattform, Phase, Begründung, Owner,
+Referenz-Issue und Ablaufdatum; erster Eintrag ist die kosmetische
+rembg-Warmup-`InferenceError` des macOS-Smokes (Transparenznotiz zu #881).
+Ein abgelaufener Eintrag annotiert **nicht mehr** und erzeugt eine sichtbare
+Warnung — seine Anomalie erscheint dann wieder unter „unbekannt" und ist neu
+zu bewerten (verlängern, ersetzen oder Ursache beheben). Ein neuer Eintrag ist
+eine bewusste Kuratierung durch den Security-Owner per PR, nie eine
+Verlegenheitslösung für eine unverstandene Meldung.
+
+**Output/Evidenz:** Links auf Lauf, Build-Artefaktcontainer, Provenienz, `security-scan-<platform_tag>` je Leg und Security-Entscheidung.
 **Erwartetes Ergebnis:** erwartete Build-Container, gebundene Provenienz und kein Malware-Fund; die formale Dateiprüfung folgt in Schritt 5.
 **Fehler/Wiederanlauf:** Bei Artefakt- oder Provenienzfehler Kandidatenlauf verwerfen und Ursache per PR beheben.
 Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdrücklich erlaubten Waiver.
+Ist ein Build-Leg schon vor dem Artefaktscan gefallen, trägt ein eigener Schritt die Anomalie-Durchsicht der
+Phasen-Logs nach (`--logs-only`, Verdikt `UNAVAILABLE`) – die Abschnitte 3 und 4 der Summary stehen also auch
+dort zur Verfügung, um die bekannte kosmetische Meldung vom eigentlichen Fehler zu trennen.
 
 ### 5. Abnahme auf echter Hardware durchführen
 

@@ -275,6 +275,13 @@ jobs:
           # Checkout mit einem ``bgremover/``-Paket – ohne Wechsel prueft
           # dieser Smoke den Checkout statt des gebauten Bundles.
           neutral="$(mktemp -d)"
+          # #920: dieselbe Ausgabe zusaetzlich als Phasen-Log mitschreiben. Der
+          # Sicherheitsscan unten gleicht sie gegen das Register bekannter
+          # Build-Anomalien ab; ``pipefail`` (oben gesetzt) haelt den
+          # Exit-Status des Waechters, ``tee`` veraendert die Bewertung nicht.
+          mkdir -p build-logs
+          phase_log="build-logs/smoke-launch-appimage.log"
+          : > "$phase_log"
           max_instances=1
           if [ "$WITH_AI" = "1" ]; then
             max_instances=5   # GUI + KI-Warmup-Kind (+ mp-Resource-Tracker)
@@ -285,14 +292,14 @@ jobs:
               --timeout 120 \
               --workdir "$neutral" \
               -- env BGREMOVER_AI_SELFCHECK=1 \
-                 "$appimage" --appimage-extract-and-run
+                 "$appimage" --appimage-extract-and-run 2>&1 | tee -a "$phase_log"
           fi
           python3 scripts/smoke_launch.py \
             --match "$(basename "$appimage")" \
             --max-instances "$max_instances" \
             --timeout 120 \
             --workdir "$neutral" \
-            -- "$appimage" --appimage-extract-and-run
+            -- "$appimage" --appimage-extract-and-run 2>&1 | tee -a "$phase_log"
 
       # #584 (Codex-Review auf PR #608): "Verify built Linux artifacts" prueft
       # nur dpkg-deb-Metadaten (--info/--field) – kein echter System-Install.
@@ -327,12 +334,15 @@ jobs:
           # Entrypoint ist derselbe ``python -m bgremover``-Aufruf, also wuerde
           # auch hier der Checkout im Workspace das Bundle beschatten.
           neutral="$(mktemp -d)"
+          mkdir -p build-logs   # #920, siehe Kommentar am AppImage-Smoke oben
+          phase_log="build-logs/deb-install-smoke.log"
+          : > "$phase_log"
           python3 scripts/smoke_launch.py \
             --match "BgRemover.AppImage" \
             --max-instances "$max_instances" \
             --timeout 120 \
             --workdir "$neutral" \
-            -- "$installed_appimage" --appimage-extract-and-run
+            -- "$installed_appimage" --appimage-extract-and-run 2>&1 | tee -a "$phase_log"
 
           sudo dpkg -r bgremover
           test ! -e "$installed_appimage" \
@@ -366,6 +376,62 @@ jobs:
           # #584: SHA-256 je Artefakt fuer die Kandidaten-Gate-Doku direkt im
           # Job-Log sichtbar machen (kein zusaetzlicher Download noetig).
           shasum -a 256 dist/*
+
+      # Reihenfolge (#920): Verifikation und Smoke-Launch des macOS-Bundles
+      # stehen - wie im Linux-Leg - VOR dem Sicherheitsscan. Nur so liegt ihr
+      # Phasen-Log bereits vor, wenn der Scanner es gegen das Register
+      # bekannter Build-Anomalien haelt; zuvor lief der Scan dazwischen und
+      # der macOS-Smoke war fuer die Anomalie-Durchsicht unsichtbar.
+      - name: Verify built macOS artifact
+        if: matrix.os == 'macos'
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          project_version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          dmgs=(dist/*.dmg)
+          test "${#dmgs[@]}" -eq 1 || { echo "::error::erwarte genau ein .dmg, habe ${#dmgs[@]}"; exit 1; }
+          dmg="${dmgs[0]}"
+          ai_suffix=""
+          [ "$WITH_AI" = "1" ] && ai_suffix="-ai"
+          expected_dmg="BgRemover-${project_version}-${{ matrix.platform_tag }}${ai_suffix}.dmg"
+          test "$(basename "$dmg")" = "$expected_dmg" \
+            || { echo "::error::DMG-Name '$(basename "$dmg")' != '$expected_dmg'"; exit 1; }
+          hdiutil imageinfo "$dmg" >/dev/null
+          echo "macOS-Artefakt verifiziert: $(basename "$dmg")"
+
+      # #307: das gebaute BgRemover.app headless starten (offscreen +
+      # BGREMOVER_SMOKE_TEST) und über den Watchdog auf Start-Crash (#304) und
+      # Fork-Bomb (#305) prüfen. Die macOS-.dmg war der ursprüngliche Fork-Bomb-
+      # Vektor (fehlendes freeze_support → spawn relauncht die GUI). #308: im
+      # --ai-Build zusätzlich den KI-Selbsttest fahren. Fällt einer durch, fällt
+      # der Kandidatenlauf; eine spätere Abnahme/Veröffentlichung wird blockiert.
+      - name: Smoke-launch built macOS app (headless, fork-bomb guard)
+        if: matrix.os == 'macos'
+        run: |
+          set -euo pipefail
+          app_bin="build/macos/dist/BgRemover.app/Contents/MacOS/BgRemover"
+          test -x "$app_bin" || { echo "::error::App-Binary fehlt: $app_bin"; exit 1; }
+          mkdir -p build-logs   # #920, siehe Kommentar am AppImage-Smoke oben
+          phase_log="build-logs/smoke-launch-macos-app.log"
+          : > "$phase_log"
+          max_instances=1
+          if [ "$WITH_AI" = "1" ]; then
+            max_instances=5   # GUI + KI-Warmup-Kind (+ mp-Resource-Tracker)
+            echo ">> KI-Selbsttest (#308): rembg-Kette im Spawn-Kindprozess importierbar?"
+            # Wie im Linux-Leg (#595): über den smoke_launch.py-Wächter statt
+            # roh im Vordergrund, damit ein hängender Selbsttest den Job nicht
+            # unbegrenzt blockiert.
+            python3 scripts/smoke_launch.py \
+              --match "Contents/MacOS/BgRemover" \
+              --max-instances "$max_instances" \
+              --timeout 120 \
+              -- env BGREMOVER_AI_SELFCHECK=1 "$app_bin" 2>&1 | tee -a "$phase_log"
+          fi
+          python3 scripts/smoke_launch.py \
+            --match "Contents/MacOS/BgRemover" \
+            --max-instances "$max_instances" \
+            --timeout 120 \
+            -- "$app_bin" 2>&1 | tee -a "$phase_log"
 
       # #584/#731: Kein Artefakt darf Secrets, Entwicklerpfade oder bekannte
       # Malware enthalten. Der gemeinsame Scanner entpackt AppImage, die im
@@ -433,12 +499,28 @@ jobs:
       - name: Scan built artifacts and extracted payloads (secrets + ClamAV)
         run: |
           set -euo pipefail
+          # Gemeinsame Argumente beider Zweige (#920): maschinenlesbarer
+          # Bericht, Job-Summary, Register bekannter Build-Anomalien und die
+          # Phasen-Logs der Smoke-Schritte. Der Bericht entsteht in JEDEM Fall,
+          # auch bei hartem Befund - er ist die Evidenz fuer Runbook-Schritt 4.
+          common=(
+            --report security-scan/security-scan-report.json
+            --summary security-scan/security-scan-summary.md
+            --anomaly-register release/build-anomalies.json
+            --platform "${{ matrix.platform_tag }}"
+            --build-log-dir build-logs
+          )
           if [ -z "$(ls -A clamav-db-cache 2>/dev/null)" ]; then
             # Der deterministische Secret-/Pfad-Scan bleibt auch bei fehlendem
             # Signaturcache verbindlich. Nur MALWARE-01 wird gemaess Checkliste
             # sichtbar UNAVAILABLE und benoetigt die dokumentierte Entscheidung.
-            python3 scripts/scan_release_artifacts.py dist
-            echo "::warning::ClamAV-Signaturdatenbank UNAVAILABLE (kein Cache-Treffer) – clamav-db-refresh.yml lief noch nie erfolgreich oder der Cache wurde eviktiert. Malware-Scan übersprungen; Secret-/Pfad-Scan ist bestanden."
+            # Die Warnung schreibt seit #920 der Scanner selbst, damit derselbe
+            # Grund im Bericht und im Joblog steht. Der Grund nennt bewusst NUR
+            # die fehlende Datenbank: ob der Secret-/Pfad-Scan besteht, steht
+            # erst nach ihm fest und sagt allein das Verdikt des Berichts.
+            python3 scripts/scan_release_artifacts.py "${common[@]}" \
+              --malware-unavailable "kein Cache-Treffer – clamav-db-refresh.yml lief noch nie erfolgreich oder der Cache wurde eviktiert." \
+              dist
             exit 0
           fi
 
@@ -448,75 +530,62 @@ jobs:
           # Formel-Version (Homebrew nutzt ``var/lib/clamav``, nicht
           # ``share/clamav``) - der explizite Pfad braucht keinen Bezug
           # darauf und keine OS-spezifische Kopie in einen Systempfad mehr.
-          version_line="$(clamscan --database clamav-db-cache --version)"
-          echo "Engine/Signatur: $version_line"
-          python3 - "$version_line" <<'PY'
-          import re
-          import sys
-          from datetime import datetime, timezone
+          # Engine-/Signaturzeile und Frische-Check liest seit #920 der Scanner
+          # (``clamav_signature_state``) statt eines eingebetteten Heredocs -
+          # dieselbe Auswertung, aber getestet und im Bericht hinterlegt.
+          python3 scripts/scan_release_artifacts.py "${common[@]}" \
+            --clamav-database clamav-db-cache dist
 
-          line = sys.argv[1]
-          match = re.search(r"/(\w{3} \w{3}\s+\d{1,2} \d{2}:\d{2}:\d{2} \d{4})$", line)
-          if not match:
-              print("Signaturdatum nicht auslesbar - Frische-Check übersprungen")
-              sys.exit(0)
-          text = re.sub(r"\s+", " ", match.group(1))
-          sig_date = datetime.strptime(text, "%a %b %d %H:%M:%S %Y").replace(tzinfo=timezone.utc)
-          age_days = (datetime.now(timezone.utc) - sig_date).days
-          print(f"Signaturalter: {age_days} Tage")
-          if age_days > 14:
-              print(f"::warning::ClamAV-Signaturdatenbank ist {age_days} Tage alt (> 14) - clamav-db-refresh.yml pruefen.")
-          PY
-
-          python3 scripts/scan_release_artifacts.py --clamav-database clamav-db-cache dist
-
-      - name: Verify built macOS artifact
-        if: matrix.os == 'macos'
+      # Der Scan oben laeuft nur bei Erfolg (implizites ``success()``). Faellt
+      # vorher ein Build- oder Smoke-Schritt, gibt es keinen Bericht - obwohl
+      # die Phasen-Logs dann vorliegen und die Anomalie-Durchsicht gerade dort
+      # gebraucht wird (der erste Registereintrag betrifft genau einen
+      # Smoke-Schritt). Deshalb der Nachtrag im Logs-only-Modus.
+      #
+      # Bewusst NICHT ``if: always()`` am Scan selbst: bei gefallenem Build ist
+      # ``dist/`` leer, der Scanner bricht dann fail-closed mit Exit 1 ab und
+      # schreibt gar keinen Bericht - das gaebe einen zweiten roten Schritt
+      # ohne Evidenzgewinn. Und ein leeres ``dist/`` muss bei gruenem Build ein
+      # harter Fehler bleiben.
+      - name: Anomalie-Durchsicht der Phasen-Logs nachtragen (nur im Fehlerfall)
+        if: failure()
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          project_version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
-          dmgs=(dist/*.dmg)
-          test "${#dmgs[@]}" -eq 1 || { echo "::error::erwarte genau ein .dmg, habe ${#dmgs[@]}"; exit 1; }
-          dmg="${dmgs[0]}"
-          ai_suffix=""
-          [ "$WITH_AI" = "1" ] && ai_suffix="-ai"
-          expected_dmg="BgRemover-${project_version}-${{ matrix.platform_tag }}${ai_suffix}.dmg"
-          test "$(basename "$dmg")" = "$expected_dmg" \
-            || { echo "::error::DMG-Name '$(basename "$dmg")' != '$expected_dmg'"; exit 1; }
-          hdiutil imageinfo "$dmg" >/dev/null
-          echo "macOS-Artefakt verifiziert: $(basename "$dmg")"
-
-      # #307: das gebaute BgRemover.app headless starten (offscreen +
-      # BGREMOVER_SMOKE_TEST) und über den Watchdog auf Start-Crash (#304) und
-      # Fork-Bomb (#305) prüfen. Die macOS-.dmg war der ursprüngliche Fork-Bomb-
-      # Vektor (fehlendes freeze_support → spawn relauncht die GUI). #308: im
-      # --ai-Build zusätzlich den KI-Selbsttest fahren. Fällt einer durch, fällt
-      # der Kandidatenlauf; eine spätere Abnahme/Veröffentlichung wird blockiert.
-      - name: Smoke-launch built macOS app (headless, fork-bomb guard)
-        if: matrix.os == 'macos'
-        run: |
-          set -euo pipefail
-          app_bin="build/macos/dist/BgRemover.app/Contents/MacOS/BgRemover"
-          test -x "$app_bin" || { echo "::error::App-Binary fehlt: $app_bin"; exit 1; }
-          max_instances=1
-          if [ "$WITH_AI" = "1" ]; then
-            max_instances=5   # GUI + KI-Warmup-Kind (+ mp-Resource-Tracker)
-            echo ">> KI-Selbsttest (#308): rembg-Kette im Spawn-Kindprozess importierbar?"
-            # Wie im Linux-Leg (#595): über den smoke_launch.py-Wächter statt
-            # roh im Vordergrund, damit ein hängender Selbsttest den Job nicht
-            # unbegrenzt blockiert.
-            python3 scripts/smoke_launch.py \
-              --match "Contents/MacOS/BgRemover" \
-              --max-instances "$max_instances" \
-              --timeout 120 \
-              -- env BGREMOVER_AI_SELFCHECK=1 "$app_bin"
+          # Ist der Scan selbst gefallen (echter Befund), liegt sein Bericht
+          # bereits vor. Der Nachtrag darf ihn niemals ueberschreiben.
+          if [ -f security-scan/security-scan-report.json ]; then
+            echo "::notice::Sicherheitsbericht liegt bereits vor – kein Nachtrag noetig."
+            exit 0
           fi
-          python3 scripts/smoke_launch.py \
-            --match "Contents/MacOS/BgRemover" \
-            --max-instances "$max_instances" \
-            --timeout 120 \
-            -- "$app_bin"
+          python3 scripts/scan_release_artifacts.py --logs-only \
+            --report security-scan/security-scan-report.json \
+            --summary security-scan/security-scan-summary.md \
+            --anomaly-register release/build-anomalies.json \
+            --platform "${{ matrix.platform_tag }}" \
+            --build-log-dir build-logs
+
+      # Bericht und Summary auch im Fehlerfall sichern: gerade ein FAIL ist die
+      # Evidenz, die der Security-Owner in Runbook-Schritt 4 braucht (#920).
+      - name: Render security scan summary
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -f security-scan/security-scan-summary.md ]; then
+            cat security-scan/security-scan-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Kein Sicherheitsbericht erzeugt – der Scan-Schritt brach vor dem Schreiben ab."
+          fi
+
+      - name: Upload security scan report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: security-scan-${{ matrix.platform_tag }}
+          path: |
+            security-scan/
+            build-logs/
+          if-no-files-found: warn
+          retention-days: 90
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v7

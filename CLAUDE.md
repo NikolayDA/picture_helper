@@ -557,14 +557,15 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **elf** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **zwölf** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
   (#699/#742), `scripts/gl_stress_probe.py` (#684),
   `scripts/release_path_policy.py` (#743), `scripts/release_contract.py`
   (#744/#747), `scripts/public_download_check.py` (#916),
-  `scripts/release_update_dispatch.py` (#919) und
+  `scripts/release_update_dispatch.py` (#919),
+  `scripts/scan_release_artifacts.py` (#920) und
   `scripts/recommendations_live_check.py` (#752) – als
   eigenständige Dateien ohne `scripts/__init__.py` explizit per Dateipfad in
   `files` sowie per Modul-Override (Modulname = Dateibasisname) erfasst.
@@ -668,7 +669,7 @@ Workflows unter `.github/workflows/` (16):
   Bug Fix, Documentation, Test, Performance; #547/#548), Details in
   [`.github/agents/README.md`](.github/agents/README.md).
 
-### Artefakt-Sicherheitsscan: Secrets + Malware (#584/#608/#731)
+### Artefakt-Sicherheitsscan: Secrets + Malware (#584/#608/#731/#920)
 
 `scripts/scan_release_artifacts.py` ist der geteilte Scanner, den
 `release-linux.yml` nach jedem Kandidatenbau über `dist/` laufen lässt. Er
@@ -700,8 +701,44 @@ beobachteten Fehlerursachen aus #725 (Lock des `clamav-freshclam`-Dienstes
 unter Linux, „NULL X509 store" unter macOS) vom Release-Pfad. Fehlt der Cache,
 läuft der Secret-/Pfad-Scan trotzdem und die Malware-Prüfung wird **sichtbar**
 als `UNAVAILABLE` gemeldet (Kriterium `MALWARE-01`, `SHOULD`), eine Datenbank
-älter als 14 Tage erzeugt eine Warnung. Entscheidung: ADR
+älter als 14 Tage erzeugt eine Warnung (die Engine-/Signaturzeile liest seit
+#920 `clamav_signature_state` im Scanner statt eines eingebetteten
+YAML-Heredocs). Entscheidung: ADR
 [`docs/history/ADR-2026-clamav-signaturcache.md`](docs/history/ADR-2026-clamav-signaturcache.md).
+
+**Bericht statt Logforensik (#920).** Derselbe Lauf schreibt zusätzlich
+`security-scan-report.json` (Schema 1, `release-security-scan`) und rendert
+daraus die Job-Summary; `release-linux.yml` lädt beides zusammen mit den
+erfassten Phasen-Logs als `security-scan-<platform_tag>` hoch – über
+`if: always()`, weil gerade ein `FAIL` die Evidenz für Runbook-Schritt 4 ist.
+Der Scan selbst trägt bewusst kein `always()` (bei gefallenem Build ist `dist/`
+leer und er bricht fail-closed ohne Bericht ab); stattdessen trägt ein
+`if: failure()`-Schritt die Anomalie-Durchsicht der Phasen-Logs im
+`--logs-only`-Modus nach, ohne einen bereits geschriebenen Bericht zu
+überschreiben.
+Der Bericht führt je Artefakt **getrennt** die gescannten Bytes von Rohdatei
+und entpackter Nutzlast, Befundzahlen je Kategorie, EICAR-Selbsttest,
+Limitwarnungen, Signaturalter und das Gesamtverdikt
+`PASS`/`FAIL`/`UNAVAILABLE`. Das Verdikt folgt allein aus harten Befunden und
+`UNAVAILABLE`-Zuständen; der **Exit-Code bleibt unverändert** (1 nur bei
+hartem Befund), `UNAVAILABLE` blockiert nicht.
+
+Das versionierte Register `release/build-anomalies.json` (Schema 1,
+`release-build-anomalies`) annotiert **ausschließlich Log-Muster** der
+Bau-Phasen. Es geht nicht in `overall_verdict` ein und kann kein Secret-,
+Pfad- oder Malware-Ergebnis verändern – das ist die tragende Invariante. Ein
+Eintrag trägt exakten (literalen, nicht regulären) Fingerprint mit
+Mindestlänge, Plattform, Phase, Begründung, Owner, Referenz-Issue und
+Ablaufdatum; abgelaufen heißt **annotiert nicht mehr** plus sichtbare Warnung,
+damit die Anomalie erneut in der Triage landet. `KNOWN_PLATFORMS`/`KNOWN_PHASES`
+im Scanner sind gegen die Matrix und die Phasen-Logs von `release-linux.yml`
+getestet – ein Tippfehler im Register wäre sonst ein still wirkungsloser
+Eintrag. Erster Eintrag: die kosmetische rembg-Warmup-`InferenceError` des
+macOS-Smokes (#881). Damit dessen Log überhaupt vorliegt, laufen
+Verifikation und Smoke des macOS-Bundles seit #920 **vor** dem Scan – wie im
+Linux-Leg. Ablauf: [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md)
+Schritt 4.
+
 Regressionstests: `tests/test_scan_release_artifacts.py`,
 `tests/test_clamav_release_scan.py`, `tests/test_release_gate.py`.
 

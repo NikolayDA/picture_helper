@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 8,
+  "policy_version": 9,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -513,6 +513,7 @@
     {"id": "release-manifest-publish-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-manifest-publish.md", "sample_path": "docs/history/ADR-2026-release-manifest-publish.md", "reason": "Die ADR legt die Bindung zwischen Kandidat, Freigabemanifest und veröffentlichten Bytes fest."},
     {"id": "clamav-signature-cache-adr", "kind": "exact", "path": "docs/history/ADR-2026-clamav-signaturcache.md", "sample_path": "docs/history/ADR-2026-clamav-signaturcache.md", "reason": "Die ADR legt den Sicherheits- und Betriebsvertrag des ClamAV-Signaturbezugs fest."},
     {"id": "release-ref-decoupling-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-ref-entkopplung.md", "sample_path": "docs/history/ADR-2026-release-ref-entkopplung.md", "reason": "Die ADR legt fest, auf welchem Ref ein Release laeuft, wie dessen Unveraenderlichkeit erzwungen wird und welches Restrisiko bewusst bleibt; sie traegt damit dieselbe Vertragsklasse wie die uebrigen Release-ADRs."},
+    {"id": "build-anomalies-register", "kind": "exact", "path": "release/build-anomalies.json", "sample_path": "release/build-anomalies.json", "reason": "Das Register bekannter Build-Anomalien steuert die Anomalie-Durchsicht in Runbook-Schritt 4 und gehoert damit zur Freigabeentscheidung; ein Eintrag aendert, was der Security-Owner als bekannt sieht."},
     {"id": "path-policy", "kind": "exact", "path": "release/path-policy.json", "sample_path": "release/path-policy.json", "reason": "Die Policy steuert fail-closed Kandidaten- und Freeze-Klassifikation."},
     {"id": "redesign-spec", "kind": "exact", "path": "docs/REDESIGN_SPEC.md", "sample_path": "docs/REDESIGN_SPEC.md", "reason": "tests/test_theme.py liest §2/§3 als Drift-Guard-Quelle fuer theme.py-Farbtoken; der Inhalt beeinflusst das Ergebnis der Full-CI-Tests im Kandidatenbau (#480)."},
     {"id": "preview3d-ux-contract", "kind": "exact", "path": "docs/UX_3D_PREVIEW.md", "sample_path": "docs/UX_3D_PREVIEW.md", "reason": "Der kanonische 3D-UX-Vertrag definiert sichtbares Produktverhalten und die manuelle Abnahme der 3D-Reliefvorschau; CLAUDE.md und die Renderer-ADR verweisen auf ihn als verbindlichen Vertrag."},

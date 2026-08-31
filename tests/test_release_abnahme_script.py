@@ -416,12 +416,21 @@ def test_fetch_release_assets_errors_when_platform_absent(tmp_path: Path) -> Non
         )
 
 
-def test_fetch_run_artifacts_unzips_matching(tmp_path: Path) -> None:
+def test_fetch_run_artifacts_unzips_only_the_product_container(tmp_path: Path) -> None:
+    """Artefaktcontainer heissen ``bgremover-<platform_tag>``, nicht wie die Dateien.
+
+    Seit #920 laedt derselbe Kandidatenlauf zusaetzlich
+    ``security-scan-<platform_tag>`` hoch. Ein Teilstring-Vergleich auf den
+    Plattform-Tag wuerde Bericht, Job-Summary und Phasen-Logs als
+    Produktartefakte in die Abnahme-Evidenz ziehen – deshalb ist der
+    Containername exakt zu treffen.
+    """
     inner = b"the-appimage-bytes"
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
         archive.writestr("BgRemover-2.7.0-linux-raspberrypi-arm64-ai.AppImage", inner)
     zip_bytes = buffer.getvalue()
+    fetched: list[str] = []
 
     def fake_fetcher(request: urllib.request.Request) -> bytes:
         url = request.full_url
@@ -430,23 +439,50 @@ def test_fetch_run_artifacts_unzips_matching(tmp_path: Path) -> None:
                 {
                     "artifacts": [
                         {
-                            "name": "BgRemover-2.7.0-linux-raspberrypi-arm64-ai.AppImage",
+                            "name": "bgremover-linux-raspberrypi-arm64",
                             "archive_download_url": "https://x/zip",
                         },
                         {
-                            "name": "BgRemover-2.7.0-macos-arm64-ai.dmg",
+                            "name": "security-scan-linux-raspberrypi-arm64",
+                            "archive_download_url": "https://x/security",
+                        },
+                        {
+                            "name": "bgremover-macos-arm64",
                             "archive_download_url": "https://x/other",
                         },
                     ]
                 }
             ).encode("utf-8")
+        fetched.append(url)
         return zip_bytes
 
     records = ra.fetch_run_artifacts(
         "owner/repo", "12345", "linux-arm64", tmp_path, "token", fake_fetcher,
     )
+    assert fetched == ["https://x/zip"]
     assert len(records) == 1
     assert records[0].sha256 == hashlib.sha256(inner).hexdigest()
+
+
+def test_fetch_run_artifacts_fails_closed_without_the_product_container(tmp_path: Path) -> None:
+    """Nur der Sicherheitsbericht da? Dann fehlt das Produkt – kein Weiterlaufen."""
+    def fake_fetcher(request: urllib.request.Request) -> bytes:
+        assert request.full_url.endswith("/artifacts")
+        return json.dumps(
+            {
+                "artifacts": [
+                    {
+                        "name": "security-scan-linux-raspberrypi-arm64",
+                        "archive_download_url": "https://x/security",
+                    }
+                ]
+            }
+        ).encode("utf-8")
+
+    with pytest.raises(SystemExit, match="bgremover-linux-raspberrypi-arm64"):
+        ra.fetch_run_artifacts(
+            "owner/repo", "12345", "linux-arm64", tmp_path, "token", fake_fetcher,
+        )
 
 
 def test_fetch_run_artifacts_requires_token(tmp_path: Path) -> None:
