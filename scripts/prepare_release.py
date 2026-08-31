@@ -75,6 +75,16 @@ PYPROJECT_PATH: Final = "pyproject.toml"
 #: (``release_contract``) nutzt aus demselben Grund ``[0-9]``.
 _SEMVER_RE: Final = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
+
+def _semver_key(version: str) -> tuple[int, ...]:
+    """X.Y.Z als Zahlentripel – Voraussetzung: ``_SEMVER_RE`` hat gepasst.
+
+    Numerisch statt lexikografisch: Als Text verglichen läge ``2.10.0`` unter
+    ``2.9.0`` und der Downgrade-Schutz (#943 Befund 3) wiese ausgerechnet den
+    regulären Minor-Sprung ab.
+    """
+    return tuple(int(part) for part in version.split("."))
+
 #: Abschnittsueberschriften je Sprache, in der Reihenfolge des Hausstils.
 #: ``tests/test_prepare_release.py`` haelt sie gegen die tatsaechlich in den
 #: CHANGELOG-Dateien verwendeten Ueberschriften – erfundene Uebersetzungen
@@ -878,6 +888,24 @@ def main(argv: list[str] | None = None) -> int:
             raise PrepareError(
                 f"pyproject.toml steht bereits auf {args.version} – "
                 "Zielversion und Vorgänger dürfen nicht gleich sein."
+            )
+        # Nur Gleichheit abzuweisen genügte nicht: Bei Stand 2.9.0 lief ein
+        # Aufruf für 2.8.1 durch und plante ein in sich konsistentes
+        # Downgrade-Gerüst über pyproject, sechs CHANGELOGs, AppStream,
+        # Pfadpolicy und Freeze-Dokument (#943 Befund 3). Fail-closed heißt
+        # hier: Die Zielversion muss belegbar größer sein – ein Vorgänger
+        # außerhalb des X.Y.Z-Schemas macht den Vergleich unmöglich und ist
+        # deshalb selbst der Abbruchgrund.
+        if not _SEMVER_RE.fullmatch(predecessor_version):
+            raise PrepareError(
+                f"pyproject.toml-Version {predecessor_version!r} ist nicht X.Y.Z – "
+                "Downgrade-Schutz nicht prüfbar, Vorbereitung abgebrochen."
+            )
+        if _semver_key(args.version) < _semver_key(predecessor_version):
+            raise PrepareError(
+                f"Zielversion {args.version} liegt unter der pyproject-Version "
+                f"{predecessor_version} – ein Tippfehler erzeugte sonst ein "
+                "konsistentes Downgrade-Gerüst statt eines Fehlers."
             )
         base_tag = args.base_tag or f"v{predecessor_version}"
         base_sha = resolve_tag(repo, base_tag)

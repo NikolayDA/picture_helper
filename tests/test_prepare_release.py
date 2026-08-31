@@ -557,6 +557,32 @@ def test_cli_rejects_a_malformed_version(fixture_repo: Path) -> None:
         pr.main(["2.10", "--repo", str(fixture_repo)])
 
 
+def test_cli_refuses_a_downgrade_target(fixture_repo: Path, capsys) -> None:
+    """#943 Befund 3: Bei Stand 2.9.0 lief ein Aufruf für 2.8.1 durch und
+    plante ein in sich konsistentes Downgrade-Gerüst über pyproject, sechs
+    CHANGELOGs, AppStream, Pfadpolicy und Freeze-Dokument – auch der
+    ``--dry-run`` meldete Erfolg."""
+    before = {
+        path: path.read_bytes() for path in sorted(fixture_repo.rglob("*")) if path.is_file()
+    }
+    assert pr.main(["0.0.1", "--repo", str(fixture_repo)]) == 2
+    assert "liegt unter" in capsys.readouterr().err
+    after = {path: path.read_bytes() for path in sorted(fixture_repo.rglob("*")) if path.is_file()}
+    assert after == before, "ein abgewiesenes Downgrade darf nichts schreiben"
+
+
+def test_the_downgrade_guard_compares_numerically_not_lexicographically(
+    fixture_repo: Path, capsys
+) -> None:
+    """Als Text verglichen läge ``2.10.0`` unter ``2.9.0`` – der reguläre
+    Minor-Sprung wäre ausgerechnet der abgewiesene Fall."""
+    assert pr._semver_key("2.10.0") > pr._semver_key("2.9.0")
+    major, minor, _patch = pr._semver_key(_current_version(fixture_repo))
+    target = f"{major}.{minor + 1}.0"
+    assert pr.main([target, "--date", "2026-09-15", "--repo", str(fixture_repo), "--dry-run"]) == 0
+    assert "geplant" in capsys.readouterr().out
+
+
 def test_cli_reports_unknown_paths_as_a_policy_hint(fixture_repo: Path, capsys) -> None:
     (fixture_repo / "unbekannt.xyz").write_text("x", "utf-8")
     _git(fixture_repo, "add", "-A")
