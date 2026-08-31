@@ -1238,12 +1238,22 @@ def main(argv: list[str] | None = None) -> int:
                 hard_findings.append(detail)
 
         for path in files:
-            size_mb = path.stat().st_size / 1_000_000
-            print(f">> Scanne {path.name} ({size_mb:.1f} MB, inkl. entpacktem Inhalt)")
-            entry: dict[str, Any] = {"name": path.name, "raw_bytes": path.stat().st_size}
+            entry: dict[str, Any] = {"name": path.name}
             try:
+                raw_bytes = path.stat().st_size
+                entry["raw_bytes"] = raw_bytes
+                print(
+                    f">> Scanne {path.name} ({raw_bytes / 1_000_000:.1f} MB, "
+                    "inkl. entpacktem Inhalt)"
+                )
                 scan = scan_artifact(path, workdir)
-            except (subprocess.CalledProcessError, ValueError) as exc:
+            # ``OSError`` gehoert dazu (#943 Befund 5): Ein fehlendes
+            # ``dpkg-deb``/``hdiutil`` (FileNotFoundError aus subprocess), eine
+            # nicht ausfuehrbare AppImage oder ein unlesbares Artefakt entkam
+            # sonst vor dem Schreiben des JSON-Berichts – der Workflow ersetzte
+            # ihn durch einen ``--logs-only``-Bericht, der weder Artefakt noch
+            # Ursache nennt.
+            except (subprocess.CalledProcessError, ValueError, OSError) as exc:
                 detail = f"{path.name}: Entpacken zum Scannen fehlgeschlagen – {exc}"
                 print(f"::error::{detail}")
                 hard_findings.append(detail)

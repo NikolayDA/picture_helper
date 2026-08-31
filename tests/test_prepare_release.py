@@ -557,6 +557,114 @@ def test_cli_rejects_a_malformed_version(fixture_repo: Path) -> None:
         pr.main(["2.10", "--repo", str(fixture_repo)])
 
 
+def test_cli_refuses_a_downgrade_target(fixture_repo: Path, capsys) -> None:
+    """#943 Befund 3: Bei Stand 2.9.0 lief ein Aufruf für 2.8.1 durch und
+    plante ein in sich konsistentes Downgrade-Gerüst über pyproject, sechs
+    CHANGELOGs, AppStream, Pfadpolicy und Freeze-Dokument – auch der
+    ``--dry-run`` meldete Erfolg."""
+    before = {
+        path: path.read_bytes() for path in sorted(fixture_repo.rglob("*")) if path.is_file()
+    }
+    assert pr.main(["0.0.1", "--repo", str(fixture_repo)]) == 2
+    assert "liegt nicht über" in capsys.readouterr().err
+    after = {path: path.read_bytes() for path in sorted(fixture_repo.rglob("*")) if path.is_file()}
+    assert after == before, "ein abgewiesenes Downgrade darf nichts schreiben"
+
+
+def test_an_unwritable_issue_output_leaves_the_repo_untouched(
+    fixture_repo: Path, tmp_path: Path, capsys
+) -> None:
+    """#943 Befund 4: ``apply`` lief vor der Issue-Ablage – ein nicht
+    beschreibbarer ``--issue-output`` hinterließ ein bereits mutiertes Repo,
+    dessen Wiederanlauf abbricht („pyproject steht bereits auf …")."""
+    blocked = tmp_path / "blocked"
+    blocked.mkdir()  # ein Verzeichnis als Zieldatei scheitert beim os.replace
+    before = {
+        path: path.read_bytes() for path in sorted(fixture_repo.rglob("*")) if path.is_file()
+    }
+    code = pr.main(
+        ["9.9.9", "--date", "2026-09-15", "--repo", str(fixture_repo),
+         "--issue-output", str(blocked)]
+    )
+    assert code == 2
+    assert "nicht beschreibbar" in capsys.readouterr().err
+    after = {path: path.read_bytes() for path in sorted(fixture_repo.rglob("*")) if path.is_file()}
+    assert after == before, "eine gescheiterte Issue-Ablage darf nichts mutiert haben"
+
+
+def test_the_issue_file_is_persisted_before_the_repo_is_touched(
+    fixture_repo: Path, tmp_path: Path, monkeypatch
+) -> None:
+    """Die Reihenfolge selbst ist der Vertrag: Erst die externe Ablage, dann
+    ``apply`` – sonst kehrt der Fehler aus Befund 4 mit dem nächsten Umbau
+    zurück."""
+    issue = tmp_path / "issue.md"
+
+    def boom(repo: Path, planned) -> None:
+        raise RuntimeError("apply erreicht")
+
+    monkeypatch.setattr(pr, "apply", boom)
+    with pytest.raises(RuntimeError, match="apply erreicht"):
+        pr.main(
+            ["9.9.9", "--date", "2026-09-15", "--repo", str(fixture_repo),
+             "--issue-output", str(issue)]
+        )
+    assert issue.is_file(), "Issue-Text muss vor der ersten Repo-Schreibung liegen"
+    assert 'version = "9.9.9"' not in (fixture_repo / "pyproject.toml").read_text("utf-8")
+
+
+def test_the_downgrade_guard_compares_numerically_not_lexicographically(
+    fixture_repo: Path, capsys
+) -> None:
+    """Als Text verglichen läge ``2.10.0`` unter ``2.9.0`` – der reguläre
+    Minor-Sprung wäre ausgerechnet der abgewiesene Fall."""
+    assert pr._semver_key("2.10.0") > pr._semver_key("2.9.0")
+    major, minor, _patch = pr._semver_key(_current_version(fixture_repo))
+    target = f"{major}.{minor + 1}.0"
+    assert pr.main([target, "--date", "2026-09-15", "--repo", str(fixture_repo), "--dry-run"]) == 0
+    assert "geplant" in capsys.readouterr().out
+
+
+def test_a_leading_zero_spelling_is_rejected(fixture_repo: Path) -> None:
+    """#944-Review: ``2.09.0`` bei Stand ``2.9.0`` umging beide Prüfungen –
+    der String-Vergleich sieht Ungleichheit, der Ordnungsvergleich Gleichheit –
+    und erzeugte Release-Dateien für eine Schreibweise, die Packaging-Werkzeuge
+    auf die bereits aktuelle Version normalisieren."""
+    major, minor, patch = pr._semver_key(_current_version(fixture_repo))
+    respelled = f"{major}.0{minor}.{patch}"
+    for version in (respelled, "2.09.0", "02.9.0", "2.9.00"):
+        with pytest.raises(SystemExit):
+            pr.main([version, "--repo", str(fixture_repo)])
+
+
+def test_atomic_writes_preserve_the_tracked_file_mode(tmp_path: Path) -> None:
+    """#944-Review: ``mkstemp`` erzeugt 0600, und ``os.replace`` installierte
+    diesen Inode über die getrackte 0644-Datei – pyproject/CHANGELOGs wären
+    danach für andere Konten eines geteilten Checkouts unlesbar."""
+    import stat as stat_module
+
+    tracked = tmp_path / "pyproject.toml"
+    tracked.write_text("alt", encoding="utf-8")
+    os.chmod(tracked, 0o644)
+    pr.write_text_atomic(tracked, "neu")
+    assert tracked.read_text(encoding="utf-8") == "neu"
+    assert stat_module.S_IMODE(tracked.stat().st_mode) == 0o644
+
+    executable = tmp_path / "hook.sh"
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    os.chmod(executable, 0o755)
+    pr.write_text_atomic(executable, "#!/bin/sh\nexit 0\n")
+    assert stat_module.S_IMODE(executable.stat().st_mode) == 0o755
+
+    fresh = tmp_path / "neu.md"
+    previous_mask = os.umask(0o022)
+    try:
+        pr.write_text_atomic(fresh, "x")
+    finally:
+        os.umask(previous_mask)
+    assert stat_module.S_IMODE(fresh.stat().st_mode) == 0o644
+
+
 def test_cli_reports_unknown_paths_as_a_policy_hint(fixture_repo: Path, capsys) -> None:
     (fixture_repo / "unbekannt.xyz").write_text("x", "utf-8")
     _git(fixture_repo, "add", "-A")

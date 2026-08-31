@@ -41,6 +41,7 @@ import hashlib
 import os
 import re
 import shlex
+import stat
 import subprocess
 import sys
 import tempfile
@@ -72,8 +73,23 @@ PYPROJECT_PATH: Final = "pyproject.toml"
 
 #: Bewusst ASCII-Ziffern: ``\d`` akzeptiert auch Unicode-Ziffern, und ``２.１０.０``
 #: liefe bis in Dateinamen, Tags und Metadaten durch – der Freigabevertrag
-#: (``release_contract``) nutzt aus demselben Grund ``[0-9]``.
-_SEMVER_RE: Final = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+#: (``release_contract``) nutzt aus demselben Grund ``[0-9]``. Führende Nullen
+#: sind ebenfalls abgewiesen (#944-Review): ``2.09.0`` bei Stand ``2.9.0``
+#: umging sonst beide Prüfungen – der String-Vergleich sieht Ungleichheit, der
+#: numerische Ordnungsvergleich Gleichheit – und erzeugte Release-Dateien für
+#: eine Schreibweise, die Packaging-Werkzeuge auf die bereits aktuelle
+#: Version normalisieren.
+_SEMVER_RE: Final = re.compile(r"^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$")
+
+
+def _semver_key(version: str) -> tuple[int, ...]:
+    """X.Y.Z als Zahlentripel – Voraussetzung: ``_SEMVER_RE`` hat gepasst.
+
+    Numerisch statt lexikografisch: Als Text verglichen läge ``2.10.0`` unter
+    ``2.9.0`` und der Downgrade-Schutz (#943 Befund 3) wiese ausgerechnet den
+    regulären Minor-Sprung ab.
+    """
+    return tuple(int(part) for part in version.split("."))
 
 #: Abschnittsueberschriften je Sprache, in der Reihenfolge des Hausstils.
 #: ``tests/test_prepare_release.py`` haelt sie gegen die tatsaechlich in den
@@ -688,11 +704,16 @@ def plan(repo: Path, inputs: ReleaseInputs, *, predecessor_version: str) -> Plan
 
 
 def apply(repo: Path, planned: list[PlannedFile]) -> None:
-    """Schreibt den geplanten Stand; legt fehlende Verzeichnisse an."""
+    """Schreibt den geplanten Stand; legt fehlende Verzeichnisse an.
+
+    Jede Datei atomar (``write_text_atomic``): Ein Abbruch hinterlässt nie
+    eine halb geschriebene Datei. Ein Abbruch **zwischen** den Dateien bleibt
+    möglich, ist im Arbeitsbaum aber per ``git checkout`` umkehrbar – die
+    einzige Ablage außerhalb der Versionskontrolle (der Issue-Text) liegt
+    seit #943 Befund 4 bereits vor dem ersten Schreiben hier.
+    """
     for item in planned:
-        target = repo / item.path
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(item.content, encoding="utf-8")
+        write_text_atomic(repo / item.path, item.content)
 
 
 def sha256_file(path: Path) -> str:
@@ -716,6 +737,18 @@ def write_text_atomic(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
     try:
+        # Modus erhalten (#944-Review): ``mkstemp`` erzeugt 0600, und
+        # ``os.replace`` installierte diesen Inode über die getrackte
+        # 0644-Datei – pyproject/CHANGELOGs wären danach für andere Konten
+        # eines geteilten Checkouts unlesbar. Bestehende Dateien behalten
+        # ihren Modus, neue folgen der umask wie bei ``write_text``.
+        try:
+            mode = stat.S_IMODE(path.stat().st_mode)
+        except FileNotFoundError:
+            mask = os.umask(0)
+            os.umask(mask)
+            mode = 0o666 & ~mask
+        os.fchmod(fd, mode)
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(text)
         os.replace(tmp_name, path)
@@ -879,6 +912,29 @@ def main(argv: list[str] | None = None) -> int:
                 f"pyproject.toml steht bereits auf {args.version} – "
                 "Zielversion und Vorgänger dürfen nicht gleich sein."
             )
+        # Nur Gleichheit abzuweisen genügte nicht: Bei Stand 2.9.0 lief ein
+        # Aufruf für 2.8.1 durch und plante ein in sich konsistentes
+        # Downgrade-Gerüst über pyproject, sechs CHANGELOGs, AppStream,
+        # Pfadpolicy und Freeze-Dokument (#943 Befund 3). Fail-closed heißt
+        # hier: Die Zielversion muss belegbar größer sein – ein Vorgänger
+        # außerhalb des X.Y.Z-Schemas macht den Vergleich unmöglich und ist
+        # deshalb selbst der Abbruchgrund.
+        if not _SEMVER_RE.fullmatch(predecessor_version):
+            raise PrepareError(
+                f"pyproject.toml-Version {predecessor_version!r} ist nicht X.Y.Z – "
+                "Downgrade-Schutz nicht prüfbar, Vorbereitung abgebrochen."
+            )
+        # ``<=`` statt ``<``: Numerische Gleichheit bei abweichender
+        # Schreibweise fängt zwar schon die verschärfte ``_SEMVER_RE`` ab –
+        # sollte sie je gelockert werden, bleibt der Ordnungsvergleich die
+        # zweite Verteidigungslinie (#944-Review).
+        if _semver_key(args.version) <= _semver_key(predecessor_version):
+            raise PrepareError(
+                f"Zielversion {args.version} liegt nicht über der "
+                f"pyproject-Version {predecessor_version} – ein Tippfehler "
+                "erzeugte sonst ein konsistentes Downgrade-Gerüst statt "
+                "eines Fehlers."
+            )
         base_tag = args.base_tag or f"v{predecessor_version}"
         base_sha = resolve_tag(repo, base_tag)
 
@@ -904,6 +960,38 @@ def main(argv: list[str] | None = None) -> int:
         print(f"FEHLER: {exc}", file=sys.stderr)
         return 2
 
+    issue_title = f"[Release {args.version}] Abnahme- und Veröffentlichungsprotokoll"
+    # Externe Ablagen ZUERST, dann erst die Repo-Mutation (#943 Befund 4).
+    # Vorher lief ``apply`` zuerst: Ein nicht beschreibbarer ``--issue-output``
+    # (oder eine scheiternde Fallback-Ablage) hinterliess ein bereits
+    # mutiertes Repo, und der zweite Skriptlauf brach ab, weil
+    # ``pyproject.toml`` schon auf der Zielversion stand. Scheitert die Ablage
+    # jetzt, ist noch nichts geschrieben – Pfad korrigieren und erneut
+    # ausführen ist der vollständige Wiederanlauf. Die frühere Regel „Die
+    # Standardausgabe zuerst, als letzter Rückhalt" entfällt damit bewusst:
+    # Sie schützte nur den Fall, dass das Repo bereits mutiert war und der
+    # Text sonst verloren ginge – genau den gibt es nicht mehr, der saubere
+    # Wiederanlauf erzeugt den Text erneut (#944-Review). Vor jedem
+    # GitHub-Aufruf liegt der Issue-Text damit weiterhin als Datei vor (#933).
+    fallback: Path | None = None
+    issue_path: Path | None = issue_output
+    if not args.dry_run:
+        try:
+            if issue_output is not None:
+                write_text_atomic(issue_output, issue_body)
+            elif args.create_issue:
+                fallback = fallback_issue_path(args.version, repo)
+                issue_path = fallback
+                write_text_atomic(fallback, issue_body)
+        except OSError as exc:
+            print(
+                f"FEHLER: Issue-Ablage nicht beschreibbar ({exc}). Es wurde noch "
+                "keine Release-Datei geschrieben – Pfad korrigieren und das "
+                "Skript unverändert erneut ausführen.",
+                file=sys.stderr,
+            )
+            return 2
+
     if args.dry_run:
         print(f"Vorbereitung {predecessor_version} → {args.version} ({release_date}), nur Bericht:")
     else:
@@ -912,14 +1000,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {'geplant' if args.dry_run else 'geschrieben'}: {item.path}")
     print(f"  Pfadpolicy: Version {prepared.policy_version} (current-freeze umgehängt)")
 
-    issue_title = f"[Release {args.version}] Abnahme- und Veröffentlichungsprotokoll"
-    # Vor jedem GitHub-Aufruf liegt der Issue-Text als Datei vor. Ohne
-    # ``--issue-output`` gab es bisher nur die Standardausgabe: Ein transienter
-    # gh-Fehler hinterliess damit einen fertigen Rohstand, aber keinen
-    # ausfuehrbaren Weg zum Issue – ein zweiter Skriptlauf bricht ab, weil
-    # ``pyproject.toml`` bereits auf der Zielversion steht (#933).
-    fallback: Path | None = None
-    issue_path: Path | None = issue_output
     if args.dry_run:
         # Ein Probelauf soll ALLES zeigen, was entstuende – auch das Issue.
         # Geschrieben oder angelegt wird dabei nichts.
@@ -928,17 +1008,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.create_issue:
             print("\nHINWEIS: --create-issue wird im Probelauf nicht ausgeführt.", file=sys.stderr)
     elif issue_output is not None:
-        write_text_atomic(issue_output, issue_body)
         print(f"  geschrieben: {issue_output}")
     else:
-        # Die Standardausgabe zuerst: Sie ist der letzte Rueckhalt, falls die
-        # Ablage selbst scheitert.
         print(f"\n--- Release-Issue: {issue_title} ---")
         print(issue_body)
-        if args.create_issue:
-            fallback = fallback_issue_path(args.version, repo)
-            issue_path = fallback
-            write_text_atomic(fallback, issue_body)
+        if fallback is not None:
             print(f"\n  gesichert für den Wiederanlauf: {fallback}")
 
     if args.create_issue and not args.dry_run:

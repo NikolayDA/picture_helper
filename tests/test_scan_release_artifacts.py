@@ -775,6 +775,36 @@ def test_report_and_summary_exist_even_when_the_scan_fails(tmp_path: Path) -> No
     assert "Harte Befunde" in summary.read_text(encoding="utf-8")
 
 
+def test_a_missing_extraction_tool_still_produces_the_structured_report(tmp_path: Path) -> None:
+    """#943 Befund 5: Ein ``OSError`` beim Entpacken (fehlendes
+    ``dpkg-deb``/``hdiutil``, nicht ausführbare AppImage) entkam der
+    Scan-Schleife, bevor ``security-scan-report.json`` geschrieben war – der
+    ``--logs-only``-Ersatzbericht nannte weder Artefakt noch Ursache."""
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "broken.AppImage").write_bytes(b"nicht entpackbar")
+    report = tmp_path / "report.json"
+    summary = tmp_path / "summary.md"
+
+    def fake_extract(archive: Path, dest: Path) -> None:
+        raise FileNotFoundError(2, "No such file or directory", "dpkg-deb")
+
+    original = scan_release_artifacts.extract_payload
+    scan_release_artifacts.extract_payload = fake_extract  # type: ignore[assignment]
+    try:
+        code = scan_release_artifacts.main(
+            ["--report", str(report), "--summary", str(summary), str(dist)]
+        )
+    finally:
+        scan_release_artifacts.extract_payload = original  # type: ignore[assignment]
+    assert code == 1
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["verdict"] == "FAIL"
+    assert payload["counts"]["scan_errors"] == 1
+    (artifact,) = [a for a in payload["artifacts"] if a["name"] == "broken.AppImage"]
+    assert "dpkg-deb" in artifact["error"]
+
+
 def test_summary_separates_known_from_unknown_so_nothing_familiar_hides_it(
     tmp_path: Path,
 ) -> None:

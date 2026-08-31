@@ -174,27 +174,46 @@ def expected_jobs(*, x86_enabled: bool) -> tuple[str, ...]:
     return tuple(HEARTBEAT_JOB_NAMES[platform] for platform in platforms)
 
 
-# Ergebnisse, die einen Runner als nicht einsatzbereit ausweisen. ``cancelled``
-# gehört bewusst nicht dazu: Das ist eine menschliche Handlung (oder die
-# ``cancel-in-progress``-Aufräumung), kein Geräteurteil.
-FAILED_CONCLUSIONS: Final = ("failure", "timed_out")
+# Ergebnisse, die einen Runner als nicht einsatzbereit ausweisen.
+# ``startup_failure`` gehört dazu (#944-Review): Der Runner hat den Job
+# angenommen und konnte ihn nicht starten (kaputter Workspace, volles
+# ``_work``, Dienst am Ende) – dieselbe Aussage wie ``failure``/``timed_out``,
+# nur früher im Lebenszyklus, und nur der FAIL-Zweig erreicht den
+# Issue-Kommentar (``if: failure()`` im Workflow). ``cancelled`` bleibt
+# draußen: menschliche Handlung (oder die ``cancel-in-progress``-Aufräumung),
+# kein Geräteurteil. Bestanden ist ein Job aber ausschließlich mit
+# ``success`` – jede andere abgeschlossene Konklusion (``cancelled``,
+# ``skipped``, ``stale``, …) belegt keine Bereitschaft und landet als
+# ``inconclusive`` im ``UNOBSERVED``-Zweig, statt still als bestanden zu
+# gelten (#943 Befund 1: ``evaluate`` meldete sonst PASS
+# „Bereitschaftsprüfung bestanden" für ein abgebrochenes Ergebnis).
+# ``stale`` zählt bewusst nicht wie ``queued`` als Offline-Beleg: GitHub
+# setzt es erst nach Laufabschluss für nie zugewiesene Jobs – während der
+# Beobachtung des eigenen, laufenden Runs erscheint derselbe Zustand als
+# ``queued`` und trägt dort bereits das fristgebundene Offline-Verdikt.
+FAILED_CONCLUSIONS: Final = ("failure", "timed_out", "startup_failure")
+SUCCESS_CONCLUSION: Final = "success"
 
 
 @dataclass(frozen=True)
 class QueueState:
     """Beobachtung der Heartbeat-Jobs eines Laufs.
 
-    Drei Mengen statt einer: Ein Runner kann den Job gar nicht erst annehmen
+    Vier Mengen statt einer: Ein Runner kann den Job gar nicht erst annehmen
     (``queued``), ihn annehmen und an der Bereitschaftsprüfung scheitern
-    (``failed``) oder noch daran arbeiten (``pending``). Nur ``status``
-    auszuwerten hiesse, den zweiten Fall als Erfolg zu melden – der Bericht
-    behauptete dann ``PASS`` für ein nachweislich nicht einsatzbereites Gerät.
+    (``failed``), noch daran arbeiten (``pending``) oder mit einem Ergebnis
+    enden, das weder Erfolg noch Gerätescheitern belegt (``inconclusive``,
+    als ``(Jobname, Konklusion)``-Paare). Nur ``status`` auszuwerten hiesse,
+    den zweiten Fall als Erfolg zu melden; nur ``failure``/``timed_out``
+    auszuwerten, den vierten (#943 Befund 1) – der Bericht behauptete dann
+    ``PASS`` für ein Gerät ohne belegte Bereitschaft.
     """
 
     known: tuple[str, ...]
     queued: tuple[str, ...]
     failed: tuple[str, ...] = ()
     pending: tuple[str, ...] = ()
+    inconclusive: tuple[tuple[str, str], ...] = ()
     observed: bool = True
     #: Ob die Annahmefrist beim Ende der Beobachtung wirklich abgelaufen war.
     #: ``watch`` kehrt beim ersten gescheiterten Job **sofort** zurueck – dann
@@ -220,7 +239,20 @@ def queue_state(jobs: list[dict[str, Any]], names: tuple[str, ...]) -> QueueStat
         name for name in known
         if present[name][0] == "completed" and present[name][1] in FAILED_CONCLUSIONS
     )
-    return QueueState(known=known, queued=queued, failed=failed, pending=pending)
+    # Alles Abgeschlossene, das weder Erfolg noch Gerätescheitern ist –
+    # ``cancelled``/``skipped``/``stale``/``startup_failure``/… dürfen nie
+    # still als bestanden gelten (#943 Befund 1).
+    inconclusive = tuple(
+        (name, present[name][1])
+        for name in known
+        if present[name][0] == "completed"
+        and present[name][1] != SUCCESS_CONCLUSION
+        and present[name][1] not in FAILED_CONCLUSIONS
+    )
+    return QueueState(
+        known=known, queued=queued, failed=failed, pending=pending,
+        inconclusive=inconclusive,
+    )
 
 
 def _request(url: str, token: str) -> urllib.request.Request:
@@ -363,6 +395,20 @@ def evaluate(
             f"{', '.join(missing)} – Namensdrift oder API-Anomalie, "
             "kein Runner-Verdikt."
         )
+    if state.inconclusive:
+        # ``cancelled`` ist laut FAILED_CONCLUSIONS-Kommentar bewusst kein
+        # Geräteurteil – aber Erfolg ist es genauso wenig. Vor #943 fiel
+        # dieser Fall durch bis PASS: „Bereitschaftsprüfung bestanden" für
+        # einen Job, der abgebrochen oder nie gestartet wurde.
+        described = ", ".join(
+            f"{name} (Ergebnis {conclusion or 'unbekannt'})"
+            for name, conclusion in state.inconclusive
+        )
+        return VERDICT_UNOBSERVED, (
+            f"{described} endete ohne success – abgebrochen, übersprungen "
+            "oder verworfen. Das belegt keine Bereitschaft, aber auch kein "
+            "Gerätescheitern: kein Verdikt."
+        )
     if state.pending:
         return VERDICT_UNOBSERVED, (
             f"{', '.join(state.pending)} lief nach {deadline_s / 60:.0f} min noch – "
@@ -401,6 +447,10 @@ def build_report(
         "queued_jobs": list(state.queued),
         "failed_jobs": list(state.failed),
         "pending_jobs": list(state.pending),
+        "inconclusive_jobs": [
+            {"name": name, "conclusion": conclusion}
+            for name, conclusion in state.inconclusive
+        ],
         "observed": state.observed,
         "acceptance_expired": state.acceptance_expired,
     }
@@ -421,6 +471,11 @@ def render_summary(report: dict[str, Any]) -> str:
         failed = set(report.get("failed_jobs", []))
         pending = set(report.get("pending_jobs", []))
         known = set(report.get("observed_jobs", []))
+        inconclusive = {
+            str(entry.get("name", "")): str(entry.get("conclusion") or "unbekannt")
+            for entry in report.get("inconclusive_jobs", [])
+            if isinstance(entry, dict)
+        }
         lines.append("| Runner-Job | Zustand |")
         lines.append("| --- | --- |")
         for name in expected:
@@ -428,6 +483,8 @@ def render_summary(report: dict[str, Any]) -> str:
                 status = "❌ wartet auf einen Runner"
             elif name in failed:
                 status = "❌ angenommen, aber nicht einsatzbereit"
+            elif name in inconclusive:
+                status = f"⚠️ endete ohne success ({inconclusive[name]})"
             elif name in pending:
                 status = "⚠️ läuft noch"
             elif name in known:

@@ -64,6 +64,13 @@ POLL_INTERVAL_S: Final = 6.0
 
 _TAG_RE: Final = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+(?:[.-][0-9A-Za-z.]+)?$")
 _RUN_ID_RE: Final = re.compile(r"^[1-9][0-9]*$")
+#: Zeichenvorrat, aus dem ein Marker besteht (Praefix/Tag-Schema/Run-ID samt
+#: Trennern). Ein Treffer im ``displayTitle`` zaehlt nur, wenn der Marker dort
+#: nicht von weiteren Marker-Zeichen umgeben ist – ein reiner Substring-Test
+#: hielte beim Suchen nach ``…:4242`` auch einen Lauf mit ``…:42420`` fuer den
+#: vorhandenen Nachweislauf und uebersprange den echten Dispatch, waehrend die
+#: Update-Kriterien des Releases ``PENDING`` blieben (#943 Befund 2).
+_MARKER_CHARS: Final = r"[0-9A-Za-z.:\-]"
 
 #: Ergebniszustaende. ``dispatched`` ist der Regelfall, die anderen beiden sind
 #: bewusst sichtbare Nicht-Handlungen statt stiller Auslassungen.
@@ -104,18 +111,24 @@ def dispatch_marker(*, tag: str, candidate_run_id: str) -> str:
 def select_marked_run(runs: object, *, marker: str) -> RunRef | None:
     """Findet den Lauf, der den Marker in seinem ``displayTitle`` traegt.
 
-    Mehrere Treffer werden nicht als Fehler behandelt, sondern der **juengste**
-    gewaehlt (die Liste kommt absteigend nach Startzeit): Ein manuell
-    nachgezogener Lauf mit demselben Marker ist ein legitimer Zustand, und der
-    zuletzt gestartete ist der aussagekraeftige.
+    Der Marker muss im Titel als **abgegrenztes** Vorkommen stehen (im
+    ``run-name`` von ``release-abnahme.yml`` steht er in ``[…]``, ein Treffer
+    darf aber generell nicht mitten in einem laengeren Marker liegen) – siehe
+    ``_MARKER_CHARS``. Mehrere Treffer werden nicht als Fehler behandelt,
+    sondern der **juengste** gewaehlt (die Liste kommt absteigend nach
+    Startzeit): Ein manuell nachgezogener Lauf mit demselben Marker ist ein
+    legitimer Zustand, und der zuletzt gestartete ist der aussagekraeftige.
     """
     if not isinstance(runs, list):
         raise DispatchError("Laufliste ist keine Liste")
+    pattern = re.compile(
+        rf"(?<!{_MARKER_CHARS}){re.escape(marker)}(?!{_MARKER_CHARS})"
+    )
     for item in runs:
         if not isinstance(item, dict):
             continue
         entry: dict[str, Any] = item
-        if marker not in str(entry.get("displayTitle") or ""):
+        if pattern.search(str(entry.get("displayTitle") or "")) is None:
             continue
         raw_id = entry.get("databaseId")
         if not isinstance(raw_id, int) or raw_id <= 0:
