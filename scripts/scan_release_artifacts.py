@@ -59,6 +59,12 @@ verändern, geht nicht in ``overall_verdict`` ein und ändert nie den
 Exit-Code. Ein abgelaufener Eintrag annotiert nicht mehr und erzeugt eine
 sichtbare Warnung, damit die Anomalie erneut in der Triage landet statt still
 weiterzugelten.
+
+``--logs-only`` wertet ausschließlich die Phasen-Logs aus und rührt ``dist/``
+nicht an. Der Artefaktscan im Kandidatenbau läuft nur bei Erfolg – fällt vorher
+ein Build- oder Smoke-Schritt, trägt ein eigener Schritt die Anomalie-Durchsicht
+in diesem Modus nach. Ein leeres ``dist/`` bleibt dadurch das, was es ist: bei
+einem grünen Build ein harter Fehler.
 """
 from __future__ import annotations
 
@@ -1001,12 +1007,22 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--platform", choices=KNOWN_PLATFORMS, help="platform_tag des Kandidatenbau-Legs"
     )
+    parser.add_argument(
+        "--logs-only",
+        action="store_true",
+        help=(
+            "nur die Phasen-Logs auswerten, keine Artefakte scannen – fuer den "
+            "Nachtrag, wenn ein frueherer Schritt des Laufs gefallen ist"
+        ),
+    )
     parser.add_argument("directory", nargs="?", default="dist", help="zu scannendes Verzeichnis")
     args = parser.parse_args(argv)
     if args.anomaly_register is not None and args.platform is None:
         parser.error("--anomaly-register verlangt --platform (sonst greift kein Eintrag)")
     if args.clamav_database is not None and args.malware_unavailable is not None:
         parser.error("--clamav-database und --malware-unavailable schliessen einander aus")
+    if args.logs_only and args.clamav_database is not None:
+        parser.error("--logs-only scannt keine Artefakte und damit auch nicht mit ClamAV")
     return args
 
 
@@ -1097,10 +1113,15 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
     directory = Path(args.directory)
-    files = sorted(p for p in directory.iterdir() if p.is_file())
-    if not files:
-        print(f"::error::Keine Dateien in {directory} gefunden.")
-        return 1
+    files: list[Path] = []
+    if not args.logs_only:
+        files = sorted(p for p in directory.iterdir() if p.is_file())
+        if not files:
+            # Ein gruener Build ohne Artefakt ist ein harter Fehler und bleibt
+            # es. Genau deshalb laeuft der Artefaktscan-Schritt im Workflow nur
+            # bei Erfolg – der Nachtrag im Fehlerfall nutzt --logs-only.
+            print(f"::error::Keine Dateien in {directory} gefunden.")
+            return 1
 
     database: Path | None = args.clamav_database
     if database is not None and (
@@ -1127,11 +1148,20 @@ def main(argv: list[str] | None = None) -> int:
         "age_days": None, "stale": False, "max_age_days": _SIGNATURE_MAX_AGE_DAYS,
     }
     unavailable_reason = args.malware_unavailable or "kein --clamav-database uebergeben"
+    if args.logs_only:
+        unavailable_reason = "nur Phasen-Logs ausgewertet (--logs-only)"
     eicar: dict[str, Any] = {"status": VERDICT_UNAVAILABLE, "detail": unavailable_reason}
     malware_scan: dict[str, Any] = {
         "status": VERDICT_UNAVAILABLE,
         "reason": unavailable_reason,
     }
+    if args.logs_only:
+        detail = (
+            "Artefaktscan nicht gelaufen: --logs-only wertet ausschliesslich die "
+            "Phasen-Logs aus, weil ein frueherer Schritt des Laufs gefallen ist."
+        )
+        unavailable.append(detail)
+        print(f"::warning::{detail}")
     if database is None:
         unavailable.append(f"Malware-Scan: {malware_scan['reason']}")
         print(f"::warning::Malware-Scan UNAVAILABLE – {malware_scan['reason']}")
@@ -1266,6 +1296,12 @@ def main(argv: list[str] | None = None) -> int:
     if hard_findings:
         print("::error::Artefakt-Sicherheits-Scan fehlgeschlagen – siehe obige Funde.")
         return 1
+    if args.logs_only:
+        # Kein "keine Funde in allen Artefakten": in diesem Modus wurde kein
+        # einziges Artefakt geprueft. Ein Erfolgssatz darueber waere schlicht
+        # unwahr und genau die Art Aussage, die #920 abschaffen will.
+        print(">> Nur Phasen-Logs ausgewertet – kein Artefaktscan in diesem Lauf.")
+        return 0
     print(
         ">> Secret-/Pfad-Scan (#584): keine hochkonfidenten Funde in allen "
         "Artefakten (inkl. entpacktem Inhalt)."

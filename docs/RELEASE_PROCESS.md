@@ -248,6 +248,9 @@ Verlegenheitslösung für eine unverstandene Meldung.
 **Erwartetes Ergebnis:** erwartete Build-Container, gebundene Provenienz und kein Malware-Fund; die formale Dateiprüfung folgt in Schritt 5.
 **Fehler/Wiederanlauf:** Bei Artefakt- oder Provenienzfehler Kandidatenlauf verwerfen und Ursache per PR beheben.
 Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdrücklich erlaubten Waiver.
+Ist ein Build-Leg schon vor dem Artefaktscan gefallen, trägt ein eigener Schritt die Anomalie-Durchsicht der
+Phasen-Logs nach (`--logs-only`, Verdikt `UNAVAILABLE`) – die Abschnitte 3 und 4 der Summary stehen also auch
+dort zur Verfügung, um die bekannte kosmetische Meldung vom eigentlichen Fehler zu trennen.
 
 ### 5. Abnahme auf echter Hardware durchführen
 

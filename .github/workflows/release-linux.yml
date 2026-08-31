@@ -534,6 +534,34 @@ jobs:
           python3 scripts/scan_release_artifacts.py "${common[@]}" \
             --clamav-database clamav-db-cache dist
 
+      # Der Scan oben laeuft nur bei Erfolg (implizites ``success()``). Faellt
+      # vorher ein Build- oder Smoke-Schritt, gibt es keinen Bericht - obwohl
+      # die Phasen-Logs dann vorliegen und die Anomalie-Durchsicht gerade dort
+      # gebraucht wird (der erste Registereintrag betrifft genau einen
+      # Smoke-Schritt). Deshalb der Nachtrag im Logs-only-Modus.
+      #
+      # Bewusst NICHT ``if: always()`` am Scan selbst: bei gefallenem Build ist
+      # ``dist/`` leer, der Scanner bricht dann fail-closed mit Exit 1 ab und
+      # schreibt gar keinen Bericht - das gaebe einen zweiten roten Schritt
+      # ohne Evidenzgewinn. Und ein leeres ``dist/`` muss bei gruenem Build ein
+      # harter Fehler bleiben.
+      - name: Anomalie-Durchsicht der Phasen-Logs nachtragen (nur im Fehlerfall)
+        if: failure()
+        run: |
+          set -euo pipefail
+          # Ist der Scan selbst gefallen (echter Befund), liegt sein Bericht
+          # bereits vor. Der Nachtrag darf ihn niemals ueberschreiben.
+          if [ -f security-scan/security-scan-report.json ]; then
+            echo "::notice::Sicherheitsbericht liegt bereits vor – kein Nachtrag noetig."
+            exit 0
+          fi
+          python3 scripts/scan_release_artifacts.py --logs-only \
+            --report security-scan/security-scan-report.json \
+            --summary security-scan/security-scan-summary.md \
+            --anomaly-register release/build-anomalies.json \
+            --platform "${{ matrix.platform_tag }}" \
+            --build-log-dir build-logs
+
       # Bericht und Summary auch im Fehlerfall sichern: gerade ein FAIL ist die
       # Evidenz, die der Security-Owner in Runbook-Schritt 4 braucht (#920).
       - name: Render security scan summary

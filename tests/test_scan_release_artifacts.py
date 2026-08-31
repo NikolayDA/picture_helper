@@ -915,3 +915,68 @@ def test_summary_surfaces_warnings_that_are_neither_findings_nor_gaps(tmp_path: 
     assert any("smoke-launch-des-nachbarn" in item for item in report["warnings"])
     assert "Hinweise" in summary
     assert "smoke-launch-des-nachbarn" in summary
+
+
+# ── #920-Review: Nachtrag im Fehlerfall (--logs-only) ───────────────────
+
+def test_logs_only_classifies_the_phase_logs_without_touching_dist(tmp_path: Path) -> None:
+    """Faellt ein Build-/Smoke-Schritt, laeuft der Artefaktscan nicht mehr.
+
+    Genau dann liegen die Phasen-Logs aber vor – und genau dann ist die
+    Unterscheidung "bekannte kosmetische Meldung vs. der eigentliche Fehler"
+    am wertvollsten. ``dist/`` existiert in diesem Fall womoeglich gar nicht.
+    """
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    (log_dir / "smoke-launch-macos-app.log").write_text(
+        _MACOS_LOG + "RuntimeError: Prozessbaum musste hart beendet werden\n",
+        encoding="utf-8",
+    )
+    report = tmp_path / "report.json"
+    summary = tmp_path / "summary.md"
+
+    code = scan_release_artifacts.main([
+        "--logs-only", "--report", str(report), "--summary", str(summary),
+        "--anomaly-register", str(_REGISTER_PATH), "--platform", "macos-arm64",
+        "--build-log-dir", str(log_dir), str(tmp_path / "gibt-es-nicht"),
+    ])
+
+    assert code == 0
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["verdict"] == "UNAVAILABLE"
+    assert payload["artifacts"] == []
+    assert any("--logs-only" in item for item in payload["unavailable"])
+    assert [item["entry_id"] for item in payload["anomalies"]["known"]] == [
+        "rembg-warmup-connection-closed"
+    ]
+    assert [item["text"] for item in payload["anomalies"]["unknown"]] == [
+        "RuntimeError: Prozessbaum musste hart beendet werden"
+    ]
+
+
+def test_logs_only_never_claims_artifacts_were_clean(tmp_path: Path, capsys) -> None:
+    """Ein Erfolgssatz ueber ungescannte Artefakte waere schlicht unwahr."""
+    log_dir = tmp_path / "build-logs"
+    log_dir.mkdir()
+    (log_dir / "smoke-launch-appimage.log").write_text("alles ok\n", encoding="utf-8")
+    assert scan_release_artifacts.main([
+        "--logs-only", "--build-log-dir", str(log_dir), str(tmp_path / "nichts"),
+    ]) == 0
+    output = capsys.readouterr().out
+    assert "keine hochkonfidenten Funde in allen" not in output
+    assert "Nur Phasen-Logs ausgewertet" in output
+
+
+def test_an_empty_dist_stays_a_hard_error_without_logs_only(tmp_path: Path, capsys) -> None:
+    """Das ist die Eigenschaft, wegen der der Scan-Schritt kein always() traegt."""
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    assert scan_release_artifacts.main([str(dist)]) == 1
+    assert "Keine Dateien in" in capsys.readouterr().out
+
+
+def test_logs_only_and_clamav_are_mutually_exclusive(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        scan_release_artifacts.main(
+            ["--logs-only", "--clamav-database", str(tmp_path), str(tmp_path)]
+        )

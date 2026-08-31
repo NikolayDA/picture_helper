@@ -129,9 +129,10 @@ def test_security_scan_report_register_and_logs_are_wired_into_the_candidate_bui
     maschinenlesbare Evidenz, auf die der Runbook-Schritt sich stuetzt. Beide
     Zweige (Cache-Treffer und Cache-Miss) muessen sie erhalten.
     """
-    text = _release_text()
-    step = text[text.index("Scan built artifacts and extracted payloads") :]
-    step = step[: step.index("- name: Render security scan summary")]
+    step = next(
+        item["run"] for item in _release_build_steps()
+        if item.get("name", "").startswith("Scan built artifacts")
+    )
     for argument in (
         "--report security-scan/security-scan-report.json",
         "--summary security-scan/security-scan-summary.md",
@@ -985,3 +986,35 @@ def test_required_permissions_takes_max_effective_across_jobs() -> None:
         },
     }
     assert _required_permissions(doc) == {"contents": 1, "id-token": 2}
+
+
+def test_a_failed_build_leg_still_gets_its_anomaly_review() -> None:
+    """#920-Review: der Scan traegt ``success()`` – der Nachtrag schliesst die Luecke.
+
+    Faellt ein Build- oder Smoke-Schritt, laeuft der Artefaktscan nicht mehr.
+    Der Nachtrag im Logs-only-Modus liefert dann trotzdem die Einordnung der
+    Phasen-Logs – ohne den Bericht eines wirklich gefallenen Scans zu
+    ueberschreiben und ohne ``dist/`` anzufassen (dort waere ein leeres
+    Verzeichnis fail-closed ein harter Fehler).
+    """
+    steps = _release_build_steps()
+    order = [step.get("name") for step in steps]
+    scan = "Scan built artifacts and extracted payloads (secrets + ClamAV)"
+    followup = "Anomalie-Durchsicht der Phasen-Logs nachtragen (nur im Fehlerfall)"
+    assert order.index(scan) < order.index(followup) < order.index("Render security scan summary")
+
+    by_name = {step.get("name"): step for step in steps}
+    assert "if" not in by_name[scan], (
+        "Der Artefaktscan darf kein always() bekommen: bei gefallenem Build ist "
+        "dist/ leer, der Scanner bricht dann ohne Bericht ab."
+    )
+    step = by_name[followup]
+    assert step["if"] == "failure()"
+    assert "--logs-only" in step["run"]
+    assert "--anomaly-register release/build-anomalies.json" in step["run"]
+    assert "--build-log-dir build-logs" in step["run"]
+    # Ueberschreibschutz: ein bereits geschriebener Bericht bleibt unangetastet.
+    assert "if [ -f security-scan/security-scan-report.json ]" in step["run"]
+    assert "--logs-only" not in by_name[scan]["run"], (
+        "Der reguläre Scan darf niemals im Logs-only-Modus laufen."
+    )

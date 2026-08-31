@@ -711,6 +711,11 @@ YAML-Heredocs). Entscheidung: ADR
 daraus die Job-Summary; `release-linux.yml` lädt beides zusammen mit den
 erfassten Phasen-Logs als `security-scan-<platform_tag>` hoch – über
 `if: always()`, weil gerade ein `FAIL` die Evidenz für Runbook-Schritt 4 ist.
+Der Scan selbst trägt bewusst kein `always()` (bei gefallenem Build ist `dist/`
+leer und er bricht fail-closed ohne Bericht ab); stattdessen trägt ein
+`if: failure()`-Schritt die Anomalie-Durchsicht der Phasen-Logs im
+`--logs-only`-Modus nach, ohne einen bereits geschriebenen Bericht zu
+überschreiben.
 Der Bericht führt je Artefakt **getrennt** die gescannten Bytes von Rohdatei
 und entpackter Nutzlast, Befundzahlen je Kategorie, EICAR-Selbsttest,
 Limitwarnungen, Signaturalter und das Gesamtverdikt
