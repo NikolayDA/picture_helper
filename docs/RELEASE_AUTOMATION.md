@@ -576,11 +576,15 @@ nicht auf den Commit.
 
 Dispatch-Ref ist der unveränderliche **Release-Ref** `release/vX.Y.Z` — dieselbe
 Quelle wie in den Runbook-Schritten 3, 5 und 8 (#918). Er muss dem Publish-Lauf
-nicht übergeben werden: Er ist deterministisch aus dem Tag ableitbar. Ein
-eigener Schritt holt ihn über `git/ref/heads/…` und prüft ihn mit
-`release_contract.py verify-release-ref` gegen `needs.publish.outputs.candidate_sha`;
-fehlt der Ref oder zeigt er woandershin, bricht der Job ab, statt auf eine
-andere Quelle auszuweichen. Der Tag bleibt die *veröffentlichte Version*, nicht
+nicht übergeben werden: Er ist deterministisch aus dem Tag ableitbar. Geprüft
+wird er über `release_contract.validate_release_ref` gegen
+`needs.publish.outputs.candidate_sha` — und zwar **im Skript, unmittelbar vor
+einem tatsächlichen Dispatch**, nicht in einem vorgelagerten Workflow-Schritt:
+Nach Runbook-Schritt 9 darf der Ref gelöscht sein, und ein Wiederanlauf, der den
+vorhandenen Nachweislauf findet, dispatcht gar nicht mehr; eine unbedingte
+Prüfung machte genau diesen idempotenten Wiederanlauf rot. Muss dispatcht
+werden und fehlt der Ref oder zeigt er woandershin, bricht der Job ab, statt auf
+eine andere Quelle auszuweichen. Der Tag bleibt die *veröffentlichte Version*, nicht
 die Dispatch-Quelle — beide zeigen auf denselben Commit, und genau deshalb wäre
 die Verwechslung folgenlos-aussehend: fail-closed bliebe sie, nur eben aus einer
 zweiten Prozessquelle. `actions: write` trägt ausschließlich dieser Job.

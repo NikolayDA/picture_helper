@@ -413,26 +413,24 @@ def test_dispatch_uses_the_protected_release_ref_and_the_contract_script() -> No
     das nicht, deshalb steht der Wächter am ausführbaren Workflow.
     """
     steps = _load(_PUBLISH)["jobs"]["update-dispatch"]["steps"]
-    check = next(
-        s for s in steps if str(s.get("name") or "").startswith("Release-Ref bestimmen")
-    )
     dispatch = next(
         s for s in steps if str(s.get("name") or "").startswith("Abnahme-Lauf idempotent")
     )
-    assert steps.index(check) < steps.index(dispatch), "Prüfung läuft nach dem Dispatch"
 
     # 1. Der Ref entsteht deterministisch aus dem Tag – er muss dem Publish-Lauf
     #    nicht übergeben werden – und wird gegen candidate.head_sha geprüft.
-    assert 'release_ref="release/${RELEASE_TAG}"' in check["run"]
-    assert "release_contract.py verify-release-ref" in check["run"]
-    assert '--expected-sha "$CANDIDATE_SHA"' in check["run"]
-    assert check["env"]["CANDIDATE_SHA"] == "${{ needs.publish.outputs.candidate_sha }}"
-
-    # 2. Dispatcht wird genau dieser geprüfte Ref …
     assert "release_update_dispatch.py" in dispatch["run"]
-    assert '--ref "$RELEASE_REF"' in dispatch["run"]
-    assert dispatch["env"]["RELEASE_REF"] == "${{ steps.release_ref.outputs.ref }}"
+    assert '--ref "release/${RELEASE_TAG}"' in dispatch["run"]
+    assert '--expected-sha "$CANDIDATE_SHA"' in dispatch["run"]
+    assert dispatch["env"]["CANDIDATE_SHA"] == "${{ needs.publish.outputs.candidate_sha }}"
     assert "--publish-run-id" in dispatch["run"] and "--predecessor-tag" in dispatch["run"]
+
+    # 2. Die Prüfung liegt im Skript, weil nur dort feststeht, ob überhaupt
+    #    dispatcht wird – ein vorgelagerter Workflow-Schritt machte den
+    #    idempotenten Wiederanlauf nach gelöschtem Ref rot (#936-Review).
+    assert "verify_dispatch_ref" in (
+        _ROOT / "scripts" / "release_update_dispatch.py"
+    ).read_text(encoding="utf-8")
 
     # 3. … und der Tag bleibt die veröffentlichte Version, nie die Quelle.
     assert '--tag "$RELEASE_TAG"' in dispatch["run"]

@@ -816,10 +816,15 @@ Entscheidung: ADR
   gültig. Der Job `update-dispatch` (`scripts/release_update_dispatch.py`,
   einziger Träger von `actions: write`) startet den
   Post-Release-Update-Nachweis auf dem **Release-Ref** — deterministisch aus
-  dem Tag abgeleitet und im Schritt davor über `verify-release-ref` gegen
+  dem Tag abgeleitet und über `validate_release_ref` gegen
   `candidate.head_sha` geprüft, also dieselbe Quelle wie die Schritte 3, 5
   und 8 (#918-Nachprüfung; der Tag bleibt die veröffentlichte Version, nicht
-  die Dispatch-Quelle). Weil `workflow_dispatch`
+  die Dispatch-Quelle). Die Prüfung (`verify_dispatch_ref`) sitzt bewusst
+  **im Skript unmittelbar vor einem echten Dispatch**, nicht in einem
+  vorgelagerten Workflow-Schritt: Nach Schritt 9 darf der Ref gelöscht sein,
+  und ein Wiederanlauf, der den vorhandenen Nachweislauf findet, dispatcht
+  gar nicht mehr — eine unbedingte Prüfung machte genau diesen idempotenten
+  Wiederanlauf rot. Weil `workflow_dispatch`
   mit HTTP 204 ohne Run-ID antwortet, kennzeichnet sich der Lauf über
   `dispatch_marker` im `run-name` und wird per Polling korreliert; der Marker
   `update-check:<tag>:<candidate_run_id>` ist deterministisch und macht einen
