@@ -18,6 +18,17 @@ preflight = importlib.util.module_from_spec(_SPEC)
 sys.modules["abnahme_preflight"] = preflight
 _SPEC.loader.exec_module(preflight)
 
+# Die Sonde als *Quelle* des Erfolgs-Payloads – gebraucht fuer den
+# Vertragstest weiter unten, damit der Konsument nicht gegen ein
+# fabriziertes Payload prueft.
+_PROBE_SPEC = importlib.util.spec_from_file_location(
+    "qt_gl_probe", ROOT / "scripts" / "qt_gl_probe.py"
+)
+assert _PROBE_SPEC is not None and _PROBE_SPEC.loader is not None
+qt_gl_probe = importlib.util.module_from_spec(_PROBE_SPEC)
+sys.modules["qt_gl_probe"] = qt_gl_probe
+_PROBE_SPEC.loader.exec_module(qt_gl_probe)
+
 
 def _check_names() -> list[str]:
     """Alle Check-Funktionen des Preflights – **automatisch** ermittelt.
@@ -198,6 +209,53 @@ def test_qt_probe_names_each_failing_stage() -> None:
         ))
         assert error is not None and error.startswith(hint), stage
         assert f"detail-{stage}" in error
+
+
+def test_qt_probe_reports_the_measured_renderer_on_success() -> None:
+    """Die Provenienz ueberlebt den gruenen Lauf (#934-Nachtrag)."""
+    seen: list[str] = []
+    ok = _check(
+        _probe_runner({
+            "ok": True, "platform": "cocoa",
+            "vendor": "Apple", "renderer": "Apple M3 Max", "version": "2.1 Metal - 90.5",
+            "diagnostic": "Apple / Apple M3 Max / 2.1 Metal - 90.5",
+        }),
+        note=seen.append,
+    )
+    assert ok is None
+    assert seen == ["Apple / Apple M3 Max / 2.1 Metal - 90.5"]
+
+
+def test_the_preflight_reads_the_key_the_probe_actually_writes() -> None:
+    """Bindet Sonde und Konsument aneinander (#941-Review).
+
+    Die uebrigen Tests **fabrizieren** das Payload und pruefen den Vertrag
+    deshalb nie. Wird ``diagnostic`` in ``qt_gl_probe`` umbenannt oder
+    zugunsten der Einzelfelder fallengelassen, bliebe der fail-open-Zugriff
+    still: ``make check`` gruen, mypy stumm (JSON-``dict``) – und im Joblog
+    stuende wieder genau das ``ok: qt-gl``, das dieser PR abschafft.
+    """
+    payload = qt_gl_probe.success_payload(
+        platform="cocoa", vendor="Apple", renderer="Apple M3 Max",
+        version="2.1 Metal - 90.5",
+    )
+    seen: list[str] = []
+    assert _check(_probe_runner(payload), note=seen.append) is None
+    assert seen == ["Apple / Apple M3 Max / 2.1 Metal - 90.5"]
+
+
+def test_qt_probe_note_stays_silent_without_a_diagnostic() -> None:
+    """Ohne Messwert keine leere Klammer – und ein Befund meldet nie „ok"."""
+    quiet: list[str] = []
+    assert _check(_probe_runner({"ok": True}), note=quiet.append) is None
+    assert quiet == []
+
+    failed = _check(
+        _probe_runner({"ok": False, "stage": "renderer", "detail": "llvmpipe"}, code=1),
+        note=quiet.append,
+    )
+    assert failed is not None
+    assert quiet == []
 
 
 def test_qt_probe_treats_a_hard_qt_abort_as_a_plugin_failure() -> None:
@@ -500,7 +558,7 @@ def test_main_reports_all_failures_and_exit_code(
 ) -> None:
     monkeypatch.setattr(
         preflight, "run_preflight",
-        lambda platform, min_free_gb: [
+        lambda platform, min_free_gb, notes=None: [
             ("python", None), ("session", "kaputt"), ("netz", "auch kaputt"),
         ],
     )
@@ -518,13 +576,57 @@ def test_main_passes_when_all_checks_ok(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(
-        preflight, "run_preflight", lambda platform, min_free_gb: [("python", None)],
+        preflight, "run_preflight",
+        lambda platform, min_free_gb, notes=None: [("python", None)],
     )
     rc = preflight.main(["--platform", "macos-arm64"])
     out = capsys.readouterr().out
     assert rc == 0
     assert "einsatzbereit" in out
     assert "::error" not in out
+
+
+def test_main_appends_the_gl_provenance_to_the_ok_line(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    """``run_preflight`` misst, ``main`` schreibt – an der richtigen Zeile.
+
+    Ohne den Weg ueber ``notes`` landete die Provenienz vor **allen**
+    ok-Zeilen: ``run_preflight`` wertet erst alle Checks aus und gibt sie
+    danach zurueck.
+    """
+    def _fake(platform, min_free_gb, notes=None):
+        if notes is not None:
+            notes["qt-gl"] = "Broadcom / V3D 7.1.10.2 / 3.1 Mesa"
+        return [("session", None), ("qt-gl", None)]
+
+    monkeypatch.setattr(preflight, "run_preflight", _fake)
+    monkeypatch.setattr(preflight, "run_hardening", lambda platform: [])
+    assert preflight.main(["--platform", "linux-arm64"]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert "[preflight] ok: qt-gl (Broadcom / V3D 7.1.10.2 / 3.1 Mesa)" in lines
+    # Checks ohne Zusatzangabe bleiben unveraendert – keine leere Klammer.
+    assert "[preflight] ok: session" in lines
+
+
+def test_run_preflight_wires_the_probe_note_through(
+    hermetic_preflight: None, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ohne diesen Test bliebe ``note=_note`` in ``run_preflight`` ungeprueft.
+
+    Die beiden anderen Tests umgehen die Stelle: einer ruft ``check_qt_gl``
+    direkt, der andere ersetzt ``run_preflight`` ganz.
+    """
+    def _probe(platform, *, note=None, **_kw):
+        if note is not None:
+            note("Broadcom / V3D 7.1.10.2 / 3.1 Mesa")
+        return None
+
+    monkeypatch.setattr(preflight, "check_qt_gl", _probe)
+    notes: dict[str, str] = {}
+    values = dict(preflight.run_preflight("linux-arm64", notes=notes))
+    assert values["qt-gl"] is None
+    assert notes == {"qt-gl": "Broadcom / V3D 7.1.10.2 / 3.1 Mesa"}
 
 
 def test_run_preflight_includes_deb_sudo_only_on_linux(hermetic_preflight: None) -> None:
@@ -725,7 +827,7 @@ def test_hardening_is_advisory_in_the_acceptance_preflight(monkeypatch, capsys) 
     """Ein Release darf nicht an einer Display-Sleep-Einstellung scheitern –
     der taegliche Heartbeat ist die Durchsetzungsstelle, nicht die Abnahme."""
     monkeypatch.setattr(
-        preflight, "run_preflight", lambda platform, min_free_gb=0: [("x", None)],
+        preflight, "run_preflight", lambda platform, min_free_gb=0, notes=None: [("x", None)],
     )
     monkeypatch.setattr(
         preflight, "run_hardening", lambda platform: [("dienst-neustart", "kaputt")],
@@ -737,7 +839,7 @@ def test_hardening_is_advisory_in_the_acceptance_preflight(monkeypatch, capsys) 
 
 def test_hardening_is_binding_under_strict_mode(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
-        preflight, "run_preflight", lambda platform, min_free_gb=0: [("x", None)],
+        preflight, "run_preflight", lambda platform, min_free_gb=0, notes=None: [("x", None)],
     )
     monkeypatch.setattr(
         preflight, "run_hardening", lambda platform: [("dienst-neustart", "kaputt")],

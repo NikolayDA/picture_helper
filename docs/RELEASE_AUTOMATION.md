@@ -291,6 +291,16 @@ die Sonde allerdings **übersprungen und das sichtbar als Folgebefund
 ausgewiesen**: Sie könnte dort nur `plugin` melden, und der erste Lauf zahlte
 dafür den vollen Runtime-Bau.
 
+**Die Provenienz steht auch im grünen Lauf.** Bei Erfolg meldet der Preflight
+`[preflight] ok: qt-gl (Apple / Apple M3 Max / 2.1 Metal - 90.5)` statt nur
+`ok: qt-gl`. Der Messwert entscheidet nichts — das Verdikt fällt allein über
+die vier Stufen oben —, aber er macht den Treiberwechsel sichtbar, *bevor* er
+die Software-Regel reißt: Nach einem Mesa- oder Systemupdate steht im Joblog
+jedes Tages, welche GPU den Nachweis getragen hat. Dieselbe Abwägung wie bei
+`laufzeit_herkunft` im Abnahme-Zusatznachweis (#738) — nicht bewertet, aber
+immer gedruckt. Ohne sie musste die Angabe von Hand nachgeholt werden,
+obwohl die Sonde sie im selben Moment schon gemessen hatte (#934).
+
 **Woher die Runtime kommt.** Die Sonde läuft **nicht** im Release-venv,
 sondern in einer schlanken Runtime mit nur den Qt-Pins — sonst kostete jeder
 Heartbeat eine vollständige `.[test]`-Installation. Sie liegt unter
