@@ -46,6 +46,13 @@ def _load(path: Path) -> dict:
     return doc
 
 
+def _release_build_steps() -> list[dict]:
+    """Schritte des Kandidatenbau-Jobs in ihrer tatsaechlichen Reihenfolge."""
+    steps = _load(_RELEASE)["jobs"]["build"]["steps"]
+    assert isinstance(steps, list) and steps
+    return steps
+
+
 def _needs_list(job: dict) -> list[str]:
     needs = job.get("needs", [])
     return [needs] if isinstance(needs, str) else list(needs)
@@ -97,10 +104,8 @@ def test_clamav_scans_extracted_payload_and_rejects_zero_byte_evidence() -> None
     0-Byte-Lauf als Fehler behandelt.
     """
     text = _release_text()
-    assert (
-        "python3 scripts/scan_release_artifacts.py "
-        "--clamav-database clamav-db-cache dist"
-    ) in text
+    assert "scripts/scan_release_artifacts.py" in text
+    assert "--clamav-database clamav-db-cache dist" in text
     assert "clamscan --database clamav-db-cache --recursive --infected --stdout dist" not in text
 
 
@@ -108,12 +113,75 @@ def test_clamav_cache_miss_keeps_secret_scan_and_visible_unavailable_state() -> 
     """MALWARE-01 bleibt bei Cache-Miss optional, #584 bleibt verbindlich."""
     text = _release_text()
     step = text[text.index("Scan built artifacts and extracted payloads") :]
-    cache_miss = step[:step.index('version_line="$(clamscan')]
-    assert "python3 scripts/scan_release_artifacts.py dist" in cache_miss
-    assert "ClamAV-Signaturdatenbank UNAVAILABLE" in cache_miss
-    assert cache_miss.index("python3 scripts/scan_release_artifacts.py dist") < cache_miss.index(
-        "exit 0"
+    cache_miss = step[: step.index("--clamav-database clamav-db-cache dist")]
+    assert "scripts/scan_release_artifacts.py" in cache_miss
+    # Seit #920 traegt der Scanner den Grund selbst ins Log UND in den Bericht;
+    # eine reine ``echo ::warning``-Zeile waere im Bericht unsichtbar geblieben.
+    assert "--malware-unavailable" in cache_miss
+    assert "kein Cache-Treffer" in cache_miss
+    assert cache_miss.index("scripts/scan_release_artifacts.py") < cache_miss.index("exit 0")
+
+
+def test_security_scan_report_register_and_logs_are_wired_into_the_candidate_build() -> None:
+    """#920: Runbook-Schritt 4 braucht Bericht, Register und Phasen-Logs.
+
+    Fehlte eines der Argumente, liefe der Scan weiterhin gruen – nur ohne die
+    maschinenlesbare Evidenz, auf die der Runbook-Schritt sich stuetzt. Beide
+    Zweige (Cache-Treffer und Cache-Miss) muessen sie erhalten.
+    """
+    text = _release_text()
+    step = text[text.index("Scan built artifacts and extracted payloads") :]
+    step = step[: step.index("- name: Render security scan summary")]
+    for argument in (
+        "--report security-scan/security-scan-report.json",
+        "--summary security-scan/security-scan-summary.md",
+        "--anomaly-register release/build-anomalies.json",
+        "--build-log-dir build-logs",
+        '--platform "${{ matrix.platform_tag }}"',
+    ):
+        assert argument in step, argument
+    # Genau zwei Aufrufe (Cache-Miss und Cache-Treffer), beide ueber dieselbe
+    # Argumentliste – sonst kann ein Zweig die Evidenz still verlieren.
+    assert step.count("scripts/scan_release_artifacts.py") == 2
+    assert step.count('"${common[@]}"') == 2
+
+
+def test_security_scan_evidence_is_kept_even_when_the_scan_fails() -> None:
+    """Gerade ein FAIL ist die Evidenz fuer den Security-Owner (#920)."""
+    steps = _release_build_steps()
+    by_name = {step.get("name"): step for step in steps}
+    for name in ("Render security scan summary", "Upload security scan report"):
+        assert by_name[name]["if"] == "always()", name
+    upload = by_name["Upload security scan report"]
+    assert "security-scan/" in upload["with"]["path"]
+    assert "build-logs/" in upload["with"]["path"]
+    assert upload["with"]["retention-days"] == 90
+
+
+def test_smoke_phases_write_the_logs_the_anomaly_register_is_matched_against() -> None:
+    """Ohne mitgeschriebene Phasen-Logs bliebe die Anomalie-Durchsicht leer.
+
+    Der macOS-Smoke muss ausserdem VOR dem Scan laufen: lief er danach (so war
+    es bis #920), existierte sein Log zum Scanzeitpunkt noch gar nicht.
+    """
+    steps = _release_build_steps()
+    order = [step.get("name") for step in steps]
+    assert order.index("Smoke-launch built macOS app (headless, fork-bomb guard)") < order.index(
+        "Scan built artifacts and extracted payloads (secrets + ClamAV)"
     )
+    expected = {
+        "Smoke-launch built AppImage (headless, fork-bomb guard)":
+            "build-logs/smoke-launch-appimage.log",
+        "Real .deb install/start/remove smoke (native architecture)":
+            "build-logs/deb-install-smoke.log",
+        "Smoke-launch built macOS app (headless, fork-bomb guard)":
+            "build-logs/smoke-launch-macos-app.log",
+    }
+    for name, log in expected.items():
+        run = next(step for step in steps if step.get("name") == name)["run"]
+        assert f'phase_log="{log}"' in run, name
+        assert "set -euo pipefail" in run, name  # pipefail haelt den Waechter-Exit
+        assert run.count('tee -a "$phase_log"') == run.count("scripts/smoke_launch.py"), name
 
 
 def test_release_handles_existing_release_explicitly() -> None:

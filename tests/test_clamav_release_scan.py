@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -12,6 +13,8 @@ _SCRIPT = _ROOT / "scripts" / "scan_release_artifacts.py"
 _spec = importlib.util.spec_from_file_location("scan_release_artifacts_clamav", _SCRIPT)
 assert _spec is not None and _spec.loader is not None
 scan_release_artifacts = importlib.util.module_from_spec(_spec)
+# Ohne Eintrag in sys.modules kann @dataclass seinen Namensraum nicht aufloesen
+sys.modules["scan_release_artifacts_clamav"] = scan_release_artifacts
 _spec.loader.exec_module(scan_release_artifacts)
 
 _ZERO_BYTE_SCAN = """----------- SCAN SUMMARY -----------
@@ -71,7 +74,7 @@ def test_clamav_command_scans_raw_and_extracted_payload_with_fail_closed_limits(
     monkeypatch.setattr(scan_release_artifacts.subprocess, "run", fake_run)
     assert scan_release_artifacts.scan_artifact_with_clamav(
         artifact, extracted, database,
-    ) is True
+    ).ok is True
 
     assert len(calls) == 2
     raw_cmd, raw_kwargs = calls[0]
@@ -106,7 +109,7 @@ def test_clamav_rejects_empty_extracted_payload(tmp_path: Path, monkeypatch) -> 
     monkeypatch.setattr(scan_release_artifacts.subprocess, "run", must_not_run)
     assert scan_release_artifacts.scan_artifact_with_clamav(
         artifact, extracted, database,
-    ) is False
+    ).ok is False
 
 
 def test_clamav_eicar_control_requires_real_detection(tmp_path: Path, monkeypatch) -> None:

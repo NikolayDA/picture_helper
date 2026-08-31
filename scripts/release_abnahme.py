@@ -116,8 +116,22 @@ def _api_json(url: str, token: str | None, fetcher: Fetcher) -> Any:
 
 
 def matches_platform(name: str, platform: str) -> bool:
-    """Gehört ein Asset-/Artefaktname zur angefragten Plattform?"""
+    """Gehört ein Asset-*Datei*name zur angefragten Plattform?"""
     return PLATFORM_PATTERNS[platform] in name
+
+
+def product_container_name(platform: str) -> str:
+    """Name des Produkt-Artefaktcontainers des Kandidatenbaus.
+
+    Für Actions-Artefakte reicht ``matches_platform`` nicht: Der Kandidatenbau
+    lädt seit #920 je Leg zusätzlich ``security-scan-<platform_tag>`` hoch, und
+    dieser Name enthält denselben Plattform-Tag. Ein reiner Teilstring-Vergleich
+    würde Bericht, Job-Summary und Phasen-Logs als Produktartefakte in die
+    Abnahme-Evidenz ziehen. Der Container heißt exakt so wie im Workflow
+    (``bgremover-<platform_tag>``, dasselbe ``pattern: bgremover-*``, das
+    ``candidate-source`` lädt).
+    """
+    return f"bgremover-{PLATFORM_PATTERNS[platform]}"
 
 
 def version_from_artifact_name(name: str) -> str | None:
@@ -224,9 +238,10 @@ def fetch_run_artifacts(
         token,
         fetcher,
     )
+    container = product_container_name(platform)
     records: list[ArtifactRecord] = []
     for artifact in listing.get("artifacts", []):
-        if not matches_platform(str(artifact["name"]), platform):
+        if str(artifact["name"]) != container:
             continue
         payload = fetcher(
             _request(str(artifact["archive_download_url"]), token, "application/vnd.github+json")
@@ -239,7 +254,7 @@ def fetch_run_artifacts(
     if not records:
         raise SystemExit(
             f"Lauf {run_id} enthält keine Artefakte für Plattform {platform!r} "
-            f"(erwartetes Namensmuster: {PLATFORM_PATTERNS[platform]!r})."
+            f"(erwarteter Artefaktcontainer: {container!r})."
         )
     return records
 

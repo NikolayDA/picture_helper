@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "kind": "release-build-anomalies",
+  "register_version": 1,
+  "policy": "Ein Eintrag annotiert ausschliesslich bekannte Log-Muster der Kandidatenbau-Phasen fuer die menschliche Durchsicht. Er unterdrueckt niemals Secret-, Entwicklerpfad- oder Malware-Befunde des Scanners; diese bleiben harte Befunde und bestimmen allein das Verdikt. Der Fingerprint ist ein literaler Teilstring (kein regulaerer Ausdruck) und muss lang genug sein, um genau eine Meldung zu treffen. Ein abgelaufener Eintrag annotiert nicht mehr und erzeugt eine sichtbare Warnung, damit die Anomalie erneut in der Triage landet statt still weiterzugelten.",
+  "entries": [
+    {
+      "id": "rembg-warmup-connection-closed",
+      "fingerprint": "bgremover.ai_process.InferenceError: Inferenzprozess hat die Verbindung geschlossen:",
+      "platforms": ["macos-arm64"],
+      "phases": ["smoke-launch-macos-app"],
+      "reason": "Der Smoke-Launcher laesst die App nach dem ersten Event-Loop-Durchlauf mit Exit 0 enden (BGREMOVER_SMOKE_TEST). Der rembg-Warmup laeuft zu diesem Zeitpunkt noch und meldet den Abriss der Verbindung zu seinem Inferenz-Kindprozess als InferenceError samt Traceback. Der Wachter bewertet denselben Lauf unmittelbar danach mit 'smoke_launch OK': Start, Fork-Bomb-Grenze und Terminierung sind sauber, die Meldung ist kosmetisch und kein Startfehler. Beobachtet identisch im v2.8.0- und im v2.9.0-Kandidatenlauf (Run 33065289784, Job 'macos arm64', Schritt 'Smoke-launch built macOS app').",
+      "owner": "Release-Owner",
+      "reference": "https://github.com/NikolayDA/picture_helper/issues/881",
+      "expires": "2027-03-01",
+      "notes": "Bewusst nur macos-arm64: der Linux-Smoke ist nicht mit derselben Meldung belegt. Taucht sie dort auf, erscheint sie als unbekannte Auffaelligkeit und wird bewusst nachgetragen statt vorsorglich mitzuerlauben. Offener Verbesserungspfad fuer die Wiedervorlage: den Warmup-Abbruch beim Herunterfahren als INFO statt als Exception-Traceback loggen (Log-Level-Folgethema zu #881); danach kann der Eintrag ersatzlos entfallen."
+    }
+  ]
+}
