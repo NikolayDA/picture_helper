@@ -15,13 +15,13 @@
 
 **Daily audit 2026-08-31 (state `551d055`):** The twelve PRs merged today
 (#927–#932, #935–#938, #940, and #941) and the issues they closed (#918–#923,
-#933, and #934) were reviewed. The review covered the complete merge diffs,
-review follow-ups included in those merges, and their regression tests. The
-release ref and retry paths, security report, runner heartbeat/dry run,
-preparation scaffold, and real Qt/GL preflight including provenance output are
-implemented consistently. No concrete, reproducible residual finding remained,
-so no follow-up issue was required. The completed topics do not change the open
-inventory or the three next recommendations below.
+#933, and #934) were reviewed: the complete merge diffs, review follow-ups,
+and, where present, their regression tests. The release ref and retry paths,
+security report, runner heartbeat/dry run, preparation scaffold, and Qt/GL
+preflight are implemented consistently. The adversarial re-check in the
+review of PR #942, however, surfaced five concrete residual findings in the
+process scripts – verified and bundled as follow-up issue #943 (triage row
+below).
 
 **Routine check 2026-08-30 (delta after the full audit):** The 39 open issues
 fully and adversarially checked against `main` (product state `411d47c`) on
@@ -101,6 +101,7 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] Extend release governance for the store channel | 🟠 High (prevents a channel outside the fail-closed contract) | 🟠 High (runbook, checklist, contract, path policy, six changelogs) | Opus, high | Blocked – accompanies #898/#899; raise all governance contracts/tests to six artifacts before submission |
 | [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] Initial submission and review round | 🟠 High (manual publication gate) | 🔴 High (many dependencies, residual risks, Apple communication) | – (no agent; release owner) | Blocked (external) – after #896/#897/#899/#901–#905 run pre-submission, submit, record result/follow-ups |
 | [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] Operations plan for renewal, updates, and channels | 🟡 Medium-high (long-term availability and channel separation) | 🟡 Medium (runbook, ownership, reminders, channel matrix) | Opus, high + owner | Blocked – draft early, finalize after #906; bind renewal/update/web routines into operations |
+| [#943](https://github.com/NikolayDA/picture_helper/issues/943) | Review follow-up 2026-08-31: five robustness findings in process scripts | 🟠 High (heartbeat reports PASS without proven readiness) | 🟡 Medium (four scripts, isolated fixes with regression tests) | Sonnet, high | Ready – heartbeat conclusions first, then dispatch marker, prepare_release (downgrade/write order), and scanner OSError |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
 
 ### Recommended Next

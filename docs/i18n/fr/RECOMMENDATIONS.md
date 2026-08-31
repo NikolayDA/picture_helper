@@ -14,14 +14,13 @@
 ## État actuel (2026-08-31, v2.9.0 publiée, inventaire ouvert entièrement audité)
 
 **Audit quotidien du 2026-08-31 (état `551d055`) :** Les douze PR fusionnées
-aujourd'hui (#927–#932, #935–#938, #940 et #941) et les issues qu'elles ont
-fermées (#918–#923, #933 et #934) ont été contrôlées. L'audit a couvert les
-diffs de fusion complets, les corrections de revue incluses et leurs tests de
-régression. La référence de publication et les reprises, le rapport de
-sécurité, le heartbeat/dry run des runners, le squelette de préparation et le
-vrai préflight Qt/GL avec provenance sont mis en œuvre de façon cohérente.
-Aucun constat résiduel concret et reproductible ne subsiste, donc aucune issue
-de suivi. L'inventaire ouvert et les trois recommandations restent inchangées.
+aujourd'hui (#927–#932, #935–#938, #940 et #941) et les issues fermées
+(#918–#923, #933 et #934) ont été contrôlées : diffs de fusion complets,
+corrections de revue et, quand ils existent, leurs tests de régression. La
+référence de publication, le rapport de sécurité, le heartbeat/dry run, le
+squelette de préparation et le préflight Qt/GL sont cohérents. La revue du
+PR #942 a toutefois révélé cinq constats résiduels concrets dans les scripts
+de processus – vérifiés et regroupés dans l'issue de suivi #943 (ligne infra).
 
 **Contrôle périodique 2026-08-30 (delta après l'audit complet) :** Les 39
 issues ouvertes entièrement vérifiées et contre-vérifiées contre `main` (état
@@ -101,6 +100,7 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] Étendre la gouvernance release | 🟠 Haute (évite un canal hors contrat fail-closed) | 🟠 Haute (runbook, checklist, contrat, policy, six changelogs) | Opus, élevé | Bloquée – accompagne #898/#899 ; porter contrats/tests à six artefacts |
 | [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] Première soumission et revue | 🟠 Haute (gate manuel de publication) | 🔴 Haute (dépendances, risques, communication Apple) | – (aucun agent ; release owner) | Bloquée – après #896/#897/#899/#901–#905 contrôler, soumettre et consigner résultat/issues |
 | [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] Exploitation : renouvellement, mises à jour, canaux | 🟡 Moyenne-haute (disponibilité et séparation à long terme) | 🟡 Moyenne (runbook, responsabilités, rappels, matrice) | Opus, élevé + owner | Bloquée – préparer tôt, finaliser après #906 ; fixer routines renewal/update/web |
+| [#943](https://github.com/NikolayDA/picture_helper/issues/943) | Relecture de revue 2026-08-31 : cinq constats de robustesse dans les scripts de processus | 🟠 Haute (le heartbeat annonce PASS sans préparation prouvée) | 🟡 Moyenne (quatre scripts, correctifs isolés avec tests de régression) | Sonnet, élevé | Prête – conclusions du heartbeat d'abord, puis marqueur de dispatch, prepare_release (rétrogradation/ordre d'écriture) et OSError du scanner |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
 
 ### Recommandé ensuite
