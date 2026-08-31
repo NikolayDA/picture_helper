@@ -18,6 +18,10 @@ dasselbe Ergebnis. Was es NICHT tut, ist ebenso wichtig:
   (``NOTES-01``) und stehen im Geruest als ``TODO(release)``.
 * Es legt nichts auf GitHub an. Das Release-Issue entsteht als Datei bzw. auf
   der Standardausgabe; ``--create-issue`` ist ein ausdruecklicher Opt-in.
+  Scheitert dieser Aufruf, bleibt der bereits geschriebene Rohstand stehen und
+  der Issue-Text liegt als Datei vor – auch ohne ``--issue-output``. Die
+  Fehlermeldung nennt dann den fertigen Wiederanlaufbefehl; er legt genau
+  dieses Issue an und schreibt keine Release-Datei erneut.
 
 Die Platzhalter sind kein Schoenheitsfehler, sondern der Vertrag: Ein Geruest
 mit offenen ``TODO(release)``-Luecken macht den Vorbereitungs-PR **nicht**
@@ -32,10 +36,14 @@ Beispiel:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
+import os
 import re
+import shlex
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone  # noqa: UP017 - Projekt unterstuetzt Python 3.10
 from pathlib import Path
@@ -694,12 +702,98 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def create_issue(repo: Path, title: str, body: str) -> str:
+# ── Release-Issue: Ablage, Aufruf, Wiederanlauf ────────────────────────
+
+
+def write_text_atomic(path: Path, text: str) -> None:
+    """Schreibt *text* atomar nach *path* (``mkstemp`` + ``os.replace``).
+
+    Muster aus ``project_io.save_project``. Entscheidend ist hier nicht der
+    Absturzschutz, sondern der Wiederanlauf: Die Vorlage fuer ``gh`` steht
+    entweder vollstaendig da oder gar nicht – ein halb geschriebener
+    Issue-Text waere schlimmer als keiner.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.replace(tmp_name, path)
+    finally:
+        # Nach erfolgreichem ``os.replace`` existiert der Name nicht mehr.
+        Path(tmp_name).unlink(missing_ok=True)
+
+
+def fallback_root(repo: Path) -> Path:
+    """Wurzelverzeichnis der Ablage – garantiert **ausserhalb** von *repo*.
+
+    ``tempfile`` folgt ``TMPDIR``. Zeigt das in den Arbeitsbaum, laege die
+    Ablage im Repository: ein unbekannter Pfad, den ein ``git add -A``
+    mitnaehme und der dann das fail-closed Freeze-Gate blockiert. Deshalb die
+    erste beschreibbare Wahl, die wirklich ausserhalb liegt – ``repo.parent``
+    schliesst die Kette ab, weil es das per Definition immer ist.
+    """
+    candidates = (Path(tempfile.gettempdir()), Path("/tmp"), repo.parent)
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        inside = resolved == repo or repo in resolved.parents
+        if not inside and resolved.is_dir() and os.access(resolved, os.W_OK):
+            return resolved
+    return repo.parent  # unerreichbar ausser bei unbeschreibbarem Elternpfad
+
+
+def fallback_issue_path(version: str, repo: Path) -> Path:
+    """Ablage des Issue-Texts, wenn ``--issue-output`` fehlt.
+
+    Bewusst ausserhalb des Arbeitsbaums (siehe ``fallback_root``). Das eigene
+    Verzeichnis kommt von ``mkdtemp`` (0700, kollisionsfrei); ein geratener
+    Name in einem weltschreibbaren ``/tmp`` waere die schlechtere Wahl.
+    """
+    directory = Path(tempfile.mkdtemp(prefix="bgremover-release-", dir=fallback_root(repo)))
+    return directory / f"release-issue-{version}.md"
+
+
+def discard_fallback(path: Path) -> None:
+    """Raeumt die Fallback-Ablage weg, sobald das Issue wirklich existiert.
+
+    Sie hat genau einen Zweck – den Wiederanlauf – und ist danach nur noch
+    eine zweite, alternde Fassung desselben Textes.
+    """
+    path.unlink(missing_ok=True)
+    # Fremde Eintraege im Verzeichnis: dann bleibt es stehen.
+    with contextlib.suppress(OSError):
+        path.parent.rmdir()
+
+
+def issue_create_argv(title: str, body_file: Path) -> list[str]:
+    """Der ``gh``-Aufruf – **eine** Quelle fuer Ausfuehrung und Wiederanlauf.
+
+    Der Body geht als Datei, nicht als Argument: Er ist mehrere Kilobyte gross.
+    Und weil der ausgegebene Wiederanlauf genau diese Argumentliste rendert,
+    kann er nicht von dem abweichen, was das Skript selbst versucht hat.
+    """
+    return ["gh", "issue", "create", "--title", title, "--body-file", str(body_file)]
+
+
+def resume_command(repo: Path, argv: list[str]) -> str:
+    """Der Wiederanlauf als **eine** ausfuehrbare Shell-Zeile.
+
+    Das ``cd`` gehoert dazu: ``gh`` waehlt das Zielrepository aus dem
+    Arbeitsverzeichnis, und der mit ``--repo`` gewaehlte Zielkontext darf im
+    Wiederanlauf nicht verloren gehen. ``shlex`` quotet Pfade und Titel, damit
+    die Zeile ohne Nacharbeit kopierbar ist.
+    """
+    return f"cd {shlex.quote(str(repo))} && {shlex.join(argv)}"
+
+
+def create_issue(repo: Path, argv: list[str]) -> str:
     """Legt das Release-Issue ueber ``gh`` an – nur auf ausdruecklichen Wunsch."""
     result = subprocess.run(
-        ["gh", "issue", "create", "--title", title, "--body-file", "-"],
+        argv,
         cwd=repo,
-        input=body,
+        # Der Body kommt aus der Datei; eine geerbte stdin haette ``gh`` nur
+        # blockieren koennen.
+        stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
         check=False,
@@ -730,12 +824,20 @@ def main(argv: list[str] | None = None) -> int:
         "--issue-output",
         type=Path,
         default=None,
-        help="Zieldatei des Release-Issues. Ohne Angabe auf die Standardausgabe.",
+        help=(
+            "Zieldatei des Release-Issues. Ohne Angabe auf die Standardausgabe – "
+            "mit --create-issue zusätzlich in eine temporäre Datei, deren Pfad "
+            "ausgegeben wird und die den Wiederanlauf trägt."
+        ),
     )
     parser.add_argument(
         "--create-issue",
         action="store_true",
-        help="Legt das Issue über 'gh issue create' an (ausdrücklicher Opt-in).",
+        help=(
+            "Legt das Issue über 'gh issue create' an (ausdrücklicher Opt-in). "
+            "Scheitert der Aufruf, nennt die Fehlermeldung den fertigen "
+            "Wiederanlaufbefehl; die Release-Dateien bleiben dabei unangetastet."
+        ),
     )
     parser.add_argument(
         "--dry-run",
@@ -762,6 +864,11 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"Datum muss ein gültiges Kalenderdatum JJJJ-MM-TT sein: {release_date!r}")
 
     repo = args.repo.resolve()
+    # Beide Pfade absolut: Geschrieben wird relativ zum Prozess-CWD, ``gh``
+    # laeuft aber mit ``cwd=repo``. Ein relativer ``--issue-output`` zeigte
+    # sonst auf zwei verschiedene Dateien – und die Wiederanlaufzeile auf gar
+    # keine (#933-Review).
+    issue_output: Path | None = None if args.issue_output is None else args.issue_output.resolve()
     try:
         previous = vrf._PYPROJECT_VERSION_RE.search(_read(repo, PYPROJECT_PATH))
         if previous is None:
@@ -806,6 +913,13 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  Pfadpolicy: Version {prepared.policy_version} (current-freeze umgehängt)")
 
     issue_title = f"[Release {args.version}] Abnahme- und Veröffentlichungsprotokoll"
+    # Vor jedem GitHub-Aufruf liegt der Issue-Text als Datei vor. Ohne
+    # ``--issue-output`` gab es bisher nur die Standardausgabe: Ein transienter
+    # gh-Fehler hinterliess damit einen fertigen Rohstand, aber keinen
+    # ausfuehrbaren Weg zum Issue – ein zweiter Skriptlauf bricht ab, weil
+    # ``pyproject.toml`` bereits auf der Zielversion steht (#933).
+    fallback: Path | None = None
+    issue_path: Path | None = issue_output
     if args.dry_run:
         # Ein Probelauf soll ALLES zeigen, was entstuende – auch das Issue.
         # Geschrieben oder angelegt wird dabei nichts.
@@ -813,30 +927,43 @@ def main(argv: list[str] | None = None) -> int:
         print(issue_body)
         if args.create_issue:
             print("\nHINWEIS: --create-issue wird im Probelauf nicht ausgeführt.", file=sys.stderr)
-    elif args.issue_output is not None:
-        args.issue_output.parent.mkdir(parents=True, exist_ok=True)
-        args.issue_output.write_text(issue_body, encoding="utf-8")
-        print(f"  geschrieben: {args.issue_output}")
+    elif issue_output is not None:
+        write_text_atomic(issue_output, issue_body)
+        print(f"  geschrieben: {issue_output}")
     else:
+        # Die Standardausgabe zuerst: Sie ist der letzte Rueckhalt, falls die
+        # Ablage selbst scheitert.
         print(f"\n--- Release-Issue: {issue_title} ---")
         print(issue_body)
+        if args.create_issue:
+            fallback = fallback_issue_path(args.version, repo)
+            issue_path = fallback
+            write_text_atomic(fallback, issue_body)
+            print(f"\n  gesichert für den Wiederanlauf: {fallback}")
 
     if args.create_issue and not args.dry_run:
+        # Oben gesetzt: entweder ``--issue-output`` oder die Fallback-Ablage.
+        assert issue_path is not None
+        gh_argv = issue_create_argv(issue_title, issue_path)
         try:
-            print(f"Issue angelegt: {create_issue(repo, issue_title, issue_body)}")
+            url = create_issue(repo, gh_argv)
         except PrepareError as exc:
             # Die Dateien stehen bereits; ein zweiter Skriptlauf braeche ab
             # ("pyproject steht bereits auf ..."). Deshalb hier der konkrete
-            # Wiederanlauf statt eines blossen Fehlers.
+            # Wiederanlauf statt eines blossen Fehlers: dieselbe Argumentliste,
+            # die soeben scheiterte, gegen dieselbe bereits geschriebene Datei.
             print(f"FEHLER: {exc}", file=sys.stderr)
-            target = args.issue_output or "<Datei mit --issue-output erzeugen>"
             print(
                 "Der Rohstand ist vollständig geschrieben – nur das Anlegen scheiterte. "
-                f"Wiederanlauf ohne erneuten Skriptlauf:\n"
-                f"  gh issue create --title {issue_title!r} --body-file {target}",
+                "Wiederanlauf ohne erneuten Skriptlauf (legt genau dieses Issue an und "
+                f"schreibt keine Release-Datei neu):\n"
+                f"  {resume_command(repo, gh_argv)}",
                 file=sys.stderr,
             )
             return 2
+        print(f"Issue angelegt: {url}")
+        if fallback is not None:
+            discard_fallback(fallback)
 
     # Der Policy-Hinweis steht bewusst am Ende: Er ist die einzige Stelle, an
     # der dieses Skript etwas ueber den *Inhalt* des Fensters sagen kann.
