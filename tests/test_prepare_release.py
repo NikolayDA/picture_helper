@@ -225,8 +225,79 @@ def test_editorial_work_is_never_overwritten(fixture_repo: Path) -> None:
     changelog = fixture_repo / "CHANGELOG.md"
     changelog.write_text(changelog.read_text("utf-8").replace(pr.PLACEHOLDER, "fertig"), "utf-8")
 
-    with pytest.raises(pr.PrepareError, match="redaktionell bearbeitet"):
+    with pytest.raises(pr.PrepareError, match="weicht vom erzeugten Gerüst ab"):
         pr.plan(fixture_repo, _inputs(), predecessor_version=_current_freeze_version(fixture_repo))
+
+
+def test_partially_filled_sections_are_never_overwritten(fixture_repo: Path) -> None:
+    """#932-Review: „enthält noch einen Platzhalter" ist kein Beleg für „unberührt".
+
+    Realistischer Ablauf: Skript laufen lassen, die Einträge in sechs Sprachen
+    ausformulieren, die Notizen-Marker offen lassen — und das Skript wegen
+    eines verschobenen Datums erneut aufrufen. Unter der alten Bedingung wären
+    die fertigen Einträge kommentarlos durch das Gerüst ersetzt worden.
+    """
+    predecessor = _current_freeze_version(fixture_repo)
+    prepared = pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor)
+    pr.apply(fixture_repo, prepared.files)
+
+    changelog = fixture_repo / "CHANGELOG.md"
+    text = changelog.read_text("utf-8")
+    # Nur EINE Lücke füllen; die Notizen-Marker bleiben offen.
+    filled = text.replace(f"- {pr.PLACEHOLDER}", "- **Neues Werkzeug.** Ausformuliert.", 1)
+    assert pr.PLACEHOLDER in filled, "Vorbedingung: es bleiben Platzhalter übrig"
+    changelog.write_text(filled, "utf-8")
+
+    with pytest.raises(pr.PrepareError, match="weicht vom erzeugten Gerüst ab"):
+        pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor)
+
+
+def test_a_partially_written_freeze_scope_is_never_overwritten(fixture_repo: Path) -> None:
+    predecessor = _current_freeze_version(fixture_repo)
+    prepared = pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor)
+    pr.apply(fixture_repo, prepared.files)
+
+    freeze = fixture_repo / pr.freeze_doc_path("9.9.9")
+    text = freeze.read_text("utf-8")
+    freeze.write_text(text.replace(f"{pr.PLACEHOLDER}: Fachlichen Scope", "Der Scope ist", 1), "utf-8")
+    assert pr.PLACEHOLDER in freeze.read_text("utf-8")
+
+    with pytest.raises(pr.PrepareError, match="weicht vom erzeugten Gerüst ab"):
+        pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor)
+
+
+def test_a_changed_date_still_refreshes_an_untouched_skeleton(fixture_repo: Path) -> None:
+    """Die eine zulässige Abweichung: ein Lauf mit anderem ``--date``."""
+    predecessor = _current_freeze_version(fixture_repo)
+    pr.apply(fixture_repo, pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor).files)
+    later = pr.ReleaseInputs(
+        version="9.9.9", release_date="2026-10-01", base_tag="v9.9.8", base_sha="a" * 40
+    )
+    refreshed = pr.plan(fixture_repo, later, predecessor_version=predecessor)
+    changelog = next(item for item in refreshed.files if item.path == "CHANGELOG.md")
+    assert "## [9.9.9] – 2026-10-01" in changelog.content
+    assert "## [9.9.9] – 2026-09-15" not in changelog.content
+
+
+def test_the_freeze_boilerplate_never_carries_the_placeholder_itself() -> None:
+    """#932-Review (P1): Der Wächter durchsucht die ganze Datei.
+
+    Stünde der Token in einem erklärenden Satz, bliebe das Dokument auch nach
+    dem Füllen aller echten Lücken für immer rot.
+    """
+    document = pr.freeze_document(_inputs(), predecessor_version="2.9.0", policy_version=42)
+    gaps = [line for line in document.splitlines() if pr.PLACEHOLDER in line]
+    assert gaps, "das Gerüst muss überhaupt Lücken markieren"
+    for line in gaps:
+        assert line.lstrip().startswith(pr.PLACEHOLDER), (
+            f"Platzhalter nur als Markierung einer Lücke, nicht in Prosa: {line!r}"
+        )
+    # Gegenprobe der Behebbarkeit: Nach dem Füllen der markierten Lücken ist
+    # der Token weg – ohne dass jemand einen Fließtext anfassen muss.
+    filled = "\n".join(
+        "gefüllt" if pr.PLACEHOLDER in line else line for line in document.splitlines()
+    )
+    assert pr.PLACEHOLDER not in filled
 
 
 def test_an_edited_freeze_document_is_never_overwritten(fixture_repo: Path) -> None:
@@ -235,7 +306,7 @@ def test_an_edited_freeze_document_is_never_overwritten(fixture_repo: Path) -> N
     freeze = fixture_repo / pr.freeze_doc_path("9.9.9")
     freeze.write_text(freeze.read_text("utf-8").replace(pr.PLACEHOLDER, "entschieden"), "utf-8")
 
-    with pytest.raises(pr.PrepareError, match="redaktionell bearbeitet"):
+    with pytest.raises(pr.PrepareError, match="weicht vom erzeugten Gerüst ab"):
         pr.plan(fixture_repo, _inputs(), predecessor_version=_current_freeze_version(fixture_repo))
 
 
@@ -605,3 +676,94 @@ def test_the_existing_freeze_documents_use_that_very_scheme() -> None:
     assert len(scopes) >= 4, scopes
     for name, scope in scopes.items():
         assert house_style.fullmatch(scope), (name, scope)
+
+
+def test_the_policy_hint_reads_the_selected_repositorys_policy(fixture_repo: Path) -> None:
+    """``--repo`` muss auch für die Pfadpolicy gelten (#932-Review).
+
+    Sonst klassifizierte der Hinweis fremde Historie gegen die Policy des
+    Checkouts, in dem dieses Skript liegt – er verschwiege unbekannte Pfade
+    oder erfände welche, und weil er nichts blockiert, fiele das nirgends auf.
+    """
+    # Im Fixture-Repo eine Policy, die den sonst unbekannten Pfad erlaubt.
+    policy_file = fixture_repo / pr.POLICY_PATH
+    policy = json.loads(policy_file.read_text("utf-8"))
+    policy["release_neutral"].append(
+        {
+            "id": "test-only",
+            "kind": "exact",
+            "path": "nur-hier-bekannt.txt",
+            "sample_path": "nur-hier-bekannt.txt",
+            "reason": "Fixture-Eintrag für den --repo-Test.",
+            "evidence": ["nur im Fixture"],
+        }
+    )
+    policy_file.write_text(json.dumps(policy, indent=2, ensure_ascii=False) + "\n", "utf-8")
+    (fixture_repo / "nur-hier-bekannt.txt").write_text("x", "utf-8")
+    _git(fixture_repo, "add", "-A")
+    _git(fixture_repo, "commit", "-qm", "Pfad, den nur die Fixture-Policy kennt")
+
+    base = _git(fixture_repo, "rev-list", "--max-parents=0", "HEAD")
+    unknown = pr.unknown_paths_since(fixture_repo, base)
+    assert "nur-hier-bekannt.txt" not in unknown, (
+        "die Policy des gewählten Repositorys muss gelten, nicht die des Skript-Checkouts"
+    )
+
+
+def test_a_unicode_digit_version_is_rejected(fixture_repo: Path) -> None:
+    """``\\d`` akzeptiert auch ``２.１０.０`` – das liefe bis in Tags und Metadaten."""
+    with pytest.raises(SystemExit):
+        pr.main(["２.１０.０", "--repo", str(fixture_repo)])
+
+
+def test_an_impossible_calendar_date_is_rejected(fixture_repo: Path) -> None:
+    """Formprüfung genügt nicht: ``2026-02-31`` stünde danach in acht Dateien."""
+    with pytest.raises(SystemExit):
+        pr.main(["9.9.9", "--date", "2026-02-31", "--repo", str(fixture_repo)])
+
+
+def test_a_failed_issue_creation_names_the_retry_path(
+    fixture_repo: Path, tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """Nach einem gescheiterten ``gh`` bricht ein zweiter Skriptlauf ab.
+
+    Der Rohstand steht dann bereits, und die Zielversion entspricht der
+    pyproject-Version – ohne konkreten Wiederanlauf säße der Release-Owner in
+    einer Sackgasse.
+    """
+    _with_gh_stub(tmp_path, monkeypatch, exit_code=1)
+    issue = tmp_path / "issue.md"
+    assert (
+        pr.main(
+            [
+                "9.9.9",
+                "--date",
+                "2026-09-15",
+                "--repo",
+                str(fixture_repo),
+                "--issue-output",
+                str(issue),
+                "--create-issue",
+            ]
+        )
+        == 2
+    )
+    err = capsys.readouterr().err
+    assert "gh issue create" in err and str(issue) in err
+    assert issue.is_file(), "die Issue-Datei muss vor dem gh-Aufruf geschrieben sein"
+
+
+def test_an_appstream_entry_that_is_not_first_is_moved_to_the_front() -> None:
+    """Das Gate liest den **ersten** ``<release>`` – in place zu aktualisieren genügt nicht."""
+    import xml.etree.ElementTree as ET
+
+    original = (ROOT / pr.APPSTREAM_PATH).read_text("utf-8")
+    entry = '    <release version="9.9.9" date="2026-09-15"/>\n'
+    # Eintrag existiert, steht aber an dritter Stelle.
+    releases = list(re.finditer(r'(?m)^[ \t]*<release [^\n]*\n', original))
+    mangled = original[: releases[2].start()] + entry + original[releases[2].start() :]
+
+    updated = pr.insert_appstream_release(mangled, "9.9.9", "2026-09-15")
+    parsed = ET.fromstring(updated).findall("releases/release")
+    assert parsed[0].get("version") == "9.9.9"
+    assert [r.get("version") for r in parsed].count("9.9.9") == 1

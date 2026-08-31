@@ -62,8 +62,10 @@ LANGUAGES: Final = vrf.LANGUAGES
 APPSTREAM_PATH: Final = "packaging/linux/de.bgremover.app.metainfo.xml"
 PYPROJECT_PATH: Final = "pyproject.toml"
 
-_SEMVER_RE: Final = re.compile(r"^\d+\.\d+\.\d+$")
-_ISO_DATE_RE: Final = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+#: Bewusst ASCII-Ziffern: ``\d`` akzeptiert auch Unicode-Ziffern, und ``２.１０.０``
+#: liefe bis in Dateinamen, Tags und Metadaten durch – der Freigabevertrag
+#: (``release_contract``) nutzt aus demselben Grund ``[0-9]``.
+_SEMVER_RE: Final = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
 #: Abschnittsueberschriften je Sprache, in der Reihenfolge des Hausstils.
 #: ``tests/test_prepare_release.py`` haelt sie gegen die tatsaechlich in den
@@ -176,14 +178,25 @@ def insert_changelog_section(text: str, language: str, version: str, release_dat
     """
     section = changelog_section(language, version, release_date)
     existing = re.search(
-        rf"(?ms)^## \[{re.escape(version)}\][^\n]*\n.*?(?=^## \[|\Z)",
+        rf"(?ms)^## \[{re.escape(version)}\](?P<head>[^\n]*)\n.*?(?=^## \[|\Z)",
         text,
     )
     if existing is not None:
-        if PLACEHOLDER not in existing.group(0):
+        # Ueberschrieben wird nur, was byte-gleich ein frueher erzeugtes Geruest
+        # ist – das Datum als einzige zulaessige Abweichung, damit ein Lauf mit
+        # anderem ``--date`` funktioniert. "Enthaelt noch einen Platzhalter"
+        # genuegt NICHT: Wer die Eintraege schon ausformuliert und nur die
+        # Notizen offen gelassen hat, verlaere sie sonst kommentarlos.
+        existing_date = re.search(r"(\d{4}-\d{2}-\d{2})", existing.group("head"))
+        expected = (
+            changelog_section(language, version, existing_date.group(1))
+            if existing_date is not None
+            else None
+        )
+        if expected is None or existing.group(0).strip() != expected.strip():
             raise PrepareError(
-                f"{changelog_path(language)}: Abschnitt [{version}] ist bereits redaktionell "
-                "bearbeitet – er wird nicht überschrieben."
+                f"{changelog_path(language)}: Abschnitt [{version}] weicht vom erzeugten "
+                "Gerüst ab – er wird nicht überschrieben."
             )
         return text[: existing.start()] + section + "\n\n" + text[existing.end() :]
 
@@ -236,11 +249,15 @@ def insert_appstream_release(xml_text: str, version: str, release_date: str) -> 
     Formatierung der gesamten Datei umschreiben und den Diff unlesbar machen.
     """
     entry = f'    <release version="{version}" date="{release_date}"/>'
+    # Einen vorhandenen Eintrag entfernen statt in place zu aktualisieren: Das
+    # Gate liest den **ersten** <release> und vergleicht ihn mit der
+    # Kandidatenversion. Ein an alter Stelle aktualisierter Eintrag liesse die
+    # Datei formal richtig aussehen und das Gate trotzdem scheitern.
     existing = re.search(
-        rf'(?m)^\s*<release version="{re.escape(version)}" date="[^"]*"/>\s*$', xml_text
+        rf'(?m)^[ \t]*<release version="{re.escape(version)}" date="[^"]*"/>[ \t]*\n', xml_text
     )
     if existing is not None:
-        return xml_text[: existing.start()] + entry + xml_text[existing.end() :]
+        xml_text = xml_text[: existing.start()] + xml_text[existing.end() :]
     opening = re.search(r"(?m)^(\s*)<releases>\s*$", xml_text)
     if opening is None:
         raise PrepareError(f"{APPSTREAM_PATH}: <releases>-Block nicht gefunden")
@@ -360,9 +377,11 @@ bekannt sind. Kandidaten-SHA, Commitliste, Pfadklassifikationen und Zähler
 werden nicht nachgetragen, sondern beim Gate aus Git abgeleitet und als
 maschinenlesbare Provenienz außerhalb der Git-Historie gespeichert (#742).
 
-Erzeugt mit `scripts/prepare_release.py` (#923). Die mit `{PLACEHOLDER}`
-markierten Stellen sind redaktionelle Handarbeit; das Freeze-Gate weist sie
-als blockierenden Befund aus, bis sie gefüllt sind.
+Erzeugt mit `scripts/prepare_release.py` (#923). Die unten markierten Stellen
+sind redaktionelle Handarbeit; das Freeze-Gate weist sie als blockierenden
+Befund aus, bis sie gefüllt sind. Der Platzhalter darf deshalb **nirgends
+sonst** im Dokument stehen – auch nicht erklärend: Der Wächter durchsucht die
+ganze Datei, ein erklärender Satz mit dem Token bliebe für immer rot.
 
 ## Stabile, maschinenlesbare Angaben
 
@@ -579,7 +598,10 @@ def unknown_paths_since(repo: Path, base_sha: str, head: str = "HEAD") -> tuple[
     Sie blockieren das Gate fail-closed. Der Hinweis gehoert in die
     Vorbereitung, nicht in den Kandidatenbau: Dort kostet er einen ganzen Lauf.
     """
-    policy = rpp.load_policy()
+    # Die Policy des *gewaehlten* Repositorys, nicht die des Checkouts, in dem
+    # dieses Skript liegt: Sonst klassifizierte der Hinweis fremde Historie
+    # gegen die eigene Policy und verschwiege oder erfaende unbekannte Pfade.
+    policy = rpp.load_policy(repo / POLICY_PATH)
     unknown: set[str] = set()
     for sha in vrf.commits_between(repo, base_sha, vrf.rev_parse(repo, head)):
         for path in vrf.changed_paths(repo, sha):
@@ -635,21 +657,18 @@ def plan(repo: Path, inputs: ReleaseInputs, *, predecessor_version: str) -> Plan
     planned.append(PlannedFile(POLICY_PATH, policy_text))
 
     freeze_relative = freeze_doc_path(inputs.version)
-    existing_freeze = repo / freeze_relative
-    if existing_freeze.is_file() and PLACEHOLDER not in existing_freeze.read_text(encoding="utf-8"):
-        raise PrepareError(
-            f"{freeze_relative}: bereits redaktionell bearbeitet – wird nicht überschrieben."
-        )
-    planned.append(
-        PlannedFile(
-            freeze_relative,
-            freeze_document(
-                inputs,
-                predecessor_version=predecessor_version,
-                policy_version=policy_version,
-            ),
-        )
+    freeze_text = freeze_document(
+        inputs, predecessor_version=predecessor_version, policy_version=policy_version
     )
+    existing_freeze = repo / freeze_relative
+    if existing_freeze.is_file() and existing_freeze.read_text(encoding="utf-8") != freeze_text:
+        # Gleiche Regel wie beim CHANGELOG: Nur ein unveraendertes Geruest wird
+        # ersetzt. Ein zu 90 % ausformulierter Scope traegt noch Platzhalter und
+        # waere unter der alten Bedingung still verloren gegangen.
+        raise PrepareError(
+            f"{freeze_relative}: weicht vom erzeugten Gerüst ab – wird nicht überschrieben."
+        )
+    planned.append(PlannedFile(freeze_relative, freeze_text))
     return PlannedRelease(files=planned, policy_version=policy_version)
 
 
@@ -721,8 +740,15 @@ def main(argv: list[str] | None = None) -> int:
     if not _SEMVER_RE.fullmatch(args.version):
         parser.error(f"Version muss X.Y.Z sein: {args.version!r}")
     release_date = args.date or date_type.today().isoformat()
-    if not _ISO_DATE_RE.fullmatch(release_date):
-        parser.error(f"Datum muss JJJJ-MM-TT sein: {release_date!r}")
+    try:
+        # Echte Kalenderpruefung statt einer Formpruefung: ``2026-02-31`` haette
+        # die Form erfuellt und stuende danach in sechs CHANGELOG-Dateien und in
+        # den AppStream-Metadaten – das Freeze-Gate prueft nur Form und
+        # Gleichheit ueber die Dateien, nicht die Existenz des Datums.
+        if date_type.fromisoformat(release_date).isoformat() != release_date:
+            raise ValueError(release_date)
+    except ValueError:
+        parser.error(f"Datum muss ein gültiges Kalenderdatum JJJJ-MM-TT sein: {release_date!r}")
 
     repo = args.repo.resolve()
     try:
@@ -788,7 +814,17 @@ def main(argv: list[str] | None = None) -> int:
         try:
             print(f"Issue angelegt: {create_issue(repo, issue_title, issue_body)}")
         except PrepareError as exc:
+            # Die Dateien stehen bereits; ein zweiter Skriptlauf braeche ab
+            # ("pyproject steht bereits auf ..."). Deshalb hier der konkrete
+            # Wiederanlauf statt eines blossen Fehlers.
             print(f"FEHLER: {exc}", file=sys.stderr)
+            target = args.issue_output or "<Datei mit --issue-output erzeugen>"
+            print(
+                "Der Rohstand ist vollständig geschrieben – nur das Anlegen scheiterte. "
+                f"Wiederanlauf ohne erneuten Skriptlauf:\n"
+                f"  gh issue create --title {issue_title!r} --body-file {target}",
+                file=sys.stderr,
+            )
             return 2
 
     # Der Policy-Hinweis steht bewusst am Ende: Er ist die einzige Stelle, an
