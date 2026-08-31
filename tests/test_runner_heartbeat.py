@@ -268,10 +268,58 @@ def test_a_cancelled_job_is_not_a_device_verdict() -> None:
 
 
 def test_both_halves_of_the_signal_appear_together() -> None:
+    """Beide Hälften stehen im Bericht – aber nur die belegte fristbezogen."""
     state = hb.queue_state(_jobs("queued", "fail"), EXPECTED)
     verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
     assert verdict == hb.VERDICT_FAIL
-    assert "wartet" in detail and "nicht einsatzbereit" in detail
+    assert "noch nicht angenommen" in detail and "nicht einsatzbereit" in detail
+
+
+def test_a_short_circuit_never_claims_an_expired_deadline() -> None:
+    """``watch`` kehrt beim ersten gescheiterten Job **sofort** zurück.
+
+    Dann kann gleichzeitig ein anderer Runner noch ``queued`` sein, ohne zu
+    spät zu sein: Scheitert macOS nach 90 s an der Härtung, hätte der Pi bei
+    t=200 s noch annehmen können. Der Bericht sagte trotzdem „wartet nach
+    15 min" — eine Zahl, für die der Offline-Zweig nie durchlaufen wurde
+    (#938-Review). Ausgerechnet dieser PR macht die Wahrhaftigkeit dieser
+    Fristen zum Ziel.
+    """
+    ticks = iter([0, 0, 90])
+    state = hb.watch(
+        lambda: hb.queue_state(_jobs("queued", "fail"), EXPECTED), EXPECTED,
+        acceptance_s=900, deadline_s=1500, poll_s=20,
+        clock=lambda: next(ticks), sleep=lambda _s: None,
+    )
+    assert state.acceptance_expired is False, "Frist war nicht abgelaufen"
+    _, detail = hb.evaluate(state, EXPECTED, acceptance_s=900, deadline_s=1500)
+    assert "15 min" not in detail, detail
+    assert "noch nicht angenommen" in detail
+
+    # Gegenprobe: Läuft die Frist wirklich ab, steht die Zahl wieder da.
+    # Der Beobachtungszeitpunkt liegt dicht an der Frist – sonst gälte die
+    # Beobachtung als veraltet und der Heartbeat schlüge (richtigerweise)
+    # gar keinen Alarm.
+    ticks = iter([0, 890, 900, 900])
+    expired = hb.watch(
+        lambda: hb.queue_state(_jobs("queued", "queued"), EXPECTED), EXPECTED,
+        acceptance_s=900, deadline_s=1500, poll_s=20,
+        clock=lambda: next(ticks), sleep=lambda _s: None,
+    )
+    assert expired.acceptance_expired is True
+    _, detail = hb.evaluate(expired, EXPECTED, acceptance_s=900, deadline_s=1500)
+    assert "wartet nach 15 min" in detail
+
+
+def test_the_report_records_whether_the_deadline_expired() -> None:
+    """Auch die Evidenz muss die Unterscheidung tragen, nicht nur der Text."""
+    state = hb.queue_state(_jobs("queued", "fail"), EXPECTED)
+    report = hb.build_report(
+        verdict=hb.VERDICT_FAIL, detail="egal", expected=EXPECTED, state=state,
+        acceptance_s=900, deadline_s=1500, run_url="",
+    )
+    assert report["acceptance_expired"] is False
+    assert report["acceptance_seconds"] == 900 and report["deadline_seconds"] == 1500
 
 
 def test_watch_reports_a_failed_readiness_job_without_waiting_out_the_deadline() -> None:

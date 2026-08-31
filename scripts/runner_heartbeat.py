@@ -196,6 +196,13 @@ class QueueState:
     failed: tuple[str, ...] = ()
     pending: tuple[str, ...] = ()
     observed: bool = True
+    #: Ob die Annahmefrist beim Ende der Beobachtung wirklich abgelaufen war.
+    #: ``watch`` kehrt beim ersten gescheiterten Job **sofort** zurueck – dann
+    #: kann gleichzeitig ein anderer noch ``queued`` sein, ohne dass er zu
+    #: spaet waere. Ohne dieses Flag behauptete der Bericht "wartet nach
+    #: 15 min", obwohl 90 s vergangen sind (#938-Review): Der Offline-Zweig
+    #: war nie durchlaufen, die Zahl also unbelegt.
+    acceptance_expired: bool = False
 
 
 def queue_state(jobs: list[dict[str, Any]], names: tuple[str, ...]) -> QueueState:
@@ -274,10 +281,11 @@ def watch(
     last_success: float | None = None
 
     def _verdict_ready() -> QueueState:
+        """Ergebnis eines Fristablaufs – mit Frische-Degradierung."""
         stale = last_success is None or clock() - last_success > 2 * poll_s
         if (last.queued or last.failed) and stale:
-            return replace(last, observed=False)
-        return last
+            return replace(last, observed=False, acceptance_expired=True)
+        return replace(last, acceptance_expired=True)
 
     while True:
         try:
@@ -312,10 +320,19 @@ def evaluate(
             "schlägt bewusst keinen Alarm."
         )
     reasons: list[str] = []
-    if state.queued:
+    if state.queued and state.acceptance_expired:
         reasons.append(
             f"{', '.join(state.queued)} wartet nach {acceptance_s / 60:.0f} min "
             "weiterhin auf einen Runner – offline oder nimmt keine Jobs an"
+        )
+    elif state.queued:
+        # Die Beobachtung endete vorzeitig, weil ein anderer Job bereits
+        # gescheitert war. Der wartende Runner ist damit nicht zu spaet – ihn
+        # als offline zu melden waere eine Behauptung ohne Beleg.
+        reasons.append(
+            f"{', '.join(state.queued)} hatte den Job noch nicht angenommen, als "
+            "die Beobachtung endete – die Annahmefrist war da noch nicht "
+            "abgelaufen, also kein Offline-Befund"
         )
     if state.failed:
         # Die zweite Haelfte des Signals: angenommen, aber nicht einsatzbereit.
@@ -372,6 +389,7 @@ def build_report(
         "failed_jobs": list(state.failed),
         "pending_jobs": list(state.pending),
         "observed": state.observed,
+        "acceptance_expired": state.acceptance_expired,
     }
 
 
