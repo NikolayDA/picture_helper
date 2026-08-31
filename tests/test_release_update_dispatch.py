@@ -152,6 +152,26 @@ def test_no_match_returns_none() -> None:
     assert rud.select_marked_run([_run_entry(marker="update-check:v1.0.0:5")], marker=MARKER) is None
 
 
+def test_a_longer_marker_never_counts_as_the_searched_one() -> None:
+    """Substring-Kollision aus #943 Befund 2: ``…:4242`` steckt in ``…:42420``.
+
+    Ein manuell dispatchter Lauf mit laengerer Run-ID (oder laengerem Tag im
+    Titel) galt als „schon vorhanden" – der echte Post-Release-Dispatch wurde
+    uebersprungen und die Update-Kriterien blieben ``PENDING``.
+    """
+    assert rud.select_marked_run([_run_entry(1, marker=MARKER + "0")], marker=MARKER) is None
+    # Auch ohne die Klammern des run-name gilt die Abgrenzung.
+    loose = {"databaseId": 2, "displayTitle": f"x {MARKER}0", "status": "queued",
+             "conclusion": "", "url": ""}
+    assert rud.select_marked_run([loose], marker=MARKER) is None
+    # Der exakt abgegrenzte Marker bleibt in beiden Formen ein Treffer.
+    found = rud.select_marked_run([_run_entry(3)], marker=MARKER)
+    assert found is not None and found.run_id == 3
+    loose_hit = dict(loose, databaseId=4, displayTitle=f"x {MARKER} y")
+    found = rud.select_marked_run([loose_hit], marker=MARKER)
+    assert found is not None and found.run_id == 4
+
+
 # ── Dispatch, Idempotenz, Abbruch ──────────────────────────────────────
 
 def test_dispatch_binds_every_input_and_forces_all_platforms(tmp_path: Path) -> None:
