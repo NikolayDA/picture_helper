@@ -41,6 +41,10 @@ def _jobs(*states: str, names: tuple[str, ...] = EXPECTED) -> list[dict]:
         "fail": ("completed", "failure"),
         "timeout": ("completed", "timed_out"),
         "cancelled": ("completed", "cancelled"),
+        "stale": ("completed", "stale"),
+        "startup": ("completed", "startup_failure"),
+        "skipped": ("completed", "skipped"),
+        "noconcl": ("completed", None),
     }
     return [
         {"name": name, "status": shapes[state][0], "conclusion": shapes[state][1]}
@@ -266,9 +270,13 @@ def test_a_timed_out_runner_job_counts_as_not_ready() -> None:
 
 
 def test_a_cancelled_job_is_not_a_device_verdict() -> None:
-    """Abbruch ist eine menschliche Handlung (oder cancel-in-progress)."""
+    """Abbruch ist eine menschliche Handlung (oder cancel-in-progress) –
+    aber eben auch kein Erfolg: kein FAIL, aber genauso wenig PASS (#943)."""
     state = hb.queue_state(_jobs("ok", "cancelled"), EXPECTED)
     assert state.failed == () and state.queued == ()
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
+    assert verdict == hb.VERDICT_UNOBSERVED
+    assert "cancelled" in detail
 
 
 def test_both_halves_of_the_signal_appear_together() -> None:
@@ -422,6 +430,64 @@ def test_a_job_still_running_at_the_deadline_yields_no_verdict() -> None:
     verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
     assert verdict == hb.VERDICT_UNOBSERVED
     assert "noch" in detail
+
+
+# ── Review-Nachlese #943 Befund 1: PASS nur bei explizitem success ──────
+
+@pytest.mark.parametrize(
+    ("shape", "conclusion"),
+    [
+        ("startup", "startup_failure"),
+        ("stale", "stale"),
+        ("skipped", "skipped"),
+        ("cancelled", "cancelled"),
+    ],
+)
+def test_a_non_success_conclusion_never_passes(shape: str, conclusion: str) -> None:
+    """``startup_failure``/``stale``/… landeten vor #943 in keiner der drei
+    Mengen – waren alle erwarteten Jobs vorhanden, meldete ``evaluate`` PASS
+    „Bereitschaftsprüfung bestanden" ohne jeden Beleg."""
+    state = hb.queue_state(_jobs("ok", shape), EXPECTED)
+    assert state.inconclusive == (("Heartbeat Linux aarch64", conclusion),)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
+    assert verdict == hb.VERDICT_UNOBSERVED
+    assert "Heartbeat Linux aarch64" in detail and conclusion in detail
+
+
+def test_a_completed_job_without_conclusion_never_passes() -> None:
+    """Auch eine fehlende Konklusion ist kein Erfolg – fail-closed."""
+    state = hb.queue_state(_jobs("ok", "noconcl"), EXPECTED)
+    assert state.inconclusive == (("Heartbeat Linux aarch64", ""),)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
+    assert verdict == hb.VERDICT_UNOBSERVED
+    assert "unbekannt" in detail
+
+
+def test_a_proven_failure_outranks_an_inconclusive_sibling() -> None:
+    """Der belegte Befund trägt das Verdikt; das abgebrochene Ergebnis
+    degradiert ihn nicht zu UNOBSERVED."""
+    state = hb.queue_state(_jobs("cancelled", "fail"), EXPECTED)
+    verdict, _ = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
+    assert verdict == hb.VERDICT_FAIL
+
+
+def test_report_and_summary_carry_the_inconclusive_conclusion(tmp_path: Path) -> None:
+    """Evidenz und Issue-Kommentar müssen das Ergebnis benennen, sonst sucht
+    der Empfänger nach einem Ausfall, den es nicht gibt."""
+    state = hb.queue_state(_jobs("ok", "cancelled"), EXPECTED)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
+    report = hb.build_report(
+        verdict=verdict, detail=detail, expected=EXPECTED, state=state,
+        acceptance_s=900, deadline_s=1500, run_url="",
+    )
+    hb.write_outputs(report, report_path=tmp_path / "r.json", summary_path=tmp_path / "s.md")
+    payload = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
+    assert payload["inconclusive_jobs"] == [
+        {"name": "Heartbeat Linux aarch64", "conclusion": "cancelled"}
+    ]
+    summary = (tmp_path / "s.md").read_text(encoding="utf-8")
+    assert "Heartbeat Linux aarch64 | ⚠️ endete ohne success (cancelled)" in summary
+    assert "Heartbeat macOS arm64 | ✅ angenommen und bestanden" in summary
 
 
 def test_the_report_separates_offline_from_not_ready(tmp_path: Path) -> None:
