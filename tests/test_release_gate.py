@@ -309,6 +309,8 @@ def test_only_the_dispatch_job_may_start_workflows() -> None:
         assert jobs[name]["permissions"].get("actions") in (None, "read"), name
     # Der Job, der den Release mutiert, darf weiterhin nicht kommentieren.
     assert "issues" not in jobs["publish"]["permissions"]
+    # Und der Instanz-Job schreibt Artefakt und Summary statt zu kommentieren.
+    assert "issues" not in jobs["release-instance"]["permissions"]
 
 
 def test_predecessor_is_an_explicit_input_and_never_guessed() -> None:
@@ -459,14 +461,31 @@ def test_public_download_proof_runs_after_the_release_is_public() -> None:
     assert "public_download_check.py" in _publish_text()
 
 
-def test_only_the_proof_job_may_comment_and_publish_keeps_least_privilege() -> None:
+def test_only_commenting_jobs_carry_issues_write_and_publish_keeps_least_privilege() -> None:
+    """`issues: write` genau dort, wo wirklich kommentiert wird.
+
+    Ein ungenutztes Schreibrecht ist stille Zusatzfläche: Es faellt weder im
+    Lauf noch im Review auf, weil nichts es benutzt. Dieser Waechter bindet
+    das Recht deshalb an einen tatsaechlichen `gh issue comment`-Schritt statt
+    an eine Namensliste - so wird die naechste ungenutzte Vergabe rot, egal
+    welcher Job sie sich holt. (Genau dieser Fall trat in #919 auf:
+    `release-instance` bekam das Recht, kommentiert aber nicht.)
+    """
     jobs = _load(_PUBLISH)["jobs"]
-    proof_perms = jobs["public-download"].get("permissions", {})
-    publish_perms = jobs["publish"].get("permissions", {})
-    assert proof_perms.get("issues") == "write", proof_perms
-    assert proof_perms.get("contents") == "read", proof_perms
+    for name, job in jobs.items():
+        has_right = job.get("permissions", {}).get("issues") == "write"
+        comments = any(
+            "gh issue comment" in str(step.get("run", "")) for step in job.get("steps", [])
+        )
+        assert has_right == comments, (
+            f"{name}: issues-write={has_right}, kommentiert={comments}"
+        )
+
+    # Der Job, der als einziger den Release mutiert, kommentiert nie.
+    publish_perms = jobs["publish"]["permissions"]
     assert "issues" not in publish_perms, publish_perms
     assert publish_perms.get("contents") == "write", publish_perms
+    assert jobs["public-download"]["permissions"].get("contents") == "read"
 
 
 def _proof_steps() -> list[dict]:

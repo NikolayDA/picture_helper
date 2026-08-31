@@ -355,8 +355,11 @@ dem Publish von Hand nachgeholt wurde (#881).
   nennt deshalb beide Ursachen (nicht öffentlich vs. Kontingent), und der
   Wiederanlauf ist ein erneuter Publish-Lauf mit denselben gebundenen Inputs —
   er ist idempotent und meldet `already-complete`.
-- **Berechtigung:** `issues: write` trägt ausschließlich dieser Job; der
-  `publish`-Job bleibt bei `contents: write` und `actions: read`.
+- **Berechtigung:** `issues: write` tragen nur die Jobs, die tatsächlich
+  kommentieren — dieser und seit #919 `update-dispatch`. Der `publish`-Job,
+  der als einziger den Release mutiert, bleibt bei `contents: write` und
+  `actions: read`; `release-instance` kommt mit Leserechten aus, weil er
+  Artefakt und Job-Summary schreibt statt zu kommentieren.
 
 ### 4.2 Post-Release-Update-Nachweis (#748/#917)
 

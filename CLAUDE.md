@@ -792,8 +792,9 @@ Entscheidung: ADR
   `public-download-report.json` (Schema 1, `release-public-download`; je Datei
   Name, URL, Größe, SHA-256, Zeitstempel, Ergebnis plus Gesamtverdikt), 90 Tage
   als Artefakt, als Job-Summary gerendert und bei gesetztem `target_issue` als
-  Issue-Kommentar — auch im Fehlerfall. `issues: write` trägt ausschließlich
-  dieser Job. Betrieb: [`RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md)
+  Issue-Kommentar — auch im Fehlerfall. `issues: write` tragen nur
+  die Jobs, die tatsächlich kommentieren (seit #919 zusätzlich
+  `update-dispatch`); der Release-mutierende `publish`-Job trägt es nie. Betrieb: [`RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md)
   §4.1.1, Ablauf: Runbook Schritt 8/9 (die Handprozedur bleibt Rückfallweg).
 - **Versionierte Abnahme-Checkliste (#746):**
   [`docs/RELEASE_ACCEPTANCE_CHECKLIST.md`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md)

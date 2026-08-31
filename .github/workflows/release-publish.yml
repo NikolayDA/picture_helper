@@ -295,9 +295,11 @@ jobs:
   # NACH "gh release edit --draft=false" entstehen - Draft-Assets sind anonym
   # gar nicht abrufbar, der Verifikationsschritt im publish-Job oben laedt
   # deshalb authentifiziert und belegt genau diesen Anwenderpfad nicht.
-  # Eigener Job aus zwei Gruenden: Nur er traegt "issues: write" (der
-  # publish-Job bleibt bei contents/actions), und sein Asset-Download laeuft
-  # nachweislich ohne Token im Environment.
+  # Eigener Job aus zwei Gruenden: Er traegt "issues: write" (der publish-Job
+  # bleibt bei contents/actions), und sein Asset-Download laeuft nachweislich
+  # ohne Token im Environment. Seit #919 traegt auch update-dispatch dieses
+  # Recht - ebenfalls, weil er wirklich kommentiert. Der Job, der den Release
+  # mutiert, bleibt der einzige ohne jedes Kommentarrecht.
   public-download:
     name: Oeffentlicher Download-Nachweis (PUBLIC-DOWNLOAD-01)
     needs: publish
@@ -445,10 +447,12 @@ jobs:
     needs: [publish, public-download]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Bewusst ohne issues: write - dieser Job schreibt Artefakt und
+    # Job-Summary. Kommentiert wird die FINALE Instanz, und die entsteht im
+    # ausgeloesten Abnahme-Lauf (Stufe 3b), nicht hier.
     permissions:
       contents: read
       actions: read
-      issues: write
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_TAG: ${{ inputs.tag }}
