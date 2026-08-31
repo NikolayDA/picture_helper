@@ -557,13 +557,14 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **dreizehn** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **vierzehn** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
   (#699/#742), `scripts/gl_stress_probe.py` (#684),
   `scripts/release_path_policy.py` (#743), `scripts/release_contract.py`
-  (#744/#747), `scripts/public_download_check.py` (#916),
+  (#744/#747), `scripts/prepare_release.py` (#923),
+  `scripts/public_download_check.py` (#916),
   `scripts/release_update_dispatch.py` (#919),
   `scripts/scan_release_artifacts.py` (#920),
   `scripts/runner_heartbeat.py` (#921) und
@@ -1039,6 +1040,35 @@ Ein roter Dry-Run ist handlungsfähig statt nur sichtbar: Der Job
 `recommendations-live-check.yml`. Abgebrochene oder übersprungene Stufen
 meldet er als „unvollständig", nie als bestanden. Zweck, Kosten und Abgrenzung
 zum Kandidatenlauf: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §8.
+
+### Vorbereitung von Runbook-Schritt 1/2 (#923)
+
+`scripts/prepare_release.py <version>` erzeugt den schematischen Rohstand des
+Vorbereitungs-PRs **deterministisch**: Paketversion, sechs datierte
+CHANGELOG-Abschnitte, AppStream-Eintrag, den Rollover der Pfadpolicy
+(`current-freeze` umhängen, `historical-freeze-<vorgänger>` ergänzen,
+`policy_version` anheben — das neue Freeze-Dokument wäre sonst ein unbekannter
+Pfad und blockierte das Gate), das Scope-Freeze-Gerüst und das vorbefüllte
+Release-Issue. Gleiche Eingaben ergeben byte-gleiche Ausgaben; ein zweiter Lauf
+hebt die Policy-Version **nicht** erneut an.
+
+**Es entscheidet nichts.** Scope, Auswirkung, betroffene Anwender:innen,
+Upgrade-Relevanz und bekannte Einschränkungen stehen als `TODO(release)` im
+Gerüst. Genau diese Lücken erkennt `verify_release_freeze.py` seit #923 als
+blockierenden Befund `editorial-placeholder` — in allen sechs
+CHANGELOG-Fassungen und im Freeze-Dokument. Ein Gerüst kann sich damit nicht
+selbst freigeben; die Automatisierung ist kein Weg an `NOTES-01` vorbei.
+Zwei weitere Schranken: Ein bereits redaktionell bearbeiteter Abschnitt wird
+nie überschrieben (Abbruch statt Datenverlust), und das Release-Issue entsteht
+als Datei bzw. auf der Standardausgabe — `--create-issue` ruft `gh` nur auf
+ausdrücklichen Wunsch.
+
+Die Bindungswerte des Issues stammen aus den Verträgen selbst: Checklisten-
+Version und Datei-SHA-256 über `release_contract.load_release_checklist`, die
+pausierten x86_64-Kriterien über `verification == "platform:linux-x86_64"`
+(nicht hart notiert), die Schritt-Tabelle gegen die Runbook-Gliederung
+getestet. Ablauf: [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md)
+Schritt 1.
 
 ## Wichtig: Drift-Disziplin (Befund N6)
 

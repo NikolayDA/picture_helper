@@ -41,6 +41,15 @@ LANGUAGES: Final = ("en", "es", "fr", "uk", "zh")
 
 #: Standardpfad des Freeze-Dokuments je Version (relativ zur Repo-Wurzel).
 FREEZE_DOC_TEMPLATE: Final = "docs/history/RELEASE-{version}-scope-freeze.md"
+
+#: Redaktionelle Luecke in einem erzeugten Geruest (#923). ``prepare_release.py``
+#: schreibt Schritt-1/2-Rohstaende, in denen genau die Aussagen offen bleiben,
+#: die ein Mensch treffen muss: Scope, Auswirkung, Betroffene, Upgrade-Relevanz,
+#: Einschraenkungen. Ohne diesen Waechter waere das Geruest formal vollstaendig –
+#: die vier Pflichtmarker des Release-Bodys stehen ja darin – und ein
+#: unausgefuelltes Release-Dokument koennte gruen durchlaufen. Der Token ist
+#: bewusst so gewaehlt, dass er in normalem Fliesstext nicht vorkommt.
+EDITORIAL_PLACEHOLDER: Final = "TODO(release)"
 PATH_POLICY_PATH: Final = rpp.POLICY_PATH
 PROVENANCE_SCHEMA: Final = 1
 PROVENANCE_KIND: Final = "release-freeze-provenance"
@@ -453,6 +462,18 @@ def _check_release_body(repo: Path, rev: str, doc: FreezeDoc) -> list[Finding]:
                 )
             )
             continue
+        # #923: Ein erzeugtes Geruest traegt alle vier Pflichtmarker – nur ihre
+        # Werte fehlen. Ohne diese Pruefung liefe ein unausgefuelltes Release
+        # formal vollstaendig durch.
+        if EDITORIAL_PLACEHOLDER in notes:
+            findings.append(
+                Finding(
+                    _ERROR,
+                    "editorial-placeholder",
+                    f"{path}: Abschnitt [{doc.version}] enthält noch "
+                    f"{EDITORIAL_PLACEHOLDER} – das Gerüst ist redaktionell nicht gefüllt",
+                )
+            )
         missing = missing_release_body_markers(notes, language)
         if missing:
             findings.append(
@@ -604,6 +625,27 @@ def _check_workflow_candidate(repo: Path, head: str) -> list[Finding]:
     return findings
 
 
+def _check_freeze_doc_placeholder(repo: Path, rev: str, doc: FreezeDoc) -> list[Finding]:
+    """Offene ``TODO(release)``-Luecke im Scope-Freeze-Dokument (#923).
+
+    Das Gegenstueck fuer die CHANGELOG-Abschnitte steckt in
+    ``_check_release_body``: Dort ist der Abschnitt je Sprache ohnehin schon
+    extrahiert, ein zweiter Durchlauf mit eigener Extraktor-Ladung waere
+    doppelte Arbeit an derselben Stelle.
+    """
+    freeze_path = FREEZE_DOC_TEMPLATE.format(version=doc.version)
+    if EDITORIAL_PLACEHOLDER in read_at_rev(repo, rev, freeze_path):
+        return [
+            Finding(
+                _ERROR,
+                "editorial-placeholder",
+                f"{freeze_path}: enthält noch {EDITORIAL_PLACEHOLDER} – "
+                "die Scope-Entscheidung ist nicht getroffen",
+            )
+        ]
+    return [Finding(_OK, "editorial-scope", "Scope-Freeze ohne offene Gerüst-Lücken")]
+
+
 def verify(repo: Path, rev: str) -> list[Finding]:
     """Alle Pruefungen fuer den Laufkopf *rev*; kein Pin/Nachtrag erforderlich."""
     head = rev_parse(repo, rev)
@@ -678,6 +720,7 @@ def verify(repo: Path, rev: str) -> list[Finding]:
     )
     findings += _check_versions(repo, head, doc)
     findings += _check_release_body(repo, head, doc)
+    findings += _check_freeze_doc_placeholder(repo, head, doc)
     _records, classification_findings = classify_commits(repo, base, head, policy)
     findings += classification_findings
     return findings

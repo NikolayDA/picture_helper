@@ -66,7 +66,7 @@ UPDATE_ACCEPTANCE_RUN_ID="RUN_ID"
 **Trigger:** Der vereinbarte Funktionsumfang ist auf `main`, oder ein Hotfix ist
 freigegeben.
 **Owner:** Release-Owner.
-**Input:** Release-Issue, gewünschte Version, aktueller `main`-Commit.
+**Input:** gewünschte Version, aktueller `main`-Commit.
 
 ```bash
 git fetch origin main --tags
@@ -75,6 +75,26 @@ git pull --ff-only origin main
 python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])'
 git log -1 --format='%H %s'
 ```
+
+**Standardweg: `scripts/prepare_release.py`** (#923). Das Skript erzeugt den
+gesamten schematischen Rohstand dieses Schritts deterministisch — Paketversion,
+sechs datierte CHANGELOG-Abschnitte, AppStream-Eintrag, den Rollover der
+Pfadpolicy samt Versionssprung, das Scope-Freeze-Gerüst und das vorbefüllte
+Release-Issue:
+
+```bash
+python scripts/prepare_release.py <version> --issue-output /tmp/release-issue.md
+```
+
+Es trifft **keine** Entscheidung: Scope, Auswirkung, betroffene Anwender:innen,
+Upgrade-Relevanz und bekannte Einschränkungen bleiben als `TODO(release)`
+stehen und sind redaktionelle Handarbeit (`NOTES-01`). Solange eine dieser
+Lücken offen ist, meldet das Freeze-Gate `editorial-placeholder` und der
+Vorbereitungs-PR bleibt rot — das Gerüst kann sich nicht selbst freigeben.
+Danach die Lizenz-Snapshots neu erzeugen
+(`python scripts/generate_license_report.py`), die Lücken füllen und den PR
+öffnen. Das Issue legt ein Mensch an; `--create-issue` ruft `gh` nur auf
+ausdrücklichen Wunsch.
 
 Prüfe, dass `CHANGELOG.md` und der geplante Release-Text Auswirkung,
 unterstützte Plattformen, bekannte Einschränkungen sowie Upgrade- und
