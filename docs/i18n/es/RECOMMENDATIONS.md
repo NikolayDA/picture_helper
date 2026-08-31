@@ -20,7 +20,8 @@ correcciones de revisión y, donde existen, sus pruebas de regresión. La
 referencia de publicación, el informe de seguridad, el heartbeat/dry run, el
 andamiaje preparatorio y el preflight Qt/GL son coherentes. Sin embargo, la
 re-revisión adversarial del PR #942 halló cinco hallazgos residuales concretos
-en los scripts de proceso, verificados y agrupados en la incidencia #943.
+en los scripts de proceso, verificados, agrupados en la incidencia #943 y
+corregidos con este estado.
 
 **Revisión rutinaria 2026-08-30 (delta tras la auditoría completa):** Las 39
 incidencias abiertas comprobadas por completo y de forma adversarial contra
@@ -100,7 +101,6 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] Extender la gobernanza de release | 🟠 Alta (evita canal fuera del contrato fail-closed) | 🟠 Alta (runbook, checklist, contrato, policy, seis changelogs) | Opus, alto | Bloqueada – acompaña #898/#899; llevar contratos/pruebas a seis artefactos |
 | [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] Primer envío y ronda de review | 🟠 Alta (puerta manual de publicación) | 🔴 Alta (dependencias, riesgos, comunicación Apple) | – (sin agente; release owner) | Bloqueada – tras #896/#897/#899/#901–#905 revisar, enviar y registrar resultado/issues |
 | [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] Operación: renovación, actualizaciones y canales | 🟡 Media-alta (disponibilidad y separación a largo plazo) | 🟡 Media (runbook, responsables, recordatorios, matriz) | Opus, alto + owner | Bloqueada – adelantar concepto y cerrar tras #906; fijar rutinas de renovación/updates/web |
-| [#943](https://github.com/NikolayDA/picture_helper/issues/943) | Relectura de revisión 2026-08-31: cinco hallazgos de robustez en scripts de proceso | 🟠 Alta (el heartbeat informa PASS sin preparación demostrada) | 🟡 Media (cuatro scripts, arreglos aislados con pruebas de regresión) | Sonnet, alto | Lista – primero las conclusiones del heartbeat, luego el marcador de dispatch, prepare_release (downgrade/orden de escritura) y el OSError del escáner |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja (solo bloquea un escaneo manual opcional) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: facturación) | Bloqueada (externa) – la última ejecución (29233060507, 2026-07-13) no demuestra un escaneo exitoso; facturación/cuota sigue sin resolver |
 
 ### Recomendado a continuación

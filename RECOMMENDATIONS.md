@@ -20,8 +20,8 @@ Review-Nachbesserungen und, wo vorhanden, deren Regressionstests.
 Release-Ref/Wiederanlauf, Security-Bericht, Runner-Heartbeat/Dry-Run,
 Vorbereitungsgerüst und Qt-/GL-Preflight sind konsistent umgesetzt. Die
 adversarielle Nachprüfung im Review von PR #942 fand jedoch fünf konkrete
-Restbefunde in den Prozess-Skripten – verifiziert und als Folge-Issue #943
-gebündelt (Triage-Zeile unten).
+Restbefunde in den Prozess-Skripten – verifiziert, als Folge-Issue #943
+gebündelt und mit diesem Stand behoben.
 
 **Turnusprüfung 2026-08-30 (Delta nach Vollaudit):** Die 39 bereits am
 2026-08-29 gegen `main` (Produktstand `411d47c`) vollständig und adversariell
@@ -101,7 +101,6 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] Release-Governance um den Store-Kanal erweitern | 🟠 Hoch (verhindert einen Kanal neben dem fail-closed Vertrag) | 🟠 Hoch (Runbook, Checkliste, Vertrag, Path-Policy, sechs CHANGELOGs) | Opus, hoch | Blocked – begleitet #898/#899; vor Einreichung alle Governance-Verträge und Tests auf sechs Artefakte heben |
 | [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] Ersteinreichung und Review-Runde | 🟠 Hoch (manuelles Veröffentlichungs-Gate) | 🔴 Hoch (viele Abhängigkeiten, Restrisiken, Apple-Kommunikation) | – (kein Agent; Release-Owner) | Blocked (extern) – nach #896/#897/#899/#901–#905 Pre-Submission prüfen, einreichen und Ergebnis/Folge-Issues protokollieren |
 | [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] Betriebskonzept für Renewal, Updates und Kanäle | 🟡 Mittel-Hoch (langfristige Verfügbarkeit und Kanaltrennung) | 🟡 Mittel (Runbook, Verantwortungen, Erinnerungen, Kanalmatrix) | Opus, hoch + Owner | Blocked – Konzept vorab möglich, final nach #906; Renewal-/Update-/Webseiten-Routinen verbindlich verankern |
-| [#943](https://github.com/NikolayDA/picture_helper/issues/943) | Review-Nachlese 2026-08-31: fünf Robustheitsbefunde in Prozess-Skripten | 🟠 Hoch (Heartbeat meldet PASS ohne belegte Bereitschaft) | 🟡 Mittel (vier Skripte, isolierte Fixes mit Regressionstests) | Sonnet, hoch | Startbereit – Heartbeat-Konklusionen zuerst, dann Dispatch-Marker, prepare_release (Downgrade/Schreibfolge) und Scanner-OSError |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
 
 ### Als Nächstes empfohlen
