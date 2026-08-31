@@ -265,10 +265,31 @@ Fehlerzustände statt eines pauschalen „Qt kaputt":
 Ein Abbruch **ohne** Ergebniszeile ist ebenfalls ein Befund: Qt beendet den
 Prozess bei fehlendem Platform-Plugin hart (`qFatal`, real als SIGABRT
 beobachtet), statt eine Ausnahme zu werfen. Der Preflight wertet das als
-`plugin` und hängt die tragenden stderr-Zeilen an. Einen stillen Skip gibt es
-nicht — ein nicht erbrachter Nachweis ist ein Fehler, keine Auslassung.
-`offscreen`/`minimal` sind dabei kein Ausweichweg, sondern ein Befund: Der
-Releasepfad braucht das native Sitzungs-Plugin.
+`plugin` und hängt die tragenden stderr-Zeilen an. Damit dieser Zweig der
+**reine** `qFatal`-Fall bleibt, ist die gesamte Qt-Sequenz nach dem
+Anwendungsstart abgesichert: Ein Treiber- oder Bindings-Fehler wird als
+`kontext` gemeldet, nicht als Plugin-Problem.
+
+Akzeptiert werden nur die Platform-Plugins einer echten Desktop-Sitzung
+(`cocoa`, `xcb`, `wayland`, `wayland-egl`) — bewusst eine **Whitelist**. Qt
+liefert unter Linux weitere Plugins ohne Sitzung, die trotzdem
+hardwarebeschleunigt sind (`eglfs`, `minimalegl`, `vnc`, `linuxfb`,
+`vkkhrdisplay`); eine Blacklist aus `offscreen`/`minimal` ließe eine kaputte
+Desktop-Sitzung den Preflight bestehen und erst in den nativen
+Abnahme-Schritten scheitern.
+
+Zwei weitere Regeln übernimmt die Sonde vom Produktivpfad, damit Preflight
+und Artefakt denselben Vertrag prüfen: Ein reiner **OpenGL-ES-Kontext** wird
+abgewiesen (PyQt6 bindet keine ES-Funktionssätze, ADR #591), und Erfolg setzt
+**alle drei** Provenienzfelder voraus — fiele ausgerechnet der Renderer aus,
+hätte die Software-Regel nichts zu bewerten und die Sonde meldete Hardware
+ohne Beleg.
+
+Einen stillen Skip gibt es nicht — ein nicht erbrachter Nachweis ist ein
+Fehler, keine Auslassung. Sind `session` oder `gl` bereits beanstandet, wird
+die Sonde allerdings **übersprungen und das sichtbar als Folgebefund
+ausgewiesen**: Sie könnte dort nur `plugin` melden, und der erste Lauf zahlte
+dafür den vollen Runtime-Bau.
 
 **Woher die Runtime kommt.** Die Sonde läuft **nicht** im Release-venv,
 sondern in einer schlanken Runtime mit nur den Qt-Pins — sonst kostete jeder
@@ -286,8 +307,14 @@ Qt-Pins und Python-Minor:
 - Installiert wird ausschließlich aus Wheels (`--only-binary=:all:`): Ein
   Qt-Quellbau auf dem Pi spränge jedes Budget, ein benannter Fehler ist
   besser als ein stundenlanger Compilerlauf.
-- Fehlende Pins, gescheiterter Bau und Timeout sind benannte Preflight-Fehler
-  (fail-closed), keine Warnungen.
+- Fehlende Pins, gescheiterter Bau, Timeout und Dateisystemfehler (read-only
+  `$HOME`, volle Platte) sind benannte Preflight-Fehler (fail-closed), keine
+  Warnungen und kein Traceback — sonst blieben die noch nicht ausgewerteten
+  Checks ungemeldet.
+- Ersetzt wird beim Rollover nur, was erkennbar die eigene Ablage ist
+  (`pyvenv.cfg` oder Marker vorhanden). `BGREMOVER_PREFLIGHT_VENV` ist frei
+  setzbar; ohne diese Schranke machte ein Tippfehler oder ein geerbtes Env
+  aus dem Rollover ein rekursives Löschen fremder Daten.
 
 Zeitbudgets: Der Aufruf selbst hat 90 Sekunden, der einmalige Bau 7 Minuten —
 bewusst kleiner als die `timeout-minutes: 10` der Readiness-Jobs, damit der

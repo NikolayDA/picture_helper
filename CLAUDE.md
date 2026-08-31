@@ -1038,8 +1038,15 @@ Vendor/Renderer/Version und meldet **vier benannte** Stufen (`import`,
 diese Zeile ist ebenfalls ein Befund: Qt beendet den Prozess bei fehlendem
 Platform-Plugin hart (`qFatal`, real als SIGABRT beobachtet) — der Preflight
 wertet das als `plugin` und hängt die tragenden stderr-Zeilen an. Einen
-stillen Skip gibt es nicht, und `offscreen`/`minimal` sind kein Ausweichweg,
-sondern ein Befund (der Releasepfad braucht das native Sitzungs-Plugin).
+stillen Skip gibt es nicht. Akzeptiert werden nur Sitzungs-Plugins (`cocoa`,
+`xcb`, `wayland`, `wayland-egl`) — eine **Whitelist**, weil Qt unter Linux
+weitere Plugins ohne Sitzung liefert, die trotzdem hardwarebeschleunigt sind
+(`eglfs` & Co.). Die gesamte Qt-Sequenz nach dem Anwendungsstart ist
+abgesichert, damit der „kein JSON"-Zweig der reine `qFatal`-Fall bleibt; ein
+reiner ES-Kontext wird wie im Produktivpfad abgewiesen (ADR #591), und Erfolg
+setzt alle drei Provenienzfelder voraus. Sind `session`/`gl` schon
+beanstandet, wird die Sonde übersprungen und das als Folgebefund ausgewiesen —
+sie könnte dort nur `plugin` melden und zahlte den Runtime-Bau umsonst.
 
 Die Software-Renderer-Regel kommt aus `renderer_provenance` (#642) — geladen
 über den **Dateipfad**, nicht als Paketimport: `bgremover.constants` zöge

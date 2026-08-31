@@ -1,7 +1,6 @@
 """Guards for the self-hosted release acceptance workflow (#641)."""
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import pytest
@@ -261,16 +260,8 @@ def test_the_real_qt_probe_runs_in_every_active_readiness_job(
     text = _workflow_text()
     for platform in ("macos-arm64", "linux-arm64", "linux-x86_64"):
         assert f"needs: [candidate-source, preflight-{platform}]" in text
-    # Das Jobbudget muss den einmaligen Bau der schlanken Runtime tragen,
-    # sonst schneidet GitHub den Lauf ab, bevor der benannte Fehler entsteht –
-    # der Befund waere dann ein nacktes "job timed out".
-    budgets = [
-        int(match)
-        for block in re.findall(r"(?ms)^  preflight-[a-z0-9_-]+:\n(.*?)(?=^  \S)", text)
-        for match in re.findall(r"(?m)^    timeout-minutes: (\d+)$", block)
-    ]
-    assert len(budgets) == 3, budgets
-    assert min(budgets) * 60 > module.RUNTIME_BUILD_TIMEOUT_S, budgets
+    # Das Jobbudget prueft `tests/test_runner_heartbeat_workflow.py` – dort
+    # fuer **beide** Aufruforte, nicht nur fuer diesen Workflow.
 
 
 def test_workflow_preflight_gates_platform_jobs() -> None:

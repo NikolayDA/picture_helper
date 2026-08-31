@@ -305,10 +305,27 @@ def ensure_probe_runtime(
 
     # Ein vorhandener, aber veralteter Baum wird ersetzt, nicht ergaenzt:
     # ``pip install`` in ein venv mit anderem Pin liesse die alte Version
-    # moeglicherweise stehen.
+    # moeglicherweise stehen. Geloescht wird aber **nur**, was erkennbar
+    # unsere Ablage ist: ``BGREMOVER_PREFLIGHT_VENV`` ist frei setzbar, und
+    # ein Tippfehler oder ein geerbtes Env (``=$HOME``) machte aus dem
+    # Rollover sonst ein rekursives Loeschen fremder Daten.
     if target.exists():
+        if not (target / "pyvenv.cfg").is_file() and not (target / PROBE_MARKER_NAME).is_file():
+            raise PreflightError(
+                f"{target} ist keine Preflight-Runtime (weder pyvenv.cfg noch "
+                f"{PROBE_MARKER_NAME}) – wird nicht geloescht. "
+                f"{PROBE_VENV_ENV} pruefen."
+            )
         shutil.rmtree(target, ignore_errors=True)
-    target.parent.mkdir(parents=True, exist_ok=True)
+    # Dateisystemfehler (read-only $HOME, volle Platte, falsche Rechte) sind
+    # benannte Befunde. Ungefangen fielen sie durch ``run_preflight`` bis in
+    # ``main()`` und beendeten den Job mit einem Traceback – die noch nicht
+    # ausgewerteten Checks (netz, deb-sudo) waeren nie gemeldet worden,
+    # entgegen der Zusage "meldet alle Verstoesse gesammelt".
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise PreflightError(f"Ablage {target.parent} nicht anlegbar: {exc}") from exc
     _run_build([sys.executable, "-m", "venv", str(target)], runner, build_timeout, "venv")
     _run_build(
         [
@@ -323,7 +340,10 @@ def ensure_probe_runtime(
     )
     if not interpreter.exists():
         raise PreflightError(f"Runtime gebaut, aber {interpreter} fehlt.")
-    marker.write_text(key, encoding="utf-8")
+    try:
+        marker.write_text(key, encoding="utf-8")
+    except OSError as exc:
+        raise PreflightError(f"Marker {marker} nicht schreibbar: {exc}") from exc
     return interpreter
 
 
@@ -347,6 +367,15 @@ def _run_build(
         tail = detail[-1] if detail else f"Exit {result.returncode}"
         raise PreflightError(f"Aufbau der Qt-Runtime ({label}) fehlgeschlagen: {tail}")
 
+
+#: Folgebefund statt stiller Auslassung: Ohne Sitzung oder GL-Bibliothek kann
+#: die Sonde nur ``plugin`` melden – die Information steht schon im
+#: vorangehenden Befund. Der erste Lauf zahlte dafuer aber den ~100-MB-Bau der
+#: Runtime. Uebersprungen heisst hier **nicht** bestanden.
+PROBE_SKIPPED = (
+    "Uebersprungen – Sitzung/GL sind bereits beanstandet; der Nachweis ist "
+    "damit nicht erbracht. Nach deren Behebung erneut laufen lassen."
+)
 
 #: Fehlertexte je benannter Sonden-Stufe. Der Preflight meldet damit einen
 #: konkreten Befund statt „irgendwas mit Qt".
@@ -663,13 +692,18 @@ def run_preflight(
     platform: str, *, min_free_gb: float = MIN_FREE_GB,
 ) -> list[tuple[str, str | None]]:
     """Alle Checks der Plattform ausführen; je Check ``(name, fehler-oder-None)``."""
+    session = check_graphical_session(platform, os.environ)
+    gl = check_gl(platform)
     checks: list[tuple[str, str | None]] = [
         ("python", check_python()),
         ("venv", check_venv()),
         ("speicher", check_disk(Path.cwd(), min_free_gb)),
-        ("session", check_graphical_session(platform, os.environ)),
-        ("gl", check_gl(platform)),
-        ("qt-gl", check_qt_gl(platform)),
+        ("session", session),
+        ("gl", gl),
+        # Kurzschluss statt Doppelbefund: Ohne Sitzung oder GL koennte die
+        # Sonde nur "plugin" melden – und zahlte dafuer beim ersten Lauf den
+        # vollen Runtime-Bau.
+        ("qt-gl", PROBE_SKIPPED if (session or gl) else check_qt_gl(platform)),
         ("netz", check_network(default_api_url())),
     ]
     if platform != MACOS_PLATFORM:

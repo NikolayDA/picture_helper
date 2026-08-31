@@ -52,7 +52,17 @@ def test_no_check_escapes_the_hermetic_fixture(monkeypatch: pytest.MonkeyPatch) 
         results = preflight.run_preflight(platform)
         assert results
         for name, value in results:
-            assert value == marker, f"{name} wird von _check_names nicht erfasst"
+            # `qt-gl` ist hier der Kurzschluss, weil session/gl beanstandet sind.
+            assert value in (marker, preflight.PROBE_SKIPPED), (
+                f"{name} wird von _check_names nicht erfasst"
+            )
+    # Zweiter Durchgang ohne Kurzschluss – sonst bliebe ungeprüft, ob die
+    # Sonde selbst erfasst ist (sie käme nie zum Zug).
+    for name in ("check_graphical_session", "check_gl"):
+        monkeypatch.setattr(preflight, name, lambda *a, **k: None)
+    for platform in preflight.KNOWN_PLATFORMS:
+        values = dict(preflight.run_preflight(platform))
+        assert values["qt-gl"] == marker, f"check_qt_gl nicht erfasst ({platform})"
 
 
 class _Usage:
@@ -248,6 +258,29 @@ def test_the_preflight_runs_the_real_probe_on_every_platform(
         assert names.index("gl") < names.index("qt-gl"), platform
 
 
+def test_the_probe_is_skipped_but_never_silently_when_session_or_gl_failed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Kurzschluss ohne Auslassung (#937-Review).
+
+    Ohne Sitzung könnte die Sonde nur ``plugin`` melden — die Information
+    steht schon im ``session``-Befund. Der erste Lauf zahlte dafür aber den
+    ~100-MB-Bau der Runtime. Übersprungen heißt hier **nicht** bestanden:
+    Der Eintrag bleibt ein Fehler und zählt in ``main`` mit.
+    """
+    for name in _check_names():
+        monkeypatch.setattr(preflight, name, lambda *a, **k: None)
+    monkeypatch.setattr(preflight, "check_graphical_session", lambda *a, **k: "keine Sitzung")
+
+    def _must_not_run(*_a, **_kw) -> str | None:
+        raise AssertionError("Sonde lief trotz beanstandeter Sitzung")
+
+    monkeypatch.setattr(preflight, "check_qt_gl", _must_not_run)
+    values = dict(preflight.run_preflight("linux-arm64"))
+    assert values["qt-gl"] == preflight.PROBE_SKIPPED
+    assert values["qt-gl"] is not None, "ein Skip darf nie wie ein Erfolg aussehen"
+
+
 # ── Bereitstellung der schlanken Runtime (#934) ────────────────────────
 
 
@@ -343,6 +376,68 @@ def test_a_build_timeout_is_a_named_error(tmp_path: Path) -> None:
     with pytest.raises(preflight.PreflightError, match=f"nach {budget:.0f}s abgebrochen"):
         preflight.ensure_probe_runtime(
             venv=tmp_path / "qt", requirements=["PyQt6==6.7.1"], runner=_timeout
+        )
+
+
+def test_a_foreign_directory_is_never_deleted(tmp_path: Path) -> None:
+    """``BGREMOVER_PREFLIGHT_VENV`` ist frei setzbar (#937-Review).
+
+    Ein Tippfehler oder ein geerbtes Env (``=$HOME``) machte aus dem Rollover
+    sonst ein rekursives Löschen fremder Daten — und ``ignore_errors=True``
+    schluckte jede Rückmeldung.
+    """
+    foreign = tmp_path / "wichtig"
+    foreign.mkdir()
+    (foreign / "daten.txt").write_text("nicht loeschen", encoding="utf-8")
+    with pytest.raises(preflight.PreflightError, match="keine Preflight-Runtime"):
+        preflight.ensure_probe_runtime(
+            venv=foreign, requirements=["PyQt6==6.7.1"], runner=_FakeBuilder(foreign)
+        )
+    assert (foreign / "daten.txt").is_file()
+
+
+def test_a_real_runtime_is_replaced_on_a_key_change(tmp_path: Path) -> None:
+    """Das Gegenstück: Ein erkennbares venv wird sehr wohl ersetzt."""
+    venv = tmp_path / "qt"
+    builder = _FakeBuilder(venv)
+    preflight.ensure_probe_runtime(venv=venv, requirements=["PyQt6==6.7.1"], runner=builder)
+    assert (venv / "pyvenv.cfg").is_file() or (venv / preflight.PROBE_MARKER_NAME).is_file()
+    preflight.ensure_probe_runtime(venv=venv, requirements=["PyQt6==6.8.0"], runner=builder)
+    assert len(builder.commands) == 4
+
+
+def test_filesystem_errors_become_named_findings(tmp_path: Path, monkeypatch) -> None:
+    """Ein read-only ``$HOME`` darf den Preflight nicht mit Traceback beenden.
+
+    Sonst blieben die noch nicht ausgewerteten Checks (``netz``, ``deb-sudo``)
+    ungemeldet — gegen die Zusage „meldet **alle** Verstöße gesammelt".
+    """
+    venv = tmp_path / "tief" / "qt"
+
+    def _no_mkdir(self, *a, **k):
+        raise OSError("Read-only file system")
+
+    monkeypatch.setattr(Path, "mkdir", _no_mkdir)
+    with pytest.raises(preflight.PreflightError, match="nicht anlegbar"):
+        preflight.ensure_probe_runtime(
+            venv=venv, requirements=["PyQt6==6.7.1"], runner=_FakeBuilder(venv)
+        )
+
+
+def test_an_unwritable_marker_is_a_named_finding(tmp_path: Path, monkeypatch) -> None:
+    venv = tmp_path / "qt"
+    builder = _FakeBuilder(venv)
+    real_write = Path.write_text
+
+    def _fail_marker(self, *a, **k):
+        if self.name == preflight.PROBE_MARKER_NAME:
+            raise OSError("Disk quota exceeded")
+        return real_write(self, *a, **k)
+
+    monkeypatch.setattr(Path, "write_text", _fail_marker)
+    with pytest.raises(preflight.PreflightError, match="nicht schreibbar"):
+        preflight.ensure_probe_runtime(
+            venv=venv, requirements=["PyQt6==6.7.1"], runner=builder
         )
 
 
