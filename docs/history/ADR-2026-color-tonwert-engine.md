@@ -315,6 +315,25 @@ hinaus. ICC/Softproofing bleibt Nicht-Ziel des Epics.
   Graupixels ist er selbst – Festkomma-Summe 65536), statt subtil
   doppeldeutig; die UI darf Sättigung im Graustufen-Modus deaktivieren
   (#694).
+- **Skalenfestes Kontrast-Degenerat (bindend):** `ImageEnhance.Contrast`
+  bildet sein Degenerat aus dem globalen Bildmittelwert des übergebenen
+  Bildes (`int(mean_L + 0.5)`, konstantes Grau) – als einzige Stufe der
+  Kette ist sie damit von einer globalen Bildstatistik abhängig, und der
+  Mittelwert eines verkleinerten Proxys ist im Allgemeinen ein anderer
+  Integer als der des Vollbilds (empirisch belegt: bimodales Testbild,
+  Δ = 1 bereits bei 4:1-Verkleinerung). Deshalb wird das Degenerat
+  **immer am Vollbild-Zwischenbild** (der Vollauflösungs-Eingabe der
+  Kontraststufe, also nach Graustufe/Helligkeit) bestimmt und als
+  expliziter Parameter in die Stufe gereicht; eine Proxy-Vorschau
+  blendet gegen denselben Wert. Auf dem Vollbild ist das bitidentisch zu
+  `ImageEnhance.Contrast` (gleicher Mittelwert, gleiche Blend-Formel) –
+  die Paritätsgarantie unten bleibt unberührt. Erst damit ist die
+  Pipeline skaleninvariant und die Proxy-Abgrenzung in Abschnitt 10
+  („Differenzen nur durch Anzeigeverkleinerung") tatsächlich haltbar –
+  ohne diese Regel wäre eine Kontrast-Vorschau auf dem Proxy eine
+  **globale Tonwertverschiebung** (`out = mean + f·(x − mean)`: ein
+  Mittelwert-Δ von 1 verschiebt bei f = 2.0 flächendeckend um ~1
+  Tonwert), kein lokales Resampling-Artefakt.
 - **Paritätsgarantie (bindend, getestet):** Mit `grayscale=None` und
   neutralen Levels (`0/255/1.0`) ist das Pipeline-Ergebnis **bitidentisch**
   zu `adjust_color(img, brightness=…, contrast=…, saturation=…)` – die
@@ -424,9 +443,13 @@ sich ohne Core-Änderung verschieben.
   meint denselben Modell-Auswahlzustand: Auf dem Proxy werden Bild
   **und** Maske mit demselben benannten, deterministischen Verfahren
   skaliert (Filterwahl in #694); diese Maskenskalierung zählt
-  ausdrücklich zur Anzeigeoptimierung. Sichtbare Differenzen zwischen
-  Vorschau und Ergebnis sind ausschließlich durch diese
-  Anzeigeverkleinerung erklärbar und werden in #696 mit dokumentierter
+  ausdrücklich zur Anzeigeoptimierung. Die Kontraststufe blendet auch
+  auf dem Proxy gegen das am Vollbild bestimmte Degenerat (Abschnitt 6)
+  – der einzige von einer globalen Bildstatistik abhängige Parameter der
+  Kette ist damit skalenfest. Erst dadurch gilt: Sichtbare Differenzen
+  zwischen Vorschau und Ergebnis sind ausschließlich durch diese
+  Anzeigeverkleinerung erklärbar (lokale Resampling-Effekte, keine
+  globale Tonwertverschiebung) und werden in #696 mit dokumentierter
   Toleranz abgenommen.
 - **Anzeigemechanik:** unverändert der transiente Layer-Override
   (#397/`swap_display_view`): kein Schreibpfad ins Modell, Verwerfen bei
