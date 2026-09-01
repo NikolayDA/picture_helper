@@ -250,8 +250,10 @@ hinaus. ICC/Softproofing bleibt Nicht-Ziel des Epics.
   erzeugen würde).
 - **Bins:** exakt 256 je Kanal; Bin `i` zählt genau die Pixel mit
   Tonwert `i` (keine Bereichs-Bins, keine Normalisierung im Core).
-- **Zählertyp:** `int64` (natives `np.bincount`-dtype; überlaufsicher –
-  das 40-MP-Gate begrenzt auf < 2³⁶ zählbare Pixel).
+- **Zählertyp:** `int64`, von #693 **explizit gecastet** –
+  `np.bincount` liefert plattformabhängig `intp`, nicht garantiert
+  `int64`. Überlaufsicher mit riesiger Reserve: das 40-MP-Gate begrenzt
+  auf < 2²⁶ zählbare Pixel.
 - **Transparenz:** Pixel mit `A == 0` werden **nicht** gezählt (nach
   Hintergrund-Entfernung würden die bedeutungslosen RGB-Werte großer
   transparenter Flächen das Histogramm dominieren); Pixel mit `A > 0`
@@ -404,7 +406,10 @@ sich ohne Core-Änderung verschieben.
   MVP binär; die Canvas-Grenze bildet `True/False` auf `255/0` ab. Damit
   treten heute nur die bitgenauen Randfälle auf; der Vertrag für weiche
   Kanten steht bereit, sobald eine künftige Auswahl Zwischenwerte
-  liefert.
+  liefert. Speicherhinweis: Die `uint8`-Abbildung ist eine zusätzliche
+  1-B/px-Allokation je Berechnungslauf (40 MP ⇒ 40 MB, transient); der
+  Debounce aus Abschnitt 10 begrenzt die Frequenz, und es lebt höchstens
+  eine Abbildung je laufendem Job.
 - **Leere Auswahl** (`has_selection == False`) → `mask=None` → Wirkung
   auf die gesamte aktive COLOR-Ebene – konsistent mit
   `feather_active_edges` und den Höhen-Edits (#695: „Ohne aktive Auswahl
