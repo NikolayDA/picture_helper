@@ -499,7 +499,7 @@ def render_summary(report: dict[str, Any]) -> str:
             "(`docs/RELEASE_AUTOMATION.md` §6). Hat der Runner den Job "
             "angenommen und die Prüfung nicht bestanden, nennt sein Joblog "
             "den fehlenden Punkt – Härtung siehe §2.1/§2.2. Bleibt ein Runner "
-            "länger als 30 Tage offline, entfernt GitHub ihn und §2 ist zu "
+            "länger als 14 Tage offline, entfernt GitHub ihn und §2 ist zu "
             "wiederholen."
         )
         lines.append("")
