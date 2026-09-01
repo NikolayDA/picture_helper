@@ -33,15 +33,15 @@ REPO=NikolayDA/picture_helper
 gh api "repos/$REPO/actions/runners" --jq '
   if .total_count == 0 then "Keine Self-hosted Runner registriert."
   else .runners[]
-    | "\(.name)\tstatus=\(.status)\tbusy=\(.busy)\tlabels=\([.labels[].name] | join(","))"
+    | "\(.name)\tstatus=\(.status)\tbusy=\(.busy)\tversion=\(.version // "?")\tlabels=\([.labels[].name] | join(","))"
   end'
 ```
 
-Erwartete Ausgabe bei intaktem Bestand (Reihenfolge egal):
+Erwartete Ausgabe bei intaktem Bestand (Reihenfolge egal, Version variiert):
 
 ```text
-Mac	status=online	busy=false	labels=self-hosted,macOS,ARM64,…
-raspberrypi	status=online	busy=false	labels=self-hosted,Linux,ARM64,…
+Mac	status=online	busy=false	version=2.328.0	labels=self-hosted,macOS,ARM64
+raspberrypi	status=online	busy=false	version=2.328.0	labels=self-hosted,Linux,ARM64
 ```
 
 Einordnung:
@@ -49,8 +49,10 @@ Einordnung:
 - `status=offline` → Gerät oder Dienst ist unten; erst §5 (Wiederbelebung)
   versuchen, bevor neu registriert wird.
 - Runner fehlt in der Liste → neu registrieren (§2 bzw. §3). GitHub entfernt
-  einen Runner, der länger nicht verbunden war, automatisch
-  ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §6).
+  einen Runner automatisch, der **mehr als 14 Tage** nicht verbunden war
+  (offizielle GitHub-Doku,
+  [remove-runners](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/remove-runners);
+  ältere Repo-Stellen nennen noch 30 Tage).
 - `status=online` sagt nur „verbunden", **nicht** „einsatzbereit" – die
   eigentliche Bereitschaft belegt erst der Heartbeat (0.2) bzw. der
   Preflight auf dem Gerät (0.3).
@@ -147,9 +149,9 @@ Die Registrierung selbst läuft für beide Geräte gleich
 ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §2): GitHub → Repository →
 **Settings → Actions → Runners → New self-hosted runner**, Plattform wählen,
 und die dort angezeigten Befehle (Download, Prüfsumme, `./config.sh` mit dem
-angezeigten Token) auf dem Gerät ausführen. Das Registrierungs-Token ist nur
-**kurz gültig** – den Block also erst öffnen, wenn das Gerät bereitsteht. Bei
-`./config.sh` gilt:
+angezeigten Token) auf dem Gerät ausführen. Das Registrierungs-Token ist
+**eine Stunde gültig** (offizielle GitHub-Doku) – den Block also erst öffnen,
+wenn das Gerät bereitsteht. Bei `./config.sh` gilt:
 
 - **Labels: die Standard-Labels unverändert übernehmen.** Die Workflows
   adressieren exakt `[self-hosted, macOS, ARM64]` bzw.
@@ -184,7 +186,8 @@ unter dem Home-Verzeichnis ist richtig.
 Registrierungsblock aus der GitHub-UI ausführen (§1), dabei
 `--name Mac` wählen. Danach – **als der angemeldete Runner-Benutzer, ohne
 sudo** (der Dienst muss ein LaunchAgent der GUI-Sitzung werden, kein
-LaunchDaemon):
+LaunchDaemon; das offizielle `svc.sh` bricht unter `sudo` ohnehin mit
+„Must not run with sudo" ab):
 
 ```sh
 cd ~/actions-runner
@@ -356,6 +359,15 @@ Der Preflight akzeptiert als Restart-Policy `always`, `on-failure` oder
 `on-abnormal`; alles andere (insbesondere das Vorlagen-Default `no`) ist ein
 Befund.
 
+Optional, falls `needrestart` installiert ist (verhindert, dass ein
+`apt upgrade` den Runner-Dienst mitten in einem Job neu startet – offizielles
+Rezept der GitHub-Doku):
+
+```sh
+echo '$nrconf{override_rc}{qr(^actions\.runner\..+\.service$)} = 0;' \
+  | sudo tee /etc/needrestart/conf.d/actions_runner_services.conf
+```
+
 ### 3.5 Reboot-Probe (einmalig, Pflicht)
 
 Belegt Autologin, Session-Durchreichung, Dienststart und Restart-Policy in
@@ -431,7 +443,7 @@ Bevor ein „offline"-Runner neu registriert wird
 | Heartbeat rot: `qt-gl` Stufe `renderer` nach einem Treiber-/Mesa-Update | Das Gerät rendert nur noch in Software (llvmpipe & Co.) – GPU-Treiber der Desktop-Session reparieren; ein Software-Renderer gilt nirgends als Hardware-Nachweis |
 | Heartbeat rot: `sleep-schutz`, obwohl `caffeinate` läuft | Der Wrapper muss **beide** Schlafarten halten (`caffeinate -dimsu`, nicht nur `-i`) und selbst der Assertion-Eigentümer sein |
 | Heartbeat rot: `sleep-schutz`/`dienst-neustart` | §2.3 bzw. §3.4 erneut anwenden – `KeepAlive` überlebt kein `svc.sh install` |
-| Runner aus der GitHub-Liste verschwunden | Zu lange offline, von GitHub entfernt → §2/§3 komplett wiederholen |
+| Runner aus der GitHub-Liste verschwunden | Mehr als 14 Tage offline, von GitHub entfernt → Registrierung und Dienst (§2/§3) komplett wiederholen |
 
 Ein Befund für `Mac` oder `raspberrypi` im Betriebs-Issue
 [#939](https://github.com/NikolayDA/picture_helper/issues/939) ist immer
