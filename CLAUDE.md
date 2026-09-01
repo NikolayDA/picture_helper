@@ -78,7 +78,11 @@ Ein Paket, `bgremover/`:
   `_preview` hat in `_refresh_image` Vorrang – wie #348) auf der aktiven
   COLOR-Ebene (#360); **Kantenglättung/Feather** der Alphakante
   (`image_ops.feather_alpha`, nur Alpha, auswahlbegrenzt, `feather_active_edges`,
-  #361). Alles undo-/redobar über die bestehenden Apply-Pfade.
+  #361). Alles undo-/redobar über die bestehenden Apply-Pfade. Der
+  Datenvertrag der kommenden Tonwert-/Histogramm-/Graustufen-Engine
+  (Epic #682, ADR #692) steht in
+  [`docs/history/ADR-2026-color-tonwert-engine.md`](docs/history/ADR-2026-color-tonwert-engine.md);
+  Umsetzung folgt in #693–#696.
 - **Höhenkarten:** `height_map.py` — Qt-freie, strikt getypte Höhen-Repräsentation
   (Fundament des Height-Map-Epics #344/#345): verlustfreie Konvertierung Höhe ↔
   Graustufen-Array (`HeightField`, Konvention `R=G=B=Höhe`, `A=Deckung`),
