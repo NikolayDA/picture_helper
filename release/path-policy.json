@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 9,
+  "policy_version": 10,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -178,6 +178,14 @@
       "sample_path": "docs/PROZESSE_UML.md",
       "reason": "Die ausdrücklich nicht-normativen UML-Aktivitätsdiagramme beschreiben Prozesse; kein Build-, Release- oder Gate-Schritt liest die Datei, Doku-Governance-Tests prüfen nur ihre innere Konsistenz (Doku-als-Code, analog TESTING.md).",
       "evidence": ["CLAUDE.md führt docs/PROZESSE_UML.md als nicht-normative Diagramme", "tests/test_process_documentation.py prüft nur Doku-Konsistenz; kein Release-Workflow liest die Datei"]
+    },
+    {
+      "id": "runner-setup-guide",
+      "kind": "exact",
+      "path": "docs/RUNNER_SETUP.md",
+      "sample_path": "docs/RUNNER_SETUP.md",
+      "reason": "Das Runner-Neuaufbau-Kochbuch konsolidiert bestehende Betriebsrezepte; verbindlich bleiben RELEASE_AUTOMATION.md und scripts/abnahme_preflight.py, kein Build-, Release- oder Gate-Schritt liest die Datei (Doku-als-Code, analog TESTING.md/PROZESSE_UML.md).",
+      "evidence": ["Kein Workflow, Skript oder Test liest docs/RUNNER_SETUP.md als Eingabe", "Doku-Governance prüft nur Markdown-Links; das Dokument erklärt sich selbst als nicht-normativ gegenüber RELEASE_AUTOMATION.md"]
     },
     {
       "id": "security-guide",
