@@ -181,7 +181,14 @@ verboten.
   durch `convert("RGBA")` zu quetschen wäre stiller Präzisionsverlust,
   den #589 für Höhen bereits verbietet. (Alle beabsichtigten
   Verhaltensänderungen dieses Vertrags bündelt Abschnitt 12.)
-- Ausgaben sind immer `RGBA`; die Bildgröße bleibt exakt erhalten.
+- Ausgaben sind immer `RGBA`; die Bildgröße bleibt exakt erhalten. Das
+  gilt auch im Neutralfall: Der Same-Object-No-op (Abschnitt 6) greift
+  nur, wenn die Eingabe bereits `RGBA` ist – akzeptierte
+  Nicht-RGBA-Modi werden auch bei Neutralparametern konvertiert (die
+  Ausgaberegel schlägt die Objektidentität; beides zusammen wäre für
+  `RGB`/`L`/`LA`/`P` unerfüllbar). Das weicht bewusst vom heutigen
+  `adjust_color`-Neutral-Guard ab, der **vor** der Konvertierung steht
+  und ein `RGB`-Objekt unverändert zurückgibt (Abschnitt 12).
 
 ### 2. Farbraum und Transferfunktion
 
@@ -341,10 +348,13 @@ hinaus. ICC/Softproofing bleibt Nicht-Ziel des Epics.
   Reihenfolge (inklusive der uint8-Quantisierung je Stufe, die damit
   ausdrücklich Vertragsbestandteil bleibt).
 - **Identität/No-op:** Vollständig neutrale Parameter
-  (`grayscale=None`, Faktoren 1.0, Levels 0/255/1.0) geben **dasselbe
-  Eingabeobjekt** zurück – der bestehende Same-Object-Vertrag von
-  `adjust_color` wird auf die Pipeline ausgedehnt. `ColorToneParams`
-  bietet dafür `is_neutral` als O(1)-Prüfung.
+  (`grayscale=None`, Faktoren 1.0, Levels 0/255/1.0) geben bei einer
+  bereits `RGBA`-modigen Eingabe **dasselbe Eingabeobjekt** zurück –
+  der bestehende Same-Object-Vertrag von `adjust_color` wird insoweit
+  auf die Pipeline ausgedehnt; für akzeptierte Nicht-RGBA-Eingaben
+  liefert auch der Neutralfall das konvertierte `RGBA`-Ergebnis
+  (Ausgaberegel aus Abschnitt 1, O(1)-Modusprüfung vor dem Shortcut).
+  `ColorToneParams` bietet dafür `is_neutral` als O(1)-Prüfung.
 
 ### 7. Wertebereiche: Core-API vs. UI
 
@@ -378,12 +388,18 @@ sich ohne Core-Änderung verschieben.
   bleiben maskenfrei (ganzes Bild); die Mischung ist ein geteilter
   Compositor `blend_by_mask(original, bearbeitet, mask)` in `color_ops`.
   Vorschau und Commit rufen beide den **einen** Einstiegspunkt
-  `apply_color_pipeline(image, params, mask=None)`: Er validiert zuerst
-  **alle** Eingaben (Bildmodus, Maskenform/-dtype; `params` sind per DTO
-  bereits validiert) und komponiert erst danach intern Pipeline und
-  Mischung – die Maskenvalidierung läuft damit garantiert **vor** der
-  ersten Pixelberechnung (Abschnitt 9); `blend_by_mask` prüft als
-  eigenständige Funktion defensiv erneut.
+  `apply_color_pipeline(image, params, mask=None, cancel=None)`: Er
+  validiert zuerst **alle** Eingaben (Bildmodus, Maskenform/-dtype;
+  `params` sind per DTO bereits validiert) und komponiert erst danach
+  intern Pipeline und Mischung – die Maskenvalidierung läuft damit
+  garantiert **vor** der ersten Pixelberechnung (Abschnitt 9);
+  `blend_by_mask` prüft als eigenständige Funktion defensiv erneut.
+  `cancel` ist ein optionales **kooperatives Abbruch-Token**
+  (`Callable[[], bool]`, Muster `build_relief_mesh`) mit Prüfpunkten
+  mindestens zwischen den Stufen und vor der Mischung; Abbruch wirft
+  `ColorOpCancelled` (kein Teilresultat) – so bricht ein überholter
+  40-MP-Vorschau-Job vor dem Ende ab, statt Speicher und Latenz zu
+  binden (Abschnitt 10).
 - **Anbindung der heutigen Bool-Auswahl:** `CanvasSelection` bleibt im
   MVP binär; die Canvas-Grenze bildet `True/False` auf `255/0` ab. Damit
   treten heute nur die bitgenauen Randfälle auf; der Vertrag für weiche
@@ -450,12 +466,24 @@ sich ohne Core-Änderung verschieben.
   zwischen Vorschau und Ergebnis sind ausschließlich durch diese
   Anzeigeverkleinerung erklärbar (lokale Resampling-Effekte, keine
   globale Tonwertverschiebung) und werden in #696 mit dokumentierter
-  Toleranz abgenommen.
+  Toleranz abgenommen. Die bitgenauen `m == 0`/`m == 255`-Garantien aus
+  Abschnitt 8 gelten für den Commit-Pfad und jede
+  Vollauflösungs-Vorschau; auf dem Proxy-Pfad gelten sie in
+  Proxy-Auflösung vor der Rückskalierung – die angezeigten Pixel sind
+  dort ausdrücklich Anzeige-Näherung.
 - **Anzeigemechanik:** unverändert der transiente Layer-Override
   (#397/`swap_display_view`): kein Schreibpfad ins Modell, Verwerfen bei
   jedem Zustandswechsel (`_set_image_state`), `content_revision` bleibt
   unberührt → eine nicht committete Vorschau macht das Projekt **nie**
-  dirty und wird **nie** persistiert.
+  dirty und wird **nie** persistiert. Der Override enthält **immer ein
+  Bild in Ebenengröße**: Ein Proxy-Ergebnis wird vor dem Einsetzen
+  deterministisch auf die Ebenengröße zurückskaliert (benannter Filter,
+  dieselbe Festlegung wie die Hinskalierung, #694) – `swap_display_view`
+  änderte sonst die gemeldete Ebenengröße (`Layer.size` ist die Größe
+  der gehaltenen Ansicht), und Komposit (`alpha_composite`) wie
+  Auswahl-Overlay liefen gegen ein größenfremdes Bild. Hin- und
+  Rückskalierung samt zusätzlicher Rundung zählen zur
+  Anzeigeoptimierung.
 - **Expliziter Verwerfen-Vertrag:** Wird eine aktive COLOR-Vorschau
   unbedienbar (Verlassen des Schritts „Anpassen" in *jeden* anderen
   Schritt, Wechsel Experten→Standard-Modus, Ebenen-/Projektwechsel),
@@ -475,9 +503,15 @@ sich ohne Core-Änderung verschieben.
   Modus-/Ebenen-/Projektwechsel) erhöht wird; Verwerfen bricht den
   laufenden Job zusätzlich kooperativ ab und deaktiviert den Controller
   (Aktiv-Flag, Muster `Preview3DController._active`). Zu den beim Start
-  erfassten Bezügen gehören `content_revision`, Ebenen-ID **und der
-  Auswahlzustand** (Masken-Identität – nötig, weil Auswahländerungen die
-  `content_revision` nachweislich nicht erhöhen). Ein Ergebnis wird
+  erfassten Bezügen gehören `content_revision`, Ebenen-ID **und eine
+  neue monotone Auswahl-Revision** an `CanvasSelection` (jede
+  Maskenmutation – set/add/subtract/invert/clear/Pinsel – erhöht sie;
+  nötig, weil Auswahländerungen die `content_revision` nachweislich
+  nicht erhöhen, und als Zähler statt Masken-Identität, weil
+  `CanvasSelection` das Backing-Array in-place mutiert und der
+  `mask`-Getter je Zugriff eine frische View liefert – ein
+  Identitätsvergleich wäre in beide Richtungen unzuverlässig). Ein
+  Ergebnis wird
   **nur** angezeigt, wenn das Aktiv-Flag gesetzt ist und Generation und
   alle erfassten Bezüge noch aktuell sind – eine ältere
   Berechnungsgeneration kann einen neueren UI-Zustand nie überschreiben;
@@ -513,6 +547,17 @@ sich ohne Core-Änderung verschieben.
   `alpha: uint8 (H, W)` (Deckung, bitgenau aus dem Quellbild),
   `size: (Breite, Höhe)`, `value_range = (0, 255)`, `preset_id` und dem
   Parameter-Echo als Transformationsprovenienz.
+- **Preset↔Parameter-Regel (deterministisch):** `preset_id` ist kein
+  zweiter Graustufenpfad, sondern **setzt** das `grayscale`-Feld der
+  angewandten Parameter: Der Adapter ruft exakt
+  `apply_color_pipeline(image, params_mit_grayscale=preset_id)` auf –
+  es gilt die Stufenreihenfolge aus Abschnitt 6 (Graustufe zuerst), die
+  Graustufe läuft genau einmal. Ein bereits gesetztes, **abweichendes**
+  `params.grayscale` wird mit `ColorOpsError` abgewiesen (gleicher Wert
+  ist erlaubt). Da alle Folgestufen `R = G = B` erhalten (Sättigung ist
+  auf Grau exakt wirkungslos, Abschnitt 6; Helligkeit/Kontrast/Levels
+  wirken kanalgleich), ist der Graukanal des Pipeline-Ergebnisses
+  wohldefiniert – der Contract-Test hat genau ein erwartetes Ergebnis.
 - **Bindend:** Der Adapter ruft ausschließlich die Primitiven dieses
   Vertrags auf – ein Contract-Test (#696) belegt, dass UI-Pipeline und
   Adapter für identische Eingaben identische Core-Ergebnisse erhalten.
@@ -529,7 +574,11 @@ dieses Vertrags; alles hier nicht Gelistete bleibt verhaltensgleich:
 
 1. **Strenge Modus-Regel der neuen Engine-Funktionen** (Abschnitt 1):
    16-Bit-/Float-Modi werden abgewiesen statt still konvertiert;
-   `adjust_color` selbst bleibt tolerant.
+   `adjust_color` selbst bleibt tolerant. Ebenfalls Teil dieser
+   Abgrenzung: Der Same-Object-No-op der Pipeline gilt nur für
+   `RGBA`-Eingaben (Abschnitte 1/6), während der
+   `adjust_color`-Neutral-Guard vor der Konvertierung steht und heute
+   auch ein `RGB`-Objekt unverändert zurückgibt.
 2. **Parametervalidierung mit `ColorOpsError`** (Abschnitte 6/9): Die
    Pipeline weist ungültige Parameter vor jeder Berechnung ab, während
    `adjust_color` heute unvalidiert an Pillow durchreicht (definierte
@@ -574,7 +623,8 @@ dieses Vertrags; alles hier nicht Gelistete bleibt verhaltensgleich:
 - **#693 – Qt-freier Kern:** setzt Abschnitte 1, 3–9 um
   (`tone_curve.py`-Kern + Delegation aus `height_ops` mit bitgenauem
   Regressionstest, `GRAYSCALE_PRESETS`, `compute_histogram`,
-  `ColorToneParams`/`apply_color_pipeline`, `blend_by_mask`, `ColorOpsError`,
+  `ColorToneParams`/`apply_color_pipeline` (inkl. Abbruch-Token/
+  `ColorOpCancelled`), `blend_by_mask`, `ColorOpsError`,
   `saturation=0`-Paritätstest, Pillow-Wächtertest der
   Festkomma-Luminanz, `LUMA_WEIGHTS_REC601`-Import in `gloss_preview`).
 - **#694 – Live-Vorschau/UI:** setzt Abschnitte 7 und 10 um (Debounce,
@@ -583,7 +633,8 @@ dieses Vertrags; alles hier nicht Gelistete bleibt verhaltensgleich:
   Histogramm-Bezugs-Anzeige).
 - **#695 – Integration:** setzt Abschnitte 8–10 um (Maskenmischung mit
   64/128/192-Referenztests, No-op-Commit ohne History-Eintrag, genau ein
-  Undo-Schritt, Persistenz angewendeter Ergebnisse).
+  Undo-Schritt, monotone Auswahl-Revision an `CanvasSelection` für die
+  Stale-Prüfung, Persistenz angewendeter Ergebnisse).
 - **#696 – Abnahme:** misst die Budgets (Abschnitt 10), nimmt den
   Laser-Adapter-Contract-Test ab (Abschnitt 11) und dokumentiert die
   bekannten Grenzen (8 Bit, kodiertes sRGB, kein ICC).
