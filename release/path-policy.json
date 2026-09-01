@@ -468,6 +468,14 @@
       "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
     },
     {
+      "id": "color-tonwert-adr",
+      "kind": "exact",
+      "path": "docs/history/ADR-2026-color-tonwert-engine.md",
+      "sample_path": "docs/history/ADR-2026-color-tonwert-engine.md",
+      "reason": "ADR zum COLOR-Tonwert-/Histogramm-/Graustufen-Datenvertrag (#692, Epic #682); reine Entscheidungs-Historie, kein Build-, Test- oder Gate-Pfad liest die Datei als Eingabe.",
+      "evidence": ["Einziger Verweis ist der Markdown-Link in CLAUDE.md; die Doku-Governance (tests/test_markdown_links.py) prüft nur Link-Ziele"]
+    },
+    {
       "id": "pull-request-template",
       "kind": "exact",
       "path": ".github/PULL_REQUEST_TEMPLATE.md",
