@@ -739,7 +739,7 @@ Es ist keine Code-Änderung nötig.
   starten (`./svc.sh stop && ./svc.sh start`).
 - Nach Betriebssystem-Updates (Pi: `apt upgrade`, macOS: Systemupdate) einen
   Dry-Run des Abnahme-Workflows ausführen, bevor ein echtes Release ansteht.
-- Runner, die länger offline sind, entfernt GitHub nach 30 Tagen automatisch –
+- Runner, die länger offline sind, entfernt GitHub nach 14 Tagen automatisch –
   dann §2 wiederholen.
 
 ### 6.1 Neustart und Update je Gerät
