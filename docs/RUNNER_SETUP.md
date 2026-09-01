@@ -9,15 +9,23 @@ Dieses Dokument ist ein **Kochbuch**, keine neue Regelquelle: Verbindlich sind
 [`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) (§2 Registrierung, §2.1/§2.2
 Sitzung/Härtung, §3 Sicherheits-Checkliste, §6 Wartung, §7 Heartbeat) und der
 Prüfcode in [`scripts/abnahme_preflight.py`](../scripts/abnahme_preflight.py).
-Bei Widerspruch gelten diese Quellen. Alle Soll-Zustände hier sind exakt die
-Bedingungen, die der tägliche Heartbeat (`--hardening-strict`) durchsetzt.
+Bei Widerspruch gelten diese Quellen. Die maschinell prüfbaren Soll-Zustände
+sind exakt die Bedingungen des täglichen Heartbeats (`--hardening-strict`);
+Registrierung, Runner-Namen und Ablageorte prüft er nicht.
 
-Zielzustand (aus [`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §1):
+Zielzustand (Geräte/Labels aus [`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md)
+§1, Dienstform aus §2; die Runner-Namen sind Konvention dieses Repos):
 
 | Gerät | Runner-Name | Labels | Dienstform |
 |---|---|---|---|
 | MacBook (Apple Silicon) | `Mac` | `self-hosted`, `macOS`, `ARM64` | LaunchAgent des angemeldeten Benutzers |
 | Raspberry Pi 5 (Debian 12, Desktop) | `raspberrypi` | `self-hosted`, `Linux`, `ARM64` | systemd-System-Dienst |
+
+**Wo welche Kommandos laufen:** Alle `gh`-Kommandos dieser Anleitung laufen
+auf dem **Arbeitsrechner** (installiertes, authentifiziertes `gh` mit
+Admin-Rechten am Repository), niemals auf dem Runner-Gerät – dorthin gehört
+kein Repository-Token ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §3).
+Alle übrigen Blöcke laufen auf dem jeweiligen Gerät.
 
 ---
 
@@ -25,8 +33,8 @@ Zielzustand (aus [`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §1):
 
 ### 0.1 Aus der Ferne (Repository-Sicht)
 
-Braucht `gh` mit einem Konto, das Admin-Rechte am Repository hat (als Owner
-reicht das normale `gh auth login`):
+Auf dem Arbeitsrechner; als Repository-Owner reicht das normale
+`gh auth login`:
 
 ```sh
 REPO=NikolayDA/picture_helper
@@ -61,7 +69,7 @@ Einordnung:
 
 Der tägliche Heartbeat ist die verbindliche Bereitschaftsprüfung
 ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §7). Ein manueller Lauf
-beantwortet „vorhanden **und** einsatzbereit?" in unter einer Minute:
+beantwortet „vorhanden **und** einsatzbereit?":
 
 ```sh
 REPO=NikolayDA/picture_helper
@@ -72,46 +80,59 @@ gh run watch --repo "$REPO" \
      --json databaseId --jq '.[0].databaseId')" --exit-status
 ```
 
-- **Grün** (≈ 40 s): beide Runner haben den Job angenommen und die strikte
-  Bereitschaftsprüfung bestanden – nichts zu tun.
-- **Rot nach ~15 min**: mindestens ein Runner nimmt keine Jobs an (offline
-  oder belegt); der Befund steht als Kommentar im Betriebs-Issue
-  [#939](https://github.com/NikolayDA/picture_helper/issues/939).
-- **Rot, aber Runner-Job lief**: Das Joblog des jeweiligen
-  `Heartbeat …`-Jobs nennt die gescheiterte Prüfung (`[preflight]`/
-  `[haertung]`-Zeilen) – Abhilfe je Befund in §2–§3 dieses Dokuments.
+- **Grün** (typisch unter einer Minute; nach einem Neuaufsetzen wegen des
+  einmaligen Qt-Runtime-Baus deutlich länger): beide Runner haben den Job
+  angenommen und die strikte Bereitschaftsprüfung bestanden – nichts zu tun.
+- **Offline-Fall:** Der FAIL-Kommentar im Betriebs-Issue
+  [#939](https://github.com/NikolayDA/picture_helper/issues/939) kommt zur
+  Annahmefrist (~15 min). Der **Lauf** selbst bleibt danach offen – der
+  wartende Runner-Job hält ihn, erst der Folgetag beendet ihn als
+  „cancelled" ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §7,
+  *Grenzen*). `gh run watch` dann abbrechen und den Issue-Kommentar bzw. den
+  roten Job „Heartbeat-Auswertung" lesen.
+- **Rot, aber der Runner-Job lief:** Das Joblog des jeweiligen
+  `Heartbeat …`-Jobs nennt die gescheiterte Prüfung als
+  `::error`-Annotation (Titel `Preflight <plattform>` bzw.
+  `Haertung <plattform>`) – Abhilfe je Befund in §2–§3 dieses Dokuments.
 
 ### 0.3 Auf dem Gerät selbst
 
-Im Runner-Verzeichnis (`~/actions-runner`):
+Dienststatus, im Runner-Verzeichnis – macOS:
 
 ```sh
-# macOS:
 cd ~/actions-runner && ./svc.sh status
+```
 
-# Raspberry Pi:
+Raspberry Pi:
+
+```sh
 cd ~/actions-runner
 systemctl is-active "$(cat .service)"
 systemctl show "$(cat .service)" -p Restart --value   # Soll: always
 ```
 
 Vollständige Bereitschafts- und Härtungsprüfung (identisch zum Heartbeat) im
-Repo-Checkout auf dem Gerät:
+Repo-Checkout auf dem Gerät – macOS:
 
 ```sh
-# macOS:
+cd ~/picture_helper
 python3 scripts/abnahme_preflight.py --platform macos-arm64 --hardening-strict
-# Raspberry Pi:
+```
+
+Raspberry Pi (über SSH vorher die Sitzungsvariablen exportieren, §3.5):
+
+```sh
+cd ~/picture_helper
 python3 scripts/abnahme_preflight.py --platform linux-arm64 --hardening-strict
 ```
 
 Beim allerersten Aufruf baut die `qt-gl`-Sonde einmalig ihre schlanke
 Qt-Runtime (`~/.cache/bgremover/preflight-qt`, bis zu 7 Minuten); danach ist
-der Aufruf schnell. Nur die Härtung – ohne Runtime-Bau, ohne Checkout-Pflicht
-auf dem Zielsystempfad – prüft dieser Schnelltest:
+der Aufruf schnell. Nur die Härtung – ohne Runtime-Bau – prüft dieser
+Schnelltest (funktioniert auf beiden Geräten unverändert):
 
 ```sh
-# Im Repo-Checkout; auf dem Mac "macos-arm64", auf dem Pi "linux-arm64":
+cd ~/picture_helper
 python3 - <<'EOF'
 import sys
 sys.path.insert(0, "scripts")
@@ -130,7 +151,11 @@ Aus [`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §1/§3 und
 `scripts/abnahme_preflight.py`:
 
 - **Dedizierter Benutzer** ohne Zugriff auf persönliche Daten/Schlüssel
-  (§3); der Runner wird unter diesem Benutzer eingerichtet und dieser
+  (§3). Anlegen: Mac über Systemeinstellungen → Benutzer:innen (mit
+  Admin-Rechten für die einmalige Einrichtung, siehe §2.3); Pi über den
+  Raspberry Pi Imager bzw. den Erststart-Assistenten – der dort angelegte
+  Benutzer ist zugleich der Runner-Benutzer und Mitglied der
+  `sudo`-Gruppe. Der Runner läuft unter diesem Benutzer, und dieser
   Benutzer ist an der grafischen Sitzung angemeldet.
 - `python3` ≥ 3.10 **mit venv-Modul** im PATH (Debian/Pi: Paket
   `python3-venv`).
@@ -143,7 +168,7 @@ Aus [`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §1/§3 und
 - PyQt6 muss **nicht** systemweit installiert werden – Workflow und
   Preflight legen ihre venvs selbst an. Auf dem Pi müssen die
   Qt-Systembibliotheken der laufenden Desktop-Session vorhanden sein
-  (Raspberry Pi OS **mit Desktop** bringt sie mit).
+  (Raspberry Pi OS **mit Desktop** bringt sie mit, §3.1).
 
 Die Registrierung selbst läuft für beide Geräte gleich
 ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §2): GitHub → Repository →
@@ -166,9 +191,15 @@ wenn das Gerät bereitsteht. Bei `./config.sh` gilt:
 
 ### 2.1 Systemvoraussetzungen
 
-Dokumentierte Bezugsquelle für Python/git auf macOS ist Homebrew
-([`INSTALL_MAC.md`](../INSTALL_MAC.md)); jedes andere `python3` ≥ 3.10 samt
-`git` tut es ebenso:
+Auf einem fabrikneuen Mac zuerst Homebrew installieren (der Installer holt
+dabei auch die Xcode Command Line Tools und damit `git`; Quelle:
+[brew.sh](https://brew.sh)) – danach Python/git wie in
+[`INSTALL_MAC.md`](../INSTALL_MAC.md) dokumentiert:
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+eval "$(/opt/homebrew/bin/brew shellenv)"
+```
 
 ```sh
 brew install python git
@@ -178,7 +209,7 @@ python3 --version   # Soll: ≥ 3.10
 Das Runner-Verzeichnis (`~/actions-runner`) und der Repo-Checkout gehören
 **nicht** nach `~/Documents`, `~/Desktop`, `~/Downloads` oder in iCloud
 Drive – dort blockiert macOS-TCC Dateizugriffe gestarteter Programme
-([`INSTALL_MAC.md`](../INSTALL_MAC.md), Abschnitt Problembehandlung); direkt
+([`INSTALL_MAC.md`](../INSTALL_MAC.md), Abschnitt „Troubleshooting"); direkt
 unter dem Home-Verzeichnis ist richtig.
 
 ### 2.2 Runner registrieren und als Dienst einrichten
@@ -208,11 +239,17 @@ printf 'Runner: %s; Konsole: %s\n' "$(id -un)" "$(stat -f '%Su' /dev/console)"
 ### 2.3 Härtung: Sleep-Schutz und Neustart-Policy (Pflicht für den Heartbeat)
 
 **Sleep-Schutz** – am Netzteil weder System- noch Display-Schlaf (der
-Display-Schlaf zählt mit, die Abnahme erzeugt native Screenshots):
+Display-Schlaf zählt mit, die Abnahme erzeugt native Screenshots). Die
+`pmset`-Kommandos brauchen Admin-Rechte; einmalig von einem Admin
+ausgeführt, wirkt die Einstellung systemweit:
 
 ```sh
 sudo pmset -c sleep 0 displaysleep 0
-# Nur für einen zugeklappt betriebenen MacBook zusätzlich:
+```
+
+Nur für einen **zugeklappt** betriebenen MacBook zusätzlich:
+
+```sh
 sudo pmset -a disablesleep 1
 ```
 
@@ -238,10 +275,12 @@ plist=~/Library/LaunchAgents/$(basename "$(cat .service)")
 
 ### 2.4 Abschlussprüfung am Gerät
 
-Im Repo-Checkout (einmalig `git clone
-https://github.com/NikolayDA/picture_helper.git && cd picture_helper`):
+Einmalig den Repo-Checkout anlegen (direkt unter dem Home-Verzeichnis,
+§2.1), dann den strikten Preflight fahren:
 
 ```sh
+cd ~ && git clone https://github.com/NikolayDA/picture_helper.git
+cd ~/picture_helper
 python3 scripts/abnahme_preflight.py --platform macos-arm64 --hardening-strict
 ```
 
@@ -254,10 +293,12 @@ Qt-Runtime-Baus bis zu 7 Minuten.
 
 ## 3. Raspberry Pi (Linux arm64) neu aufsetzen
 
-### 3.1 Betriebssystem und Pakete
+### 3.1 Betriebssystem, Pakete und Checkout
 
 Raspberry Pi OS **mit Desktop** (Debian 12, 64-bit) installieren – die
-Qt-/GL-Systembibliotheken der Desktop-Session sind Voraussetzung. Dann:
+Qt-/GL-Systembibliotheken der Desktop-Session sind Voraussetzung. Der im
+Imager bzw. Erststart-Assistenten angelegte Benutzer ist der
+Runner-Benutzer (§1). Dann:
 
 ```sh
 sudo apt update
@@ -271,17 +312,31 @@ auch die PyQt6-Wheels der Prüf-venvs zur Laufzeit brauchen
 ([`INSTALL_LINUX.md`](../INSTALL_LINUX.md)); `libfuse2` braucht der direkte
 AppImage-Start im Abnahme-Smoke.
 
-**Desktop-Autologin** aktivieren, sonst existiert nach einem Reboot keine
-grafische Sitzung und jede GL-Prüfung fällt:
-`sudo raspi-config` → *System Options* → *Boot / Auto Login* →
-*Desktop Autologin*.
+Zwei Einstellungen in `sudo raspi-config`:
+
+- **Desktop-Autologin** (*System Options* → *Boot / Auto Login* →
+  *Desktop Autologin*) – sonst existiert nach einem Reboot keine grafische
+  Sitzung und jede GL-Prüfung fällt.
+- **SSH aktivieren** (*Interface Options* → *SSH*; alternativ beim Flashen
+  im Raspberry Pi Imager vorkonfigurieren) – für die Reboot-Probe (§3.5)
+  und die Fernwartung.
+
+Einmalig den Repo-Checkout für die manuellen Prüfschritte anlegen (der
+Heartbeat selbst checkt in seinen Jobs eigenständig aus):
+
+```sh
+cd ~ && git clone https://github.com/NikolayDA/picture_helper.git
+```
 
 ### 3.2 Eng begrenztes sudo für den .deb-Smoke
 
 Der Abnahme-Lauf installiert/entfernt das `bgremover`-Paket; der
 Runner-Benutzer braucht dafür **nur** diese zwei Kommandos passwortlos
 ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §3 – kein allgemeines
-NOPASSWD):
+NOPASSWD). Den Block **als der Runner-Benutzer** ausführen – `$(id -un)`
+landet wörtlich in der sudoers-Datei; als anderer Benutzer ausgeführt,
+bekäme der falsche Account die Rechte und der Preflight-Check `deb-sudo`
+fiele trotzdem:
 
 ```sh
 printf '%s ALL=(root) NOPASSWD: /usr/bin/apt-get install *, /usr/bin/dpkg -r bgremover\n' "$(id -un)" \
@@ -308,7 +363,8 @@ sudo ./svc.sh status
 ```
 
 `cat .service` nennt die erzeugte Unit
-(`actions.runner.<repo>.<name>.service`).
+(`actions.runner.<owner>-<repo>.<name>.service`, hier also
+`actions.runner.NikolayDA-picture_helper.raspberrypi.service`).
 
 ### 3.4 Drop-in: grafische Sitzung und Neustart-Policy (Pflicht)
 
@@ -348,11 +404,12 @@ sudo systemctl daemon-reload
 sudo ./svc.sh stop && sudo ./svc.sh start
 ```
 
-Prüfen (Benutzer, Umgebung, Policy):
+Prüfen (funktioniert auch in einer späteren, frischen Shell):
 
 ```sh
-systemctl show "$unit" -p User -p Environment
-systemctl show "$unit" -p Restart --value   # Soll: always
+cd ~/actions-runner
+systemctl show "$(cat .service)" -p User -p Environment
+systemctl show "$(cat .service)" -p Restart --value   # Soll: always
 ```
 
 Der Preflight akzeptiert als Restart-Policy `always`, `on-failure` oder
@@ -375,7 +432,11 @@ einem Zug ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §2.2):
 
 ```sh
 sudo reboot
-# Nach dem Hochfahren, OHNE manuelle Anmeldung, per SSH:
+```
+
+Nach dem Hochfahren, **ohne** manuelle Anmeldung, per SSH:
+
+```sh
 cd ~/actions-runner
 systemctl is-active "$(cat .service)"                 # Soll: active
 systemctl show "$(cat .service)" -p Restart --value   # Soll: always
@@ -388,10 +449,13 @@ Dann den Heartbeat von Hand starten (§4) – erst dessen grüner
 
 Hinweis für Handläufe über SSH: `scripts/abnahme_preflight.py` liest die
 Umgebung des **eigenen** Prozesses. Vor einem manuellen Aufruf über SSH also
-exportieren, was das Drop-in dem Dienst gibt:
+exakt die Werte exportieren, die im Drop-in `10-abnahme.conf` stehen
+(Wayland-Beispiel; bei einer X11-Session stattdessen
+`export DISPLAY=… XAUTHORITY=…`):
 
 ```sh
 export WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u)
+cd ~/picture_helper
 python3 scripts/abnahme_preflight.py --platform linux-arm64 --hardening-strict
 ```
 
@@ -399,9 +463,10 @@ python3 scripts/abnahme_preflight.py --platform linux-arm64 --hardening-strict
 
 ## 4. Abschluss: Repository-Konfiguration und Erst-Heartbeat
 
-Der Heartbeat verlangt die Repository-Variable `RUNNER_HEARTBEAT_ISSUE`
-(Betriebs-Issue als Alarmkanal, aktuell `939`) – ohne sie bricht die
-Auswertung absichtlich vor der Messung ab. Bestand prüfen bzw. setzen:
+Auf dem Arbeitsrechner. Der Heartbeat verlangt die Repository-Variable
+`RUNNER_HEARTBEAT_ISSUE` (Betriebs-Issue als Alarmkanal, aktuell `939`) –
+ohne sie bricht die Auswertung absichtlich vor der Messung ab. Bestand
+prüfen bzw. setzen:
 
 ```sh
 REPO=NikolayDA/picture_helper
@@ -410,16 +475,18 @@ gh variable list --repo "$REPO"
 gh variable set RUNNER_HEARTBEAT_ISSUE --repo "$REPO" --body "939"
 ```
 
-`ABNAHME_X86_64_ENABLED` darf dabei **nicht** gesetzt sein, solange kein
-x86_64-Gerät existiert – sonst meldet jeder Lauf einen Ausfall, den es nicht
-gibt. Danach den Erst-Heartbeat starten und abwarten (Kommandos in §0.2).
-Grün = beide Geräte angenommen **und** bestanden; fertig.
+`ABNAHME_X86_64_ENABLED` darf dabei **nicht auf `true`** stehen, solange
+kein x86_64-Gerät existiert (jeder andere Wert wirkt wie „nicht gesetzt") –
+sonst meldet jeder Lauf einen Ausfall, den es nicht gibt. Danach den
+Erst-Heartbeat starten und abwarten (Kommandos in §0.2). Grün = beide Geräte
+angenommen **und** bestanden; fertig.
 
 Für geplante Wartungsfenster (Neuaufsetzen des zweiten Geräts, OS-Updates)
 den Heartbeat **befristet** pausieren und danach die Pause entfernen
 ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §6.1/§7):
 
 ```sh
+REPO=NikolayDA/picture_helper
 gh variable set RUNNER_HEARTBEAT_PAUSED --repo "$REPO" --body "true"
 gh variable set RUNNER_HEARTBEAT_PAUSED_UNTIL --repo "$REPO" --body "2026-12-31"  # Enddatum anpassen
 # … Eingriff …
@@ -445,7 +512,10 @@ Bevor ein „offline"-Runner neu registriert wird
 | Heartbeat rot: `sleep-schutz`/`dienst-neustart` | §2.3 bzw. §3.4 erneut anwenden – `KeepAlive` überlebt kein `svc.sh install` |
 | Runner aus der GitHub-Liste verschwunden | Mehr als 14 Tage offline, von GitHub entfernt → Registrierung und Dienst (§2/§3) komplett wiederholen |
 
-Ein Befund für `Mac` oder `raspberrypi` im Betriebs-Issue
-[#939](https://github.com/NikolayDA/picture_helper/issues/939) ist immer
-echt und gehört zeitnah behandelt – der Heartbeat kommentiert nur im
-Fehlerfall.
+Ein FAIL-Kommentar im Betriebs-Issue
+[#939](https://github.com/NikolayDA/picture_helper/issues/939) ist nie
+Rauschen, aber der Text unterscheidet: „mit einem anderen Lauf belegt"
+während einer laufenden Abnahme ist kein Ausfall
+([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §7); jeden anderen Befund
+für `Mac` oder `raspberrypi` zeitnah behandeln – der Heartbeat kommentiert
+nur im Fehlerfall.
