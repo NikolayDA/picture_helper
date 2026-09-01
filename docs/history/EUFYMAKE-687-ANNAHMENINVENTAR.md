@@ -584,3 +584,37 @@ fehlende Testzelle, kein Ergebnis.
    A11-Schwarzmaske zu korrigieren bzw. in #690 real zu testen.
 5. Testmatrix und Protokoll müssen aktuelle öffentliche Software-/Firmwarestände,
    Containergeneration und Crop/Depth-Map-Registrierung aufnehmen.
+
+---
+
+## Nachtrag zur #688-Testvorbereitung (2026-09-01)
+
+Die Prüfung des tatsächlich eingecheckten Materials ergab zwei
+Konfundierungen, die vor einem Hardwarelauf geschlossen werden mussten:
+
+1. I-02 und I-08 kombinierten COLOR mit 1200×1200 bzw. 2400×1800 px mit einer
+   256×256-HEIGHT-Map. Damit waren Reliefzuordnung und Crop-Verhalten nicht von
+   Größen-/Seitenverhältnisbehandlung zu trennen.
+2. Alle COLOR-Fixtures waren voll opak. EM-R04 und das #688-Kriterium
+   „nicht-null HEIGHT in transparenten COLOR-Bereichen" hatten weder Fixture
+   noch Protokollzelle.
+
+Der deterministische Generator ergänzt deshalb
+`color_height_reference.png` (RGBA, 256×256, voll opak) und
+`color_alpha_coverage.png` (RGBA, 256×256, drei Felder Alpha 0/128/255). I-02
+und I-08 verwenden die erste Datei zusammen mit der dimensionsgleichen
+`height_wedge_16bit.png`. Die neue Zelle **I-13** kombiniert die zweite Datei
+mit `height_mean_16bit.png`, deren digitaler HEIGHT-Wert über die gesamte
+Fläche konstant 32768 und damit sicher nicht null ist.
+
+| Zelle | Eingabe | Variierter Faktor | Erwartete Beobachtung | Messmethode |
+| --- | --- | --- | --- | --- |
+| I-02 | `color_height_reference.png` + `height_wedge_16bit.png` | HEIGHT zugeordnet, identisches Pixelmaß | Reliefzuordnung ohne Größen-Konfundierung; hell = hoch | Studio-Vorschau + Screenshot |
+| I-08 | dasselbe dimensionsgleiche Paar vor/nach Crop | Crop | Referenzmarker und Relief bleiben registriert | Vorschau-Differenz + Ausdruck |
+| I-13 | `color_alpha_coverage.png` + `height_mean_16bit.png` | COLOR-Alpha 0/128/255 bei konstantem HEIGHT 32768 | Coverage-/Underbase-Effekt je Feld, ohne HEIGHT-Wert als Störvariable | Vorschau + Druckmessung/Fotoreferenz |
+
+Der neue unabhängige Pre-Import-Inspector
+`scripts/eufymake_fixture_inspector.py` liest am Zielrechner SHA-256,
+Bytegröße, PIL-Modus, IHDR, vollständige Chunkfolge, `pHYs` und CRCs aus und
+schreibt einen JSON-Nachweis. Dieser Nachtrag ändert keine Hardwareaussage:
+Import- und Druckresultate bleiben bis zum realen Test als **offen** markiert.

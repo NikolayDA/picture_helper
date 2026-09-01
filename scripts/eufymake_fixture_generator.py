@@ -15,6 +15,11 @@ Drei Fixture-Rollen, alle unter ``tests/fixtures/eufymake_hardware/``:
 - **HEIGHT** (#688-Testdesign): sieben Muster (Nullfläche, Maximalfläche,
   monotoner Keil, invertierter Keil, diskrete Stufen, Impuls/Kante,
   konstanter Mittelwert), je als 8-Bit ``L`` und 16-Bit ``I;16``.
+- **COLOR/HEIGHT-Kontrollen** (#688-Testdesign): ein voll opakes
+  Registriermotiv mit exakt demselben Pixelmaß wie die HEIGHT-Referenz sowie
+  ein dreigeteiltes RGBA-Motiv mit 0/50/100 % Alpha. Letzteres wird mit einer
+  konstanten, nicht-null HEIGHT-Map kombiniert und trennt dadurch
+  Alpha/Coverage vom digitalen Höhenwert.
 - **mm/DPI** (#689-Testdesign): ein Kontrollmotiv mit Messrahmen und
   Achsenmarkern (asymmetrische Markierungsdichte auf X- vs. Y-Achse, damit
   ein achsenspezifischer Skalierungsfehler sichtbar wird) in drei
@@ -77,6 +82,8 @@ SCHEMA_VERSION = 1
 
 HEIGHT_SIZE = (256, 256)  # (Breite, Höhe) px – klein genug fürs Repo, groß
 # genug für eine sichtbare Stufen-/Keilauflösung.
+COLOR_HEIGHT_PAIR_SIZE = HEIGHT_SIZE
+ALPHA_FIELD_LEVELS = (0, 128, 255)
 GLOSS_SIZE = (256, 256)
 CHECKER_SQUARE = 16  # px je Schachbrettfeld bei 256 px Kantenlänge → 16×16 Felder.
 STEP_LEVELS = 8  # diskrete Stufen für Höhen-/Gloss-„Treppenkeil"-Fixtures.
@@ -326,6 +333,67 @@ def _draw_control_motif(width: int, height: int) -> Image.Image:
     return img
 
 
+def _draw_alpha_coverage_motif(width: int, height: int) -> tuple[Image.Image, list[dict[str, int]]]:
+    """Drei gleich große Farbfelder mit 0/128/255 Alpha erzeugen.
+
+    Die RGB-Werte bleiben je Feld verschieden, selbst wenn Alpha 0 ist. Damit
+    lässt sich ein Importer erkennen, der transparente RGB-Payload fälschlich
+    als sichtbare Farbe oder Druckdeckung behandelt. Die 256 Pixel Breite sind
+    nicht durch drei teilbar; die deterministischen Grenzen verteilen das eine
+    Restpixel auf das mittlere Feld.
+    """
+    boundaries = [round(index * width / len(ALPHA_FIELD_LEVELS)) for index in range(4)]
+    colors = ((220, 40, 40), (40, 180, 40), (40, 80, 220))
+    array = np.empty((height, width, 4), dtype=np.uint8)
+    fields: list[dict[str, int]] = []
+    for index, (alpha, color) in enumerate(zip(ALPHA_FIELD_LEVELS, colors, strict=True)):
+        start, end = boundaries[index], boundaries[index + 1]
+        array[:, start:end, :3] = color
+        array[:, start:end, 3] = alpha
+        fields.append({"x_start": start, "x_end_exclusive": end, "alpha": alpha})
+    return Image.fromarray(array, mode="RGBA"), fields
+
+
+def generate_color_height_control_fixtures() -> list[FixtureSpec]:
+    """Dimensionsgleiche COLOR-Referenz und Alpha/Coverage-Kontrolle für #688."""
+    width, height = COLOR_HEIGHT_PAIR_SIZE
+    reference = _draw_control_motif(width, height)
+    alpha_motif, alpha_fields = _draw_alpha_coverage_motif(width, height)
+    return [
+        FixtureSpec(
+            filename="color_height_reference.png",
+            role="color_motif",
+            pattern="height_registration_reference",
+            bit_depth=8,
+            png_mode="RGBA",
+            image=reference,
+            params={
+                "width_px": width,
+                "height_px": height,
+                "paired_height_files": ["height_wedge_16bit.png"],
+                "alpha_levels": [255],
+                "purpose": "I-02/I-08: COLOR und HEIGHT ohne Größen-Konfundierung",
+            },
+        ),
+        FixtureSpec(
+            filename="color_alpha_coverage.png",
+            role="color_motif",
+            pattern="alpha_coverage_fields",
+            bit_depth=8,
+            png_mode="RGBA",
+            image=alpha_motif,
+            params={
+                "width_px": width,
+                "height_px": height,
+                "paired_height_file": "height_mean_16bit.png",
+                "paired_height_value": 32768,
+                "alpha_fields": alpha_fields,
+                "purpose": "I-13: Alpha/Coverage bei konstanter nicht-null HEIGHT",
+            },
+        ),
+    ]
+
+
 def generate_mm_dpi_fixtures() -> list[FixtureSpec]:
     specs: list[FixtureSpec] = []
     for combo in MM_DPI_COMBOS:
@@ -407,6 +475,7 @@ def generate_all_fixtures() -> list[FixtureSpec]:
         *generate_height_fixtures(),
         *generate_pixel_size_variant_fixture(),
         *generate_aspect_ratio_variant_fixture(),
+        *generate_color_height_control_fixtures(),
         *generate_mm_dpi_fixtures(),
         *generate_gloss_fixtures(),
     ]

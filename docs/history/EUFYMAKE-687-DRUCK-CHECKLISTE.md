@@ -29,6 +29,10 @@ Quelldokumente.
 - [ ] Fixtures aktuell: entweder die committeten Fixtures aus
       `tests/fixtures/eufymake_hardware/` verwenden oder frisch erzeugen
       (`python scripts/eufymake_fixture_generator.py generate`).
+- [ ] Unabhängigen Pre-Import-Report am Zielrechner erzeugt:
+      `python scripts/eufymake_fixture_inspector.py --output
+      eufymake-pre-import-report.json`; Ergebnis `ok: true`, Report bei den
+      übrigen Testnachweisen abgelegt.
 - [ ] Die drei Protokolltabellen aus `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`
       griffbereit (digital oder ausgedruckt), um sie parallel zu dieser
       Checkliste auszufüllen.
@@ -99,17 +103,18 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 17 | I-10 (invertiert) | ☐ | ☐ |
 | 18 | I-11 | ☐ | ☐ |
 | 19 | I-12 | ☐ | ☐ |
+| 20 | I-13 (Alpha/Coverage) | ☐ | ☐ |
 
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 
-- [ ] Alle 19 Zeilen aus Phase 1 abgeschlossen; keine ungeklärten
+- [ ] Alle 20 Zeilen aus Phase 1 abgeschlossen; keine ungeklärten
       Sicherheits-/Fehlerfälle offen.
 - [ ] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
       protokolliert, nicht nur bei „Ja" übersprungen.
 - [ ] Budget-Startstand notiert (0 von 24 am allerersten Testtag, sonst der
       aus Abschnitt 1 übertragene Vortagesstand).
 
-## 5. Phase 3 — Druck je Variante (12 Varianten, max. 24 Drucke gesamt)
+## 5. Phase 3 — Druck je Variante (13 Varianten, max. 24 Drucke gesamt)
 
 Nur Zellen, die tatsächlich im Druckprotokoll (§3) stehen. Je Variante:
 Budget prüfen → drucken → vermessen → Foto → Druckprotokoll-Zeile ausfüllen
@@ -129,9 +134,9 @@ anwenden, **nicht** automatisch wiederholen.
 `PROTOKOLL-VORLAGEN.md` §3): Nullpunkt/Grundfläche, monotoner Keil,
 mm/DPI-Referenz, Gloss-Polarität. Welche der Varianten unten das im Einzelnen
 sind, ist am Testtag anhand der Kategorien zuzuordnen – nicht vorab
-festgelegt. Solange das Budget nicht überschritten wird, ist es am
-einfachsten, grundsätzlich jede Variante zweimal zu drucken (12 × 2 = 24,
-schöpft das freigegebene Budget genau aus).
+festgelegt. Nach je einem Erstlauf der 13 Varianten bleiben im unveränderten
+24er-Budget höchstens elf Wiederholungen. Deshalb zuerst die Kernaussagen
+wiederholen; nicht automatisch jede Variante zweimal drucken.
 
 | # | Variante | Lauf 1 | Lauf 2 | Lauf 3+ (nur mit Owner-Freigabe, Vermerk wo/warum) | Fotoreferenz eingetragen | Druckprotokoll-Zeile ausgefüllt |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -147,12 +152,13 @@ schöpft das freigegebene Budget genau aus).
 | 10 | I-10 (invertiert) | ☐ | ☐ | | ☐ | ☐ |
 | 11 | I-11 | ☐ | ☐ | | ☐ | ☐ |
 | 12 | I-12 | ☐ | ☐ | | ☐ | ☐ |
+| 13 | I-13 (Alpha/Coverage) | ☐ | ☐ | | ☐ | ☐ |
 
 **Budget-Laufsumme:** Jede angekreuzte oder mit einem Vermerk versehene
 Zelle in **Lauf 1, Lauf 2 oder Lauf 3+** ist ein physischer Druck und zählt
 mit – auch ein Fehldruck ohne verwertbare Messung (Abschnitt 2), auch ein
 mit Owner-Freigabe genehmigter dritter Lauf. Summe über alle drei Spalten
-und alle 12 Zeilen darf **24 nicht überschreiten**; bei 20/24 oder mehr die
+und alle 13 Zeilen darf **24 nicht überschreiten**; bei 20/24 oder mehr die
 Budget-Eskalation aus Abschnitt 2 dieser Checkliste prüfen, bevor
 weitergedruckt wird.
 
@@ -166,6 +172,9 @@ weitergedruckt wird.
 - [ ] Jede Aussage bereits jetzt oder spätestens beim Zusammenfassen in
       einen Vertrag als „Herstellerangabe", „Importbeobachtung" oder
       „Druckmessung" gekennzeichnet (#687-AC).
+- [ ] #688-Resultate samt Messpunkten und finaler Default-/Validator-
+      Entscheidung in `EUFYMAKE-688-HEIGHT-VERTRAG.md` übertragen; keine
+      leeren Felder als negatives oder positives Ergebnis gewertet.
 - [ ] Kurzer Ermüdungsfehler-Check: passen Anzahl bearbeiteter Zellen und
       Sorgfalt der Protokollierung zusammen? Falls nicht, betroffene Zeilen
       am nächsten Testtag erneut prüfen statt unklare Werte stehen zu

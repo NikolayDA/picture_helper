@@ -1,8 +1,65 @@
 {
   "schema": 1,
   "generated_by": "scripts/eufymake_fixture_generator.py",
-  "fixture_count": 31,
+  "fixture_count": 33,
   "fixtures": [
+    {
+      "filename": "color_alpha_coverage.png",
+      "role": "color_motif",
+      "pattern": "alpha_coverage_fields",
+      "bit_depth": 8,
+      "png_mode": "RGBA",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "paired_height_file": "height_mean_16bit.png",
+        "paired_height_value": 32768,
+        "alpha_fields": [
+          {
+            "x_start": 0,
+            "x_end_exclusive": 85,
+            "alpha": 0
+          },
+          {
+            "x_start": 85,
+            "x_end_exclusive": 171,
+            "alpha": 128
+          },
+          {
+            "x_start": 171,
+            "x_end_exclusive": 256,
+            "alpha": 255
+          }
+        ],
+        "purpose": "I-13: Alpha/Coverage bei konstanter nicht-null HEIGHT"
+      },
+      "sha256": "7c012faf9edd8f1ae6ada189aea5a0a93a8944e038dd37a724344fac43a60d15",
+      "bytes": 878
+    },
+    {
+      "filename": "color_height_reference.png",
+      "role": "color_motif",
+      "pattern": "height_registration_reference",
+      "bit_depth": 8,
+      "png_mode": "RGBA",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "paired_height_files": [
+          "height_wedge_16bit.png"
+        ],
+        "alpha_levels": [
+          255
+        ],
+        "purpose": "I-02/I-08: COLOR und HEIGHT ohne Größen-Konfundierung"
+      },
+      "sha256": "8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493",
+      "bytes": 1773
+    },
     {
       "filename": "gloss_checkerboard.png",
       "role": "gloss_mask",

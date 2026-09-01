@@ -93,7 +93,9 @@ def test_fixture_roles_and_counts() -> None:
     # Variante (kein eigenes Muster in _HEIGHT_PATTERNS, siehe die dedizierten
     # Tests unten).
     assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2 + 2
-    assert by_role["color_motif"] == len(gen.MM_DPI_COMBOS) * 3  # no_phys/phys/conflict
+    # mm/DPI no_phys/phys/conflict plus dimensionsgleiche Referenz und
+    # Alpha/Coverage-Kontrolle für #688.
+    assert by_role["color_motif"] == len(gen.MM_DPI_COMBOS) * 3 + 2
     assert by_role["gloss_mask"] == len(gen._GLOSS_PATTERNS)
 
     filenames = [spec.filename for spec in specs]
@@ -181,6 +183,54 @@ def test_aspect_ratio_variant_fixture_has_genuinely_different_ratio(
     with Image.open(out_dir / entry["filename"]) as img:
         actual = np.array(img, dtype=np.uint16)
     assert np.array_equal(actual, expected)
+
+
+# ── Dimensionsgleiche COLOR/HEIGHT- und Alpha/Coverage-Kontrollen ────────
+
+def test_color_height_reference_matches_canonical_height_dimensions(tmp_path: Path) -> None:
+    """I-02/I-08 dürfen keine unkontrollierte Pixelmaßabweichung enthalten."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    by_name = {entry["filename"]: entry for entry in manifest["fixtures"]}
+
+    color = by_name["color_height_reference.png"]
+    height = by_name["height_wedge_16bit.png"]
+    assert color["role"] == "color_motif"
+    assert color["png_mode"] == "RGBA"
+    assert (color["width"], color["height"]) == (height["width"], height["height"])
+    assert color["params"]["alpha_levels"] == [255]
+    assert "height_wedge_16bit.png" in color["params"]["paired_height_files"]
+
+    with Image.open(out_dir / color["filename"]) as image:
+        alpha = np.array(image.getchannel("A"), dtype=np.uint8)
+    assert set(np.unique(alpha).tolist()) == {255}
+
+
+def test_alpha_coverage_fixture_has_exact_fields_and_nonzero_height_pair(
+    tmp_path: Path,
+) -> None:
+    """I-13 variiert nur Coverage; die gekoppelte HEIGHT-Fläche bleibt > 0."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    by_name = {entry["filename"]: entry for entry in manifest["fixtures"]}
+
+    color = by_name["color_alpha_coverage.png"]
+    height = by_name[color["params"]["paired_height_file"]]
+    assert color["role"] == "color_motif"
+    assert color["pattern"] == "alpha_coverage_fields"
+    assert (color["width"], color["height"]) == (height["width"], height["height"])
+    assert color["params"]["paired_height_value"] > 0
+
+    with Image.open(out_dir / color["filename"]) as image:
+        alpha = np.array(image.getchannel("A"), dtype=np.uint8)
+    assert set(np.unique(alpha).tolist()) == set(gen.ALPHA_FIELD_LEVELS)
+    for field in color["params"]["alpha_fields"]:
+        values = alpha[:, field["x_start"] : field["x_end_exclusive"]]
+        assert set(np.unique(values).tolist()) == {field["alpha"]}
+
+    with Image.open(out_dir / height["filename"]) as image:
+        height_values = np.array(image, dtype=np.uint16)
+    assert np.all(height_values == color["params"]["paired_height_value"])
 
 
 # ── mm/DPI-Fixtures: pHYs-Varianten und Widerspruchstest ────────────────
