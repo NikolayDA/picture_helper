@@ -59,8 +59,7 @@ Einordnung:
 - Runner fehlt in der Liste → neu registrieren (§2 bzw. §3). GitHub entfernt
   einen Runner automatisch, der **mehr als 14 Tage** nicht verbunden war
   (offizielle GitHub-Doku,
-  [remove-runners](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/remove-runners);
-  ältere Repo-Stellen nennen noch 30 Tage).
+  [remove-runners](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/remove-runners)).
 - `status=online` sagt nur „verbunden", **nicht** „einsatzbereit" – die
   eigentliche Bereitschaft belegt erst der Heartbeat (0.2) bzw. der
   Preflight auf dem Gerät (0.3).
