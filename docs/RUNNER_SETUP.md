@@ -164,10 +164,20 @@ angezeigten Token) auf dem Gerät ausführen. Das Registrierungs-Token ist nur
 
 ### 2.1 Systemvoraussetzungen
 
+Dokumentierte Bezugsquelle für Python/git auf macOS ist Homebrew
+([`INSTALL_MAC.md`](../INSTALL_MAC.md)); jedes andere `python3` ≥ 3.10 samt
+`git` tut es ebenso:
+
 ```sh
-xcode-select --install   # git + python3 (Command Line Tools); überspringt sich, wenn vorhanden
-python3 --version        # Soll: ≥ 3.10
+brew install python git
+python3 --version   # Soll: ≥ 3.10
 ```
+
+Das Runner-Verzeichnis (`~/actions-runner`) und der Repo-Checkout gehören
+**nicht** nach `~/Documents`, `~/Desktop`, `~/Downloads` oder in iCloud
+Drive – dort blockiert macOS-TCC Dateizugriffe gestarteter Programme
+([`INSTALL_MAC.md`](../INSTALL_MAC.md), Abschnitt Problembehandlung); direkt
+unter dem Home-Verzeichnis ist richtig.
 
 ### 2.2 Runner registrieren und als Dienst einrichten
 
@@ -248,9 +258,15 @@ Qt-/GL-Systembibliotheken der Desktop-Session sind Voraussetzung. Dann:
 
 ```sh
 sudo apt update
-sudo apt install -y git python3-venv
+sudo apt install -y git python3-venv python3-pyqt6 libfuse2
 python3 --version   # Soll: ≥ 3.10
 ```
+
+Warum diese Pakete: `python3-venv` braucht der Preflight für seine venvs;
+`python3-pyqt6` zieht die Qt-/XCB-Systembibliotheken automatisch mit, die
+auch die PyQt6-Wheels der Prüf-venvs zur Laufzeit brauchen
+([`INSTALL_LINUX.md`](../INSTALL_LINUX.md)); `libfuse2` braucht der direkte
+AppImage-Start im Abnahme-Smoke.
 
 **Desktop-Autologin** aktivieren, sonst existiert nach einem Reboot keine
 grafische Sitzung und jede GL-Prüfung fällt:
@@ -269,9 +285,10 @@ printf '%s ALL=(root) NOPASSWD: /usr/bin/apt-get install *, /usr/bin/dpkg -r bgr
   | sudo tee /etc/sudoers.d/abnahme >/dev/null
 sudo chmod 440 /etc/sudoers.d/abnahme
 sudo visudo -c   # Muss "parsed OK" melden
-# Gegenprobe (beide müssen ohne Passwortabfrage "erlaubt" zeigen):
-sudo -n -l /usr/bin/apt-get install bgremover
-sudo -n -l /usr/bin/dpkg -r bgremover
+# Gegenprobe - exakt die zwei Prüfungen des Preflight-Checks "deb-sudo";
+# beide müssen ohne Passwortabfrage mit Exit 0 enden:
+sudo -n -l "$(which apt-get)" install bgremover
+sudo -n -l "$(which dpkg)" -r bgremover
 ```
 
 ### 3.3 Runner registrieren und als Dienst einrichten
@@ -409,7 +426,10 @@ Bevor ein „offline"-Runner neu registriert wird
 |---|---|
 | `status=offline`, Gerät läuft | Dienst neu starten: macOS `cd ~/actions-runner && ./svc.sh stop && ./svc.sh start`; Pi `sudo ./svc.sh stop && sudo ./svc.sh start` |
 | Mac nach Neustart offline | Am Gerät **anmelden** – der LaunchAgent lebt in der GUI-Sitzung und startet erst mit ihr |
-| Heartbeat rot: `session`/`gl`/`qt-gl` | Pi: Autologin/Drop-in prüfen (§3.4); Mac: Konsolenbenutzer prüfen (§2.2) |
+| Heartbeat rot: `session`/`gl`/`qt-gl` | Pi: Autologin/Drop-in prüfen (§3.4); Mac: Konsolenbenutzer prüfen (§2.2). Folgt `qt-gl` mit „Übersprungen" auf einen `session`-/`gl`-Befund, zuerst diesen beheben |
+| Heartbeat rot: `qt-gl` Stufe `plugin`, Sitzung ist aber da | Ein im Profil des Runner-Benutzers gesetztes `QT_QPA_PLATFORM` (z. B. `offscreen`) entfernen – die Sonde akzeptiert nur die Sitzungs-Plugins `cocoa`/`xcb`/`wayland`/`wayland-egl` |
+| Heartbeat rot: `qt-gl` Stufe `renderer` nach einem Treiber-/Mesa-Update | Das Gerät rendert nur noch in Software (llvmpipe & Co.) – GPU-Treiber der Desktop-Session reparieren; ein Software-Renderer gilt nirgends als Hardware-Nachweis |
+| Heartbeat rot: `sleep-schutz`, obwohl `caffeinate` läuft | Der Wrapper muss **beide** Schlafarten halten (`caffeinate -dimsu`, nicht nur `-i`) und selbst der Assertion-Eigentümer sein |
 | Heartbeat rot: `sleep-schutz`/`dienst-neustart` | §2.3 bzw. §3.4 erneut anwenden – `KeepAlive` überlebt kein `svc.sh install` |
 | Runner aus der GitHub-Liste verschwunden | Zu lange offline, von GitHub entfernt → §2/§3 komplett wiederholen |
 
