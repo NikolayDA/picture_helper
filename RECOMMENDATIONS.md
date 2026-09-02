@@ -11,53 +11,33 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-08-31, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
+## Aktueller Stand (2026-09-02, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
 
 **Nachtrag 2026-09-02 (#688-Vorbereitung):** Zwei neue COLOR-Fixtures und eine korrespondierende HEIGHT-Registriermap schließen Alpha/Coverage- und Crop-Konfundierungen. Der unabhängige Pre-Import-Inspector bestätigt alle 34 Fixtures; zwei kontrollierte Importpfade wurden in Studio 4.2.2 ohne sichtbare Warnung angenommen. Offen bleiben die restliche Importmatrix und physische E1-Druckmessungen.
 
-**Tagesaudit 2026-08-31 (Stand `551d055`):** Geprüft wurden die zwölf heute
-gemergten PRs #927–#932, #935–#938, #940, #941 und die dadurch geschlossenen
-Issues #918–#923, #933, #934 – vollständige Merge-Diffs,
-Review-Nachbesserungen und, wo vorhanden, deren Regressionstests.
-Release-Ref/Wiederanlauf, Security-Bericht, Runner-Heartbeat/Dry-Run,
-Vorbereitungsgerüst und Qt-/GL-Preflight sind konsistent umgesetzt. Die
-adversarielle Nachprüfung im Review von PR #942 fand jedoch fünf konkrete
-Restbefunde in den Prozess-Skripten – verifiziert, als Folge-Issue #943
-gebündelt und mit diesem Stand behoben.
+**Tagesaudit 2026-09-02 (Stand `1ec9d96`):** 42 offene Issues gegen den
+GitHub-Live-Stand geprüft. Die Triage-Tabelle war seit dem 2026-08-30 in allen
+sechs Fassungen falsch – `recommendations-live-check` läuft seither rot:
+**#914**, **#918**, **#939** und **#949** fehlten, **#692** stand noch als
+offen (geschlossen am 2026-09-01 über PR #947). Der Tagesaudit vom 2026-08-31
+führte #918 zudem als geschlossen; es war am selben Tag nach der
+Abschlussprüfung wieder geöffnet worden und wartet nur noch auf den nächsten
+echten Release-Lauf. Diese Runde korrigiert beides. Neu bewertet: #949
+(Test-Suite-Audit, vier umsetzbare Teständerungen, kein Produktionsfehler),
+#939 (dauerhafter Heartbeat-Alarmkanal, nicht schließen) und die Epic-Klammer
+#914. Kein neuer 🔴-Befund.
 
-**Turnusprüfung 2026-08-30 (Delta nach Vollaudit):** Die 39 bereits am
-2026-08-29 gegen `main` (Produktstand `411d47c`) vollständig und adversariell
-geprüften offenen Issues sind unverändert; HEAD `1d31f2a` ergänzt danach nur
-Dokumentation. Die nachgezogenen Beschreibungen #681/#882/#905/#906 und die
-Fixture-/Zelllücken der EufyMake-Realtests #688–#690 bleiben korrekt sichtbar.
-Neu hinzugekommenes #912 wurde separat gegen das Qt-Advisory und das gepinnte
-Artefakt geprüft: CVSS 4.0 ist 6,3 statt 6,8, und das verwundbare
-`QtCore5Compat` wird nicht ausgeliefert. #912 ist korrigiert und als „nicht
-betroffen“ geschlossen; kein falscher Accepted-Risk-Eintrag, kein neuer 🔴-Befund.
+**Release-Einschätzung: kein neues Release fällig.** Seit `v2.9.0` (2026-08-29)
+liegen 25 Mainline-Commits vor – ausschließlich Release-Automatisierung, Doku
+und Governance; `[Unreleased]` ist leer, und im Paket `bgremover/` änderte sich
+nur der Nachweis-Hook `update_check_probe.py` (#917). Ein Kandidatenbau hätte
+für Nutzer:innen keinen sichtbaren Inhalt. Vorgesehener Scope für ein späteres
+**v2.10.0**: die COLOR-Tonwert-Engine (#693/#694 aus Epic #682) auf Basis des
+jetzt verabschiedeten ADR #692, gegebenenfalls plus #949.
 
-**Nachtrag 2026-08-29:** v2.9.0 ist veröffentlicht. Die Hardware-Abnahme lief
-auf macOS arm64 und Linux arm64 mit echten GPU-Renderern grün, Tag und
-Veröffentlichung sind byteidentisch gegen das Freigabemanifest geprüft,
-`PUBLIC-DOWNLOAD-01` und `UPDATE-01` sind erbracht. #881 ist damit geschlossen;
-die bewusst pausierten Linux-x86_64-Kriterien bleiben sichtbar `PENDING`.
-#878 ist mit PR #908 umgesetzt; diese Abschluss-Synchronisierung schließt das
-Issue und entfernt es aus allen sechs aktuellen Triage-Tabellen.
+**EufyMake #681/#687–#691:** Fixtures, Protokollvorlagen und die freigegebene Testgovernance sind in den Issues abgebildet; der offene PR #948 hebt den Satz auf 34 Fixtures, ergänzt die Alpha-/Coverage-Zelle mit konstantem RGB, ein dimensionsgleiches COLOR/HEIGHT-Paar, eine pixelgenaue HEIGHT-Registriermap und einen per Manifest-Hash verankerten Pre-Import-Inspector. Zwei Studio-Importpfade (4.2.2) sind ohne Druck protokolliert. #687 steht bei 16/18 Kriterien; offen bleiben I-06 (Ordner/Manifest) und die Abschluss-Review nach den Realtests. Herstellerquelle und Testhypothese für den separaten Spot-UV-Pfad lauten Schwarz = Gloss, Weiß = kein Gloss; volle 16-Bit-Nutzung, `pHYs`-Priorität, Graustufe→mm und Gloss-Intensität bleiben echte Hardwarefragen aus #688–#690.
 
-**Turnusprüfung 2026-08-28:** Der GitHub-Live-Abgleich ergänzt die bislang
-fehlenden offenen Issues **#878**, **#881**, **#882** sowie die inzwischen
-angelegten MAS-Teil-Issues **#883–#907**. Beim damaligen Stand sollte #878 die
-Lücke zwischen Standard-/Experten-Oberfläche und Nutzerhandbuch einschließlich
-aktueller Screenshots und PDF schließen; die Umsetzung ist inzwischen über
-PR #908 abgeschlossen. #881 ist das verbindliche Abnahme- und
-Veröffentlichungsprotokoll für 2.9.0; Kandidatenbau und Vorprüfung sind grün,
-die Hardware-Abnahme und menschlichen Freigaben stehen aus. #882 bündelt den
-Mac-App-Store-Pfad als blockiertes Epic; #883–#907 konkretisieren dessen
-Lizenz-, Konto-, Sandbox-, Paketierungs-, Store- und Betriebsphasen. Vor technischer Umsetzung muss
-zuerst die Lizenzstrategie entschieden werden. Kein neuer 🔴-Befund.
-
-**EufyMake #681/#687–#691:** Die vorhandenen 34 Fixtures, Protokollvorlagen und die freigegebene Testgovernance sind jetzt in den Issues abgebildet. #687 steht bei 16/18 Kriterien; offen bleiben I-06 (Ordner/Manifest) und die Abschluss-Review nach den Realtests. Herstellerquelle und Testhypothese für den separaten Spot-UV-Pfad lauten Schwarz = Gloss, Weiß = kein Gloss; volle 16-Bit-Nutzung, `pHYs`-Priorität, Graustufe→mm und Gloss-Intensität bleiben echte Hardwarefragen aus #688–#690.
-
-Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.8.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (vom Owner geschlossen), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (vom Owner geschlossen) und #878 (PR #908/#910) (Details: Vorige Runden).
+Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.9.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #943 (PR #944) und #692 (PR #947) (Details: Vorige Runden).
 
 Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noch Zeilen werden seit #821 von Hand gepflegt – `scripts/recommendations_live_check.py --write` schreibt die Tabellen aller sechs Fassungen aus dem GitHub-Live-Stand fort, die Bewertungsspalten bleiben Handarbeit.
 
@@ -67,13 +47,12 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 |---|-------|----------|--------------|-------------------------------|-------------------|
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake-Zielprofil – Height/Gloss/mm-DPI validieren | 🟠 Hoch (Korrektheit des wichtigsten Exportziels) | 🔴 Hoch (5 Teil-Issues, physische Hardware nötig) | – (Epic) | #687-Vorbereitung bei 16/18 AC; I-06 und Abschluss-Review bleiben offen, die Profilintegration #691 wartet auf die Realtests #688–#690 |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Annahmeninventar, Herstellerquellen, Testmatrix | 🟠 Hoch (verbindliche Grundlage für #688–#691) | 🔴 Hoch (eigene Deliverables fertig; Fixture-/Zellenlücken aus #688–#690 offen, Rest braucht reale Hardware) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – 16/18 Akzeptanzkriterien erledigt; offen sind I-06 für Ordner/Manifest und die Abschluss-Review nach den Realtests aus #688–#690 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | HEIGHT-Bittiefe/-Semantik auf realer Hardware validieren | 🟠 Hoch (Reliefhöhe direkt betroffen) | 🔴 Hoch (physischer Drucker, Fixtures, Messprotokoll) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – repositoryseitige Vorbereitung vollständig; zwei kontrollierte Importpfade in Studio 4.2.2 protokolliert. Offen sind die übrige Importmatrix sowie sichere physische E1-Druckmessungen |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | HEIGHT-Bittiefe/-Semantik auf realer Hardware validieren | 🟠 Hoch (Reliefhöhe direkt betroffen) | 🔴 Hoch (physischer Drucker, Fixtures, Messprotokoll) | – (kein Agent; reale EufyMake-Hardware nötig) | In Review + Blocked (extern) – PR #948 schließt die Repository-Vorbereitung mit 34 Fixtures, I-08-Registriermarken, RGB-konstanter I-13-Alpha-Zelle und vertrauenswürdigem Pre-Import-Report ab; zwei Studio-Importpfade sind protokolliert. Offen bleiben die übrige Importmatrix sowie sichere physische E1-Druck-, Relief- und mm-Messungen |
 | [#689](https://github.com/NikolayDA/picture_helper/issues/689) | mm/DPI, Zielgröße, Positionierungsvertrag validieren | 🟠 Hoch (Druckgröße/Registrierung) | 🔴 Hoch (physische Messungen, Kontrollmotive) | – (kein Agent; reale Hardware nötig) | Blocked (extern) + Vorarbeit offen – Startgröße im Studio-Importdialog aus `pHYs`/DPI unbelegt (N10, EM-F04); zusätzlich referenziert Zelle I-06 das Fixture- statt eines echten Export-Manifests, und nicht quadratische DPI sind weder getestet noch begründet ausgeschlossen |
 | [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Gloss-/Klarlack-Semantik validieren | 🟡 Mittel (Gloss ist laut Code bereits „experimental“) | 🔴 Hoch (physische Drucke, Materialverbrauch) | – (kein Agent; reale Hardware nötig) | Blocked (extern) + Vorarbeit offen – Vorarbeit aus #687 nur teilweise: genau eine Gloss-Zelle (I-10), keine Alpha-/Coverage-Fixtures, keine abweichende Gloss-Dimension, Gloss × HEIGHT ungekreuzt |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Versioniertes Zielprofil in Validator/Writer/Dialog/Doku | 🟠 Hoch (härtet den produktiven Exportpfad) | 🟠 Hoch (Cross-Cutting über eufymake_export/_validate/_writer + UI) | Opus, hoch | Blocked – wartet auf #688–#690 |
-| [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR-Tonwert-/Graustufen-Engine | 🟡 Mittel-Hoch (Roadmap-Fundament für Laser, kein akuter Bug) | 🔴 Hoch (5 Teil-Issues, ADR→Kern→UI→Integration→Abnahme) | – (Epic) | In Bearbeitung – #692 zuerst anstoßen |
-| [#692](https://github.com/NikolayDA/picture_helper/issues/692) | ADR + Datenvertrag Tonwert/Histogramm/Graustufe | 🟠 Hoch (legt Vertrag für den gesamten Epic fest) | 🟡 Mittel (Architekturentscheid, keine Implementierung) | Opus, hoch | Startbereit |
-| [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Qt-freier Kern: Histogramm/Graustufe/Levels/Gamma | 🟡 Mittel-Hoch | 🟡 Mittel (Erweiterung von `color_ops.py`, gut isoliert testbar) | Sonnet, hoch | Blocked – wartet auf ADR #692 |
+| [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR-Tonwert-/Graustufen-Engine | 🟡 Mittel-Hoch (Roadmap-Fundament für Laser, kein akuter Bug) | 🔴 Hoch (4 verbleibende Teil-Issues: Kern→UI→Integration→Abnahme) | – (Epic) | In Bearbeitung – ADR #692 ist verabschiedet; als Nächstes den Kern #693 |
+| [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Qt-freier Kern: Histogramm/Graustufe/Levels/Gamma | 🟡 Mittel-Hoch | 🟡 Mittel (Erweiterung von `color_ops.py`, gut isoliert testbar) | Sonnet, hoch | Startbereit – ADR #692 (PR #947) liefert den Datenvertrag; Kern gegen dessen Formeln implementieren und testen |
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live-Vorschau + Bedienoberfläche Histogramm/Levels/Gamma | 🟡 Mittel | 🟡 Mittel-Hoch (Qt-UI, Debounce/Generation-Schutz analog Höhen-Vorschau) | Sonnet, hoch | Blocked – wartet auf Kern #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Ebenen-/Auswahl-/History-/Projektintegration | 🟡 Mittel | 🟠 Hoch (viele Zustandsübergänge: Undo/Redo, Auswahl, Dirty-State) | Opus, hoch | Blocked – wartet auf #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance-/E2E-/Doku-/Laser-Schnittstellenabnahme | 🟡 Mittel (Abschluss-Gate, kein neues Feature) | 🟠 Hoch (Benchmark-Suite, E2E, Doku, Adapter-Contract) | Opus, hoch | Blocked – Abschluss-Issue nach #695 |
@@ -103,13 +82,22 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] Release-Governance um den Store-Kanal erweitern | 🟠 Hoch (verhindert einen Kanal neben dem fail-closed Vertrag) | 🟠 Hoch (Runbook, Checkliste, Vertrag, Path-Policy, sechs CHANGELOGs) | Opus, hoch | Blocked – begleitet #898/#899; vor Einreichung alle Governance-Verträge und Tests auf sechs Artefakte heben |
 | [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] Ersteinreichung und Review-Runde | 🟠 Hoch (manuelles Veröffentlichungs-Gate) | 🔴 Hoch (viele Abhängigkeiten, Restrisiken, Apple-Kommunikation) | – (kein Agent; Release-Owner) | Blocked (extern) – nach #896/#897/#899/#901–#905 Pre-Submission prüfen, einreichen und Ergebnis/Folge-Issues protokollieren |
 | [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] Betriebskonzept für Renewal, Updates und Kanäle | 🟡 Mittel-Hoch (langfristige Verfügbarkeit und Kanaltrennung) | 🟡 Mittel (Runbook, Verantwortungen, Erinnerungen, Kanalmatrix) | Opus, hoch + Owner | Blocked – Konzept vorab möglich, final nach #906; Renewal-/Update-/Webseiten-Routinen verbindlich verankern |
+| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] Release-Prozess: Runner, automatisierte Nachweise, main-Freeze | 🟠 Hoch (Release-Betrieb; 8 von 9 Arbeitspaketen erledigt) | 🟡 Mittel (nur noch der #918-Rest) | – (Epic) | Fast fertig – offen ist allein das Erfolgskriterium „`main` bleibt mergebar", das der nächste echte Release-Lauf über #918 belegt |
+| [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Release-Ref statt main-Freeze (ADR + fail-closed Absicherung) | 🟠 Hoch (`main` bleibt während eines Releases mergebar) | 🟢 Niedrig (Code, Doku und Ruleset stehen) | – (kein Agent; nächster Release-Lauf) | Blocked (extern) – am 2026-08-31 nach der Abschlussprüfung wiedereröffnet; PR #936 und der aktive Ruleset 21941216 sind belegt, offen ist nur ein Lauf, dessen Post-Release-Abnahme nachweislich auf `release/vX.Y.Z` startete |
+| [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Betrieb: Self-hosted-Runner (Heartbeat-Alarmkanal) | 🟡 Mittel (Betriebskanal, kein Produktcode) | 🟢 Niedrig (reine Beobachtung) | – (kein Agent; Repo-Owner) | Dauerhaft offen – nicht schließen (`RUNNER_HEARTBEAT_ISSUE`); der FAIL vom 2026-08-31 war der geplante Meldeweg-Test, der Aufräumschritt ist erledigt (planmäßiger Lauf 33496675995 grün, x86_64 übersprungen, Mac und Pi bestanden) |
+| [#949](https://github.com/NikolayDA/picture_helper/issues/949) | Test-Suite-Audit 2026-09-02 (RESOURCES-Drift, CropOverlay, Coverage-Lücken) | 🟡 Mittel (Testqualität und Drift-Schutz, kein Produktionsfehler) | 🟢 Niedrig-Mittel (vier klar umrissene Teständerungen, keine Produktionsänderung) | Sonnet, mittel | Startbereit – `RESOURCES.md`-Sollwerte aus den echten `uses:`-Zeilen ableiten, `test_crop_overlay.py` auf `set_position()`/`crop_rect()` umstellen, `crop_image()`-Rechteckzweig und den Nicht-RGBA-Zweig von `adjust_color()` abdecken |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
 
 ### Als Nächstes empfohlen
 
-1. **#692** (ADR) öffnet den COLOR-Epic #682.
-2. Bei der nächsten Studio-/Druckersession die vorbereiteten #688-Zellen ausführen; für #689/#690 zuvor noch Gloss-Zellen, abweichende Gloss-Dimensionen und ein echtes Export-Manifest für I-06 ergänzen. Danach #687 (Rest) und #688–#690 gebündelt abschließen.
-3. **#883** (MAS-Lizenzstrategie) entscheidet über den Mac-App-Store-Pfad #882 –
+1. **#693** (Qt-freier Kern) – der ADR #692 ist verabschiedet, damit ist der COLOR-Epic #682
+   startbereit; danach folgen #694, #695 und #696 in dieser Reihenfolge.
+2. **#949** – vier kleine, klar umrissene Teständerungen ohne Produktionsrisiko; guter
+   Parallel-PR neben dem Epic.
+3. **#948** reviewen und mergen; danach vor der nächsten Studio-/Druckersession die restlichen
+   Lücken aus #689/#690 schließen (Gloss-Zellen, echtes Export-Manifest für I-06) und
+   #687 (Rest), #688, #689, #690 gebündelt ausführen.
+4. **#883** (MAS-Lizenzstrategie) entscheidet über den Mac-App-Store-Pfad #882 –
    ohne diesen Owner-Entscheid bleibt die gesamte Kette #884–#907 blockiert.
 
 ## Vorige Runden
