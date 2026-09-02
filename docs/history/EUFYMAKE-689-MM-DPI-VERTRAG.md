@@ -7,15 +7,16 @@ Ergebnisdokument für
 [Annahmeninventar](EUFYMAKE-687-ANNAHMENINVENTAR.md) auf und verwendet die
 [Protokollvorlagen](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md).
 
-## Status am 2026-09-02
+## Status am 2026-09-03
 
 - **Dateievidenz:** vollständig und automatisiert geprüft. Es gibt (seit
   #952, Schema 4) 41 Einzel-Fixtures sowie sieben echte BgRemover-Exportpakete:
   das Vier-Dateien-Paket `export_mm_dpi_conflict/` für I-06 und die sechs
   `export_gloss_*`-Pakete aus #690.
 - **Studio-Beobachtung:** für Startgröße, DPI-Priorität, X/Y-DPI,
-  Mehrfachimport, manuelle Größe, Rotation und einen kontrollierten Crop am
-  2026-09-02 durchgeführt. Alle Importe und der destruktive Crop wurden vom
+  Mehrfachimport, manuelle Größe, Rotation sowie Einzelbild- und nativen
+  COLOR/HEIGHT-Crop am 2026-09-02/03 durchgeführt. Alle Importe und die
+  destruktiven Crops wurden vom
   Benutzer für die konkret benannten Dateien beziehungsweise die vorbereitete
   Auswahl freigegeben.
 - **Druckmessung:** offen. Es wurde kein Druck ausgelöst. Vor einem Druck sind
@@ -113,7 +114,7 @@ Die drei Stufen werden getrennt ausgewertet:
    Wiederholungsstreuung begründet; bis dahin gibt es keinen erfundenen
    Pass/Fail-Grenzwert.
 
-## Studio-Protokoll vom 2026-09-02
+## Studio-Protokoll vom 2026-09-02/03
 
 Testprofil: EufyMake Studio 4.2.2, Editor 1.20.0, E1 online, Standard Flatbed
 335×420 mm. Die Firmware-Version wurde in der Sitzung nicht angezeigt und
@@ -129,6 +130,7 @@ deshalb nicht geraten. Es wurde kein Druck ausgelöst.
 | drei PNGs aus `export_mm_dpi_conflict/` | Einzeln und gemeinsam jeweils 43,35×43,35 mm bei X/Y 145,83/188,33 mm. Beim Mehrfachimport entstehen drei überlagerte, gewöhnliche „Flat“-Ebenen; Dateinamen erzeugen keine COLOR-/HEIGHT-/GLOSS-Zuordnung. Ein Wiederholungsimport lieferte dieselben Werte. |
 | manuelle Größe auf einem ausgewählten Bundle-PNG | 21,67 mm Breite ergab bei gekoppeltem Seitenverhältnis 21,67 mm Höhe und überschreibt damit die Datei-Startgröße. Der Nullwertversuch wurde auf einen kleinen positiven Wert begrenzt; danach zeigte die Kopplung ein instabiles Verhältnis. Eine anschließende Breite von 1000 mm ergab 1000×1254,78 mm und X/Y −810,83/−1023,11 ohne Warnung. Der Ablauf ist ein Validierungs-Warnfall, kein belastbarer Extremwertvertrag. |
 | I-08 `color_height_reference.png`, `height_registration_16bit.png`, `gloss_registration.png` | Alle drei Dateien ohne `pHYs` starteten einzeln mit 90,31×90,31 mm und X/Y 122,34/164,84 mm. Die gemeinsame Ausdehnung und Zentrierung bleiben erhalten; Studio ordnet die Rollen jedoch nicht automatisch zu, sondern importiert sie als „Flat“. |
+| I-08 native HEIGHT-Zuweisung und Crop | Am 2026-09-03 wurde `height_registration_16bit.png` über `Customize Texture` → `Upload Height Map Image` dem COLOR-Objekt zugewiesen; Studio zeigte `3D` und eine passende 3D-Vorschau. Der bestätigte Crop änderte dieses Objekt von W/H 90,31/90,31 mm und X/Y 122,34/164,84 mm auf W/H 44,86/90,31 mm und X/Y 167,79/164,84 mm. Die `3D`-Zuordnung blieb erhalten. Die separate `gloss_registration.png` blieb bei 90,31×90,31 mm und X/Y 122,34/164,84 mm. Weder `Preview` noch `Print` wurde ausgelöst. |
 | Rotation von `mm_typisch_phys_xy.png` um 90° | Die intrinsischen Felder bleiben 101,60×203,18 mm, Winkel 90°. Die sichtbare Bounding Box wird ohne Skalierung gedreht und auf X/Y 65,91/159,19 mm neu zentriert. |
 | Crop auf der rotierten X/Y-Fixture | Die intrinsische Breite wurde von 101,60 auf 50,80 mm halbiert; Höhe 203,18 mm und Winkel 90° blieben erhalten. Danach zeigte Studio X/Y 65,91/210,00 mm und keine zusätzliche Warnung. Das sichtbare Motiv entspricht der gewählten Hälfte. |
 
@@ -142,11 +144,11 @@ deshalb nicht geraten. Es wurde kein Druck ausgelöst.
 | nicht quadratische X/Y-DPI | 101,60×203,18 mm bei ca. 300/150 dpi | offen | Studio wertet beide Achsen unabhängig aus; Validator darf X/Y nicht still koppeln oder normalisieren. |
 | Manifest 300 dpi gegen PNG 150 dpi | JSON im Bildimport nicht auswählbar; drei PNGs starten gemäß `pHYs` mit je 43,35 mm | offen | Für den beobachteten Bildimport hat das Manifest keine Wirkung. Ein anderer, ausdrücklich dokumentierter Paketimportweg wäre separat zu prüfen. |
 | manuelle Studio-Größe gegen Dateiwerte | 21,67×21,67 mm überschreibt 43,35×43,35 mm | offen | Manuelle Größe hat nach dem Import Vorrang. Null-/Extremwerte benötigen produktseitige Grenzen und Warnungen; das Studio-Verhalten allein ist nicht sicher genug. |
-| COLOR/HEIGHT/GLOSS-Ausdehnung und Registrierung | gleiche 90,31-mm-Ausdehnung und identische Zentrierung; alle Rollen als unabhängige „Flat“-Ebenen | offen | Gleiche Pixelmaße führen zur gleichen Startausdehnung. Semantische Zuordnung und pixelgenaue Registrierung im Produktionsmodus sind noch nicht belegt. |
-| Crop, Rand, Offset, Zentrierung, Rotation | Vor Crop rechnerisch zentriert; 90° rotiert ohne Skalierung. Crop halbiert die intrinsische Breite auf 50,80 mm, erhält Höhe und Winkel und setzt X/Y auf 65,91/210,00 mm | offen | Rotation und der kontrollierte Einzelbild-Crop sind für dieses Profil belegt. Die Positionsänderung ist exakt zu übernehmen, nicht als unveränderte Zentrierung anzunehmen. Rollenübergreifender Crop, Druckrand und physischer Offset bleiben offen. |
+| COLOR/HEIGHT/GLOSS-Ausdehnung und Registrierung | gleiche 90,31-mm-Startausdehnung und identische Zentrierung; zunächst unabhängige „Flat“-Ebenen. HEIGHT lässt sich dem COLOR-Objekt nativ zuweisen; der separate Gloss-Layer bleibt unabhängig | offen | Gleiche Pixelmaße führen zur gleichen Startausdehnung. Die native COLOR/HEIGHT-Kopplung ist belegt; eine automatische Dreierkopplung mit Gloss und die physische Registrierung sind nicht belegt. |
+| Crop, Rand, Offset, Zentrierung, Rotation | Vor Crop rechnerisch zentriert; 90° rotiert ohne Skalierung. Der Einzelbild-Crop halbiert die intrinsische Breite auf 50,80 mm. Beim nativen COLOR/HEIGHT-Objekt ändert der I-08-Crop W von 90,31 auf 44,86 mm und X von 122,34 auf 167,79 mm; H/Y bleiben 90,31/164,84 mm, die 3D-Zuordnung bleibt bestehen. Der separate Gloss-Layer bleibt unverändert | offen | Rotation, Einzelbild-Crop und Crop-Kopplung innerhalb des nativen COLOR/HEIGHT-Objekts sind belegt. Die Positionsänderung ist exakt zu übernehmen. Eine automatische COLOR/HEIGHT/GLOSS-Gesamtkopplung existiert in diesem Aufbau nicht; Druckrand, physischer Offset und die registrierte Gloss-Ausgabe bleiben offen. |
 
 Für #691 darf der vorläufige Studio-Teilvertrag bereits als
-Validierungsgrundlage dienen. Drucktoleranzen, rollenübergreifende Crop-Wirkung
-und semantische Rollenregistrierung dürfen erst nach den noch offenen
+Validierungsgrundlage dienen. Drucktoleranzen, die explizite Registrierung des
+separaten Gloss-Pfads und die physische Rollenregistrierung dürfen erst nach den noch offenen
 Realtests festgeschrieben werden. Versionsabhängige Abweichungen sind gegen
 Studio 4.2.2 / Editor 1.20.0 zu bewerten.
