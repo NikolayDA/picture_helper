@@ -814,8 +814,11 @@ importación** para EufyMake Studio — **no** un archivo `.empf` terminado:
 El diálogo muestra el **perfil de destino provisional, la versión del contrato
 y el entorno de Studio**. Eliges la carpeta, los activos y la **profundidad de
 bits**: 16 bits es el valor conservador; 8 bits sigue como opción heredada.
-Ningún portador está confirmado físicamente. Con medidas de proyecto se muestran
-píxeles, mm y DPI X/Y efectivos por separado. Una **comprobación previa** se
+Ningún portador está confirmado físicamente. Una profundidad de bits guardada
+anteriormente se mantiene preseleccionada hasta que la cambies en el diálogo. El
+contrato completo del perfil está en
+[`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md). Con medidas
+de proyecto se muestran píxeles, mm y DPI X/Y efectivos por separado. Una **comprobación previa** se
 ejecuta de forma continua e informa de los hallazgos según su
 gravedad:
 

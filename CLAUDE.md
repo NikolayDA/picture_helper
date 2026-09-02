@@ -334,7 +334,8 @@ Ein Paket, `bgremover/`:
   `fixtures_manifest.json`, das Protokoll stellt beide Spalten gegenüber) und
   die getrennten Ergebnisakten
   [`EUFYMAKE-688-HEIGHT-VERTRAG.md`](docs/history/EUFYMAKE-688-HEIGHT-VERTRAG.md)/
-  [`EUFYMAKE-689-MM-DPI-VERTRAG.md`](docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md)
+  [`EUFYMAKE-689-MM-DPI-VERTRAG.md`](docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md)/
+  [`EUFYMAKE-690-GLOSS-VERTRAG.md`](docs/history/EUFYMAKE-690-GLOSS-VERTRAG.md)
   (Datei-, Studio- und Druckevidenz nie vermischen) sowie
   die daraus abgeleitete Ablauf-Checkliste
   für den Testtag [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](docs/history/EUFYMAKE-687-DRUCK-CHECKLISTE.md)
@@ -343,13 +344,19 @@ Ein Paket, `bgremover/`:
   Fixtures erzeugt `scripts/eufymake_fixture_generator.py` (`generate`)
   deterministisch (reine Formel-/Rastermuster, keine Zufallszahlen) nach
   `tests/fixtures/eufymake_hardware/` inkl. `fixtures_manifest.json` mit SHA-256
-  je Datei. Schema 3 umfasst 36 Einzel-Fixtures (u. a. getrennte X-/Y-DPI und
-  pixelgleiche COLOR/HEIGHT/GLOSS-Landmarks) sowie unter
-  `export_mm_dpi_conflict/` ein über den produktiven Writer erzeugtes
-  Vier-Dateien-Paket mit absichtlich widersprüchlichen Manifest-/`pHYs`-Werten.
-  `scripts/eufymake_fixture_inspector.py` prüft auch dessen Dateiliste und
-  Manifestsemantik – erst das macht „war das wirklich die getestete Datei?"
-  vor dem Studio-Import beantwortbar.
+  je Datei. Schema 4 umfasst 41 Einzel-Fixtures (u. a. getrennte X-/Y-DPI,
+  pixelgleiche COLOR/HEIGHT/GLOSS-Landmarks und Gloss 0/128/255) sowie sieben
+  über den produktiven Writer erzeugte Exportpakete: `export_mm_dpi_conflict/`
+  (Vier-Dateien-Paket mit absichtlich widersprüchlichen Manifest-/`pHYs`-Werten,
+  I-06) und die sechs `export_gloss_*`-Pakete aus #690 (fehlende/Null-/Voll-Gloss,
+  Alpha×Gloss, HEIGHT×Gloss, Dimensionsabweichung). Die Paket-Manifeste stammen
+  von vor #953 (ohne `profile_contract`/`producer`); der Generatorvergleich in
+  `tests/test_eufymake_fixture_generator.py` projiziert diese Felder deshalb auf
+  beiden Seiten weg. `scripts/eufymake_fixture_inspector.py` prüft auch
+  Dateilisten und Manifestsemantik aller sieben Pakete – erst das macht „war
+  das wirklich die getestete Datei?" vor dem Studio-Import beantwortbar. Er ist
+  fail-closed gegen Fremddateien (ein `.DS_Store` im Fixture-Ordner macht den
+  Lauf rot).
 - **Allgemeine Pre-Export-Prüfung:** `export_checks.py` — Qt-freie, strikt getypte,
   geteilte Basis (#379): generischer `Finding`/`CheckCode`/`Severity`-Vertrag mit
   deterministischer Sortierung und `format_finding` (literale `tr`-Keys
@@ -750,7 +757,11 @@ Der Scan selbst trägt bewusst kein `always()` (bei gefallenem Build ist `dist/`
 leer und er bricht fail-closed ohne Bericht ab); stattdessen trägt ein
 `if: failure()`-Schritt die Anomalie-Durchsicht der Phasen-Logs im
 `--logs-only`-Modus nach, ohne einen bereits geschriebenen Bericht zu
-überschreiben.
+überschreiben. Ein Artefakt, das sich nicht entpacken lässt (fehlendes
+`dpkg-deb`/`hdiutil`, nicht ausführbare AppImage, unlesbare Datei – `OSError`),
+ist seit #944 ein harter Befund je Artefakt: Der Bericht entsteht mit Verdikt
+`FAIL` und nennt Artefakt und Ursache, statt durch den `--logs-only`-
+Ersatzbericht ohne beides ersetzt zu werden.
 Der Bericht führt je Artefakt **getrennt** die gescannten Bytes von Rohdatei
 und entpackter Nutzlast, Befundzahlen je Kategorie, EICAR-Selbsttest,
 Limitwarnungen, Signaturalter und das Gesamtverdikt
@@ -1019,7 +1030,11 @@ Gerät auf, sondern auch ein eingeschaltetes, das nicht einsatzbereit wäre.
 Die Auswertung liest Status **und** `conclusion`: Ein Runner, der den Job
 annimmt und an der Härtung scheitert, ist genauso ein Befund wie ein offline
 Gerät — `if: failure()` sieht ihn nicht, weil es laut GitHub-Referenz nur
-Schritte desselben Jobs und `needs`-Vorgänger erfasst. Fail-safe wie der
+Schritte desselben Jobs und `needs`-Vorgänger erfasst. Bestanden ist ein Job
+seit #944 ausschließlich mit `success`: `startup_failure` zählt wie `failure`/
+`timed_out` als Gerätebefund (FAIL), jede andere abgeschlossene Konklusion
+(`cancelled`/`skipped`/`stale`/fehlend) landet als `inconclusive_jobs` im
+`UNOBSERVED`-Zweig, statt still als bestanden zu gelten. Fail-safe wie der
 Lauf-Watchdog — ohne **frische** Beobachtung (API-Fehler) gibt es kein
 Verdikt, sonst entwertete jeder Schluckauf den Alarm. Der
 Heartbeat bricht nie einen Lauf ab (kein `actions: write`); gegen auflaufende
@@ -1056,7 +1071,9 @@ still stillzulegen. `RUNNER_HEARTBEAT_ISSUE` ist dagegen **Pflicht**: Im
 Offline-Fall bleibt der Lauf unabgeschlossen (der wartende Job hängt bis zu
 24 h) und endet am Folgetag über `cancel-in-progress` als „cancelled" — die
 Actions-Fehlermail bleibt also genau dann aus, wenn sie gebraucht würde. Der
-Issue-Kommentar der Auswertung ist der einzige Kanal, der rechtzeitig trägt. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7.
+Issue-Kommentar der Auswertung ist der einzige Kanal, der rechtzeitig trägt. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7;
+Neuaufbau eines Geräts von Null: [`docs/RUNNER_SETUP.md`](docs/RUNNER_SETUP.md)
+(#946, Kochbuch ohne eigene Regelhoheit – bei Widerspruch gilt §2/§6/§7).
 
 ### Echter Qt-/GL-Probeaufruf im Preflight (#934)
 
@@ -1165,7 +1182,13 @@ CHANGELOG-Abschnitte, AppStream-Eintrag, den Rollover der Pfadpolicy
 `policy_version` anheben — das neue Freeze-Dokument wäre sonst ein unbekannter
 Pfad und blockierte das Gate), das Scope-Freeze-Gerüst und das vorbefüllte
 Release-Issue. Gleiche Eingaben ergeben byte-gleiche Ausgaben; ein zweiter Lauf
-hebt die Policy-Version **nicht** erneut an.
+hebt die Policy-Version **nicht** erneut an. Einträge unter `[Unreleased]`
+wandern beim ersten Lauf unter das Gerüst der neuen Version; ein erneuter
+`plan()`-Lauf auf diesem Stand (Wiederanlauf mit von Hand zurückgedrehter
+`pyproject.toml`, Idempotenz-Tests) vergleicht nur den Gerüst-Teil und lässt
+sie stehen (Review 2026-09-02). Ein regulärer zweiter CLI-Lauf bricht ohnehin
+vorher am Downgrade-Schutz ab, weil `pyproject.toml` die Zielversion schon
+trägt.
 
 **Es entscheidet nichts.** Scope, Auswirkung, betroffene Anwender:innen,
 Upgrade-Relevanz und bekannte Einschränkungen stehen als `TODO(release)` im
@@ -1173,22 +1196,30 @@ Gerüst. Genau diese Lücken erkennt `verify_release_freeze.py` seit #923 als
 blockierenden Befund `editorial-placeholder` — in allen sechs
 CHANGELOG-Fassungen und im Freeze-Dokument. Ein Gerüst kann sich damit nicht
 selbst freigeben; die Automatisierung ist kein Weg an `NOTES-01` vorbei.
-Zwei weitere Schranken: Ein bereits redaktionell bearbeiteter Abschnitt wird
-nie überschrieben (Abbruch statt Datenverlust), und das Release-Issue entsteht
+Drei weitere Schranken: Ein bereits redaktionell bearbeiteter Abschnitt wird
+nie überschrieben (Abbruch statt Datenverlust), das Release-Issue entsteht
 als Datei bzw. auf der Standardausgabe — `--create-issue` ruft `gh` nur auf
-ausdrücklichen Wunsch.
+ausdrücklichen Wunsch — und die Zielversion muss numerisch **über** der
+pyproject-Version liegen (#944: Zahlentripel, `2.10.0` > `2.9.0`; führende
+Nullen wie `2.09.0` und ein Vorgänger außerhalb von X.Y.Z brechen ab). Ein
+Tippfehler erzeugte sonst ein in sich konsistentes Downgrade-Gerüst.
 
 **Wiederanlauf nach einem gescheiterten `--create-issue` (#933).** Der
 Issue-Text liegt vor jedem GitHub-Aufruf atomar als Datei vor — unter
 `--issue-output`, sonst in einer eigenen `mkdtemp`-Ablage außerhalb des
 Arbeitsbaums (im Repository wäre sie ein unbekannter Pfad und blockierte das
-Gate), deren Pfad die Ausgabe nennt. `issue_create_argv` ist die **einzige**
+Gate), deren Pfad die Ausgabe nennt. Seit #944 entsteht diese Ablage **vor**
+der ersten Repo-Mutation, und `apply` schreibt jede Release-Datei atomar:
+Scheitert die Ablage (Pfad nicht beschreibbar), ist noch nichts geschrieben,
+und der unveränderte zweite Aufruf ist der vollständige Wiederanlauf.
+`issue_create_argv` ist die **einzige**
 Quelle des `gh`-Aufrufs: Der ausgegebene Wiederanlauf (`resume_command`)
 rendert dieselbe Argumentliste, die soeben scheiterte, `shlex`-gequotet und mit
 dem `cd` in den per `--repo` gewählten Zielkontext — er kann also nicht von dem
 abweichen, was das Skript selbst versucht hat, und schreibt keine Release-Datei
-erneut. Ein zweiter Skriptlauf ist **kein** Ersatz (er bricht ab, weil
-`pyproject.toml` bereits auf der Zielversion steht). Nach erfolgreichem Anlegen
+erneut. Nach einem gescheiterten `gh`-Aufruf ist ein zweiter Skriptlauf
+dagegen **kein** Ersatz (er bricht ab, weil `pyproject.toml` bereits auf der
+Zielversion steht). Nach erfolgreichem Anlegen
 wird die Fallback-Ablage entfernt.
 
 Die Bindungswerte des Issues stammen aus den Verträgen selbst: Checklisten-

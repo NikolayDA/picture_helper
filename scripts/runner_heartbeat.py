@@ -21,7 +21,11 @@ Zwei Unterkommandos, beide netzarm und nur Standardbibliothek:
     Beobachtet GitHub-hosted die Heartbeat-Jobs desselben Laufs und meldet
     **beide** Hälften des Signals: den Runner, der den Job gar nicht erst
     annimmt (``queued`` zum Fristablauf), und den, der ihn annimmt und an der
-    Bereitschaftsprüfung scheitert (``conclusion`` ``failure``/``timed_out``).
+    Bereitschaftsprüfung scheitert (``conclusion`` ``failure``/``timed_out``/
+    ``startup_failure``). Bestanden ist ein Job ausschließlich mit ``success``;
+    jede andere abgeschlossene Konklusion (``cancelled``/``skipped``/``stale``/
+    fehlend) belegt keine Bereitschaft und ergibt ``UNOBSERVED`` mit benannter
+    Konklusion (#944).
     Die zweite Hälfte braucht den Umweg über die Jobs-API, weil
     ``if: failure()`` in einem Schritt laut GitHub-Referenz nur auf vorherige
     Schritte **desselben** Jobs (und Vorgängerjobs per ``needs``) reagiert –

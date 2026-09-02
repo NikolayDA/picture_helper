@@ -60,8 +60,11 @@ Quelle wiederverwendet. Die Deflate-Bytes selbst sind jedoch bewusst **kein**
 plattformübergreifender Vertrag, weil die LZ77-Match-Auswahl von der jeweiligen
 zlib-Laufzeit abhängen kann. Das Manifest bindet die eingecheckten
 Transportbytes; Generator-Drift wird plattformübergreifend über Pixel, Modus,
-Maße und Metadaten geprüft. PNGs der Produktionswriter-Pakete bleiben bis auf
-die ausdrücklich dokumentierten Konfliktmodifikationen unverändert.
+Maße und Metadaten geprüft; die Pixel selbst sind nur mit der gepinnten
+Pillow-Version (``requirements/constraints.txt``) versionsstabil, weil
+Landmarken über ``ImageDraw`` und die Pixelmaß-Variante über LANCZOS entstehen.
+PNGs der Produktionswriter-Pakete bleiben bis auf die ausdrücklich
+dokumentierten Konfliktmodifikationen unverändert.
 
 Zwei weitere, kein eigenständiges Muster im obigen Sinn: die
 **Pixelmaß-Variante** (I-04, #688/#689-Testdesign) ist eine

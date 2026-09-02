@@ -195,10 +195,22 @@ def changelog_section(language: str, version: str, release_date: str) -> str:
 def insert_changelog_section(text: str, language: str, version: str, release_date: str) -> str:
     """Setzt den Geruest-Abschnitt direkt unter ``## [Unreleased]``.
 
+    Eintraege, die bereits unter ``[Unreleased]`` stehen, wandern dabei unter
+    das Geruest der neuen Version (der Abschnitt ``[Unreleased]`` wird leer) –
+    das ist der Release-Schnitt, kein Nebeneffekt.
+
     Idempotent: Ein bereits vorhandener Abschnitt derselben Version wird
-    ersetzt – aber **nur**, wenn er noch Platzhalter traegt. Ein redaktionell
-    bearbeiteter Abschnitt bleibt unangetastet und fuehrt zum Abbruch; ein
-    Vorbereitungsskript darf Handarbeit nicht ueberschreiben.
+    erneuert – aber **nur**, wenn er mit dem unveraenderten Geruest beginnt.
+    Verglichen wird ausschliesslich der Geruest-Teil; die dahinter gewanderten
+    Eintraege bleiben wortgleich stehen. Ueber die CLI ist dieser Zweig nur im
+    Wiederanlauf erreichbar (``pyproject.toml`` von Hand zurueckgedreht, die
+    CHANGELOGs stehen gelassen) – ein regulaerer zweiter Lauf bricht schon am
+    Downgrade-Schutz aus #944 ab, weil ``pyproject.toml`` bereits die
+    Zielversion traegt; ``plan()`` direkt und die Idempotenz-Tests treffen ihn
+    immer. Vor dem Review vom 2026-09-02 wurde der ganze Abschnitt verglichen,
+    und dieser Zweig scheiterte bei gefuelltem ``[Unreleased]`` grundsaetzlich.
+    Ein redaktionell bearbeitetes Geruest bleibt unangetastet und fuehrt zum
+    Abbruch; ein Vorbereitungsskript darf Handarbeit nicht ueberschreiben.
     """
     section = changelog_section(language, version, release_date)
     existing = re.search(
@@ -217,12 +229,23 @@ def insert_changelog_section(text: str, language: str, version: str, release_dat
             if existing_date is not None
             else None
         )
-        if expected is None or existing.group(0).strip() != expected.strip():
+        stripped = existing.group(0).strip()
+        skeleton = expected.strip() if expected is not None else None
+        # Alles hinter dem Geruest sind die aus ``[Unreleased]`` gewanderten
+        # Eintraege; sie beginnen nach einer Leerzeile. Ein Text, der ohne
+        # Leerzeile direkt an der letzten Geruestzeile haengt, ist dagegen eine
+        # Aenderung am Geruest selbst – und damit Handarbeit.
+        remainder = stripped[len(skeleton) :] if skeleton is not None else ""
+        if (
+            skeleton is None
+            or not stripped.startswith(skeleton)
+            or (remainder and not remainder.startswith("\n\n"))
+        ):
             raise PrepareError(
                 f"{changelog_path(language)}: Abschnitt [{version}] weicht vom erzeugten "
                 "Gerüst ab – er wird nicht überschrieben."
             )
-        return text[: existing.start()] + section + "\n\n" + text[existing.end() :]
+        return text[: existing.start()] + section + remainder + "\n\n" + text[existing.end() :]
 
     # ``[ \t]*`` statt ``\s*``: ``\s`` schluckt den Zeilenumbruch und erzeugte
     # eine zusaetzliche Leerzeile vor dem eingefuegten Abschnitt.
@@ -729,10 +752,12 @@ def sha256_file(path: Path) -> str:
 def write_text_atomic(path: Path, text: str) -> None:
     """Schreibt *text* atomar nach *path* (``mkstemp`` + ``os.replace``).
 
-    Muster aus ``project_io.save_project``. Entscheidend ist hier nicht der
-    Absturzschutz, sondern der Wiederanlauf: Die Vorlage fuer ``gh`` steht
-    entweder vollstaendig da oder gar nicht – ein halb geschriebener
-    Issue-Text waere schlimmer als keiner.
+    Muster aus ``project_io.save_project``. Seit #944 laufen **alle**
+    Release-Dateien des Rohstands (``apply``) und die Issue-Ablage hierueber;
+    bestehende Dateien behalten ihren Modus. Entscheidend ist nicht der
+    Absturzschutz, sondern der Wiederanlauf: Jede Datei steht entweder
+    vollstaendig da oder gar nicht – ein halb geschriebener Issue-Text oder
+    CHANGELOG waere schlimmer als keiner.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")

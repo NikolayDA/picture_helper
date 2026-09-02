@@ -9,8 +9,10 @@ Ergebnisdokument für
 
 ## Status am 2026-09-02
 
-- **Dateievidenz:** vollständig und automatisiert geprüft. Es gibt 36
-  Einzel-Fixtures sowie ein echtes BgRemover-Exportpaket mit vier Dateien.
+- **Dateievidenz:** vollständig und automatisiert geprüft. Es gibt (seit
+  #952, Schema 4) 41 Einzel-Fixtures sowie sieben echte BgRemover-Exportpakete:
+  das Vier-Dateien-Paket `export_mm_dpi_conflict/` für I-06 und die sechs
+  `export_gloss_*`-Pakete aus #690.
 - **Studio-Beobachtung:** für Startgröße, DPI-Priorität, X/Y-DPI,
   Mehrfachimport, manuelle Größe, Rotation und einen kontrollierten Crop am
   2026-09-02 durchgeführt. Alle Importe und der destruktive Crop wurden vom

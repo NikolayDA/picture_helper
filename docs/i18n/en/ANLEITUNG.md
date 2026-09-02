@@ -750,7 +750,10 @@ finished `.empf` file:
 The dialog shows the **provisional target profile, contract version, and
 Studio target environment**. You choose the export folder, optional assets,
 and height-map **bit depth**. 16-bit is the conservative default; 8-bit remains
-a legacy option. Neither carrier is physically confirmed yet. When project
+a legacy option. Neither carrier is physically confirmed yet. A previously
+saved bit depth stays preselected until you change it in the dialog. The full
+profile contract is described in
+[`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md). When project
 dimensions are set, the dialog shows pixels, mm, and effective X/Y DPI
 separately. A
 **pre-export check** runs continuously and reports findings by severity:

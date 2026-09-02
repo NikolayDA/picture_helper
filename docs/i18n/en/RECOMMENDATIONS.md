@@ -24,15 +24,15 @@ corrects both. Newly assessed: #949 (test-suite audit, four actionable test
 changes, no production defect), #939 (permanent heartbeat alert channel, do
 not close), and the epic bracket #914. No new 🔴 finding.
 
-**Release assessment: no new release is due.** Since `v2.9.0` (2026-08-29)
-there are 25 mainline commits – exclusively release automation, documentation,
-and governance; `[Unreleased]` is empty, and inside the `bgremover/` package
-only the evidence hook `update_check_probe.py` (#917) changed. A candidate
-build would carry no user-visible content. Intended scope for a later
-**v2.10.0**: the COLOR tone/grayscale engine (#693/#694 from epic #682) on top
-of the now-approved ADR #692, optionally plus #949.
+**Release assessment: no candidate started yet.** Since `v2.9.0` (2026-08-29)
+there are 30 mainline commits. With PR #953 (versioned EufyMake target profile,
+16-bit HEIGHT default, profile and X/Y DPI display in the dialog, manifest
+provenance) `[Unreleased]` holds its first user-visible entry; everything else
+is release automation, documentation, and governance. Whether **v2.10.0** ships
+with #953 alone or together with the COLOR tone engine (#693/#694 from epic
+#682, ADR #692) is an owner decision; the freeze gate is green at `ac64c3b`.
 
-**EufyMake #681/#687–#691:** PR #951 is merged, and #690 expands the reproducible set to 41 individual fixtures and seven real export bundles. Separate X/Y DPI, manifest/`pHYs` conflicts, Gloss 0/128/255, 64…192 normalization, dimension mismatch, Alpha×Gloss, and HEIGHT×Gloss are covered by automated checks. Studio 4.2.2 now also confirms #690's image-import boundary: every PNG remains an independent “Flat” layer without GLOSS role assignment; all physical Gloss/HEIGHT measurements remain open. #687 is at 17/18 criteria and awaits the closeout review after the real tests.
+**EufyMake #681/#687–#691:** PRs #948, #951, and #952 are merged; the reproducible set comprises 41 individual fixtures and seven real export bundles (schema 4). Alpha/coverage, crop registration, separate X/Y DPI, manifest/`pHYs` conflicts, Gloss 0/128/255, 64…192 normalization, dimension mismatch, Alpha×Gloss, and HEIGHT×Gloss are covered by automated checks. Studio 4.2.2 confirms for #689 the 72-dpi fallback without `pHYs`, per-axis `pHYs` priority, the `manifest.json` being inactive in the image import, manual size priority, rotation, and single-image crop; for #690 all PNGs remain independent “Flat” layers without a GLOSS role assignment. PR #953 integrated the **provisional** target profile v1 (#691); the physical E1 measurements for #688–#690, and with them the profile's promotion, remain open. #687 stands at 17/18 criteria and awaits the closeout review after the real tests.
 
 Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.9.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #943 (PR #944) and #692 (PR #947) (details: Previous Rounds).
 
@@ -42,12 +42,12 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
-| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake target profile – validate Height/Gloss/mm-DPI | 🟠 High (correctness of the main export target) | 🔴 High (5 sub-issues, needs physical hardware) | – (epic) | #687 is at 17/18 AC; only the closeout review after the real tests remains, while profile integration #691 waits on #688–#690 |
+| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake target profile – validate Height/Gloss/mm-DPI | 🟠 High (correctness of the main export target) | 🔴 High (5 sub-issues, needs physical hardware) | – (epic) | #687 is at 17/18 AC; only the closeout review after the real tests remains, while profile integration #691 is provisionally in place (PR #953) and only awaits promotion after #688–#690 |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Assumption inventory, manufacturer sources, test matrix | 🟠 High (binding foundation for #688–#691) | 🔴 High (own deliverables done; fixture/test-cell gaps from #688–#690 open, remainder needs real hardware) | – (no agent; needs real EufyMake hardware) | Blocked (external) – 17/18 acceptance criteria done; I-06 is observed in Studio, and only the closeout review after real tests #688–#690 remains |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Validate HEIGHT bit depth/semantics on real hardware | 🟠 High (directly affects relief height) | 🔴 High (physical printer, fixtures, measurement log) | – (no agent; needs real EufyMake hardware) | Blocked (external) – PR #948 is merged and repository preparation is complete; the remaining import matrix and safe physical E1 print, relief, and mm measurements remain open |
 | [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Validate mm/DPI, target size, positioning contract | 🟠 High (print size/registration) | 🔴 High (physical measurements, control motifs) | – (no agent; needs real hardware) | In progress – the repository set and Studio sub-contract are documented: 72-DPI fallback, X/Y `pHYs`, manifest boundary, manual size, rotation, and single-image crop. Cross-role crop/registration, physical measurements, and print tolerances remain open |
 | [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Validate gloss/clear-coat semantics | 🟡 Medium (gloss is already flagged "experimental" in code) | 🔴 High (physical prints, material consumption) | – (no agent; needs real hardware) | Blocked (external) + digital/import portion complete – schema 4 and Studio 4.2.2 establish fixtures, bundles, 72-dpi geometry, and independent “Flat” layers without GLOSS assignment; physical gloss evidence remains open |
-| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Integrate versioned target profile into validator/writer/dialog/docs | 🟠 High (hardens the production export path) | 🟠 High (cross-cutting across eufymake_export/_validate/_writer + UI) | Opus, high | Blocked – waits on #688–#690 |
+| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Integrate versioned target profile into validator/writer/dialog/docs | 🟠 High (hardens the production export path) | 🟠 High (cross-cutting across eufymake_export/_validate/_writer + UI) | Opus, high | In progress – provisional profile v1 is integrated via PR #953 (registry, dialog, writer, validator, docs); what remains is promoting it to `validated` after the physical measurements from #688–#690, then close |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR tonal/grayscale engine | 🟡 Medium-high (roadmap foundation for laser, not an active bug) | 🔴 High (4 remaining sub-issues: core→UI→integration→acceptance) | – (epic) | In progress – ADR #692 is approved; the core #693 comes next |
 | [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Qt-free core: histogram/grayscale/levels/gamma | 🟡 Medium-high | 🟡 Medium (extends `color_ops.py`, well isolated and testable) | Sonnet, high | Ready to start – ADR #692 (PR #947) supplies the data contract; implement and test the core against its formulas |
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live preview + UI for histogram/levels/gamma | 🟡 Medium | 🟡 Medium-high (Qt UI, debounce/generation guard like the height preview) | Sonnet, high | Blocked – waits on core #693 |
@@ -92,7 +92,8 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 2. **#949** – four small, clearly scoped test changes with no production risk; a good parallel
    PR alongside the epic.
 3. After device/material approval, perform the remaining physical measurements for **#689**
-   together with the remainder of #687, #688, and #690; the Studio import portions of #689 and #690 are documented.
+   together with the remainder of #687, #688, and #690; the Studio import portions of #689 and #690 are documented. Then close out #691:
+   promote profile v1, or create v2 if the results contradict it.
 4. **#883** (MAS licensing strategy) decides the Mac App Store path #882 –
    without that owner decision the whole chain #884–#907 stays blocked.
 

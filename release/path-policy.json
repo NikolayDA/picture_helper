@@ -252,6 +252,14 @@
       "evidence": ["README.md und die fünf übersetzten READMEs betten das Bild ausschließlich als Repository-Dokumentation ein", "Kein Packaging-, Build- oder Release-Workflow liest docs/screenshot_height.png"]
     },
     {
+      "id": "export-dialog-screenshot",
+      "kind": "exact",
+      "path": "docs/screenshot_export.png",
+      "sample_path": "docs/screenshot_export.png",
+      "reason": "Der kuratierte Screenshot des EufyMake-Exportdialogs dokumentiert die Bedienoberfläche, wird aber weder in Pakete noch in Release-Artefakte eingebettet (Gegenstück zu docs/screenshot_height.png).",
+      "evidence": ["README.md und die fünf übersetzten READMEs betten das Bild ausschließlich als Repository-Dokumentation ein", "Kein Packaging-, Build- oder Release-Workflow liest docs/screenshot_export.png"]
+    },
+    {
       "id": "translated-readme-en",
       "kind": "exact",
       "path": "docs/i18n/en/README.md",

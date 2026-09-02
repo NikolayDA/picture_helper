@@ -627,11 +627,12 @@ def main() -> int:
             project_for_export,
             include_height=True,
             include_gloss=True,
-            bit_depth=8,
+            # Bittiefe bewusst nicht erzwingen: Der Dialog zeigt den Profil-Default
+            # (seit #691 16 Bit); die Hoehe traegt der neuen Zielprofil-Gruppe Rechnung.
             dest_dir=str(out / "_exports" / "eufymake_import_assets"),
             parent=window,
         )
-        eufy_dlg.resize(700, 660)
+        eufy_dlg.resize(700, 790)
         eufy_dlg.show()
         snap(eufy_dlg, "37_dialog_eufymake_export.png", "Dialog: EufyMake Studio Import-Assets exportieren")
         eufy_dlg.close()
