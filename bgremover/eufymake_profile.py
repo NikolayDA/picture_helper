@@ -506,7 +506,9 @@ DEFAULT_TARGET_PROFILE = EufyMakeTargetProfile(
             "manufacturer-height-direction",
             EvidenceStatus.CONFIRMED,
             "hell = hoch / dunkel = niedrig",
-            "docs/history/EUFYMAKE-687-QUELLENREGISTER.md",
+            # Abschnitt „Quellen-/Evidenzverzeichnis" des Annahmeninventars;
+            # bis 2026-09-02 zeigte der Verweis auf eine nie angelegte Datei.
+            "docs/history/EUFYMAKE-687-ANNAHMENINVENTAR.md",
         ),
         EvidenceReference(
             "issue-688-studio-import",
