@@ -32,8 +32,8 @@ Quelldokumente.
 - [ ] Unabhängigen Pre-Import-Report am Zielrechner erzeugt:
       `python scripts/eufymake_fixture_inspector.py
       --expected-manifest-sha256
-      794e7890d169516900534b7a0166b5cd477589bef05d952c045db2a45d172308
-      --output eufymake-pre-import-report.json`; Ergebnis `ok: true`, Schema 2
+      f9028246d0c07de185b032a11414ac06e64e8425798a59ad7d637501f663d585
+      --output eufymake-pre-import-report.json`; Ergebnis `ok: true`, Schema 3
       und Soll-Hash bestätigt, Report bei den übrigen Nachweisen abgelegt.
 - [ ] Die drei Protokolltabellen aus `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`
       griffbereit (digital oder ausgedruckt), um sie parallel zu dieser
@@ -94,22 +94,23 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 6 | I-05 (ohne `pHYs`) | ☐ | ☐ |
 | 7 | I-05 (konsistent) | ☐ | ☐ |
 | 8 | I-05 (widersprüchlich) | ☐ | ☐ |
-| 9 | I-06 (`manifest.json` allein) | ☐ | ☐ |
-| 10 | I-06 (kompletter Ordner) | ☐ | ☐ |
-| 11 | I-07 | ☐ | ☐ |
-| 12 | I-08 (vor Crop) | ☐ | ☐ |
-| 13 | I-08 (nach Crop) | ☐ | ☐ |
-| 14 | I-09 (Legacy) | ☐ | ☐ |
-| 15 | I-09 (aktuell) | ☐ | ☐ |
-| 16 | I-10 (normal) | ☐ | ☐ |
-| 17 | I-10 (invertiert) | ☐ | ☐ |
-| 18 | I-11 | ☐ | ☐ |
-| 19 | I-12 | ☐ | ☐ |
-| 20 | I-13 (Alpha/Coverage) | ☐ | ☐ |
+| 9 | I-05 (X/Y 300/150 dpi) | ☐ | ☐ |
+| 10 | I-06 (`export_mm_dpi_conflict/manifest.json` allein) | ☐ | ☐ |
+| 11 | I-06 (kompletter Vier-Dateien-Exportordner) | ☐ | ☐ |
+| 12 | I-07 | ☐ | ☐ |
+| 13 | I-08 (COLOR/HEIGHT/GLOSS vor Crop) | ☐ | ☐ |
+| 14 | I-08 (COLOR/HEIGHT/GLOSS nach Crop) | ☐ | ☐ |
+| 15 | I-09 (Legacy) | ☐ | ☐ |
+| 16 | I-09 (aktuell) | ☐ | ☐ |
+| 17 | I-10 (normal) | ☐ | ☐ |
+| 18 | I-10 (invertiert) | ☐ | ☐ |
+| 19 | I-11 | ☐ | ☐ |
+| 20 | I-12 | ☐ | ☐ |
+| 21 | I-13 (Alpha/Coverage) | ☐ | ☐ |
 
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 
-- [ ] Alle 20 Zeilen aus Phase 1 abgeschlossen; keine ungeklärten
+- [ ] Alle 21 Zeilen aus Phase 1 abgeschlossen; keine ungeklärten
       Sicherheits-/Fehlerfälle offen.
 - [ ] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
       protokolliert, nicht nur bei „Ja" übersprungen.
@@ -179,6 +180,9 @@ noch nicht gestartete Wiederholung und erhöht das Budget nicht.
 - [ ] #688-Resultate samt Messpunkten und finaler Default-/Validator-
       Entscheidung in `EUFYMAKE-688-HEIGHT-VERTRAG.md` übertragen; keine
       leeren Felder als negatives oder positives Ergebnis gewertet.
+- [ ] #689-Resultate samt X-/Y-, Prioritäts-, Rundungs- und
+      Registrierungsbefunden in `EUFYMAKE-689-MM-DPI-VERTRAG.md` übertragen;
+      keine leeren Felder als Ergebnis gewertet.
 - [ ] Kurzer Ermüdungsfehler-Check: passen Anzahl bearbeiteter Zellen und
       Sorgfalt der Protokollierung zusammen? Falls nicht, betroffene Zeilen
       am nächsten Testtag erneut prüfen statt unklare Werte stehen zu

@@ -1,6 +1,7 @@
-"""Tests für den unabhängigen EufyMake-Pre-Import-Report (#688)."""
+"""Tests für den unabhängigen EufyMake-Pre-Import-Report (#688/#689)."""
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import sys
@@ -45,6 +46,13 @@ def test_inspector_reports_all_generated_fixtures_and_raw_png_properties(
         "missing": [],
         "unexpected": [],
     }
+    assert report["bundle_summary"] == {
+        "expected": 1,
+        "passed": 1,
+        "failed": 0,
+        "missing": [],
+        "unexpected": [],
+    }
 
     by_name = {entry["filename"]: entry for entry in report["fixtures"]}
     height = by_name["height_wedge_16bit.png"]
@@ -58,6 +66,16 @@ def test_inspector_reports_all_generated_fixtures_and_raw_png_properties(
     assert mm["actual"]["ihdr_color_type"] == 6
     assert mm["actual"]["chunks"] == ["IHDR", "pHYs", "IDAT", "IEND"]
     assert round(mm["actual"]["phys"]["x_dpi"]) == 300
+
+    mm_xy = by_name["mm_typisch_phys_xy.png"]
+    assert round(mm_xy["actual"]["phys"]["x_dpi"]) == 300
+    assert round(mm_xy["actual"]["phys"]["y_dpi"]) == 150
+
+    bundle = report["bundles"][0]
+    assert bundle["ok"] is True
+    bundle_by_name = {entry["filename"]: entry for entry in bundle["files"]}
+    assert bundle_by_name["manifest.json"]["actual"]["contract"]["dpi"] == [300.0, 300.0]
+    assert round(bundle_by_name["color_motif.png"]["actual"]["phys"]["x_dpi"]) == 150
 
 
 def test_inspector_detects_changed_bytes_even_if_png_remains_valid(tmp_path: Path) -> None:
@@ -86,6 +104,49 @@ def test_inspector_detects_missing_and_unexpected_files(tmp_path: Path) -> None:
     assert report["ok"] is False
     assert report["summary"]["missing"] == ["height_zero_8bit.png"]
     assert report["summary"]["unexpected"] == ["unexpected.png"]
+
+
+def test_inspector_detects_missing_bundle_file(tmp_path: Path) -> None:
+    out_dir = _fixtures(tmp_path)
+    (out_dir / gen.EXPORT_BUNDLE_DIRNAME / "gloss_mask.png").unlink()
+
+    report = inspector.inspect_fixture_dir(out_dir)
+    bundle = report["bundles"][0]
+    assert report["ok"] is False
+    assert report["bundle_summary"]["failed"] == 1
+    assert bundle["summary"]["missing"] == ["gloss_mask.png"]
+
+
+def test_inspector_checks_export_manifest_semantics_beyond_catalog_hash(
+    tmp_path: Path,
+) -> None:
+    out_dir = _fixtures(tmp_path)
+    export_manifest_path = out_dir / gen.EXPORT_BUNDLE_DIRNAME / "manifest.json"
+    export_manifest = json.loads(export_manifest_path.read_text(encoding="utf-8"))
+    export_manifest["target"]["dpi"] = [72.0, 72.0]
+    changed = json.dumps(export_manifest, indent=2, ensure_ascii=False).encode("utf-8")
+    export_manifest_path.write_bytes(changed)
+
+    # SHA/Bytegröße im Katalog bewusst nachziehen: Die unabhängige semantische
+    # Prüfung muss den Vertragsbruch trotzdem erkennen.
+    fixture_manifest_path = out_dir / gen.MANIFEST_FILENAME
+    fixture_manifest = json.loads(fixture_manifest_path.read_text(encoding="utf-8"))
+    entry = next(
+        item for item in fixture_manifest["bundles"][0]["files"]
+        if item["filename"] == "manifest.json"
+    )
+    entry["sha256"] = hashlib.sha256(changed).hexdigest()
+    entry["bytes"] = len(changed)
+    fixture_manifest_path.write_text(json.dumps(fixture_manifest), encoding="utf-8")
+
+    report = inspector.inspect_fixture_dir(out_dir)
+    manifest_result = next(
+        item for item in report["bundles"][0]["files"]
+        if item["filename"] == "manifest.json"
+    )
+    assert report["ok"] is False
+    assert manifest_result["ok"] is False
+    assert any("Exportmanifest dpi" in error for error in manifest_result["errors"])
 
 
 def test_inspector_rejects_incomplete_manifest_entry(tmp_path: Path) -> None:

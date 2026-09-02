@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 11,
+  "policy_version": 12,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -474,6 +474,14 @@
       "sample_path": "docs/history/EUFYMAKE-688-HEIGHT-VERTRAG.md",
       "reason": "Ergebnisakte für die manuelle EufyMake-HEIGHT-Hardwarevalidierung; dokumentiert Import- und Druckevidenz, wird aber von keinem Build-, Paket- oder Release-Gate als Eingabe gelesen.",
       "evidence": ["Nur Markdown-Querverweise aus EufyMake-Protokollen und RECOMMENDATIONS.md; kein Code, Build-Skript oder Workflow liest den Inhalt"]
+    },
+    {
+      "id": "eufymake-689-mm-dpi-vertrag",
+      "kind": "exact",
+      "path": "docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md",
+      "sample_path": "docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md",
+      "reason": "Ergebnisakte für die manuelle EufyMake-mm/DPI-Hardwarevalidierung; dokumentiert Datei-, Import- und Druckevidenz, wird aber von keinem Build-, Paket- oder Release-Gate als Eingabe gelesen.",
+      "evidence": ["Nur Markdown-Querverweise aus EufyMake-Protokollen, CLAUDE.md und RECOMMENDATIONS.md; kein Code, Build-Skript oder Workflow liest den Inhalt"]
     },
     {
       "id": "color-tonwert-adr",

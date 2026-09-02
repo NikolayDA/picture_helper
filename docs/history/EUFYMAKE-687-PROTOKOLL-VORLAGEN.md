@@ -27,7 +27,8 @@ Sicherheitsregeln aus der Governance an einer Stelle – die Protokolltabellen
 hier bleiben die Datenquelle. Die #688-Ergebnisse werden anschließend ohne
 Vermischung der Evidenzarten in
 [`EUFYMAKE-688-HEIGHT-VERTRAG.md`](EUFYMAKE-688-HEIGHT-VERTRAG.md)
-zusammengeführt.
+zusammengeführt; für #689 übernimmt dies
+[`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md).
 
 **Hinweis zu pHYs/DPI:** PNGs `pHYs`-Chunk speichert Pixel je Meter als
 Ganzzahl; der Rückweg zu DPI rundet deshalb minimal (< 0,01 %, z. B. 150 dpi →
@@ -42,10 +43,10 @@ Fixture-Erzeugung.
 | I-02 | `color_height_reference.png` + `height_wedge_16bit.png` | Höhenkarte zugeordnet | #688 |
 | I-03 | Höhenkarte 8 Bit vs. 16 Bit, identisches Motiv | Bittiefe | #688 |
 | I-04 | Höhenkarte mit halber Kantenlänge | Pixelmaß | #688/#689 |
-| I-05 | PNG mit `pHYs` konsistent vs. widersprüchlich vs. ohne | `pHYs` | #689 |
-| I-06 | `manifest.json` allein und kompletter BgRemover-Ordner | Träger | #687 |
+| I-05 | PNG mit `pHYs` konsistent vs. widersprüchlich vs. ohne sowie X/Y-DPI 300/150 | `pHYs` und Achse | #689 |
+| I-06 | `export_mm_dpi_conflict/manifest.json` allein und kompletter Vier-Dateien-Exportordner | Träger/Priorität | #687/#689 |
 | I-07 | Vollweiße Höhenkarte | Sättigung | #688 |
-| I-08 | `color_height_reference.png` samt `height_registration_16bit.png` vor/nach Crop in Studio | Crop | #689 |
+| I-08 | `color_height_reference.png`, `height_registration_16bit.png` und `gloss_registration.png` vor/nach Crop in Studio | Crop/Registrierung | #689/#690 |
 | I-09 | Legacy-`.empf` vs. aktuell exportiertes `.empf` | Containergeneration | #687 |
 | I-10 | Gloss-Maske schwarz/weiß invertiert | Polarität | #690 |
 | I-11 | Höhenkarte mit Treppenkeil (bekannte, diskrete Stufen) | Graustufe→mm-Kennlinie (H-02) | #688 |
@@ -63,7 +64,7 @@ Der reproduzierbare Standardaufruf am Zielrechner ist:
 ```bash
 python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
-  --expected-manifest-sha256 794e7890d169516900534b7a0166b5cd477589bef05d952c045db2a45d172308 \
+  --expected-manifest-sha256 f9028246d0c07de185b032a11414ac06e64e8425798a59ad7d637501f663d585 \
   --output eufymake-pre-import-report.json
 ```
 
@@ -72,15 +73,17 @@ IHDR-Bittiefe/-Farbtyp, vollständige Chunkfolge, `pHYs` und Chunk-CRCs direkt
 aus den übertragenen Dateien. Der Pillow-Modus ist nur ein Diagnosefeld; die
 Formatentscheidung beruht auf IHDR. Der im Befehl fest vorgegebene
 Manifest-SHA bindet das kopierte Verzeichnis an den versionierten Sollsatz.
-Nur Exitcode 0, `"ok": true`, Manifest-Schema 2 und derselbe Soll-Hash erlauben
+Nur Exitcode 0, `"ok": true`, Manifest-Schema 3 und derselbe Soll-Hash erlauben
 den anschließenden Import; der Report wird mit den Nachweisen abgelegt.
 
 **Repository-Gesamtprüfung (2026-09-02, automatisiert, kein Studio-Zugriff):**
-Alle 34 im Repository committeten Fixtures wurden direkt gegen
-`fixtures_manifest.json` geprüft – SHA-256 der Datei, Bytegröße, PNG-Modus/
+Alle 36 im Repository committeten Einzel-Fixtures und das Vier-Dateien-
+Exportpaket wurden direkt gegen `fixtures_manifest.json` geprüft – SHA-256
+der Datei, Bytegröße, PNG-Modus/
 IHDR-Bittiefe/-Farbtyp, Maße sowie eine vollständige Chunk-Liste (per
-struct-Parsing der PNG-Bytes, nicht nur über PIL). Ergebnis: **alle 34
-Dateien stimmen mit dem Manifest überein**, keine Datei enthält
+struct-Parsing der PNG-Bytes, nicht nur über PIL). Ergebnis: **36/36
+Einzel-Fixtures und 1/1 Exportpakete stimmen mit dem Manifest überein**;
+keine PNG-Datei enthält
 Chunks außer `IHDR`/`IDAT`/`IEND` und – wo im Manifest dokumentiert –
 `pHYs`. Das ersetzt **nicht** die Prüfung unmittelbar vor dem Import bei dir
 (falls die Dateien z. B. per USB/Cloud auf einen anderen Rechner übertragen
@@ -121,6 +124,17 @@ durchgehend nicht-null `height_mean_16bit.png` (digitaler Wert 32768)
 kombiniert. Die Generator-Tests prüfen Landmarks, Feldgrenzen, Alphawerte,
 identische Maße sowie konstante RGB- und HEIGHT-Werte bitgenau.
 
+**Ergänzung (#689-Vorbereitung, I-05/I-06/I-08):**
+`mm_typisch_phys_xy.png` trägt getrennte X-/Y-Werte von ca. 300/150 dpi.
+Der Unterordner `export_mm_dpi_conflict/` stammt aus dem produktiven
+BgRemover-Writer und enthält die kanonischen vier Paketdateien; sein
+`manifest.json` fordert 300×300 dpi, während die drei PNGs 150×150 dpi im
+`pHYs` tragen. `gloss_registration.png` ergänzt die I-08-Landmarks zur
+pixelgleichen COLOR/HEIGHT/GLOSS-Dreiergruppe. Der Inspector prüft
+nicht-quadratische `pHYs` achsweise und das Exportmanifest zusätzlich
+semantisch. Das Katalogmanifest `fixtures_manifest.json` ist weiterhin nur
+der Vertrauensanker und **kein** Studio-Eingabemanifest.
+
 **Wichtiger Befund dabei:** Mehrere Fixtures mit unterschiedlicher **Rolle**
 sind **bytegleich**, weil sie denselben normalisierten Muster-Generator bei
 gleicher Größe/Bittiefe/PNG-Modus verwenden: `gloss_min.png` ↔
@@ -144,12 +158,14 @@ Dateinamen prüfen, nicht nur den Hash.
 | I-05 (ohne `pHYs`) | `mm_klein_no_phys.png` | `6eabe8ece8b79a3836e44a710263ad64c1c119432c755e89cbf3252d1dce25e0` | `6eabe8ece8b79a3836e44a710263ad64c1c119432c755e89cbf3252d1dce25e0` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | I-05 (konsistent) | `mm_klein_phys.png` | `37a78c832895222f3ee659f64589fc9096f9e8925c6058f65394db6e1cfb37c8` | `37a78c832895222f3ee659f64589fc9096f9e8925c6058f65394db6e1cfb37c8` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 150 dpi → 150,012 ist Rundungsartefakt des `pHYs`-Ganzzahlformats, kein Fehler |
 | I-05 (widersprüchlich) | `mm_klein_phys_conflict.png` | `1e02f7004559030c7aa859a2c34ecbd7bfce9c4f786a4406eb0b5b5b69fba983` | `1e02f7004559030c7aa859a2c34ecbd7bfce9c4f786a4406eb0b5b5b69fba983` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_klein_*`, `pHYs` bewusst auf 300 statt 150 dpi gesetzt |
-| I-06 (`manifest.json` allein) | `fixtures_manifest.json` | – (kein Bild-Asset) | – | – | – | – | – | – | n. z. | Kein PNG – Validierung hier bedeutungslos, Testzweck ist Studios Reaktion auf die Datei |
-| I-06 (kompletter Ordner) | alle 35 Dateien in `tests/fixtures/eufymake_hardware/` (34 PNG-Fixtures + `fixtures_manifest.json`) | siehe alle Zeilen dieser Tabelle | siehe alle Zeilen dieser Tabelle | – | – | – | – | – | ✅ OK (34 PNGs hash-verifiziert; Manifest-SHA extern gebunden) | Beim Import den **kompletten** Ordner inkl. Manifest verwenden, nicht nur die 34 Bilder – sonst wird nicht das reale BgRemover-Lieferbündel getestet. Auf Bytegleichheit über Rollen hinweg achten, siehe Hinweis oben |
+| I-05 (X/Y getrennt) | `mm_typisch_phys_xy.png` | `525fc2c88875c5c7bb53e73f169964173fabd66470d2d1ee74b29fcdfae6382f` | `525fc2c88875c5c7bb53e73f169964173fabd66470d2d1ee74b29fcdfae6382f` | color_motif | RGBA | 8 Bit | vorhanden (11811×5906 px/m ≈ 299.999×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 1200×1200 px; `pHYs` impliziert 101,6×203,2 mm und prüft beide Achsen getrennt |
+| I-06 (`manifest.json` allein) | `export_mm_dpi_conflict/manifest.json` | `23dc74b2ea547ed8708cff59f5abcb08658457d71b1756f9abdc2e40fa3ffb7b` | `23dc74b2ea547ed8708cff59f5abcb08658457d71b1756f9abdc2e40fa3ffb7b` | – | JSON | – | Manifest: 300×300 dpi, 21,674666… mm | – | ✅ OK (Hash + Semantik) | Echtes BgRemover-Exportmanifest; **nicht** `fixtures_manifest.json` |
+| I-06 (kompletter Ordner) | exakt vier Dateien in `export_mm_dpi_conflict/` | siehe Bundle-Einträge in `fixtures_manifest.json` | siehe Bundle-Einträge in `fixtures_manifest.json` | COLOR/HEIGHT/GLOSS + Manifest | RGBA/I;16/L/JSON | 8/16/8 Bit | PNGs: ca. 150×150 dpi; Manifest: 300×300 dpi | keine zusätzlichen PNG-Chunks | ✅ OK (4/4 Dateien, Manifestsemantik, Hashes) | Kontrollierter Prioritätstest: 256×256 px und identische Landmarkmasken, aber Manifest- und PNG-Größe widersprechen sich |
 | I-07 | `height_max_8bit.png` | `f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44` | `f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_max.png` |
 | I-07 | `height_max_16bit.png` | `f9e865c79a144fc5f90144136aafae9391e4a8f2efd1e388b8593019a6bdc0ad` | `f9e865c79a144fc5f90144136aafae9391e4a8f2efd1e388b8593019a6bdc0ad` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | I-08 (vor/nach Crop) | `color_height_reference.png` | `8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493` | `8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Asymmetrische X-/Y-Marker; pixelgleich zur HEIGHT-Registriermap |
 | I-08 (vor/nach Crop) | `height_registration_16bit.png` | `aad17d01503fb53e55d50ffb306c8bf05f2842dc53b0eb4c0ce07ad65e18f8d7` | `aad17d01503fb53e55d50ffb306c8bf05f2842dc53b0eb4c0ce07ad65e18f8d7` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Nicht-weiße COLOR-Pixel exakt als 65535-Landmarks, Hintergrund 0 |
+| I-08 (vor/nach Crop) | `gloss_registration.png` | `50bdc5019f79819b9f019259b4710840e21a3d51d77b06367af5c455ece78a04` | `50bdc5019f79819b9f019259b4710840e21a3d51d77b06367af5c455ece78a04` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Dieselben COLOR-Landmarks exakt als 0/255-GLOSS-Maske; gemeinsames 256×256-Tripel |
 | I-09 (Legacy) | externes `.empf` (nicht im Repo) | – | – | – | – | – | – | – | n. z. | Kein BgRemover-Fixture – aus Community-Quelle B1 (`empf-generator`) zu beschaffen |
 | I-09 (aktuell) | ein **aktuell von EufyMake Studio selbst** exportiertes `.empf` (nicht von BgRemover) | – | – | – | – | – | – | – | offen | Kein BgRemover-Fixture – erfordert ein reales Studio-Projekt, aus der aktuellen Studio-Version exportiert. Testzweck laut Annahmeninventar (V2, I-09): prüfen, ob das seit 2.7.0.6 verschlüsselt gekapselte aktuelle `.empf`-Format importierbar bleibt bzw. sich vom alten Legacy-ZIP unterscheidet – **nicht** ob BgRemover `.empf` erzeugen kann (das bleibt bewusst Nicht-Ziel, `OpenQuestion.NATIVE_EMPF_PROJECT`) |
 | I-10 (normal) | `gloss_wedge.png` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_wedge_8bit.png` |
@@ -183,11 +199,13 @@ mitverifiziert – bei Bedarf einer eigenen Testzelle zuordnen):
 | zusätzlich | `gloss_steps.png` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_steps_8bit.png` |
 | zusätzlich | `gloss_checkerboard.png` | `b6f2791be91d19ade1de1f05c858d321201c3b231060b9633ef1dd8323fc161d` | `b6f2791be91d19ade1de1f05c858d321201c3b231060b9633ef1dd8323fc161d` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 
-**Ergebnis der Basisprüfung: 34/34 Fixtures OK, 0 Abweichungen** (29
+**Ergebnis der Basisprüfung: 36/36 Einzel-Fixtures und 1/1 Exportpakete OK,
+0 Abweichungen** (29
 ursprüngliche Fixtures zzgl. der
 später ergänzten I-04-Variante `height_wedge_16bit_half.png` und der
 I-12-Variante `height_wedge_16bit_aspect.png`, der beiden COLOR-Kontrollen und
-der HEIGHT-Registriermap, siehe „Ergänzung" oben; `height_steps_8bit.png`/
+der HEIGHT-Registriermap sowie der X/Y-DPI- und GLOSS-Registrier-Fixture,
+siehe „Ergänzung" oben; `height_steps_8bit.png`/
 `height_steps_16bit.png` waren
 bereits Teil der ursprünglichen 29, nur ihre Zuordnung zu I-11 ist neu).
 Damit ist die im Repository committete Fixture-Menge nachweislich konsistent
@@ -218,6 +236,7 @@ Dateivalidierungsprotokoll derselben Zeile.
 | I-05 (konsistent) | | | | | | | Ja / Nein | | |
 | I-05 (ohne `pHYs`) | | | | | | | Ja / Nein | | |
 | I-05 (widersprüchlich) | | | | | | | Ja / Nein | | |
+| I-05 (X/Y 300/150 dpi) | | | | | | | Ja / Nein | | |
 | I-06 (`manifest.json` allein) | | | | | | | Ja / Nein | | |
 | I-06 (kompletter Ordner) | | | | | | | Ja / Nein | | |
 | I-07 | | | | | | | Ja / Nein | | |
@@ -230,6 +249,32 @@ Dateivalidierungsprotokoll derselben Zeile.
 | I-11 | | | | | | | Ja / Nein | | |
 | I-12 | | | | | | | Ja / Nein | | |
 | I-13 (Alpha/Coverage) | | | | | | | Ja / Nein | | |
+
+### 2.1 mm/DPI-Detailwerte für #689
+
+Die allgemeine Importtabelle reicht für #689 nicht aus: Breite und Höhe sind
+achsweise und als **exakter Studio-Anzeigetext** zu erfassen. Eine manuelle
+Größe nur eintragen, wenn sie in dieser Zelle tatsächlich gesetzt wurde;
+sonst „nicht gesetzt". Vorher-/Nachher-Werte nicht in einer Zelle vermischen.
+
+| Testzelle/Datei | Pixel X/Y | Datei-`pHYs` X/Y | Manifest-mm/DPI | Manuelle Studio-mm X/Y | Studio vor Bestätigung: mm X/Y + Dezimalstellen | Studio nach Bestätigung: mm X/Y | Seitenverhältnis/Rotation | X-/Y-Offset, Crop, Zentrierung | Priorisierte Quelle/Beobachtung |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| I-01 `mm_typisch_phys.png` | 1200/1200 | ca. 300/300 dpi | keines | nicht gesetzt | | | | | |
+| I-05 `mm_typisch_no_phys.png` | 1200/1200 | fehlt | keines | nicht gesetzt | | | | | |
+| I-05 `mm_typisch_phys.png` | 1200/1200 | ca. 300/300 dpi | keines | nicht gesetzt | | | | | |
+| I-05 `mm_typisch_phys_conflict.png` | 1200/1200 | ca. 150/150 dpi | keines | nicht gesetzt | | | | | |
+| I-05 `mm_typisch_phys_xy.png` | 1200/1200 | ca. 300/150 dpi | keines | nicht gesetzt | | | | | |
+| I-06 `export_mm_dpi_conflict/manifest.json` allein | – | – | 21,674666… mm / 300 dpi | nicht gesetzt | | | | | |
+| I-06 kompletter Exportordner | 256/256 je PNG | ca. 150/150 dpi je PNG | 21,674666… mm / 300 dpi | nicht gesetzt | | | | | |
+| I-06 kompletter Exportordner + manuelle Größe | 256/256 je PNG | ca. 150/150 dpi je PNG | 21,674666… mm / 300 dpi | hier exakt eintragen | | | | | |
+| I-08 COLOR/HEIGHT/GLOSS vor Crop | 256/256 je Rolle | fehlt | keines | hier exakt eintragen | | | | | |
+| I-08 COLOR/HEIGHT/GLOSS nach Crop | 256/256 je Rolle | fehlt | keines | unverändert | | | | | |
+| I-12 abweichende HEIGHT-Dimension | COLOR 256/256; HEIGHT 256/128 | fehlt | keines | hier exakt eintragen | | | | | |
+
+Rundung wird nach der Regel in
+[`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md)
+bewertet. „Nichts passiert" bleibt auch hier ein Ergebnis und wird zusätzlich
+in der allgemeinen Importtabelle markiert.
 
 **„Nichts passiert"-Fall (EM-S03):** Laut Annahmeninventar wurde für Studio
 2.6.0.2 ein still geladener, aber unsichtbarer Import berichtet; spätere
