@@ -152,6 +152,32 @@ def test_no_match_returns_none() -> None:
     assert rud.select_marked_run([_run_entry(marker="update-check:v1.0.0:5")], marker=MARKER) is None
 
 
+def test_punctuation_next_to_the_marker_still_counts_as_the_searched_run() -> None:
+    """#954-Review: ``.``/``:``/``-`` gehoeren zum Marker-Alphabet, sind aber
+    weder eine Fortsetzung der numerischen Run-ID noch der Rest eines anderen
+    Tokens. Ein handformulierter Titel wie ``…:4242.`` oder ``…:4242: ok``
+    verfehlte den vorhandenen Nachweislauf und loeste genau den zweiten
+    Dispatch aus, den der Marker verhindern soll."""
+    for prefix, suffix in (
+        ("", "."), ("", ": ok"), ("", "-retry"), ("(", ")"), ("", " y"), ("", ""),
+        ("[", "]"), ("Nachweis: ", ""), ("-", ""),
+    ):
+        entry = {"databaseId": 9, "displayTitle": f"{prefix}{MARKER}{suffix}",
+                 "status": "completed", "conclusion": "success", "url": "u"}
+        found = rud.select_marked_run([entry], marker=MARKER)
+        assert found is not None and found.run_id == 9, (prefix, suffix)
+    # Die Ziffer bleibt die einzige Fortsetzung, die den Treffer entwertet ...
+    assert rud.select_marked_run(
+        [{"databaseId": 9, "displayTitle": f"{MARKER}0.", "status": "completed"}], marker=MARKER
+    ) is None
+    # ... und links entwertet jeder Buchstabe und jede Ziffer.
+    for prefix in ("x", "7"):
+        assert rud.select_marked_run(
+            [{"databaseId": 9, "displayTitle": f"{prefix}{MARKER}", "status": "completed"}],
+            marker=MARKER,
+        ) is None, prefix
+
+
 def test_a_longer_marker_never_counts_as_the_searched_one() -> None:
     """Substring-Kollision aus #943 Befund 2: ``…:4242`` steckt in ``…:42420``.
 

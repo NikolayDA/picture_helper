@@ -848,7 +848,10 @@ Issue-Kommentar) – `startup_failure` heißt „angenommen, konnte nicht starte
 abgeschlossene Konklusion (`cancelled`, `skipped`, `stale`, fehlend) belegt
 weder Bereitschaft noch Scheitern: Sie steht als `inconclusive_jobs` im Bericht
 und ergibt `UNOBSERVED` ohne Issue-Kommentar, statt still als bestanden zu
-gelten.
+gelten. Der Bericht führt die Konklusion je gescheitertem Job
+(`failed_job_conclusions`), Meldung und Job-Zusammenfassung nennen sie mit;
+bei `startup_failure` sagen Meldung und Abhilfe ausdrücklich, dass keine
+Prüfung lief und kein Joblog existiert.
 
 Der **verbindliche** Kanal ist der Kommentar im Betriebs-Issue: Die
 Repository-Variable `RUNNER_HEARTBEAT_ISSUE` ist Pflicht, die Auswertung

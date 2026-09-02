@@ -195,7 +195,11 @@ def expected_jobs(*, x86_enabled: bool) -> tuple[str, ...]:
 # setzt es erst nach Laufabschluss für nie zugewiesene Jobs – während der
 # Beobachtung des eigenen, laufenden Runs erscheint derselbe Zustand als
 # ``queued`` und trägt dort bereits das fristgebundene Offline-Verdikt.
-FAILED_CONCLUSIONS: Final = ("failure", "timed_out", "startup_failure")
+#: „Angenommen, konnte nicht starten" – einzige Quelle des Literals, damit
+#: ``evaluate`` und ``render_summary`` nicht still auf den generischen
+#: Gerätebefund zurückfallen (#957-Review).
+STARTUP_FAILURE_CONCLUSION: Final = "startup_failure"
+FAILED_CONCLUSIONS: Final = ("failure", "timed_out", STARTUP_FAILURE_CONCLUSION)
 SUCCESS_CONCLUSION: Final = "success"
 
 
@@ -218,6 +222,10 @@ class QueueState:
     failed: tuple[str, ...] = ()
     pending: tuple[str, ...] = ()
     inconclusive: tuple[tuple[str, str], ...] = ()
+    #: Konklusion je gescheitertem Job, gleiche Reihenfolge wie ``failed`` –
+    #: ``startup_failure`` braucht einen anderen Meldetext als ``failure``:
+    #: Dort lief keine Prüfung und es gibt kein Joblog (#954-Review).
+    failed_conclusions: tuple[tuple[str, str], ...] = ()
     observed: bool = True
     #: Ob die Annahmefrist beim Ende der Beobachtung wirklich abgelaufen war.
     #: ``watch`` kehrt beim ersten gescheiterten Job **sofort** zurueck – dann
@@ -244,8 +252,9 @@ def queue_state(jobs: list[dict[str, Any]], names: tuple[str, ...]) -> QueueStat
         if present[name][0] == "completed" and present[name][1] in FAILED_CONCLUSIONS
     )
     # Alles Abgeschlossene, das weder Erfolg noch Gerätescheitern ist –
-    # ``cancelled``/``skipped``/``stale``/``startup_failure``/… dürfen nie
-    # still als bestanden gelten (#943 Befund 1).
+    # ``cancelled``/``skipped``/``stale``/… dürfen nie still als bestanden
+    # gelten (#943 Befund 1). ``startup_failure`` gehört seit #944 zu
+    # ``FAILED_CONCLUSIONS`` und landet in ``failed``, nie hier.
     inconclusive = tuple(
         (name, present[name][1])
         for name in known
@@ -253,9 +262,10 @@ def queue_state(jobs: list[dict[str, Any]], names: tuple[str, ...]) -> QueueStat
         and present[name][1] != SUCCESS_CONCLUSION
         and present[name][1] not in FAILED_CONCLUSIONS
     )
+    failed_conclusions = tuple((name, present[name][1]) for name in failed)
     return QueueState(
         known=known, queued=queued, failed=failed, pending=pending,
-        inconclusive=inconclusive,
+        inconclusive=inconclusive, failed_conclusions=failed_conclusions,
     )
 
 
@@ -385,11 +395,30 @@ def evaluate(
         )
     if state.failed:
         # Die zweite Haelfte des Signals: angenommen, aber nicht einsatzbereit.
-        # Ohne sie meldete der Bericht PASS, waehrend der Lauf rot ist.
-        reasons.append(
-            f"{', '.join(state.failed)} hat die Bereitschaftsprüfung nicht "
-            "bestanden – Gerät angenommen, aber nicht einsatzbereit"
+        # Ohne sie meldete der Bericht PASS, waehrend der Lauf rot ist. Bei
+        # ``startup_failure`` lief keine Pruefung und es gibt kein Joblog –
+        # der Text darf also weder eine „nicht bestandene Pruefung" noch ein
+        # Joblog behaupten (#954-Review).
+        conclusions = dict(state.failed_conclusions)
+        not_started = tuple(
+            name for name in state.failed
+            if conclusions.get(name) == STARTUP_FAILURE_CONCLUSION
         )
+        not_ready = tuple(name for name in state.failed if name not in not_started)
+        if not_ready:
+            named = ", ".join(
+                f"{name} ({conclusions.get(name) or 'unbekannt'})" for name in not_ready
+            )
+            reasons.append(
+                f"{named} hat die Bereitschaftsprüfung nicht bestanden – Gerät "
+                "angenommen, aber nicht einsatzbereit"
+            )
+        if not_started:
+            reasons.append(
+                f"{', '.join(not_started)} konnte den angenommenen Job nicht starten "
+                f"({STARTUP_FAILURE_CONCLUSION}) – Gerät angenommen, aber nicht einsatzbereit; es "
+                "lief keine Prüfung und es gibt kein Joblog"
+            )
     if reasons:
         return VERDICT_FAIL, "; ".join(reasons) + "."
     missing = tuple(name for name in expected if name not in state.known)
@@ -450,6 +479,10 @@ def build_report(
         "observed_jobs": list(state.known),
         "queued_jobs": list(state.queued),
         "failed_jobs": list(state.failed),
+        "failed_job_conclusions": [
+            {"name": name, "conclusion": conclusion}
+            for name, conclusion in state.failed_conclusions
+        ],
         "pending_jobs": list(state.pending),
         "inconclusive_jobs": [
             {"name": name, "conclusion": conclusion}
@@ -480,13 +513,21 @@ def render_summary(report: dict[str, Any]) -> str:
             for entry in report.get("inconclusive_jobs", [])
             if isinstance(entry, dict)
         }
+        failed_conclusions = {
+            str(entry.get("name", "")): str(entry.get("conclusion") or "")
+            for entry in report.get("failed_job_conclusions", [])
+            if isinstance(entry, dict)
+        }
         lines.append("| Runner-Job | Zustand |")
         lines.append("| --- | --- |")
         for name in expected:
             if name in queued:
                 status = "❌ wartet auf einen Runner"
+            elif name in failed and failed_conclusions.get(name) == STARTUP_FAILURE_CONCLUSION:
+                status = f"❌ angenommen, aber nicht gestartet ({STARTUP_FAILURE_CONCLUSION})"
             elif name in failed:
-                status = "❌ angenommen, aber nicht einsatzbereit"
+                conclusion = failed_conclusions.get(name) or "unbekannt"
+                status = f"❌ angenommen, aber nicht einsatzbereit ({conclusion})"
             elif name in inconclusive:
                 status = f"⚠️ endete ohne success ({inconclusive[name]})"
             elif name in pending:
@@ -506,6 +547,16 @@ def render_summary(report: dict[str, Any]) -> str:
             "länger als 14 Tage offline, entfernt GitHub ihn und §2 ist zu "
             "wiederholen."
         )
+        if any(
+            entry.get("conclusion") == STARTUP_FAILURE_CONCLUSION
+            for entry in report.get("failed_job_conclusions", [])
+            if isinstance(entry, dict)
+        ):
+            lines.append(
+                f"Bei `{STARTUP_FAILURE_CONCLUSION}` lief keine Prüfung und es gibt kein Joblog: "
+                "Runner-Workspace (`_work`) bereinigen bzw. Dienst neu starten "
+                "(`docs/RELEASE_AUTOMATION.md` §6) und den Heartbeat erneut anstoßen."
+            )
         lines.append("")
     if report.get("run_url"):
         lines.append(f"Lauf: {report['run_url']}")
