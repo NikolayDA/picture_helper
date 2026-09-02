@@ -47,11 +47,17 @@ def test_profile_v1_matches_reviewed_golden_contract() -> None:
 
 
 def test_evidence_references_point_to_existing_repository_files() -> None:
-    """Ein Repo-Pfad im Evidenzvertrag landet in jedem Manifest – er muss existieren."""
+    """Ein Repo-Pfad im Evidenzvertrag landet in jedem Manifest – er muss existieren.
+
+    Negativregel statt Präfixfilter (#956-Review): Alles, was weder URL noch der
+    Sentinel ``automated-tests`` ist, muss als Datei existieren – so fällt auch
+    ein künftiger ``tests/…``-, ``scripts/…``- oder relativer Verweis auf.
+    """
     root = Path(__file__).resolve().parent.parent
     for item in DEFAULT_TARGET_PROFILE.evidence:
-        if item.reference.startswith("docs/"):
-            assert (root / item.reference).is_file(), item.reference
+        if item.reference.startswith(("http://", "https://")) or item.reference == "automated-tests":
+            continue
+        assert (root / item.reference).is_file(), item.reference
 
 
 def test_profile_contract_is_json_roundtrip_safe() -> None:

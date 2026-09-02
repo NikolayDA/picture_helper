@@ -345,6 +345,38 @@ def _crc_flipped(data: bytes) -> bytes:
             ),
             "doppelter pHYs-Chunk",
         ),
+        # Länge ≠ 13 bzw. ≠ 9 teilt sich die Meldung mit dem Duplikat – beide
+        # Zweige werden hier einzeln belegt (#956-Review).
+        (
+            "ihdr-length",
+            _png(
+                _png_chunk(b"IHDR", _IHDR_1x1_GRAY + b"\x00"),
+                _png_chunk(b"IDAT", _IDAT_1x1),
+                _png_chunk(b"IEND", b""),
+            ),
+            "ungültiger oder doppelter IHDR-Chunk",
+        ),
+        (
+            "phys-length",
+            _png(
+                _png_chunk(b"IHDR", _IHDR_1x1_GRAY),
+                _png_chunk(b"pHYs", _PHYS_300DPI + b"\x00"),
+                _png_chunk(b"IDAT", _IDAT_1x1),
+                _png_chunk(b"IEND", b""),
+            ),
+            "ungültiger oder doppelter pHYs-Chunk",
+        ),
+        (
+            # 8 Signatur + 25 IHDR-Chunk = Byte 33
+            "non-ascii-type",
+            _png(
+                _png_chunk(b"IHDR", _IHDR_1x1_GRAY),
+                _png_chunk(b"tE\xfft", b"x"),
+                _png_chunk(b"IDAT", _IDAT_1x1),
+                _png_chunk(b"IEND", b""),
+            ),
+            "ungültiger PNG-Chunktyp bei Byte 33",
+        ),
         (
             "missing-idat",
             _png(_png_chunk(b"IHDR", _IHDR_1x1_GRAY), _png_chunk(b"IEND", b"")),

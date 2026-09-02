@@ -126,6 +126,7 @@ identische Maße sowie konstante RGB- und HEIGHT-Werte bitgenau.
 
 **Ergänzung (#689-Vorbereitung, I-05/I-06/I-08):**
 `mm_typisch_phys_xy.png` trägt getrennte X-/Y-Werte von ca. 300/150 dpi.
+
 **Writer-Stand der sieben Exportpakete (Nachtrag 2026-09-02):** Alle Pakete
 (`export_mm_dpi_conflict/` und die sechs `export_gloss_*/`) stammen aus dem
 Writer-Stand `c814945` (PR #952), also von **vor** #953. Ihre `manifest.json`
