@@ -48,7 +48,7 @@ Ermüdungsfehler-Check in Abschnitt 6):
 - [ ] Tagesbudget für **heute** festgelegt (Richtwert, kein fixer Wert –
       siehe Governance Abschnitt 1).
 - [ ] Bisherigen Budget-Stand aus Abschnitt 5 (Phase 3) übertragen: wie
-      viele der insgesamt 24 Drucke sind aus vorherigen Testtagen bereits
+      viele der insgesamt 35 Drucke sind aus vorherigen Testtagen bereits
       verbraucht?
 
 ## 2. Sicherheits-Abbruchkriterien (Kurzreferenz, gilt jederzeit)
@@ -131,10 +131,10 @@ HEIGHT-/GLOSS-Zuordnung oder Maskenkopplung. Es wurde weder **Preview** noch
       Sicherheits-/Fehlerfälle offen.
 - [ ] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
       protokolliert, nicht nur bei „Ja" übersprungen.
-- [ ] Budget-Startstand notiert (0 von 24 am allerersten Testtag, sonst der
+- [ ] Budget-Startstand notiert (0 von 35 am allerersten Testtag, sonst der
       aus Abschnitt 1 übertragene Vortagesstand).
 
-## 5. Phase 3 — Druck je Variante (13 Varianten, max. 24 Drucke gesamt)
+## 5. Phase 3 — Druck je Variante (13 Stammvarianten + 11 Gloss-Läufe, max. 35 Drucke gesamt)
 
 Nur Zellen, die tatsächlich im Druckprotokoll (§3) stehen. Je Variante:
 Budget prüfen → drucken → vermessen → Foto → Druckprotokoll-Zeile ausfüllen
@@ -149,22 +149,23 @@ Ursprung, Skalierung, Rotation und Registrierung protokolliert sein. Ist keiner
 der beiden Pfade eindeutig verfügbar, bleibt die Zelle blockiert und wird nicht
 als gewöhnliches Graustufenbild gedruckt.
 
-**Pending #690 – nicht freigegeben:** Die folgenden Gloss-Läufe sind Teil des
-Testentwurfs, aber noch keine der freigegebenen 13 Varianten. Vor jedem Lauf
-müssen Owner-Freigabe und ein konkreter freier oder ersetzter Platz innerhalb
-des unveränderten 24-Drucke-Budgets in dieser Tabelle stehen. Ein leeres Feld
-bedeutet **blockiert**, nicht „außerhalb des Budgets erlaubt".
+**Freigegebenes #690-Zusatzbudget:** NikolayDA hat am 2026-09-02 das harte
+Gesamtlimit auf 35 Drucke erhöht. Die Plätze 25–35 sind den folgenden elf
+Gloss-Läufen fest zugeordnet. Die Budgetfreigabe ersetzt keinen technischen
+Preflight: Solange die jeweilige native HEIGHT-/Gloss-Zuweisung oder feste
+Dimensions-/Registrierungsregel nicht belegt ist, bleibt der Lauf trotz
+Budgetplatz blockiert.
 
 | Zelle | Owner-Freigabe (Datum/Verweis) | Budgetplatz/ersetzte Variante | HEIGHT-/Gloss-Preflight | Status |
 | --- | --- | --- | --- | --- |
-| G-01 | | | nativer Gloss-/Spot-UV-Pfad | blockiert |
-| G-02 | | | nativer Gloss-/Spot-UV-Pfad | blockiert |
-| G-03 | | | nativer Gloss-/Spot-UV-Pfad | blockiert |
-| G-04a/b/c | | | Produktionswriter-Assets importieren; nativer Gloss-/Spot-UV-Pfad | blockiert |
-| G-05 | | | feste Dimensions-/Registrierungsregel | blockiert |
-| G-06 | | | nativer Gloss-/Spot-UV-Pfad; Basispass fixiert | blockiert |
-| G-07 | | | native HEIGHT-/Texture- und Gloss-Zuweisung; Reliefwerte fixiert | blockiert |
-| G-08 | | | nativer Gloss-/Spot-UV-Pfad; Registrierung fixiert | blockiert |
+| G-01 | NikolayDA, 2026-09-02; Governance §4 | 25 | nativer Gloss-/Spot-UV-Pfad | freigegeben; Preflight offen |
+| G-02 | NikolayDA, 2026-09-02; Governance §4 | 26–29 (normal 1/2, invertiert 1/2) | nativer Gloss-/Spot-UV-Pfad | freigegeben; Preflight offen |
+| G-03 | NikolayDA, 2026-09-02; Governance §4 | 30 | nativer Gloss-/Spot-UV-Pfad | freigegeben; Preflight offen |
+| G-04a/b/c | NikolayDA, 2026-09-02; Governance §4 | 31 | Produktionswriter-Assets importieren; nativer Gloss-/Spot-UV-Pfad | freigegeben; Preflight offen |
+| G-05 | NikolayDA, 2026-09-02; Governance §4 | 32 | feste Dimensions-/Registrierungsregel | freigegeben; Preflight offen |
+| G-06 | NikolayDA, 2026-09-02; Governance §4 | 33 | nativer Gloss-/Spot-UV-Pfad; Basispass fixiert | freigegeben; Preflight offen |
+| G-07 | NikolayDA, 2026-09-02; Governance §4 | 34 | native HEIGHT-/Texture- und Gloss-Zuweisung; Reliefwerte fixiert | freigegeben; Preflight offen |
+| G-08 | NikolayDA, 2026-09-02; Governance §4 | 35 | nativer Gloss-/Spot-UV-Pfad; Registrierung fixiert | freigegeben; Preflight offen |
 
 **Vor jedem Foto (Governance Abschnitt 3, verbindlich):**
 
@@ -179,9 +180,10 @@ bedeutet **blockiert**, nicht „außerhalb des Budgets erlaubt".
 `PROTOKOLL-VORLAGEN.md` §3): Nullpunkt/Grundfläche, monotoner Keil,
 mm/DPI-Referenz, Gloss-Polarität. Welche der Varianten unten das im Einzelnen
 sind, ist am Testtag anhand der Kategorien zuzuordnen – nicht vorab
-festgelegt. Nach je einem Erstlauf der 13 Varianten bleiben im unveränderten
-24er-Budget höchstens elf Wiederholungen. Deshalb zuerst die Kernaussagen
-wiederholen; nicht automatisch jede Variante zweimal drucken.
+festgelegt. Nach je einem Erstlauf der 13 Stammvarianten und den elf fest
+eingeplanten Gloss-Läufen bleiben im 35er-Budget höchstens elf Wiederholungen
+der Stammvarianten. Deshalb zuerst die Kernaussagen wiederholen; nicht
+automatisch jede Variante zweimal drucken.
 
 | # | Variante | Lauf 1 | Lauf 2 (max. elf; Kernaussagen zuerst) | Lauf 3+ (nur mit Owner-Freigabe, Vermerk wo/warum) | Fotoreferenz eingetragen | Druckprotokoll-Zeile ausgefüllt |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -199,15 +201,33 @@ wiederholen; nicht automatisch jede Variante zweimal drucken.
 | 12 | I-12 | ☐ | ☐ | | ☐ | ☐ |
 | 13 | I-13 (Alpha/Coverage) | ☐ | ☐ | | ☐ | ☐ |
 
+**Fest zugeordnete Gloss-Läufe (Budgetplätze 25–35):**
+
+| Budgetplatz | Zelle/Lauf | Druck | Fotoreferenz eingetragen | Gloss-Druckprotokoll-Zeile ausgefüllt |
+| --- | --- | --- | --- | --- |
+| 25 | G-01 Lauf 1 | ☐ | ☐ | ☐ |
+| 26 | G-02 normal Lauf 1 | ☐ | ☐ | ☐ |
+| 27 | G-02 normal Lauf 2 | ☐ | ☐ | ☐ |
+| 28 | G-02 invertiert Lauf 1 | ☐ | ☐ | ☐ |
+| 29 | G-02 invertiert Lauf 2 | ☐ | ☐ | ☐ |
+| 30 | G-03 Lauf 1 | ☐ | ☐ | ☐ |
+| 31 | G-04a/b/c Lauf 1 | ☐ | ☐ | ☐ |
+| 32 | G-05 Lauf 1 | ☐ | ☐ | ☐ |
+| 33 | G-06 Lauf 1 | ☐ | ☐ | ☐ |
+| 34 | G-07 Lauf 1 | ☐ | ☐ | ☐ |
+| 35 | G-08 Lauf 1 | ☐ | ☐ | ☐ |
+
 **Budget-Laufsumme:** Jede angekreuzte oder mit einem Vermerk versehene
 Zelle in **Lauf 1, Lauf 2 oder Lauf 3+** ist ein physischer Druck und zählt
 mit – auch ein Fehldruck ohne verwertbare Messung (Abschnitt 2), auch ein
 mit Owner-Freigabe genehmigter dritter Lauf. Summe über alle drei Spalten
-und alle 13 Zeilen darf **24 nicht überschreiten**; bei 20/24 oder mehr die
-Budget-Eskalation aus Abschnitt 2 dieser Checkliste prüfen, bevor
-weitergedruckt wird. Sobald elf Kästchen in „Lauf 2" belegt sind, alle übrigen
-Kästchen dieser Spalte sichtbar streichen; eine Umpriorisierung ersetzt eine
-noch nicht gestartete Wiederholung und erhöht das Budget nicht.
+der Stammvariantentabelle sowie die elf Zeilen der Gloss-Tabelle darf **35
+nicht überschreiten**; bei 31/35 oder mehr die Budget-Eskalation aus Abschnitt
+2 dieser Checkliste prüfen, bevor weitergedruckt wird. Sobald elf Kästchen in
+„Lauf 2" belegt sind, alle übrigen Kästchen dieser Spalte sichtbar streichen.
+Ein wegen fehlendem Preflight ungenutzter Gloss-Platz wird nicht automatisch
+zu einem Zusatz- oder Wiederholungslauf; jede Umwidmung braucht einen
+Owner-Vermerk und erhöht das Gesamtlimit nicht.
 
 ## 6. Am Ende des Testtags
 
@@ -228,7 +248,7 @@ noch nicht gestartete Wiederholung und erhöht das Budget nicht.
 - [ ] #690-Resultate samt Polarität, Intensitäts-/Normalisierungsbefund,
       Alpha-/HEIGHT-Kreuzung und Material-/Ink-Mode-Profilgrenze in
       `EUFYMAKE-690-GLOSS-VERTRAG.md` übertragen. Zusätzliche Druckvarianten
-      jenseits der bestehenden 24er-Governance erst nach ausdrücklicher
+      jenseits der bestehenden 35er-Governance erst nach ausdrücklicher
       Owner-Freigabe starten.
 - [ ] Kurzer Ermüdungsfehler-Check: passen Anzahl bearbeiteter Zellen und
       Sorgfalt der Protokollierung zusammen? Falls nicht, betroffene Zeilen

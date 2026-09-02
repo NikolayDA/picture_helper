@@ -150,12 +150,14 @@ werden einmal festgelegt und für 0/32768/65535 unverändert protokolliert. Ist
 diese native Zuweisung in der verwendeten Version nicht eindeutig verfügbar,
 bleibt G-07 blockiert; drei gewöhnliche Flat-Graustufenbilder sind kein Ersatz.
 
-Die G-01–G-08-Läufe sind außerdem **nicht** durch die bisherige Freigabe der
-13 Varianten innerhalb des 24-Drucke-Budgets autorisiert. Vor Preview/Print
-muss der Owner die konkrete Zuordnung zu einem freien/ersetzten Budgetplatz
-ausdrücklich freigeben und die Pending-Tabelle in
-`EUFYMAKE-687-DRUCK-CHECKLISTE.md` aktualisieren. Ohne beides bleibt jeder
-physische Gloss-Lauf blockiert.
+NikolayDA hat am 2026-09-02 das harte Gesamtbudget auf **35 physische Drucke**
+erhöht. Elf zusätzliche Plätze sind G-01 bis G-08 fest zugeordnet: G-01
+einmal, G-02 normal und invertiert jeweils zweimal sowie G-03, G-04a/b/c,
+G-05, G-06, G-07 und G-08 jeweils einmal. Die konkrete Zuordnung zu den
+Budgetplätzen 25–35 steht in `EUFYMAKE-687-DRUCK-CHECKLISTE.md`. Diese
+Materialfreigabe ersetzt keinen HEIGHT-/Gloss-Preflight; ohne eindeutigen
+nativen Pfad bzw. die für G-05 verlangte Dimensions-/Registrierungsregel
+bleibt der jeweilige physische Lauf blockiert.
 
 **Abbruchkriterium:** Wenn weder eine native Gloss-Rolle noch der dokumentierte
 Spot-UV-Zweipass eindeutig auswählbar ist, bleibt der physische Teil blockiert.
@@ -180,6 +182,7 @@ Vergleichslayout.
 | G-02 invertiert | 2 | 255→0 | | | | | |
 | G-03 Stufen/64…192 | 1 | laut Fixture | | | | | |
 | G-04 fehlend/Null/voll | 1 | –/0/255 | | | | | |
+| G-05 Dimensionsabweichung | 1 | Gloss 128×256 gegen COLOR 256×256 | | | | | |
 | G-06 Alpha 0/128/255 | 1 | Gloss 128 | | | | | |
 | G-07 HEIGHT 0/32768/65535 | 1 | Gloss 128 | | | | | |
 | G-08 Registrierung/Schachbrett | 1 | 0/255 | | | | | |
