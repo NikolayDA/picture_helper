@@ -64,7 +64,7 @@ Der reproduzierbare Standardaufruf am Zielrechner ist:
 ```bash
 python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
-  --expected-manifest-sha256 69186faaf7b06c0b0a74dcdc70a1d2d214214d988c912f15d68433f88f0bc026 \
+  --expected-manifest-sha256 be71d47fe0f4aab8a80aedd181a91ecf611087840216b2e4f0cf1dda79d2de5c \
   --output eufymake-pre-import-report.json
 ```
 
@@ -81,8 +81,8 @@ Alle 36 im Repository committeten Einzel-Fixtures und das Vier-Dateien-
 Exportpaket wurden direkt gegen `fixtures_manifest.json` geprüft – SHA-256
 der Datei, Bytegröße, PNG-Modus/
 IHDR-Bittiefe/-Farbtyp, Maße sowie eine vollständige Chunk-Liste (per
-struct-Parsing der PNG-Bytes, nicht nur über PIL). Ergebnis: **36/36
-Einzel-Fixtures und 1/1 Exportpakete stimmen mit dem Manifest überein**;
+struct-Parsing der PNG-Bytes, nicht nur über PIL). Ergebnis: **41/41
+Einzel-Fixtures und 7/7 Exportpakete stimmen mit dem Manifest überein**;
 keine PNG-Datei enthält
 Chunks außer `IHDR`/`IDAT`/`IEND` und – wo im Manifest dokumentiert –
 `pHYs`. Das ersetzt **nicht** die Prüfung unmittelbar vor dem Import bei dir
@@ -134,6 +134,14 @@ pixelgleichen COLOR/HEIGHT/GLOSS-Dreiergruppe. Der Inspector prüft
 nicht-quadratische `pHYs` achsweise und das Exportmanifest zusätzlich
 semantisch. Das Katalogmanifest `fixtures_manifest.json` ist weiterhin nur
 der Vertrauensanker und **kein** Studio-Eingabemanifest.
+
+**Ergänzung (#690-Vorbereitung, G-01…G-08):** Fünf neue Einzel-Fixtures
+ergänzen Mittelwert, begrenzten 64…192-Keil, dimensionsfremdes Gloss sowie
+die isolierte HEIGHT×Gloss-Kontrolle. Sechs zusätzliche Writer-Pakete trennen
+fehlendes, Null- und voll gesetztes Gloss, Alpha×Gloss, HEIGHT×Gloss und den
+kontrollierten Dimensionsfehler. Die vollständige Zuordnung und die
+Import-/Druckgrenzen stehen in
+[`EUFYMAKE-690-GLOSS-VERTRAG.md`](EUFYMAKE-690-GLOSS-VERTRAG.md).
 
 **Wichtiger Befund dabei:** Mehrere Fixtures mit unterschiedlicher **Rolle**
 sind **bytegleich**, weil sie denselben normalisierten Muster-Generator bei
@@ -199,15 +207,11 @@ mitverifiziert – bei Bedarf einer eigenen Testzelle zuordnen):
 | zusätzlich | `gloss_steps.png` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_steps_8bit.png` |
 | zusätzlich | `gloss_checkerboard.png` | `b6f2791be91d19ade1de1f05c858d321201c3b231060b9633ef1dd8323fc161d` | `b6f2791be91d19ade1de1f05c858d321201c3b231060b9633ef1dd8323fc161d` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 
-**Ergebnis der Basisprüfung: 36/36 Einzel-Fixtures und 1/1 Exportpakete OK,
-0 Abweichungen** (29
-ursprüngliche Fixtures zzgl. der
-später ergänzten I-04-Variante `height_wedge_16bit_half.png` und der
-I-12-Variante `height_wedge_16bit_aspect.png`, der beiden COLOR-Kontrollen und
-der HEIGHT-Registriermap sowie der X/Y-DPI- und GLOSS-Registrier-Fixture,
-siehe „Ergänzung" oben; `height_steps_8bit.png`/
-`height_steps_16bit.png` waren
-bereits Teil der ursprünglichen 29, nur ihre Zuordnung zu I-11 ist neu).
+**Ergebnis der Basisprüfung: 41/41 Einzel-Fixtures und 7/7 Exportpakete OK,
+0 Abweichungen** (36 Fixtures aus Schema 3 plus fünf isolierte #690-Fixtures;
+das frühere mm/DPI-Paket plus sechs Gloss-Szenariopakete). Die Zuordnung der
+älteren I-01…I-13-Zellen bleibt unverändert; G-01…G-08 verwenden die neuen
+Dateien und Pakete aus der #690-Ergebnisakte.
 Damit ist die im Repository committete Fixture-Menge nachweislich konsistent
 mit `fixtures_manifest.json`. Das ersetzt **nicht** die Prüfung am Zielrechner:
 die vorausgefüllten „Erwarteter SHA-256"-Werte dienen dort als Referenz, aber

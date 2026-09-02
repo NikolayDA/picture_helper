@@ -32,8 +32,8 @@ Quelldokumente.
 - [ ] Unabhängigen Pre-Import-Report am Zielrechner erzeugt:
       `python scripts/eufymake_fixture_inspector.py
       --expected-manifest-sha256
-      69186faaf7b06c0b0a74dcdc70a1d2d214214d988c912f15d68433f88f0bc026
-      --output eufymake-pre-import-report.json`; Ergebnis `ok: true`, Schema 3
+      be71d47fe0f4aab8a80aedd181a91ecf611087840216b2e4f0cf1dda79d2de5c
+      --output eufymake-pre-import-report.json`; Ergebnis `ok: true`, Schema 4
       und Soll-Hash bestätigt, Report bei den übrigen Nachweisen abgelegt.
 - [ ] Die drei Protokolltabellen aus `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`
       griffbereit (digital oder ausgedruckt), um sie parallel zu dieser
@@ -107,10 +107,18 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 19 | I-11 | ☐ | ☐ |
 | 20 | I-12 | ☐ | ☐ |
 | 21 | I-13 (Alpha/Coverage) | ☐ | ☐ |
+| 22 | G-01 (Gloss min/mittel/max) | ☐ | ☐ |
+| 23 | G-02 (normal/invertiert) | ☐ | ☐ |
+| 24 | G-03 (Stufen + 64…192-Keil) | ☐ | ☐ |
+| 25 | G-04a/b/c (fehlend/Null/voll) | ☐ | ☐ |
+| 26 | G-05 (Gloss 128×256 gegen COLOR 256×256) | ☐ | ☐ |
+| 27 | G-06 (Alpha 0/128/255 × Gloss 128) | ☐ | ☐ |
+| 28 | G-07 (HEIGHT 0/32768/65535 × Gloss 128) | ☐ | ☐ |
+| 29 | G-08 (Registrierung/Schachbrett) | ☐ | ☐ |
 
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 
-- [ ] Alle 21 Zeilen aus Phase 1 abgeschlossen; keine ungeklärten
+- [ ] Alle 29 Zeilen aus Phase 1 abgeschlossen; keine ungeklärten
       Sicherheits-/Fehlerfälle offen.
 - [ ] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
       protokolliert, nicht nur bei „Ja" übersprungen.
@@ -183,6 +191,11 @@ noch nicht gestartete Wiederholung und erhöht das Budget nicht.
 - [ ] #689-Resultate samt X-/Y-, Prioritäts-, Rundungs- und
       Registrierungsbefunden in `EUFYMAKE-689-MM-DPI-VERTRAG.md` übertragen;
       keine leeren Felder als Ergebnis gewertet.
+- [ ] #690-Resultate samt Polarität, Intensitäts-/Normalisierungsbefund,
+      Alpha-/HEIGHT-Kreuzung und Material-/Ink-Mode-Profilgrenze in
+      `EUFYMAKE-690-GLOSS-VERTRAG.md` übertragen. Zusätzliche Druckvarianten
+      jenseits der bestehenden 24er-Governance erst nach ausdrücklicher
+      Owner-Freigabe starten.
 - [ ] Kurzer Ermüdungsfehler-Check: passen Anzahl bearbeiteter Zellen und
       Sorgfalt der Protokollierung zusammen? Falls nicht, betroffene Zeilen
       am nächsten Testtag erneut prüfen statt unklare Werte stehen zu

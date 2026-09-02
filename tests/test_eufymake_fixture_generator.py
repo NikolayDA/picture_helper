@@ -40,6 +40,7 @@ TRUST_HASH_DOCS = {
     ROOT / "docs" / "history" / "EUFYMAKE-687-PROTOKOLL-VORLAGEN.md": 1,
     ROOT / "docs" / "history" / "EUFYMAKE-687-DRUCK-CHECKLISTE.md": 1,
     ROOT / "docs" / "history" / "EUFYMAKE-689-MM-DPI-VERTRAG.md": 2,
+    ROOT / "docs" / "history" / "EUFYMAKE-690-GLOSS-VERTRAG.md": 2,
 }
 
 
@@ -86,7 +87,8 @@ def test_manifest_entries_match_actual_file_properties(tmp_path: Path) -> None:
     assert manifest["fixture_count"] == len(manifest["fixtures"])
     on_disk = {p.name for p in out_dir.iterdir() if p.is_file()} - {gen.MANIFEST_FILENAME}
     assert on_disk == {entry["filename"] for entry in manifest["fixtures"]}
-    assert manifest["bundle_count"] == len(manifest["bundles"]) == 1
+    assert manifest["bundle_count"] == len(manifest["bundles"])
+    assert manifest["bundle_count"] == 1 + len(gen.GLOSS_BUNDLE_DIRNAMES)
 
     for entry in manifest["fixtures"]:
         path = out_dir / entry["filename"]
@@ -111,11 +113,11 @@ def test_fixture_roles_and_counts() -> None:
     # 8-Bit + 16-Bit je Muster, plus die I-04-Pixelmaß- und I-12-Seitenverhältnis-
     # Variante (kein eigenes Muster in _HEIGHT_PATTERNS, siehe die dedizierten
     # Tests unten).
-    assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2 + 3
+    assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2 + 4
     # mm/DPI no_phys/phys/conflict plus X/Y-DPI, dimensionsgleiche Referenz
     # und Alpha/Coverage-Kontrolle.
-    assert by_role["color_motif"] == len(gen.MM_DPI_COMBOS) * 3 + 3
-    assert by_role["gloss_mask"] == len(gen._GLOSS_PATTERNS) + 1
+    assert by_role["color_motif"] == len(gen.MM_DPI_COMBOS) * 3 + 4
+    assert by_role["gloss_mask"] == len(gen._GLOSS_PATTERNS) + 2
 
     filenames = [spec.filename for spec in specs]
     assert len(filenames) == len(set(filenames)), "Dateinamen müssen eindeutig sein"
@@ -128,6 +130,7 @@ def test_height_fixtures_cover_8_and_16_bit(tmp_path: Path) -> None:
         gen.PIXEL_SIZE_VARIANT_PATTERN,
         gen.ASPECT_RATIO_VARIANT_PATTERN,
         gen.REGISTRATION_PATTERN,
+        "gloss_height_cross_fields",
     }
     height_entries = [
         e for e in manifest["fixtures"]
@@ -411,7 +414,7 @@ def test_gloss_fixtures_are_8bit_grayscale(tmp_path: Path) -> None:
     out_dir = _write(tmp_path, "run")
     manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
     gloss_entries = [e for e in manifest["fixtures"] if e["role"] == "gloss_mask"]
-    assert len(gloss_entries) == len(gen._GLOSS_PATTERNS) + 1
+    assert len(gloss_entries) == len(gen._GLOSS_PATTERNS) + 2
     for entry in gloss_entries:
         assert entry["bit_depth"] == 8
         assert entry["png_mode"] == "L"
@@ -423,6 +426,110 @@ def test_gloss_min_max_are_solid_extremes(tmp_path: Path) -> None:
         assert set(np.array(img).flatten().tolist()) == {0}
     with Image.open(out_dir / "gloss_max.png") as img:
         assert set(np.array(img).flatten().tolist()) == {255}
+
+
+def test_gloss_mean_limited_wedge_and_dimension_mismatch_are_isolated(
+    tmp_path: Path,
+) -> None:
+    """#690 trennt Mittelwert, Normalisierung und Dimensionsregel voneinander."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    by_name = {entry["filename"]: entry for entry in manifest["fixtures"]}
+
+    with Image.open(out_dir / "gloss_mean.png") as image:
+        assert set(np.array(image, dtype=np.uint8).flatten().tolist()) == {128}
+
+    limited = by_name["gloss_wedge_limited.png"]
+    assert limited["params"]["value_range"] == list(gen.GLOSS_LIMITED_RANGE)
+    with Image.open(out_dir / limited["filename"]) as image:
+        values = np.array(image, dtype=np.uint8)
+    assert int(values.min()) == gen.GLOSS_LIMITED_RANGE[0]
+    assert int(values.max()) == gen.GLOSS_LIMITED_RANGE[1]
+    assert np.all(np.diff(values[0].astype(np.int16)) >= 0)
+
+    mismatch = by_name["gloss_dimensions_half_width.png"]
+    assert (mismatch["width"], mismatch["height"]) == gen.GLOSS_DIMENSION_MISMATCH_SIZE
+    assert mismatch["params"]["reference_size_px"] == list(gen.GLOSS_SIZE)
+    assert mismatch["width"] != mismatch["params"]["reference_size_px"][0]
+    assert mismatch["height"] == mismatch["params"]["reference_size_px"][1]
+
+
+def test_gloss_interaction_fixtures_vary_only_height_at_constant_color(
+    tmp_path: Path,
+) -> None:
+    """HEIGHT×Gloss nutzt konstantes opakes COLOR und exakt drei HEIGHT-Werte."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    by_name = {entry["filename"]: entry for entry in manifest["fixtures"]}
+    color = by_name["color_gloss_height_cross.png"]
+    height = by_name["height_gloss_cross_16bit.png"]
+    assert color["params"]["paired_height_file"] == height["filename"]
+    assert color["params"]["paired_gloss_file"] == "gloss_mean.png"
+    assert height["params"]["paired_gloss_file"] == "gloss_mean.png"
+
+    with Image.open(out_dir / color["filename"]) as image:
+        color_values = np.array(image, dtype=np.uint8)
+    assert np.all(color_values == np.array(gen.GLOSS_CROSS_COLOR, dtype=np.uint8))
+
+    with Image.open(out_dir / height["filename"]) as image:
+        height_values = np.array(image, dtype=np.uint16)
+    assert set(np.unique(height_values).tolist()) == set(gen.GLOSS_CROSS_LEVELS_16BIT)
+    for field in height["params"]["fields"]:
+        values = height_values[:, field["x_start"] : field["x_end_exclusive"]]
+        assert set(np.unique(values).tolist()) == {field["value_16bit"]}
+
+
+def test_gloss_scenario_bundles_cover_all_orthogonal_cases(tmp_path: Path) -> None:
+    """Fehlend/Null/Voll/Alpha/HEIGHT/Dimension sind eigene Writer-Pakete."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    by_id = {bundle["id"]: bundle for bundle in manifest["bundles"]}
+    assert set(by_id) == {
+        "i06_manifest_vs_phys",
+        "gloss_absent",
+        "gloss_zero",
+        "gloss_full",
+        "gloss_alpha_coverage",
+        "gloss_height_cross",
+        "gloss_dimension_mismatch",
+    }
+
+    absent = by_id["gloss_absent"]
+    assert absent["manifest_contract"]["assets"] == ["color_motif.png"]
+    assert {entry["filename"] for entry in absent["files"]} == {
+        "color_motif.png", "manifest.json",
+    }
+
+    for scenario_id, expected in (("gloss_zero", 0), ("gloss_full", 255)):
+        bundle = by_id[scenario_id]
+        with Image.open(out_dir / bundle["directory"] / "gloss_mask.png") as image:
+            assert set(np.array(image, dtype=np.uint8).flatten().tolist()) == {expected}
+
+    alpha = by_id["gloss_alpha_coverage"]
+    alpha_dir = out_dir / alpha["directory"]
+    with (
+        Image.open(alpha_dir / "color_motif.png") as color_image,
+        Image.open(alpha_dir / "height_map.png") as height_image,
+        Image.open(alpha_dir / "gloss_mask.png") as gloss_image,
+    ):
+        assert set(np.unique(np.array(color_image.getchannel("A"))).tolist()) == {0, 128, 255}
+        assert set(np.unique(np.array(height_image, dtype=np.uint16)).tolist()) == {32768}
+        assert set(np.unique(np.array(gloss_image, dtype=np.uint8)).tolist()) == {128}
+
+    height_cross = by_id["gloss_height_cross"]
+    with Image.open(out_dir / height_cross["directory"] / "height_map.png") as image:
+        assert set(np.unique(np.array(image, dtype=np.uint16)).tolist()) == set(
+            gen.GLOSS_CROSS_LEVELS_16BIT
+        )
+
+    mismatch = by_id["gloss_dimension_mismatch"]
+    mismatch_files = {entry["filename"]: entry for entry in mismatch["files"]}
+    assert mismatch["manifest_contract"]["pixel_size"] == list(gen.GLOSS_SIZE)
+    assert (
+        mismatch_files["gloss_mask.png"]["width"],
+        mismatch_files["gloss_mask.png"]["height"],
+    ) == gen.GLOSS_DIMENSION_MISMATCH_SIZE
+    assert mismatch_files["gloss_mask.png"]["params"]["intentional_dimension_mismatch"]
 
 
 # ── Checked-in Fixtures dürfen nicht vom Generator abweichen ────────────

@@ -1,4 +1,4 @@
-"""Tests für den unabhängigen EufyMake-Pre-Import-Report (#688/#689)."""
+"""Tests für den unabhängigen EufyMake-Pre-Import-Report (#688/#689/#690)."""
 from __future__ import annotations
 
 import hashlib
@@ -47,8 +47,8 @@ def test_inspector_reports_all_generated_fixtures_and_raw_png_properties(
         "unexpected": [],
     }
     assert report["bundle_summary"] == {
-        "expected": 1,
-        "passed": 1,
+        "expected": 1 + len(gen.GLOSS_BUNDLE_DIRNAMES),
+        "passed": 1 + len(gen.GLOSS_BUNDLE_DIRNAMES),
         "failed": 0,
         "missing": [],
         "unexpected": [],
@@ -76,6 +76,15 @@ def test_inspector_reports_all_generated_fixtures_and_raw_png_properties(
     bundle_by_name = {entry["filename"]: entry for entry in bundle["files"]}
     assert bundle_by_name["manifest.json"]["actual"]["contract"]["dpi"] == [300.0, 300.0]
     assert round(bundle_by_name["color_motif.png"]["actual"]["phys"]["x_dpi"]) == 150
+
+    mismatch = next(
+        item for item in report["bundles"]
+        if item["id"] == "gloss_dimension_mismatch"
+    )
+    mismatch_by_name = {entry["filename"]: entry for entry in mismatch["files"]}
+    assert mismatch["ok"] is True
+    assert mismatch_by_name["gloss_mask.png"]["actual"]["width"] == 128
+    assert mismatch_by_name["gloss_mask.png"]["actual"]["height"] == 256
 
 
 def test_inspector_detects_changed_bytes_even_if_png_remains_valid(tmp_path: Path) -> None:

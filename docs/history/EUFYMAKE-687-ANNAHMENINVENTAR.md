@@ -660,3 +660,31 @@ Importanzeige, tatsächliche Druckmaße, Crop/Offset und die daraus folgende
 Produktentscheidung bleiben bis zur kontrollierten Studio-/E1-Ausführung
 **offen**; ihre Ergebnisakte ist
 [`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md).
+
+---
+
+## Nachtrag zur #690-Testvorbereitung (2026-09-02)
+
+Schema 4 ergänzt fünf isolierte Einzel-Fixtures und sechs Writer-Pakete. Damit
+sind die zuvor vermischten Fragen getrennt ausführbar:
+
+- `gloss_mean.png` belegt den Mittelwert 128; `gloss_wedge_limited.png`
+  begrenzt den Wertebereich auf 64…192 und macht automatische Normalisierung
+  gegenüber einer echten Intensitätsabbildung unterscheidbar.
+- `gloss_dimensions_half_width.png` bzw.
+  `export_gloss_dimension_mismatch/` stellen 128×256 Gloss kontrolliert einem
+  256×256 COLOR-/Manifestziel gegenüber. Der Produktionswriter bleibt
+  fail-closed; nur das Fremddatenfixture wird nach dem Writerlauf ersetzt.
+- `export_gloss_absent/`, `export_gloss_zero/` und `export_gloss_full/`
+  trennen fehlende Rolle, gültige 0-Fläche und gültige 255-Fläche.
+- `export_gloss_alpha_coverage/` hält RGB, HEIGHT=32768 und Gloss=128 konstant
+  und variiert nur COLOR-Alpha 0/128/255.
+- `export_gloss_height_cross/` hält COLOR opak und Gloss=128 konstant und
+  variiert nur HEIGHT 0/32768/65535.
+
+Der sichere Repository-Default ist damit maschinenlesbar belegt: Ohne
+explizite GLOSS-Rolle entstehen weder `gloss_mask.png` noch eine
+Manifestreferenz. Polarität, Intensitätskennlinie, Alpha-/HEIGHT-Maskierung,
+Registrierung und Materialabhängigkeit bleiben bis zum getrennten Studio- und
+Druckbefund offen. Die Ergebnisakte ist
+[`EUFYMAKE-690-GLOSS-VERTRAG.md`](EUFYMAKE-690-GLOSS-VERTRAG.md).

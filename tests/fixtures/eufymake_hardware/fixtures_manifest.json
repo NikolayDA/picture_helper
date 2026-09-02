@@ -1,7 +1,7 @@
 {
-  "schema": 3,
+  "schema": 4,
   "generated_by": "scripts/eufymake_fixture_generator.py",
-  "fixture_count": 36,
+  "fixture_count": 41,
   "fixtures": [
     {
       "filename": "color_alpha_coverage.png",
@@ -44,6 +44,30 @@
       "bytes": 870
     },
     {
+      "filename": "color_gloss_height_cross.png",
+      "role": "color_motif",
+      "pattern": "constant_opaque_gloss_height_cross",
+      "bit_depth": 8,
+      "png_mode": "RGBA",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "rgba": [
+          80,
+          120,
+          160,
+          255
+        ],
+        "paired_height_file": "height_gloss_cross_16bit.png",
+        "paired_gloss_file": "gloss_mean.png",
+        "purpose": "#690: konstante COLOR-Kontrolle für HEIGHT×Gloss"
+      },
+      "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+      "bytes": 859
+    },
+    {
       "filename": "color_height_reference.png",
       "role": "color_motif",
       "pattern": "height_registration_reference",
@@ -83,6 +107,27 @@
       "bytes": 605
     },
     {
+      "filename": "gloss_dimensions_half_width.png",
+      "role": "gloss_mask",
+      "pattern": "checkerboard_dimension_mismatch",
+      "bit_depth": 8,
+      "png_mode": "L",
+      "width": 128,
+      "height": 256,
+      "params": {
+        "width_px": 128,
+        "height_px": 256,
+        "reference_size_px": [
+          256,
+          256
+        ],
+        "square_px": 16,
+        "purpose": "#690: Scaling, Zentrierung, Beschnitt oder Ablehnung einer dimensionsfremden Gloss-Datei unterscheiden"
+      },
+      "sha256": "6de0c1daf66033ffac8a8a33aa2143a6a9e3b8ad09b0b3a0072485c765251071",
+      "bytes": 365
+    },
+    {
       "filename": "gloss_max.png",
       "role": "gloss_mask",
       "pattern": "max",
@@ -96,6 +141,31 @@
       },
       "sha256": "f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44",
       "bytes": 565
+    },
+    {
+      "filename": "gloss_mean.png",
+      "role": "gloss_mask",
+      "pattern": "mean",
+      "bit_depth": 8,
+      "png_mode": "L",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "value": 128,
+        "paired_color_files": [
+          "color_alpha_coverage.png",
+          "color_gloss_height_cross.png"
+        ],
+        "paired_height_files": [
+          "height_mean_16bit.png",
+          "height_gloss_cross_16bit.png"
+        ],
+        "purpose": "konstantes nicht-null Gloss für isolierte Kreuztests"
+      },
+      "sha256": "fa3ef870d4b45a0e3b3d1fa2ed2c01afc90d72d8f67659d0fd3258764b737b27",
+      "bytes": 464
     },
     {
       "filename": "gloss_min.png",
@@ -177,6 +247,64 @@
       },
       "sha256": "ae9f9c1c4d33b7edea15acb9843b0ddda139134383fd9f33f443edafe43c63d6",
       "bytes": 564
+    },
+    {
+      "filename": "gloss_wedge_limited.png",
+      "role": "gloss_mask",
+      "pattern": "wedge_limited",
+      "bit_depth": 8,
+      "png_mode": "L",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "value_range": [
+          64,
+          192
+        ],
+        "purpose": "GL-01: automatische Min/Max-Normalisierung von echter Intensitätsabbildung unterscheiden"
+      },
+      "sha256": "8b3b91b569f93ce54c2e962a7a790ed5c6b04cb27dbe55fa9f62bf4cddfb97b0",
+      "bytes": 466
+    },
+    {
+      "filename": "height_gloss_cross_16bit.png",
+      "role": "height_map",
+      "pattern": "gloss_height_cross_fields",
+      "bit_depth": 16,
+      "png_mode": "I;16",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "fields": [
+          {
+            "x_start": 0,
+            "x_end_exclusive": 85,
+            "normalized_value": 0.0,
+            "value_16bit": 0
+          },
+          {
+            "x_start": 85,
+            "x_end_exclusive": 171,
+            "normalized_value": 0.5000076295109483,
+            "value_16bit": 32768
+          },
+          {
+            "x_start": 171,
+            "x_end_exclusive": 256,
+            "normalized_value": 1.0,
+            "value_16bit": 65535
+          }
+        ],
+        "paired_color_file": "color_gloss_height_cross.png",
+        "paired_gloss_file": "gloss_mean.png",
+        "purpose": "#690: HEIGHT 0/32768/65535 bei konstantem nicht-null Gloss"
+      },
+      "sha256": "7ddca45053998069ed5711e8696fdc6d85312505f3bb3ee3420828674476ba49",
+      "bytes": 701
     },
     {
       "filename": "height_impulse_edge_16bit.png",
@@ -706,7 +834,7 @@
       "bytes": 12201
     }
   ],
-  "bundle_count": 1,
+  "bundle_count": 7,
   "bundles": [
     {
       "id": "i06_manifest_vs_phys",
@@ -797,6 +925,445 @@
           "media_type": "application/json",
           "sha256": "23dc74b2ea547ed8708cff59f5abcb08658457d71b1756f9abdc2e40fa3ffb7b",
           "bytes": 1165
+        }
+      ]
+    },
+    {
+      "id": "gloss_absent",
+      "directory": "export_gloss_absent",
+      "purpose": "#690: sicherer Default ohne explizite Gloss-Rolle; Paket darf keine gloss_mask.png referenzieren oder schreiben.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "scenario_params": {},
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png"
+        ]
+      },
+      "file_count": 2,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "constant_opaque",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "7e7b152fc41132a8092cae045c7cd994ab0dc2008aef5c464ace9622e5c80376",
+          "bytes": 652
+        }
+      ]
+    },
+    {
+      "id": "gloss_zero",
+      "directory": "export_gloss_zero",
+      "purpose": "#690: vorhandene gültige 0-GLOSS-Datei getrennt von fehlendem Gloss.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "scenario_params": {
+        "gloss_value_range": [
+          0,
+          0
+        ]
+      },
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 3,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "constant_opaque",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "zero",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "5933d4c44ed2bc2f431e2698b41923a18d056b24b450540bb109e7592a547060",
+          "bytes": 143
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "fb35d488fe5320c4251b9e5563e4a173d9eb973af4be58945ece20779cc71a87",
+          "bytes": 866
+        }
+      ]
+    },
+    {
+      "id": "gloss_full",
+      "directory": "export_gloss_full",
+      "purpose": "#690: voll gesetzte 255-GLOSS-Datei als Gegenprobe zur 0-Datei.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "scenario_params": {
+        "gloss_value_range": [
+          255,
+          255
+        ]
+      },
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 3,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "constant_opaque",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "max",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "f06e89dc7f39be266a34ab9d56c628694bcc6f491e27b9fad873cfa459731143",
+          "bytes": 464
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "fb35d488fe5320c4251b9e5563e4a173d9eb973af4be58945ece20779cc71a87",
+          "bytes": 866
+        }
+      ]
+    },
+    {
+      "id": "gloss_alpha_coverage",
+      "directory": "export_gloss_alpha_coverage",
+      "purpose": "#690: COLOR-Alpha 0/128/255 bei konstantem RGB, konstanter nicht-null HEIGHT und konstantem nicht-null Gloss.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "scenario_params": {
+        "alpha_fields": [
+          {
+            "x_start": 0,
+            "x_end_exclusive": 85,
+            "alpha": 0
+          },
+          {
+            "x_start": 85,
+            "x_end_exclusive": 171,
+            "alpha": 128
+          },
+          {
+            "x_start": 171,
+            "x_end_exclusive": 256,
+            "alpha": 255
+          }
+        ],
+        "height_value": 32768,
+        "gloss_value": 128
+      },
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png",
+          "height_map.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 4,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "alpha_coverage_fields",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "1d2b8c9a0824ccc7bf669c8c1d89ea448440adde88af55f333242d9d1001f3b3",
+          "bytes": 870
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "mean",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "fa3ef870d4b45a0e3b3d1fa2ed2c01afc90d72d8f67659d0fd3258764b737b27",
+          "bytes": 464
+        },
+        {
+          "filename": "height_map.png",
+          "media_type": "image/png",
+          "role": "height_map",
+          "pattern": "mean",
+          "bit_depth": 16,
+          "png_mode": "I;16",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "16482787786a1142075cd9f66f22a7b061f9c0907524ddac82b7a30e6b08ee54",
+          "bytes": 693
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "43dfe1ecca8be7182ce636edce0e9ccd00821f56b8c8257f1de8072bd2224d15",
+          "bytes": 1082
+        }
+      ]
+    },
+    {
+      "id": "gloss_height_cross",
+      "directory": "export_gloss_height_cross",
+      "purpose": "#690: HEIGHT 0/32768/65535 bei konstant opakem COLOR und konstantem nicht-null Gloss.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "scenario_params": {
+        "height_values": [
+          0,
+          32768,
+          65535
+        ],
+        "gloss_value": 128
+      },
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png",
+          "height_map.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 4,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "constant_opaque_gloss_height_cross",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "mean",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "fa3ef870d4b45a0e3b3d1fa2ed2c01afc90d72d8f67659d0fd3258764b737b27",
+          "bytes": 464
+        },
+        {
+          "filename": "height_map.png",
+          "media_type": "image/png",
+          "role": "height_map",
+          "pattern": "gloss_height_cross_fields",
+          "bit_depth": 16,
+          "png_mode": "I;16",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "7ddca45053998069ed5711e8696fdc6d85312505f3bb3ee3420828674476ba49",
+          "bytes": 701
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "43dfe1ecca8be7182ce636edce0e9ccd00821f56b8c8257f1de8072bd2224d15",
+          "bytes": 1082
+        }
+      ]
+    },
+    {
+      "id": "gloss_dimension_mismatch",
+      "directory": "export_gloss_dimension_mismatch",
+      "purpose": "#690: Manifest/COLOR 256×256 gegen Gloss 128×256; Scaling, Beschnitt, Zentrierung oder Ablehnung getrennt beobachten.",
+      "generated_via": "bgremover.eufymake_writer.write_export + kontrollierter Dimensionsersatz von gloss_mask.png",
+      "scenario_params": {
+        "reference_size_px": [
+          256,
+          256
+        ],
+        "gloss_size_px": [
+          128,
+          256
+        ]
+      },
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 3,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "constant_opaque",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "checkerboard_dimension_mismatch",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 128,
+          "height": 256,
+          "params": {
+            "phys_dpi": null,
+            "intentional_dimension_mismatch": true,
+            "reference_size_px": [
+              256,
+              256
+            ]
+          },
+          "sha256": "6de0c1daf66033ffac8a8a33aa2143a6a9e3b8ad09b0b3a0072485c765251071",
+          "bytes": 365
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "fb35d488fe5320c4251b9e5563e4a173d9eb973af4be58945ece20779cc71a87",
+          "bytes": 866
         }
       ]
     }
