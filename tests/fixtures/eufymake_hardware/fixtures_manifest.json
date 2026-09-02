@@ -963,8 +963,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "aef6004a6efe91876df31a2cd934f5440489fa5fb30517e92faac72f039b67aa",
-          "bytes": 2015
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
         },
         {
           "filename": "manifest.json",
@@ -1015,8 +1015,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "aef6004a6efe91876df31a2cd934f5440489fa5fb30517e92faac72f039b67aa",
-          "bytes": 2015
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
         },
         {
           "filename": "gloss_mask.png",
@@ -1030,8 +1030,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03",
-          "bytes": 481
+          "sha256": "5933d4c44ed2bc2f431e2698b41923a18d056b24b450540bb109e7592a547060",
+          "bytes": 143
         },
         {
           "filename": "manifest.json",
@@ -1082,8 +1082,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "aef6004a6efe91876df31a2cd934f5440489fa5fb30517e92faac72f039b67aa",
-          "bytes": 2015
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
         },
         {
           "filename": "gloss_mask.png",
@@ -1097,8 +1097,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "d695fc28e6e329415214cc1f3529299024f999f881289b73d49b9418c900f463",
-          "bytes": 707
+          "sha256": "f06e89dc7f39be266a34ab9d56c628694bcc6f491e27b9fad873cfa459731143",
+          "bytes": 464
         },
         {
           "filename": "manifest.json",
@@ -1165,8 +1165,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "a9fb75773d24ab2df21fd27591d32f7717cba79be4e12a6bf5731094fe6efb34",
-          "bytes": 2593
+          "sha256": "1d2b8c9a0824ccc7bf669c8c1d89ea448440adde88af55f333242d9d1001f3b3",
+          "bytes": 870
         },
         {
           "filename": "gloss_mask.png",
@@ -1180,8 +1180,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9",
-          "bytes": 707
+          "sha256": "fa3ef870d4b45a0e3b3d1fa2ed2c01afc90d72d8f67659d0fd3258764b737b27",
+          "bytes": 464
         },
         {
           "filename": "height_map.png",
@@ -1195,8 +1195,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "5d32c766fc13ec624b4ad78c5628ceeea3669b0650649cda82de9400d5ee0706",
-          "bytes": 1152
+          "sha256": "16482787786a1142075cd9f66f22a7b061f9c0907524ddac82b7a30e6b08ee54",
+          "bytes": 693
         },
         {
           "filename": "manifest.json",
@@ -1250,8 +1250,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "aef6004a6efe91876df31a2cd934f5440489fa5fb30517e92faac72f039b67aa",
-          "bytes": 2015
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
         },
         {
           "filename": "gloss_mask.png",
@@ -1265,8 +1265,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9",
-          "bytes": 707
+          "sha256": "fa3ef870d4b45a0e3b3d1fa2ed2c01afc90d72d8f67659d0fd3258764b737b27",
+          "bytes": 464
         },
         {
           "filename": "height_map.png",
@@ -1280,8 +1280,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "b655327cf42f8dd29a0c6c969ac1e67c61f45f3f7ec56c5ed761b6350e0a983b",
-          "bytes": 1409
+          "sha256": "7ddca45053998069ed5711e8696fdc6d85312505f3bb3ee3420828674476ba49",
+          "bytes": 701
         },
         {
           "filename": "manifest.json",
@@ -1336,8 +1336,8 @@
           "params": {
             "phys_dpi": null
           },
-          "sha256": "aef6004a6efe91876df31a2cd934f5440489fa5fb30517e92faac72f039b67aa",
-          "bytes": 2015
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
         },
         {
           "filename": "gloss_mask.png",

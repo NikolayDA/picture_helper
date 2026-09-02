@@ -29,7 +29,7 @@ Vertrauensanker des eingecheckten Satzes:
 
 ```text
 fixtures_manifest.json
-SHA-256 effeed5a295d17807efc041728249193b081058eb6a98a2dbfd2611722bf99a8
+SHA-256 8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758
 Schema 4 · 41 Einzel-Fixtures · 7 Exportpakete
 ```
 
@@ -38,7 +38,7 @@ Prüfbefehl vor jedem Import:
 ```bash
 python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
-  --expected-manifest-sha256 effeed5a295d17807efc041728249193b081058eb6a98a2dbfd2611722bf99a8 \
+  --expected-manifest-sha256 8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758 \
   --output eufymake-pre-import-report.json
 ```
 

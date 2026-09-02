@@ -1,10 +1,12 @@
 """Tests für ``scripts/eufymake_fixture_generator.py`` (#687, Epic #681).
 
-Prüft Determinismus (zweimal erzeugen → bitidentische Dateien inkl. Manifest),
-dass jede Manifest-Zeile die tatsächlichen Dateieigenschaften (Bittiefe,
-PNG-Modus, Maße, SHA-256) korrekt beschreibt, sowie dass die eingecheckten
-Fixtures unter ``tests/fixtures/eufymake_hardware/`` nicht vom aktuellen
-Generator abweichen (keine stille Drift zwischen Skript und Artefakt).
+Prüft Determinismus innerhalb derselben Laufzeit, dass jede Manifest-Zeile die
+tatsächlichen Dateieigenschaften (Bittiefe, PNG-Modus, Maße, SHA-256) korrekt
+beschreibt, sowie dass die eingecheckten Fixtures unter
+``tests/fixtures/eufymake_hardware/`` semantisch nicht vom aktuellen Generator
+abweichen. Rohe Deflate-Bytes sind ohne gepinnte zlib-Laufzeit ausdrücklich
+kein plattformübergreifender Vertrag; der versionierte Manifest-Hash bindet den
+committeten Transportstand.
 """
 from __future__ import annotations
 
@@ -50,6 +52,19 @@ def _write(tmp_path: Path, name: str) -> Path:
     return out_dir
 
 
+def _without_transport_fields(value: object) -> object:
+    """SHA/Byte-Längen aus einem Manifest entfernen, Semantik aber behalten."""
+    if isinstance(value, dict):
+        return {
+            key: _without_transport_fields(item)
+            for key, item in value.items()
+            if key not in {"sha256", "bytes"}
+        }
+    if isinstance(value, list):
+        return [_without_transport_fields(item) for item in value]
+    return value
+
+
 # ── Determinismus ────────────────────────────────────────────────────────
 
 def test_generation_is_deterministic(tmp_path: Path) -> None:
@@ -89,6 +104,38 @@ def test_generation_overwrites_corrupt_existing_bytes_deterministically(
     for clean_path in sorted(path for path in clean.rglob("*") if path.is_file()):
         relative = clean_path.relative_to(clean)
         assert (dirty / relative).read_bytes() == clean_path.read_bytes(), relative
+
+
+def test_gloss_writer_packages_preserve_writer_png_bytes(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """#690-Pakete dürfen Writer-Serialisierung nicht nachträglich glätten."""
+    snapshots: dict[str, dict[str, bytes]] = {}
+    original_write_export = gen.write_export
+
+    def recording_write_export(project, output_dir, **kwargs):
+        result = original_write_export(project, output_dir, **kwargs)
+        snapshots[Path(output_dir).name] = {
+            path.name: path.read_bytes()
+            for path in Path(output_dir).glob("*.png")
+        }
+        return result
+
+    monkeypatch.setattr(gen, "write_export", recording_write_export)
+    bundles = gen._write_gloss_scenario_bundles(tmp_path)
+
+    for bundle in bundles:
+        directory = bundle["directory"]
+        current = {
+            path.name: path.read_bytes()
+            for path in (tmp_path / directory).glob("*.png")
+        }
+        if directory == "export_gloss_dimension_mismatch":
+            assert current["color_motif.png"] == snapshots[directory]["color_motif.png"]
+            assert current["gloss_mask.png"] != snapshots[directory]["gloss_mask.png"]
+        else:
+            assert current == snapshots[directory]
 
 
 # ── Manifest ↔ tatsächliche Dateieigenschaften ──────────────────────────
@@ -593,7 +640,7 @@ def test_protocol_lists_every_fixture_with_current_hash() -> None:
 
 
 def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
-    """Eingecheckte Fixtures müssen dem kanonischen Generator bytegenau entsprechen."""
+    """Repo-Fixtures müssen dem Generator plattformübergreifend semantisch entsprechen."""
     assert CHECKED_IN_DIR.is_dir(), (
         "tests/fixtures/eufymake_hardware/ fehlt – "
         "python scripts/eufymake_fixture_generator.py generate ausführen"
@@ -611,10 +658,15 @@ def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
         "Generators ab – neu generieren und committen."
     )
 
-    for relative in checked_in_files:
-        assert (CHECKED_IN_DIR / relative).read_bytes() == (
-            fresh_dir / relative
-        ).read_bytes(), f"{relative}: Byte-Drift"
+    checked_manifest = json.loads(
+        (CHECKED_IN_DIR / gen.MANIFEST_FILENAME).read_text(encoding="utf-8")
+    )
+    fresh_manifest = json.loads(
+        (fresh_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8")
+    )
+    assert _without_transport_fields(checked_manifest) == _without_transport_fields(
+        fresh_manifest
+    )
 
     for name in checked_in_files:
         if name.name == gen.MANIFEST_FILENAME:

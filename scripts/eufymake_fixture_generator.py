@@ -53,12 +53,15 @@ Verzeichnis dokumentiert (Schema :data:`SCHEMA_VERSION`). Die Sollbeziehung
 zwischen Pixelmaß und physischer Größe ist ``mm = Pixel / DPI × 25,4``
 (:func:`px_to_mm`), gerundet auf drei Nachkommastellen.
 
-Die PNG-Bytes werden nach der Bilderzeugung mit einer lokalen kanonischen
-Serialisierung geschrieben: fester Filtertyp, feste zlib-Parameter, genau die
-vertraglich vorgesehenen Chunks. Bereits vorhandene Dateien werden nie als
-Quelle wiederverwendet. Damit ist der Katalog eine reine Funktion der
-Fixture-Spezifikation; Encoder- oder Altdatei-Drift wird im Bytevergleich
-sichtbar und kann keinen neuen Manifest-Hash still überdecken.
+Die eigenständigen PNG-Fixtures werden nach der Bilderzeugung mit einer lokalen
+Serialisierung geschrieben: fester Filtertyp, feste zlib-Parameter und genau
+die vertraglich vorgesehenen Chunks. Bereits vorhandene Dateien werden nie als
+Quelle wiederverwendet. Die Deflate-Bytes selbst sind jedoch bewusst **kein**
+plattformübergreifender Vertrag, weil die LZ77-Match-Auswahl von der jeweiligen
+zlib-Laufzeit abhängen kann. Das Manifest bindet die eingecheckten
+Transportbytes; Generator-Drift wird plattformübergreifend über Pixel, Modus,
+Maße und Metadaten geprüft. PNGs der Produktionswriter-Pakete bleiben bis auf
+die ausdrücklich dokumentierten Konfliktmodifikationen unverändert.
 
 Zwei weitere, kein eigenständiges Muster im obigen Sinn: die
 **Pixelmaß-Variante** (I-04, #688/#689-Testdesign) ist eine
@@ -782,17 +785,21 @@ def _png_chunk(chunk_type: bytes, payload: bytes) -> bytes:
     return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", crc)
 
 
-def _canonical_png_bytes(
+def _fixture_png_bytes(
     image: Image.Image,
     *,
     dpi: tuple[float, float] | None = None,
 ) -> bytes:
-    """PNG mit fester Filter-/Kompressionsstrategie plattformneutral kodieren.
+    """Einzel-Fixture mit kontrollierter PNG-Struktur kodieren.
 
     Pillow bleibt für die Pixelmodelle zuständig; die PNG-Serialisierung ist
     absichtlich lokal festgelegt. Damit hängen Fixture-Hashes weder von
-    vorhandenen Zieldateien noch von Pillows PNG-Encoderheuristiken ab. Eine
-    Änderung dieser Regel erzeugt sichtbaren Byte-/Manifest-Drift in den Tests.
+    vorhandenen Zieldateien noch von Pillows PNG-Encoderheuristiken ab. Die
+    komprimierten Bytes sind trotzdem kein plattformübergreifender Vertrag:
+    zlib kann zwischen Laufzeitversionen andere gültige LZ77-Matches wählen.
+    Deshalb vergleichen die Repo-Tests diese Fixtures plattformübergreifend
+    semantisch; der SHA-256 im Manifest bindet ausschließlich den committeten
+    Transportstand.
     """
     if image.mode not in _PNG_MODE_CONTRACT:
         raise ValueError(f"Nicht unterstützter kanonischer PNG-Modus: {image.mode}")
@@ -831,14 +838,14 @@ def _canonical_png_bytes(
     return _PNG_SIGNATURE + b"".join(chunks)
 
 
-def _write_canonical_png(
+def _write_fixture_png(
     image: Image.Image,
     path: Path,
     *,
     dpi: tuple[float, float] | None = None,
 ) -> None:
-    """Ein Fixture-PNG ausschließlich nach dem kanonischen Vertrag schreiben."""
-    path.write_bytes(_canonical_png_bytes(image, dpi=dpi))
+    """Ein eigenständiges Fixture-PNG kontrolliert und zustandsfrei schreiben."""
+    path.write_bytes(_fixture_png_bytes(image, dpi=dpi))
 
 def _write_mm_dpi_export_bundle(out_dir: Path) -> dict[str, Any]:
     """Erzeugt I-06 über den echten Writer und versieht PNGs mit Konflikt-pHYs."""
@@ -890,7 +897,7 @@ def _write_mm_dpi_export_bundle(out_dir: Path) -> dict[str, Any]:
             image = source.copy()
         # Erst nach dem Schließen des Quell-Handles überschreiben, damit die
         # Fixture-Erzeugung auch auf Windows funktioniert.
-        _write_canonical_png(image, path, dpi=EXPORT_PHYS_DPI)
+        _write_fixture_png(image, path, dpi=EXPORT_PHYS_DPI)
 
     files: list[dict[str, Any]] = []
     for filename, (role, png_mode, bit_depth) in png_contracts.items():
@@ -1038,11 +1045,10 @@ def _write_gloss_scenario_bundle(
         confirm_warnings=True,
     )
     if replacement_gloss is not None:
-        _write_canonical_png(replacement_gloss, bundle_dir / "gloss_mask.png")
-    for path in sorted(bundle_dir.glob("*.png")):
-        with Image.open(path) as source:
-            image = source.copy()
-        _write_canonical_png(image, path)
+        # G-05 ist der einzige gezielte Post-Writer-Eingriff: Nur seine
+        # Gloss-Datei wird dimensionsfremd ersetzt. Alle übrigen Writer-PNGs
+        # bleiben bytegenau so erhalten, wie der Produktionspfad sie ausgibt.
+        _write_fixture_png(replacement_gloss, bundle_dir / "gloss_mask.png")
 
     png_contracts: list[tuple[str, str, str, dict[str, Any]]] = [
         ("color_motif.png", "color_motif", color_pattern, {}),
@@ -1236,7 +1242,7 @@ def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any
                 f"{sorted(unsupported_kwargs)}"
             )
         dpi = spec.save_kwargs.get("dpi")
-        _write_canonical_png(spec.image, path, dpi=dpi)
+        _write_fixture_png(spec.image, path, dpi=dpi)
         data = path.read_bytes()
         entries.append({
             "filename": spec.filename,

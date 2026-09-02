@@ -32,7 +32,7 @@ Quelldokumente.
 - [ ] Unabhängigen Pre-Import-Report am Zielrechner erzeugt:
       `python scripts/eufymake_fixture_inspector.py
       --expected-manifest-sha256
-      effeed5a295d17807efc041728249193b081058eb6a98a2dbfd2611722bf99a8
+      8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758
       --output eufymake-pre-import-report.json`; Ergebnis `ok: true`, Schema 4
       und Soll-Hash bestätigt, Report bei den übrigen Nachweisen abgelegt.
 - [ ] Die drei Protokolltabellen aus `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`
@@ -137,6 +137,14 @@ Nur Zellen, die tatsächlich im Druckprotokoll (§3) stehen. Je Variante:
 Budget prüfen → drucken → vermessen → Foto → Druckprotokoll-Zeile ausfüllen
 → Budget-Zähler fortschreiben. Bei Fehldruck: Abschnitt 2 dieser Checkliste
 anwenden, **nicht** automatisch wiederholen.
+
+**Zusätzlicher #690-Gloss-Preflight:** Ein importiertes „Flat“-Graustufenbild
+ist keine Gloss-Zuweisung. Vor jeder Gloss-Zelle muss der in
+`EUFYMAKE-690-GLOSS-VERTRAG.md` Abschnitt 6.1 festgelegte native Gloss-/Spot-UV-
+Pfad oder der dort dokumentierte Zweipass ausgewählt und mit identischem
+Ursprung, Skalierung, Rotation und Registrierung protokolliert sein. Ist keiner
+der beiden Pfade eindeutig verfügbar, bleibt die Zelle blockiert und wird nicht
+als gewöhnliches Graustufenbild gedruckt.
 
 **Vor jedem Foto (Governance Abschnitt 3, verbindlich):**
 

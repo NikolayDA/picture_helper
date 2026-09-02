@@ -17,15 +17,15 @@
 | Material/Tinte/Klarlack/Ink-Mode | ausstehend; kein Druck gestartet |
 | Beleuchtung/Messmittel | ausstehend |
 | Fixture-Katalog | Schema 4; 41 Einzel-Fixtures; 7 Exportpakete |
-| Manifest-Vertrauensanker | `effeed5a295d17807efc041728249193b081058eb6a98a2dbfd2611722bf99a8` |
-| Pre-Import-Report | 41/41 Fixtures und 7/7 Pakete OK; Report-SHA-256 `bbfd9f0e64723dddcc163578de0909a24fdc5c48c353604edbf46ad80465ec66` |
+| Manifest-Vertrauensanker | `8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758` |
+| Pre-Import-Report | 41/41 Fixtures und 7/7 Pakete OK; Report-SHA-256 `8c7264f842395a21a55b93006f2f598b08eb71cc95c528a53b21b5531daf885f` |
 
 Vor jedem weiteren Studio- oder Drucklauf ist der Report neu zu erzeugen:
 
 ```bash
 .venv/bin/python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
-  --expected-manifest-sha256 effeed5a295d17807efc041728249193b081058eb6a98a2dbfd2611722bf99a8 \
+  --expected-manifest-sha256 8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758 \
   --output eufymake-690-pre-import.json
 ```
 
@@ -41,10 +41,14 @@ Vor jedem weiteren Studio- oder Drucklauf ist der Report neu zu erzeugen:
 
 ## 3. Isolierte Testzellen
 
-Alle Einzelbilder sind deterministisch, ohne Zufallszahlen, 8-Bit-Graustufen
-für Gloss und – sofern vorhanden – pixelgenau über das Schema-4-Manifest
-gebunden. HEIGHT bleibt 16 Bit. Die Pakete entstehen über den Produktionswriter;
-nur das Dimensionsfehlerpaket ersetzt anschließend kontrolliert die Gloss-Datei.
+Alle Einzelbilder sind deterministisch auf Pixel-/Metadatenebene, ohne
+Zufallszahlen, 8-Bit-Graustufen für Gloss und – sofern vorhanden – pixelgenau
+über das Schema-4-Manifest gebunden. Der Manifest-SHA bindet die exakt
+committeten Transportbytes; eine Neu-Kompression auf einer anderen zlib-Laufzeit
+darf semantisch identische Deflate-Bytes erzeugen und wird deshalb nicht als
+plattformübergreifender Bytevertrag behandelt. HEIGHT bleibt 16 Bit. Die Pakete
+entstehen über den Produktionswriter und behalten dessen PNG-Bytes; nur das
+Dimensionsfehlerpaket ersetzt anschließend kontrolliert die Gloss-Datei.
 
 | Zelle | Dateien/Paket | Isolierte Variable | Digitaler Sollwert | Import | Druck |
 | --- | --- | --- | --- | --- | --- |
@@ -111,25 +115,60 @@ nicht ableiten.
 
 ## 6. Physisches Mess- und Fotoprotokoll
 
-Für jeden freigegebenen Lauf sind Material, Druckmodus, Geräteoptionen,
-Klarlack-/Tintenstand, Position und Skalierung zu dokumentieren. Fotos erhalten
-eine konstante Kameraposition, Belichtung, Weißabgleich und zwei definierte
-Beleuchtungswinkel (frontal und streifend). Mindestens G-02 wird zweimal
-unabhängig gedruckt; G-01/G-03 benötigen identische Parameter im selben
+### 6.1 Verbindliche Gloss-Zuweisung vor jedem physischen Lauf
+
+Die in Abschnitt 5 beobachteten **Flat**-Ebenen dürfen nicht direkt als
+Graustufen-CMYK-/Normalbild gedruckt und anschließend als Gloss-Befund gewertet
+werden. Vor dem ersten Materialverbrauch ist genau einer der folgenden
+Gloss-Pfade auszuwählen und vollständig zu protokollieren:
+
+1. **Nativer Studio-Pfad:** Eine in der verwendeten Studio-/Editor-Version
+   sichtbare Funktion weist das importierte Maskenbild ausdrücklich der Rolle
+   „Gloss“, „Spot UV“ oder „Varnish“ zu. Menüpfad, UI-Bezeichnung, Version,
+   Polaritätsanzeige und Geräteoption werden notiert. Ohne eine solche
+   ausdrückliche Rollenzuweisung ist dieser Pfad nicht zulässig.
+2. **Dokumentierter Spot-UV-Zweipass:** COLOR/HEIGHT werden im ersten Pass
+   gedruckt; im zweiten Pass wird ausschließlich die Schwarz-Weiß-Maske im
+   Hersteller-Modus für Spot UV/Gloss/Klarlack ausgegeben. Dabei gilt die
+   Herstellerzuordnung Schwarz = Gloss auftragen, Weiß = nichts. Die Maske
+   bleibt unskaliert und unverändert; eine vom Gerät verlangte Invertierung
+   muss als eigene Transformation samt resultierendem Hash dokumentiert werden.
+
+Für beide Pfade bleiben Material, Geräteprofil, Ink-/Gloss-Modus, Passreihenfolge,
+Ursprung, X/Y-Position, Skalierung und Rotation über alle Vergleichszellen
+fixiert. Registrierung erfolgt über die G-08-Marken; zwischen Basis- und
+Gloss-Pass werden weder Material noch Ursprung neu eingelegt. G-06 und G-07
+verwenden COLOR/HEIGHT im Basispass und die konstante Gloss-Maske im exakt
+registrierten Gloss-Pass. G-05 darf nur laufen, wenn vorab eine explizite
+Dimensions-/Registrierungsregel festgelegt wurde; automatisches Skalieren ist
+kein gültiger Befund.
+
+**Abbruchkriterium:** Wenn weder eine native Gloss-Rolle noch der dokumentierte
+Spot-UV-Zweipass eindeutig auswählbar ist, bleibt der physische Teil blockiert.
+Dann wird weder **Preview** noch **Print** gestartet und insbesondere kein
+gewöhnlicher Flat-Graustufendruck als Ersatz verwendet.
+
+### 6.2 Messung und Nachweis
+
+Für jeden ausdrücklich freigegebenen Lauf sind Material, Druckmodus,
+Geräteoptionen, Klarlack-/Tintenstand, Position und Skalierung zu dokumentieren.
+Fotos erhalten eine konstante Kameraposition, Belichtung, Weißabgleich und zwei
+definierte Beleuchtungswinkel (frontal und streifend). Mindestens G-02 wird
+zweimal unabhängig gedruckt; G-01/G-03 benötigen identische Parameter im selben
 Vergleichslayout.
 
-| Zelle/Feld | Lauf | Digitalwert | sichtbarer Gloss | Mess-/Fotoreferenz | Material/Ink-Mode | Abweichung |
-| --- | --- | --- | --- | --- | --- | --- |
-| G-01 min/mittel/max | 1 | 0/128/255 | | | | |
-| G-02 normal | 1 | 0→255 | | | | |
-| G-02 normal | 2 | 0→255 | | | | |
-| G-02 invertiert | 1 | 255→0 | | | | |
-| G-02 invertiert | 2 | 255→0 | | | | |
-| G-03 Stufen/64…192 | 1 | laut Fixture | | | | |
-| G-04 fehlend/Null/voll | 1 | –/0/255 | | | | |
-| G-06 Alpha 0/128/255 | 1 | Gloss 128 | | | | |
-| G-07 HEIGHT 0/32768/65535 | 1 | Gloss 128 | | | | |
-| G-08 Registrierung/Schachbrett | 1 | 0/255 | | | | |
+| Zelle/Feld | Lauf | Digitalwert | Gloss-Pfad/Pass + Registrierung | sichtbarer Gloss | Mess-/Fotoreferenz | Material/Ink-Mode | Abweichung |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| G-01 min/mittel/max | 1 | 0/128/255 | | | | | |
+| G-02 normal | 1 | 0→255 | | | | | |
+| G-02 normal | 2 | 0→255 | | | | | |
+| G-02 invertiert | 1 | 255→0 | | | | | |
+| G-02 invertiert | 2 | 255→0 | | | | | |
+| G-03 Stufen/64…192 | 1 | laut Fixture | | | | | |
+| G-04 fehlend/Null/voll | 1 | –/0/255 | | | | | |
+| G-06 Alpha 0/128/255 | 1 | Gloss 128 | | | | | |
+| G-07 HEIGHT 0/32768/65535 | 1 | Gloss 128 | | | | | |
+| G-08 Registrierung/Schachbrett | 1 | 0/255 | | | | | |
 
 ## 7. Entscheidungstabelle nach dem Druck
 
