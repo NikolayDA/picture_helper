@@ -17,11 +17,15 @@ gesetzten Policy, jetzt mit expliziter Freigabe (Abschnitt 4).
 ## 1. Abbruchkriterien Materialverbrauch (verbindlich)
 
 - **Gesamtbudget für die aktuelle Matrix:** Das
-  [Druckprotokoll](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md) hat 13 Tabellenzeilen,
+  [Druckprotokoll](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md) hat 12 Tabellenzeilen,
   je eine physisch zu druckende Variante: I-02, I-03 8-Bit, I-03 16-Bit,
   I-04, I-05 konsistent, I-07, I-08 vor Crop, I-08 nach Crop, I-10 normal,
-  I-10 invertiert, I-11 (Treppenkeil, H-02), I-12 (Seitenverhältnis, H-03)
-  und I-13 (Alpha/Coverage bei nicht-null HEIGHT) – **13 Varianten**. I-08
+  I-10 invertiert, I-11 (Treppenkeil, H-02) und I-13 (Alpha/Coverage bei
+  nicht-null HEIGHT) – **12 Varianten**. I-02 ist dabei zugleich die
+  druckbare 256×256-Referenz für den H-03-Vergleich mit I-04
+  (128×128 bei gleicher Seitenrelation). I-12 bleibt als abgeschlossener
+  Import-Negativtest erhalten, ist nach der ausdrücklichen Ablehnung durch
+  Studio aber **import-only** und besitzt keine druckbare Variante. I-08
   und I-10 vergleichen dabei inhaltlich je zwei
   Ausprägungen (vor/nach Crop bzw. normal/invertiert), stehen aber bereits
   als zwei getrennte Tabellenzeilen mit je eigener Wiederholungsmessung im
@@ -29,11 +33,15 @@ gesetzten Policy, jetzt mit expliziter Freigabe (Abschnitt 4).
   Zusätzlich sind für #690 **elf Gloss-Läufe** fest eingeplant: G-01 einmal,
   G-02 normal und invertiert jeweils zweimal sowie G-03, G-04a/b/c, G-05,
   G-06, G-07 und G-08 jeweils einmal. Das freigegebene harte Limit beträgt
-  damit **maximal 35 physische Drucke** für #688–#690. Nach je einem Erstlauf
-  der 13 Stammvarianten und den elf fest eingeplanten Gloss-Läufen bleiben
-  höchstens elf Wiederholungen für die Stammvarianten; die Kernaussagen aus
-  dem Druckprotokoll haben Vorrang. Ein zweiter Lauf jeder einzelnen Variante
-  ist auch mit dem erhöhten Budget nicht automatisch freigegeben.
+  als hartes Limit weiterhin **maximal 35 physische Drucke** für #688–#690.
+  Nach je einem Erstlauf der 12 Stammvarianten und den elf fest eingeplanten
+  Gloss-Läufen bleiben die zuvor freigegebenen höchstens elf Wiederholungen
+  für die Stammvarianten; die Kernaussagen aus dem Druckprotokoll haben
+  Vorrang. Der aktuelle Plan umfasst damit höchstens 34 Drucke. Der durch den
+  Wegfall von I-12 rechnerisch freie 35. Platz bleibt unzugeordnet und ist
+  weder für eine neue Variante noch für eine zwölfte Wiederholung automatisch
+  freigegeben. Ein zweiter Lauf jeder einzelnen Variante ist auch mit dem
+  erhöhten harten Limit nicht automatisch freigegeben.
 - Erweitert sich die Matrix später (neue Testzellen aus offenen
   Widersprüchen), ist die daraus rechnerisch folgende neue Zahl nur ein
   **Vorschlag** – kein automatisches Zusatzbudget. Neue Zellen lösen immer
@@ -156,6 +164,14 @@ Aktualisiert: 2026-09-02 – Owner-Entscheidung von NikolayDA: Gesamtbudget von
   zählen mit; Lauf 36 oder jede Umwidmung eines Gloss-Platzes braucht eine
   neue ausdrückliche Owner-Freigabe. Alle HEIGHT-/Gloss-Preflights und
   Sicherheits-Abbruchkriterien bleiben unverändert verbindlich.
+Aktualisiert: 2026-09-03 – I-12 nach der expliziten Studio-Ablehnung als
+  abgeschlossener Import-Negativtest und nicht druckbare Zelle eingestuft.
+  Die physische Stammvariantenmatrix enthält dadurch 12 statt 13 Zeilen;
+  I-02 (256×256) und I-04 (128×128 bei gleicher Seitenrelation) bilden das
+  ausführbare physische H-03-Vergleichspaar. Das harte Limit von 35 bleibt
+  bestehen, der ausführbare und freigegebene Plan umfasst jedoch höchstens
+  12 Erstläufe + 11 Wiederholungen + 11 Gloss-Läufe = 34 Drucke. Der freie
+  Platz darf ohne neue Owner-Freigabe nicht umgewidmet werden.
 ```
 
 Damit gelten die Regeln aus den Abschnitten 1–3 für die Realtests aus

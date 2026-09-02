@@ -48,10 +48,10 @@ neu erzeugt werden.
 | Nullpunkt/Grundfläche | `height_zero_16bit.png`, Kontrollkörper | Null-HEIGHT nativ ohne Warnung akzeptiert und als ebene Grundfläche dargestellt | | Import belegt; tatsächlicher physischer Nullpunkt offen |
 | Digitalwert → physische Höhe | I-11; Messpunkte je Stufe in mm | | | offen |
 | Höhenregler/Texturmodus als Skalierungsachse | konstante Einstellung je Vergleich; ggf. eigene Matrixzeile | `Customize Texture`, `Color Raised`, 2,50 mm für die Vergleiche unverändert | | Vergleichsparameter belegt; physische Skalierung offen |
-| Fehlend/Nullfläche/konstant/Dimensionsabweichung | I-01, `height_zero_16bit.png`, `height_mean_16bit.png`, I-04/I-12 | COLOR allein akzeptiert; Null, konstante Mitte und Maximum nativ akzeptiert; halbe Pixelkante bei gleichem Verhältnis auf volle Fläche abgebildet; abweichendes Seitenverhältnis ausdrücklich abgelehnt | | Importvertrag belegt; physische Auswirkung offen |
+| Fehlend/Nullfläche/konstant/Dimensionsabweichung | I-01, `height_zero_16bit.png`, `height_mean_16bit.png`, I-04/I-12 | COLOR allein akzeptiert; Null, konstante Mitte und Maximum nativ akzeptiert; halbe Pixelkante bei gleichem Verhältnis auf volle Fläche abgebildet; abweichendes Seitenverhältnis ausdrücklich abgelehnt | | Importvertrag belegt; physische Auswirkung nur für akzeptierte Varianten offen, I-12 ist import-only |
 | Alpha/Coverage bei nicht-null HEIGHT | I-13, `color_alpha_coverage.png` + `height_mean_16bit.png` | HEIGHT im selben COLOR-Objekt nativ zugewiesen; `3D`-Vorschau mit drei weiterhin sichtbaren Alpha-/Farbfeldern | | Importkopplung belegt; physische Coverage/Underbase offen |
 | Crop-/Registrierungstreue | I-08, `color_height_reference.png` + `height_registration_16bit.png` mit pixelgleichen X/Y-Landmarken | | | offen |
-| Filterung/Glättung/Normalisierung | `height_impulse_edge_*`, Keile | | | offen |
+| Filterung/Glättung/Normalisierung | I-02/I-04 als 256×256-/128×128-Vergleich bei gleicher Seitenrelation; `height_impulse_edge_*`, Keile | | | offen |
 | Reproduzierbarkeit | zweiter unabhängiger Lauf der Kernaussagen | | | offen |
 
 ### Importbeobachtungen vom 2. und 3. September 2026
@@ -73,6 +73,14 @@ Abnahmekriterien bis zur reproduzierbaren Ablage und Druckmessung offen.
 | I-12 | `color_height_reference.png` + `height_wedge_16bit_aspect.png` | Studio zeigte exakt `Depth image ratio does not match the original image`. Die 256×128-HEIGHT-Datei wurde für das 256×256-COLOR-Objekt nicht übernommen; die vorherige Treppen-HEIGHT-Zuweisung und Objektgeometrie blieben unverändert. | Importbeobachtung: abweichende Seitenrelation wird fail-closed abgelehnt; keine stille Skalierung. |
 | I-13 | `color_alpha_coverage.png` + `height_mean_16bit.png` (konstant 32768) | Das COLOR-Fixture wurde importiert und die 16-Bit-HEIGHT-Datei anschließend im selben Objekt nativ über `Customize Texture` zugewiesen. Studio akzeptierte die Kopplung ohne Warnung, kennzeichnete das Objekt mit `3D` und zeigte eine gleichmäßig hohe Vorschau, in der die drei Alpha-/Farbfelder weiter erkennbar blieben. | Importbeobachtung: Alpha×konstantes nicht-null HEIGHT ist im nativen COLOR/HEIGHT-Pfad vorgeprüft. Unterbase, Deckung und physische Reliefhöhe bleiben ohne Druck offen. |
 | I-08 | `color_height_reference.png` + `height_registration_16bit.png` | Am 2026-09-03 wurde COLOR importiert und über `Customize Texture` → `Upload Height Map Image` die 16-Bit-HEIGHT-Datei nativ zugewiesen. Studio akzeptierte sie ohne Warnung, kennzeichnete das Objekt mit `3D` und zeigte die asymmetrischen Landmarken in der 3D-Vorschau. Ein anschließend bestätigter Crop reduzierte W von 90,31 auf 44,86 mm und verschob X von 122,34 auf 167,79 mm; H 90,31 mm und Y 164,84 mm blieben erhalten. Die `3D`-Zuordnung und die passend beschnittene 3D-Vorschau blieben bestehen. Die separat importierte `gloss_registration.png` blieb dagegen unverändert bei 90,31×90,31 mm und X/Y 122,34/164,84 mm. | Importbeobachtung: nativer 16-Bit-HEIGHT-Träger und Crop-Kopplung innerhalb des COLOR/HEIGHT-Objekts belegt. Keine Aussage zur Nutzung aller 65.536 Werte, mm-Höhe oder physischen Registrierung; ein separater Gloss-Layer folgt dem Crop nicht automatisch. Weder `Preview` noch `Print` wurde ausgelöst. |
+
+I-12 ist damit ein abgeschlossener **Import-Negativtest**: Weil Studio die
+HEIGHT-Datei nicht übernimmt, existiert kein I-12-Objekt für Vorschau oder
+Druck. Die Zelle hat deshalb keine physische Messzeile. Der ausführbare
+physische Teil von H-03 vergleicht stattdessen die akzeptierten I-02- und
+I-04-Objekte bei identischer Layoutgröße, Texturhöhe und Druckeinstellung;
+damit bleibt die Filter-/Interpolationswirkung der halbierten Pixelkante
+messbar, ohne die fail-closed-Seitenverhältnisgrenze zu umgehen.
 
 ## 4. Messschema für HEIGHT → mm
 

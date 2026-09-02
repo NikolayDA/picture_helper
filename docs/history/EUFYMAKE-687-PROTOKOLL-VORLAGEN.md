@@ -304,16 +304,16 @@ Firmware nicht angezeigt. Der unmittelbar vorher erzeugte Inspectorreport
 bestätigte 41/41 Einzel-Fixtures und 7/7 Pakete. Es wurde weder **Preview**
 noch **Print** ausgelöst.
 
-| Zelle | Importierte Dateien | Studio-Ergebnis | Warnung/Änderung | Belegte Grenze |
-| --- | --- | --- | --- | --- |
-| G-01 | `gloss_min.png`, `gloss_mean.png`, `gloss_max.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | 0/128/255 werden als Bilder akzeptiert, nicht als Glossmenge bestätigt |
-| G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | je 90,31×90,31 mm; sichtbar und getrennt | keine | keine Polaritätsaussage ohne Druck |
-| G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | je 90,31×90,31 mm; Stufen bzw. begrenzter Keil sichtbar | keine | keine Aussage über kontinuierlichen, quantisierten, binären oder normalisierten Auftrag |
-| G-04a/b/c | `export_gloss_absent/` digital; Null/voll über bytegleiche `gloss_min.png`/`gloss_max.png` | fehlend im Paketvertrag; Null/voll als normale Einzelbilder | keine PNG-Warnung; JSON im Bilddialog nicht auswählbar | Bilddialog hat keinen beobachtbaren Paket-/Optionalitätsvertrag |
-| G-05 | `gloss_dimensions_half_width.png` | 128×256 px → 45,16×90,31 mm; X/Y 144,91/164,84 mm; 0° | kein Scaling, Beschnitt oder Fehler | Studio verknüpft die Datei nicht mit COLOR/Manifest und erkennt deshalb keinen Konflikt |
-| G-06 | drei PNGs aus `export_gloss_alpha_coverage/` | je 90,31×90,31 mm; drei unabhängige „Flat“-Ebenen; Alpha-Felder im COLOR sichtbar | keine Rollenzuordnung oder Maskenkopplung | physische Alpha×Gloss-Wirkung offen |
-| G-07 | drei PNGs aus `export_gloss_height_cross/` | je 90,31×90,31 mm; 16-Bit-HEIGHT 0/32768/65535 sichtbar; drei unabhängige „Flat“-Ebenen | keine Rollenzuordnung oder Maskenkopplung | physische HEIGHT×Gloss-Wirkung offen |
-| G-08 | `gloss_registration.png`, `gloss_checkerboard.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Druckregistrierung, Filterung und Bleeding offen |
+| Zelle | Importierte Dateien | Studio-Ergebnis | Warnung/Änderung | „Nichts passiert"? (EM-S03) | Belegte Grenze |
+| --- | --- | --- | --- | --- | --- |
+| G-01 | `gloss_min.png`, `gloss_mean.png`, `gloss_max.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Nein; alle drei sichtbar | 0/128/255 werden als Bilder akzeptiert, nicht als Glossmenge bestätigt |
+| G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | je 90,31×90,31 mm; sichtbar und getrennt | keine | Nein; beide sichtbar | keine Polaritätsaussage ohne Druck |
+| G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | je 90,31×90,31 mm; Stufen bzw. begrenzter Keil sichtbar | keine | Nein; beide sichtbar | keine Aussage über kontinuierlichen, quantisierten, binären oder normalisierten Auftrag |
+| G-04a/b/c | `export_gloss_absent/` digital; Null/voll über bytegleiche `gloss_min.png`/`gloss_max.png` | fehlend im Paketvertrag; Null/voll als normale Einzelbilder | keine PNG-Warnung; JSON im Bilddialog nicht auswählbar | Nein; G-04a hat vertragsgemäß keine importierbare Gloss-Datei, G-04b/c sind sichtbar | Bilddialog hat keinen beobachtbaren Paket-/Optionalitätsvertrag |
+| G-05 | `gloss_dimensions_half_width.png` | 128×256 px → 45,16×90,31 mm; X/Y 144,91/164,84 mm; 0° | kein Scaling, Beschnitt oder Fehler | Nein; sichtbar | Studio verknüpft die Datei nicht mit COLOR/Manifest und erkennt deshalb keinen Konflikt |
+| G-06 | drei PNGs aus `export_gloss_alpha_coverage/` | je 90,31×90,31 mm; drei unabhängige „Flat“-Ebenen; Alpha-Felder im COLOR sichtbar | keine Rollenzuordnung oder Maskenkopplung | Nein; alle drei sichtbar | physische Alpha×Gloss-Wirkung offen |
+| G-07 | drei PNGs aus `export_gloss_height_cross/` | je 90,31×90,31 mm; 16-Bit-HEIGHT 0/32768/65535 sichtbar; drei unabhängige „Flat“-Ebenen | keine Rollenzuordnung oder Maskenkopplung | Nein; alle drei sichtbar | physische HEIGHT×Gloss-Wirkung offen |
+| G-08 | `gloss_registration.png`, `gloss_checkerboard.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Nein; beide sichtbar | Druckregistrierung, Filterung und Bleeding offen |
 
 Bei allen 256×256-Dateien ohne `pHYs` verwendete Studio den bereits in #689
 belegten 72-dpi-Fallback: 90,31×90,31 mm, X/Y 122,34/164,84 mm, 0°. Namen,
@@ -349,7 +349,7 @@ Materialverbrauch beachten – siehe
 | I-02 | | | | | | | | | | |
 | I-03 (8 Bit) | | | | | | | | | | |
 | I-03 (16 Bit) | | | | | | | | | | |
-| I-04 | | | | | | | | | | |
+| I-04 (halbierte Pixelkante; Referenz I-02) | | | | | | | | | | |
 | I-05 (konsistent) | | | | | | | | | | |
 | I-07 | | | | | | | | | | |
 | I-08 (vor Crop) | | | | | | | | | | |
@@ -357,7 +357,6 @@ Materialverbrauch beachten – siehe
 | I-10 (normal) | | | | | | | | | | |
 | I-10 (invertiert) | | | | | | | | | | |
 | I-11 | | | | | | | | | | |
-| I-12 | | | | | | | | | | |
 | I-13 (Alpha/Coverage) | | | | | | | | | | |
 
 **Je Zeile eine eigene physische Variante:** I-08 und I-10 vergleichen selbst
@@ -366,9 +365,18 @@ eigenständig zu druckende und zu protokollierende Varianten, nicht zwei
 Aspekte eines einzigen Drucks. Die Spalte „Wiederholungsmessung (2. Lauf)"
 bezieht sich je Zeile ausschließlich auf einen zweiten, unabhängigen Druck
 **derselben** Variante – nicht auf die jeweils andere Variante. Zusammen mit
-den 13 Zeilen dieser Tabelle ergibt das die 13 druckbaren Varianten aus dem
+den 12 Zeilen dieser Tabelle ergibt das die 12 druckbaren Varianten aus dem
 Materialbudget in
 [`EUFYMAKE-687-TESTGOVERNANCE.md`](EUFYMAKE-687-TESTGOVERNANCE.md).
+
+**I-12 ist import-only:** Studio lehnt die 256×128-HEIGHT-Datei am
+256×256-COLOR-Objekt fail-closed ab und erzeugt deshalb kein druckbares
+I-12-Objekt. Die Zelle bleibt als Import-Negativtest in §2 erhalten, hat aber
+keine Zeile und keinen Materialplatz in diesem Druckprotokoll. Für den
+ausführbaren physischen H-03-Vergleich liefert I-02 die 256×256-Referenz und
+I-04 die akzeptierte 128×128-HEIGHT-Variante bei gleicher Seitenrelation;
+Layoutgröße, Texturmodus, Höhe und alle übrigen Druckparameter sind zwischen
+beiden Läufen identisch zu halten.
 
 **Wiederholungsmessung:** Mindestens die in #688/#689/#690 als Kernaussage
 markierten Zeilen (Nullpunkt/Grundfläche, monotoner Keil, mm/DPI-Referenz,

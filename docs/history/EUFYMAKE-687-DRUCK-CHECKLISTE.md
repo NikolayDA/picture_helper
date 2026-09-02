@@ -160,12 +160,21 @@ ausgelöst; der Budgetstand bleibt **0/35**.
 - [x] Budget-Startstand notiert (**0 von 35**, 2026-09-03; sonst der
       aus Abschnitt 1 übertragene Vortagesstand).
 
-## 5. Phase 3 — Druck je Variante (13 Stammvarianten + 11 Gloss-Läufe, max. 35 Drucke gesamt)
+## 5. Phase 3 — Druck je Variante (12 Stammvarianten + 11 Gloss-Läufe, max. 34 geplante Drucke bei hartem 35er-Limit)
 
 Nur Zellen, die tatsächlich im Druckprotokoll (§3) stehen. Je Variante:
 Budget prüfen → drucken → vermessen → Foto → Druckprotokoll-Zeile ausfüllen
 → Budget-Zähler fortschreiben. Bei Fehldruck: Abschnitt 2 dieser Checkliste
 anwenden, **nicht** automatisch wiederholen.
+
+**I-12 nicht drucken:** Die abweichende Seitenrelation wurde von Studio
+fail-closed abgelehnt; I-12 ist damit ein abgeschlossener Import-Negativtest
+ohne druckbares Objekt und ohne Materialplatz. Für den noch offenen physischen
+Teil von H-03 werden I-02 (256×256-HEIGHT-Referenz) und I-04
+(128×128-HEIGHT bei gleicher Seitenrelation) bei identischen Layout- und
+Druckparametern verglichen. So prüft Phase 3 nur die tatsächlich akzeptierte
+Filterung/Interpolation; die Ablehnung einer anderen Seitenrelation wird nicht
+durch einen unmöglichen Drucklauf dupliziert.
 
 **Zusätzlicher #690-Gloss-Preflight:** Ein importiertes „Flat“-Graustufenbild
 ist keine Gloss-Zuweisung. Vor jeder Gloss-Zelle muss der in
@@ -206,17 +215,19 @@ Budgetplatz blockiert.
 `PROTOKOLL-VORLAGEN.md` §3): Nullpunkt/Grundfläche, monotoner Keil,
 mm/DPI-Referenz, Gloss-Polarität. Welche der Varianten unten das im Einzelnen
 sind, ist am Testtag anhand der Kategorien zuzuordnen – nicht vorab
-festgelegt. Nach je einem Erstlauf der 13 Stammvarianten und den elf fest
-eingeplanten Gloss-Läufen bleiben im 35er-Budget höchstens elf Wiederholungen
-der Stammvarianten. Deshalb zuerst die Kernaussagen wiederholen; nicht
-automatisch jede Variante zweimal drucken.
+festgelegt. Nach je einem Erstlauf der 12 Stammvarianten und den elf fest
+eingeplanten Gloss-Läufen bleiben höchstens elf bereits freigegebene
+Wiederholungen der Stammvarianten. Der ausführbare Plan umfasst daher maximal
+34 Drucke; der rechnerisch freie 35. Platz bleibt unzugeordnet. Deshalb zuerst
+die Kernaussagen wiederholen, nicht automatisch jede Variante zweimal drucken
+und den freien Platz nicht ohne neue Owner-Freigabe verwenden.
 
 | # | Variante | Lauf 1 | Lauf 2 (max. elf; Kernaussagen zuerst) | Lauf 3+ (nur mit Owner-Freigabe, Vermerk wo/warum) | Fotoreferenz eingetragen | Druckprotokoll-Zeile ausgefüllt |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | I-02 | ☐ | ☐ | | ☐ | ☐ |
 | 2 | I-03 (8 Bit) | ☐ | ☐ | | ☐ | ☐ |
 | 3 | I-03 (16 Bit) | ☐ | ☐ | | ☐ | ☐ |
-| 4 | I-04 | ☐ | ☐ | | ☐ | ☐ |
+| 4 | I-04 (halbierte Pixelkante; Referenz I-02) | ☐ | ☐ | | ☐ | ☐ |
 | 5 | I-05 (konsistent) | ☐ | ☐ | | ☐ | ☐ |
 | 6 | I-07 | ☐ | ☐ | | ☐ | ☐ |
 | 7 | I-08 (vor Crop) | ☐ | ☐ | | ☐ | ☐ |
@@ -224,8 +235,7 @@ automatisch jede Variante zweimal drucken.
 | 9 | I-10 (normal) | ☐ | ☐ | | ☐ | ☐ |
 | 10 | I-10 (invertiert) | ☐ | ☐ | | ☐ | ☐ |
 | 11 | I-11 | ☐ | ☐ | | ☐ | ☐ |
-| 12 | I-12 | ☐ | ☐ | | ☐ | ☐ |
-| 13 | I-13 (Alpha/Coverage) | ☐ | ☐ | | ☐ | ☐ |
+| 12 | I-13 (Alpha/Coverage) | ☐ | ☐ | | ☐ | ☐ |
 
 **Fest zugeordnete Gloss-Läufe (Budgetplätze 25–35):**
 
@@ -246,11 +256,13 @@ automatisch jede Variante zweimal drucken.
 **Budget-Laufsumme:** Jede angekreuzte oder mit einem Vermerk versehene
 Zelle in **Lauf 1, Lauf 2 oder Lauf 3+** ist ein physischer Druck und zählt
 mit – auch ein Fehldruck ohne verwertbare Messung (Abschnitt 2), auch ein
-mit Owner-Freigabe genehmigter dritter Lauf. Summe über alle drei Spalten
-der Stammvariantentabelle sowie die elf Zeilen der Gloss-Tabelle darf **35
-nicht überschreiten**; bei 31/35 oder mehr die Budget-Eskalation aus Abschnitt
-2 dieser Checkliste prüfen, bevor weitergedruckt wird. Sobald elf Kästchen in
-„Lauf 2" belegt sind, alle übrigen Kästchen dieser Spalte sichtbar streichen.
+mit Owner-Freigabe genehmigter dritter Lauf. Ohne neue Owner-Freigabe darf die
+Summe über alle drei Spalten der Stammvariantentabelle sowie die elf Zeilen der
+Gloss-Tabelle **34 nicht überschreiten**; das unveränderte harte Limit bleibt
+35. Bei 31/35 oder mehr die Budget-Eskalation aus Abschnitt 2 dieser
+Checkliste prüfen, bevor weitergedruckt wird. Sobald elf Kästchen in „Lauf 2"
+belegt sind, alle übrigen Kästchen dieser Spalte sichtbar streichen. Der 35.
+Platz wird durch den Wegfall von I-12 nicht automatisch zu einem Zusatzlauf.
 Ein wegen fehlendem Preflight ungenutzter Gloss-Platz wird nicht automatisch
 zu einem Zusatz- oder Wiederholungslauf; jede Umwidmung braucht einen
 Owner-Vermerk und erhöht das Gesamtlimit nicht.
