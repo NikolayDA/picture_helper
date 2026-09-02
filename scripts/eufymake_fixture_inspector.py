@@ -17,7 +17,10 @@ Aufruf am Zielrechner, nachdem die Fixtures dorthin kopiert wurden::
 
 Exitcode 0 bedeutet, dass Dateiliste und alle geprüften Eigenschaften mit dem
 Manifest übereinstimmen. Abweichungen liefern Exitcode 1 und werden im Report
-je Datei protokolliert.
+je Datei protokolliert. Lässt sich die Prüfung gar nicht starten (Verzeichnis
+oder Manifest fehlt bzw. ist kein lesbares JSON), endet das Skript mit
+Exitcode 2 **ohne** Report – ein fehlender Report ist damit selbst ein Befund,
+kein Erfolg. Fremddateien im Ordner (etwa ``.DS_Store``) sind ein Fehler.
 """
 from __future__ import annotations
 

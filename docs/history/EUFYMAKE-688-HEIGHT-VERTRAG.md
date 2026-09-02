@@ -29,7 +29,7 @@
 | PNG-Graustufen-HEIGHT wird vom Hersteller beschrieben; 16 Bit/Kanal wird empfohlen, wenn verfügbar. | Herstellerangabe | A2 in `EUFYMAKE-687-ANNAHMENINVENTAR.md` | belegt |
 | Weiß entspricht hoch, Schwarz niedrig. | Herstellerangabe | A2/A3 im Annahmeninventar | belegt |
 | Die Datei trägt relative Grauwerte, keine absolute mm-Höhe. | Herstellerangabe/Ableitung | EM-H03 V2 | belegt; mm-Abbildung offen |
-| Die 34 versionierten Fixtures stimmen in SHA-256, Bytegröße, IHDR, Chunkfolge, `pHYs` und CRC mit dem separat per SHA-256 verankerten Schema-2-Manifest überein. Der von Pillow gemeldete Modus wird diagnostisch protokolliert, ist aber wegen möglicher Versionsunterschiede kein hartes Kriterium. | Dateiprüfung, keine Studioaussage | `scripts/eufymake_fixture_inspector.py`; lokaler Basisreport | belegt |
+| Stand #948 (Schema 2; seit #952 Schema 4 mit 41 Fixtures und 7 Paketen, Neuprüfung siehe `EUFYMAKE-690-GLOSS-VERTRAG.md`): Die 34 versionierten Fixtures stimmen in SHA-256, Bytegröße, IHDR, Chunkfolge, `pHYs` und CRC mit dem separat per SHA-256 verankerten Schema-2-Manifest überein. Der von Pillow gemeldete Modus wird diagnostisch protokolliert, ist aber wegen möglicher Versionsunterschiede kein hartes Kriterium. | Dateiprüfung, keine Studioaussage | `scripts/eufymake_fixture_inspector.py`; lokaler Basisreport | belegt |
 | Studio nutzt tatsächlich alle 65.536 Werte und bildet sie auf eine bestimmte mm-Kennlinie ab. | – | keine Hardwaremessung | offen |
 
 ## 3. Kriterien- und Evidenzmatrix

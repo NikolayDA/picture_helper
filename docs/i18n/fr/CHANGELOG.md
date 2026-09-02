@@ -9,8 +9,6 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
-## [2.9.0] – 2026-08-26
-
 ### Ajouté
 
 - **Profil cible EufyMake versionné (#691).** Planificateur, validateur, dialogue
@@ -20,6 +18,12 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   16 bits est le défaut HEIGHT prudent, mais reste, comme le gloss et les mesures
   physiques, provisoire et soumis à avertissement jusqu'aux tests matériels. Les
   références anciennes restent lisibles ; aucune migration de conteneur.
+  Une profondeur de bits enregistrée auparavant reste présélectionnée jusqu'à
+  sa modification dans la boîte de dialogue. Contrat : [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
+
+## [2.9.0] – 2026-08-26
+
+### Ajouté
 
 - **La pilule de zoom aussi dans l'aperçu 3D du relief.** Le contrôle de
   zoom flottant du canevas 2D apparaît désormais aussi dans la vue 3D et y

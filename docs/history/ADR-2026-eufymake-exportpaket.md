@@ -3,6 +3,10 @@
 Kurz-ADR zu #352 („Export-Datenmodell & Paketdefinition (Qt-frei) +
 Konventions-ADR") im Epic #351 („Konsistentes EufyMake-Exportpaket").
 Status: **beschlossen, Implementierung folgt** (#352–#355).
+Nachtrag 2026-09-02: umgesetzt (#352–#355); Entscheidung 5 (Standard 8 Bit) und
+der Bittiefen-Absatz unten sind seit #691 durch das versionierte Zielprofil
+abgelöst – siehe [`ADR-2026-eufymake-zielprofil.md`](ADR-2026-eufymake-zielprofil.md)
+und den Nachtrag am Ende.
 
 ## Kontext
 
@@ -112,3 +116,14 @@ Annahmeninventar) verifiziert sind.
 - Die ADR macht bewusst kenntlich, welche Aussagen bestätigt sind
   (BgRemover-Rollen, Verlustfreiheit, Qt-freie Planung) und welche Annahmen bis
   zur Hersteller-/Studio-Bestätigung reversibel bleiben.
+
+## Nachtrag 2026-09-02 (#691, PR #953)
+
+Das versionierte Zielprofil (`bgremover/eufymake_profile.py`, Profil
+`bgremover-eufymake-import@1`) ist jetzt die einzige Quelle für Rollen,
+Dateinamen, Kanalinterpretation, Defaults und Validierungscodes; die hier
+festgelegten Dateinamen und die Manifestkonvention bleiben darin unverändert.
+Abgelöst ist Entscheidung 5 im Punkt Bittiefe: Der konservative HEIGHT-Default
+ist 16 Bit, und `BIT_DEPTH_UNCONFIRMED` warnt für **beide** Träger, bis die
+physische #688-Messung vorliegt. Entscheidung und Begründung:
+[`ADR-2026-eufymake-zielprofil.md`](ADR-2026-eufymake-zielprofil.md).

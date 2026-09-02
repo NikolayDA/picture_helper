@@ -35,6 +35,10 @@ Quelldokumente.
       8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758
       --output eufymake-pre-import-report.json`; Ergebnis `ok: true`, Schema 4
       und Soll-Hash bestätigt, Report bei den übrigen Nachweisen abgelegt.
+- [ ] Fixture-Ordner am Zielrechner frei von Fremddateien (macOS legt
+      `.DS_Store` an, Finder-Kopien ggf. `._*`-Dateien): Der Inspector ist
+      fail-closed und meldet jede unerwartete Datei als Fehler – vorher
+      entfernen, den Report nicht „gutlesen".
 - [ ] Die drei Protokolltabellen aus `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`
       griffbereit (digital oder ausgedruckt), um sie parallel zu dieser
       Checkliste auszufüllen.

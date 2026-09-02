@@ -802,7 +802,10 @@ BgRemover **Import-Assets** für EufyMake Studio – **keine** fertige
 Im Dialog sehen Sie das **vorläufige Zielprofil samt Vertragsversion und
 Studio-Zielumgebung**, wählen den Exportordner, die optionalen Assets und die
 **Bittiefe** der Höhenkarte. 16 Bit ist der konservative Default; 8 Bit bleibt
-als Legacy-Option. Beide Träger sind physisch noch nicht bestätigt. Sind
+als Legacy-Option. Beide Träger sind physisch noch nicht bestätigt. Eine früher
+gespeicherte Bittiefe bleibt als Vorauswahl erhalten, bis Sie sie im Dialog
+ändern. Den vollständigen Profilvertrag beschreibt
+[`docs/EUFYMAKE_TARGET_PROFILE.md`](docs/EUFYMAKE_TARGET_PROFILE.md). Sind
 Projektmaße gesetzt, zeigt der Dialog Pixel, mm sowie effektive X- und Y-DPI
 getrennt. Eine
 **Pre-Export-Prüfung** läuft fortlaufend mit und meldet Befunde nach

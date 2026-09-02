@@ -25,16 +25,16 @@ valoraciones: #949 (auditoría de la suite de pruebas, cuatro cambios de prueba
 accionables, sin defecto de producción), #939 (canal de alerta permanente del
 heartbeat, no cerrar) y la épica #914. Ningún hallazgo 🔴 nuevo.
 
-**Valoración de publicación: no procede una nueva versión.** Desde `v2.9.0`
-(2026-08-29) hay 25 commits en la rama principal, exclusivamente automatización
-de publicación, documentación y gobernanza; `[Unreleased]` está vacío y dentro
-del paquete `bgremover/` solo cambió el hook de evidencia
-`update_check_probe.py` (#917). Una compilación candidata no aportaría contenido
-visible para las personas usuarias. Alcance previsto para una futura
-**v2.10.0**: el motor de tono/escala de grises COLOR (#693/#694 de la épica
-#682) sobre el ADR #692 ya aprobado, opcionalmente junto con #949.
+**Valoración de publicación: aún no se ha lanzado ningún candidato.** Desde
+`v2.9.0` (2026-08-29) hay 30 commits en la rama principal. Con el PR #953 (perfil
+de destino EufyMake versionado, HEIGHT por defecto en 16 bits, perfil y DPI X/Y
+en el diálogo, procedencia del manifiesto) `[Unreleased]` contiene por primera
+vez una entrada visible para las personas usuarias; el resto es automatización
+de publicación, documentación y gobernanza. Que **v2.10.0** salga solo con #953
+o junto con el motor de tono COLOR (#693/#694 de la épica #682, ADR #692) es una
+decisión del owner; la puerta de congelación está en verde en `ac64c3b`.
 
-**EufyMake #681/#687–#691:** el PR #951 está fusionado y #690 amplía el conjunto reproducible a 41 fixtures individuales y siete paquetes de exportación reales. DPI X/Y separados, conflictos de manifiesto/`pHYs`, Gloss 0/128/255, normalización 64…192, dimensiones divergentes, Alpha×Gloss y HEIGHT×Gloss están cubiertos por pruebas automáticas. Studio 4.2.2 confirma ahora también el límite de importación de imágenes de #690: cada PNG permanece como una capa «Flat» independiente, sin asignación de rol GLOSS; siguen abiertas todas las mediciones físicas de Gloss/HEIGHT. #687 está en 17/18 criterios y espera la revisión final tras las pruebas reales.
+**EufyMake #681/#687–#691:** los PR #948, #951 y #952 están fusionados; el conjunto reproducible comprende 41 fixtures individuales y siete paquetes de exportación reales (esquema 4). Alpha/cobertura, registro de recorte, DPI X/Y separados, conflictos de manifiesto/`pHYs`, Gloss 0/128/255, normalización 64…192, dimensiones divergentes, Alpha×Gloss y HEIGHT×Gloss están cubiertos por comprobaciones automáticas. Studio 4.2.2 confirma para #689 el retroceso a 72 dpi sin `pHYs`, la prioridad de `pHYs` por eje, el `manifest.json` inactivo en la importación de imágenes, la prioridad del tamaño manual, la rotación y el recorte de imagen individual; para #690 todos los PNG siguen siendo capas «Flat» independientes sin asignación de rol GLOSS. El PR #953 integró el perfil de destino **provisional** v1 (#691); las mediciones físicas en E1 de #688–#690 y, con ellas, la promoción del perfil siguen abiertas. #687 está en 17/18 criterios y espera la revisión final tras las pruebas reales.
 
 Sin cambios y cerrado: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25**, las versiones v2.7.0 a v2.9.0, además de la épica #741 con sus once sub-incidencias, la épica #805 con #806–#811, #817 y #821; cerradas desde la última sincronización: #943 (PR #944) y #692 (PR #947) (detalles: Rondas anteriores).
 
@@ -44,12 +44,12 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 
 | # | Título | Relevancia | Complejidad | Modelo recomendado (esfuerzo) | Próximo paso |
 |---|--------|------------|-------------|--------------------------------|--------------|
-| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épica] Perfil objetivo EufyMake – validar Height/Gloss/mm-DPI | 🟠 Alta (corrección del principal objetivo de exportación) | 🔴 Alta (5 sub-incidencias, requiere hardware físico) | – (épica) | #687 está en 17/18 CA; solo queda la revisión final tras las pruebas reales y la integración #691 espera #688–#690 |
+| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épica] Perfil objetivo EufyMake – validar Height/Gloss/mm-DPI | 🟠 Alta (corrección del principal objetivo de exportación) | 🔴 Alta (5 sub-incidencias, requiere hardware físico) | – (épica) | #687 está en 17/18 CA; solo queda la revisión final tras las pruebas reales y la integración #691 está implementada de forma provisional (PR #953) y solo espera la promoción tras #688–#690 |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventario de suposiciones, fuentes del fabricante, matriz de pruebas | 🟠 Alta (base vinculante para #688–#691) | 🔴 Alta (entregables propios listos; lagunas de fixtures/celdas de #688–#690 abiertas, el resto requiere hardware real) | – (sin agente; requiere hardware EufyMake real) | Bloqueada (externa) – 17/18 criterios cumplidos; I-06 está observado en Studio y solo queda la revisión final tras #688–#690 |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Validar profundidad de bits/semántica HEIGHT en hardware real | 🟠 Alta (afecta directamente a la altura del relieve) | 🔴 Alta (impresora física, fixtures, registro de medición) | – (sin agente; requiere hardware EufyMake real) | Bloqueada (externa): el PR #948 está fusionado y la preparación del repositorio está completa; quedan la matriz de importación y las mediciones físicas seguras de impresión, relieve y mm del E1 |
 | [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Validar contrato de mm/DPI, tamaño objetivo y posicionamiento | 🟠 Alta (tamaño de impresión/registro) | 🔴 Alta (mediciones físicas, motivos de control) | – (sin agente; requiere hardware real) | En curso: el conjunto del repositorio y el subcontrato de Studio están documentados: fallback de 72 DPI, `pHYs` X/Y, límite del manifiesto, tamaño manual, rotación y recorte de una imagen. Faltan recorte/registro entre roles, mediciones físicas y tolerancias de impresión |
 | [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Validar semántica de gloss/barniz | 🟡 Media (gloss ya está marcado como "experimental" en el código) | 🔴 Alta (impresiones físicas, consumo de material) | – (sin agente; requiere hardware real) | Bloqueada (externa) + parte digital/importación completa: el esquema 4 y Studio 4.2.2 demuestran fixtures, paquetes, geometría de 72 dpi y capas «Flat» independientes sin asignación GLOSS; queda la evidencia física |
-| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Integrar el perfil objetivo versionado en validador/writer/diálogo/documentación | 🟠 Alta (endurece la ruta de exportación de producción) | 🟠 Alta (transversal a eufymake_export/_validate/_writer + UI) | Opus, alto | Bloqueada – espera a #688–#690 |
+| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Integrar el perfil objetivo versionado en validador/writer/diálogo/documentación | 🟠 Alta (endurece la ruta de exportación de producción) | 🟠 Alta (transversal a eufymake_export/_validate/_writer + UI) | Opus, alto | En curso – el perfil provisional v1 está integrado con el PR #953 (registro, diálogo, writer, validador, documentación); queda promoverlo a `validated` tras las mediciones físicas de #688–#690 y cerrar después |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Épica] Motor de tono/escala de grises COLOR | 🟡 Medio-alto (base de hoja de ruta para láser, sin fallo activo) | 🔴 Alto (4 sub-incidencias restantes: núcleo→UI→integración→aceptación) | – (épica) | En curso: el ADR #692 está aprobado; a continuación el núcleo #693 |
 | [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Núcleo libre de Qt: histograma/escala de grises/niveles/gamma | 🟡 Medio-alto | 🟡 Medio (amplía `color_ops.py`, bien aislado y comprobable) | Sonnet, alto | Listo para empezar: el ADR #692 (PR #947) aporta el contrato de datos; implementar y probar el núcleo contra sus fórmulas |
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Vista previa en vivo + interfaz para histograma/niveles/gamma | 🟡 Media | 🟡 Media-alta (UI de Qt, protección de debounce/generación similar a la vista previa de altura) | Sonnet, alto | Bloqueada – espera al núcleo #693 |
@@ -94,7 +94,8 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 2. **#949**: cuatro cambios de prueba pequeños y bien acotados, sin riesgo de producción; buen
    PR en paralelo a la épica.
 3. Tras aprobar dispositivo y material, realizar las mediciones físicas pendientes de **#689**
-   junto con el resto de #687, #688 y #690; las importaciones en Studio de #689 y #690 ya están documentadas.
+   junto con el resto de #687, #688 y #690; las importaciones en Studio de #689 y #690 ya están documentadas. Después cerrar #691:
+   promover el perfil v1 o crear v2 si los resultados lo contradicen.
 4. **#883** (estrategia de licencia MAS) decide la vía Mac App Store #882: sin
    esa decisión del owner toda la cadena #884–#907 sigue bloqueada.
 

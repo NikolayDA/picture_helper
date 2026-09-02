@@ -179,7 +179,7 @@ indirekt den Sinn von `feather_alpha` (#361).
 | --- | --- | --- | --- | --- |
 | EM-F01 | PNG verlustfrei, RGBA fürs Farbmotiv | `eufymake_writer.py` | A1, A14 (S) | **bestätigt** |
 | EM-F02 | Höhe als Graustufen-PNG (`L` / `I;16`) | `eufymake_writer.py` | A2, A3 (S) | **bestätigt**, TIFF zusätzlich zulässig |
-| EM-F03 | 8 Bit ist Default, 16 Bit ist „nicht offiziell bestätigt" | `eufymake_export.py`, `eufymake_validate.py` | A2, A3 (S) | **widerlegt → umgesetzt**: `BIT_DEPTH_UNCONFIRMED` feuert seit dieser Version bei 8 Bit, nicht mehr bei 16 Bit |
+| EM-F03 | 8 Bit ist Default, 16 Bit ist „nicht offiziell bestätigt" | `eufymake_export.py`, `eufymake_validate.py` | A2, A3 (S) | **widerlegt → umgesetzt**: `BIT_DEPTH_UNCONFIRMED` feuert seit dieser Version bei 8 Bit, nicht mehr bei 16 Bit; **Nachtrag #691 (2026-09-02):** seit PR #953 für beide Träger (8 und 16 Bit), Default 16 Bit |
 | EM-F04 | Kein `pHYs`/DPI in den PNGs (Befund N10 in `RECOMMENDATIONS.md`) | `eufymake_writer.py` | B1 (P), A7 (S) | **teilbestätigt** – kein Mangel gegenüber Studio, siehe Abschnitt „Konsequenzen" |
 
 **EM-F03** ist der konkreteste Codebefund: Der Hersteller empfiehlt für
@@ -629,8 +629,9 @@ Der neue unabhängige Pre-Import-Inspector
 `scripts/eufymake_fixture_inspector.py` liest am Zielrechner SHA-256,
 Bytegröße, Pillow-Lesbarkeit/-Version, IHDR, vollständige Chunkfolge, `pHYs`
 und CRCs aus und schreibt einen JSON-Nachweis. Der Pillow-Modus bleibt
-diagnostisch; die Formatprüfung verwendet die rohen IHDR-Felder. Schema 3 und
-der extern vorgegebene Manifest-SHA binden den Report an den aktuellen Satz.
+diagnostisch; die Formatprüfung verwendet die rohen IHDR-Felder. Schema 3
+(seit #952: Schema 4) und der extern vorgegebene Manifest-SHA binden den Report
+an den aktuellen Satz.
 Dieser Nachtrag ändert keine Hardwareaussage:
 Import- und Druckresultate bleiben bis zum realen Test als **offen** markiert.
 
@@ -661,8 +662,9 @@ Hardwarebeobachtung vorwegzunehmen:
   drei Dateien haben 256×256 px; die Tests vergleichen ihre Landmarkmasken
   pixelgenau.
 
-Der unabhängige Inspector prüft nun neben den 36 Einzel-Fixtures auch
-Dateiliste, Hashes, PNG-Metadaten und Manifestsemantik des Exportpakets.
+Der unabhängige Inspector prüft nun neben den Einzel-Fixtures (Schema 3: 36,
+seit #952 Schema 4: 41) auch Dateiliste, Hashes, PNG-Metadaten und
+Manifestsemantik der Exportpakete (Schema 3: eines, Schema 4: sieben).
 Importanzeige, tatsächliche Druckmaße, Crop/Offset und die daraus folgende
 Produktentscheidung bleiben bis zur kontrollierten Studio-/E1-Ausführung
 **offen**; ihre Ergebnisakte ist

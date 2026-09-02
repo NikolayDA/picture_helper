@@ -9,8 +9,6 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
-## [2.9.0] – 2026-08-26
-
 ### Añadido
 
 - **Perfil de destino EufyMake versionado (#691).** Planificador, validador,
@@ -20,6 +18,12 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   BgRemover. 16 bits es el valor HEIGHT conservador, pero junto con gloss y las
   medidas físicas sigue provisional y con advertencia hasta las pruebas reales.
   Las referencias antiguas siguen legibles; no hay migración de contenedor.
+  Una profundidad de bits guardada anteriormente se mantiene preseleccionada
+  hasta cambiarla en el diálogo. Contrato: [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
+
+## [2.9.0] – 2026-08-26
+
+### Añadido
 
 - **La píldora de zoom ahora también en la vista previa 3D del relieve.**
   El control de zoom flotante del lienzo 2D aparece ahora también en la

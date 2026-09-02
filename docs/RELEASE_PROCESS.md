@@ -106,6 +106,17 @@ Danach die Lizenz-Snapshots neu erzeugen
 öffnen. Das Issue legt ein Mensch an; `--create-issue` ruft `gh` nur auf
 ausdrücklichen Wunsch.
 
+Zwei Schranken seit #944: Die Zielversion muss numerisch **über** der
+pyproject-Version liegen (auch `2.09.0` bei Stand `2.9.0` wird abgewiesen) –
+ein Tippfehler erzeugte sonst ein in sich konsistentes Downgrade-Gerüst. Und
+die Issue-Ablage (`--issue-output` oder die temporäre Datei) entsteht **vor**
+der ersten Repo-Änderung: Ist sie nicht beschreibbar, endet das Skript mit
+Exit 2, ohne eine Release-Datei angefasst zu haben – Pfad korrigieren und
+unverändert erneut aufrufen. Einträge, die schon unter `[Unreleased]` stehen,
+wandern beim ersten Lauf unter das Gerüst der neuen Version; ein
+Wiederholungslauf erkennt das Gerüst weiterhin, solange nur das Gerüst selbst
+unverändert ist, und lässt die gewanderten Einträge stehen.
+
 Scheitert dieser Aufruf an einem GitHub-/Netzfehler, bleibt der Rohstand
 vollständig geschrieben, und der gerenderte Issue-Text liegt als Datei bereit:
 unter dem mit `--issue-output` gewählten Pfad, sonst in einer temporären Datei,
@@ -352,6 +363,9 @@ Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdr
 Ist ein Build-Leg schon vor dem Artefaktscan gefallen, trägt ein eigener Schritt die Anomalie-Durchsicht der
 Phasen-Logs nach (`--logs-only`, Verdikt `UNAVAILABLE`) – die Abschnitte 3 und 4 der Summary stehen also auch
 dort zur Verfügung, um die bekannte kosmetische Meldung vom eigentlichen Fehler zu trennen.
+Lässt sich ein Artefakt nicht entpacken (fehlendes `dpkg-deb`/`hdiutil`, nicht ausführbare AppImage,
+unlesbare Datei), ist das seit #944 ein harter Befund je Artefakt: Der Bericht entsteht mit Verdikt `FAIL`
+und nennt Artefakt und Ursache – Ursache per PR beheben, Kandidatenlauf ab Schritt 3 neu starten.
 
 ### 5. Abnahme auf echter Hardware durchführen
 
@@ -806,6 +820,7 @@ Ablauf; ältere Tag-basierte oder manuelle Veröffentlichungswege sind ungültig
 | Kandidaten-/Manifestartefakt nach 90 Tagen abgelaufen | neuer Kandidat ab Schritt 1 | gleichnamiges Artefakt aus anderem Lauf einsetzen |
 | ClamAV-Signaturcache leer/veraltet (`MALWARE-01` `UNAVAILABLE` oder Alterswarnung) | `clamav-db-refresh.yml` manuell per `workflow_dispatch` anstoßen, danach Kandidatenlauf ab Schritt 3 neu starten | `MALWARE-01` stillschweigend als bestanden werten |
 | ClamAV-EICAR-Test, Payload-Scan, Limitprüfung oder Nichtnull-Evidenz schlägt bei vorhandenem Cache fehl | Ursache per PR beheben und neuen Kandidaten ab Schritt 1 bauen | Exit 0 oder `Data read` als ausreichenden PASS-Nachweis werten |
+| Artefakt lässt sich im Security-Scan nicht entpacken (`dpkg-deb`/`hdiutil` fehlt, AppImage nicht ausführbar, Datei unlesbar; Verdikt `FAIL`, #944) | Ursache in Werkzeug oder Runner-Umgebung per PR beheben, danach Kandidatenlauf ab Schritt 3 auf demselben SHA | den `--logs-only`-Ersatzbericht als Scan-Ergebnis werten oder das Artefakt ungescannt freigeben |
 | Publish-Draft leer | Publish-Workflow mit denselben gebundenen Inputs neu starten | Dateien lokal neu bauen |
 | Publish-Draft partiell oder Hash abweichend | No-Go, dokumentierte Bereinigung, neuer Publish- oder Hotfix-Pfad | `--clobber` oder stiller Asset-Tausch |
 | Öffentlicher Download-Nachweis rot (Hash-Abweichung, fehlendes Asset, HTTP-Fehler) | Bericht lesen; Netz-/API-Fehler des Prüfpfads: Publish-Workflow mit denselben gebundenen Inputs erneut starten (er ist idempotent, `already-complete`) | Abweichung als Prüfpfad-Störung abtun oder `PUBLIC-DOWNLOAD-01` ohne grünen Bericht auf `PASS` setzen |

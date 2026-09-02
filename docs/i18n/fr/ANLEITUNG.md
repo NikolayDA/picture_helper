@@ -819,8 +819,11 @@ d'import** pour EufyMake Studio – **pas** un fichier `.empf` fini :
 La boîte de dialogue affiche le **profil cible provisoire, sa version de contrat
 et l'environnement Studio**. Vous choisissez le dossier, les assets et la
 **profondeur** : 16 bits est le défaut prudent, 8 bits reste l'option héritée.
-Aucun support n'est physiquement confirmé. Avec des dimensions de projet, pixels,
-mm et DPI X/Y effectifs sont affichés séparément. Une **vérification** s'exécute
+Aucun support n'est physiquement confirmé. Une profondeur de bits enregistrée
+auparavant reste présélectionnée jusqu'à ce que vous la changiez dans la boîte
+de dialogue. Le contrat complet du profil est décrit dans
+[`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md). Avec des
+dimensions de projet, pixels, mm et DPI X/Y effectifs sont affichés séparément. Une **vérification** s'exécute
 en continu et signale les constats par gravité :
 
 - **Erreurs** (⛔) bloquent l'export jusqu'à correction – p. ex. un motif

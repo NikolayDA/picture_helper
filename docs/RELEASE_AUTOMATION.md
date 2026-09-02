@@ -38,6 +38,12 @@ Linux-Runner-Benutzer ein eng begrenztes `sudo` – nur für
 
 ## 2. Runner registrieren (je Gerät ca. 5 Minuten)
 
+Für den Neuaufbau eines **frisch installierten** Geräts von Null (Homebrew/apt,
+Checkout, venv, Registrierung, Dienst, Härtung, Heartbeat-Nachweis) gibt es das
+Copy-Paste-Kochbuch [`RUNNER_SETUP.md`](RUNNER_SETUP.md) (#946). Es konsolidiert
+die Rezepte aus §2, §3, §6 und §7; verbindlich bleiben diese Abschnitte und
+`scripts/abnahme_preflight.py`.
+
 1. GitHub → Repository → **Settings → Actions → Runners → New self-hosted
    runner**, Plattform wählen (macOS arm64 bzw. Linux ARM64).
 2. Die dort angezeigten Befehle auf dem Gerät ausführen (Download, `config.sh`
@@ -740,7 +746,7 @@ Es ist keine Code-Änderung nötig.
 - Nach Betriebssystem-Updates (Pi: `apt upgrade`, macOS: Systemupdate) einen
   Dry-Run des Abnahme-Workflows ausführen, bevor ein echtes Release ansteht.
 - Runner, die länger offline sind, entfernt GitHub nach 14 Tagen automatisch –
-  dann §2 wiederholen.
+  dann §2 wiederholen (Schritt für Schritt: [`RUNNER_SETUP.md`](RUNNER_SETUP.md)).
 
 ### 6.1 Neustart und Update je Gerät
 
@@ -834,6 +840,15 @@ scheitert (nicht einsatzbereit). Der Umweg über die Jobs-API ist nötig, weil
 `if: failure()` in einem Schritt nur auf vorherige Schritte **desselben**
 Jobs und auf Vorgänger per `needs` reagiert – die Runner-Jobs sind bewusst
 keine Vorgänger der Auswertung.
+
+**Konklusionen (#944).** Bestanden ist ein Job ausschließlich mit `success`.
+`failure`, `timed_out` und `startup_failure` sind Gerätebefunde (`FAIL`,
+Issue-Kommentar) – `startup_failure` heißt „angenommen, konnte nicht starten"
+(kaputter Workspace, volles `_work`, Dienst am Ende). Jede andere
+abgeschlossene Konklusion (`cancelled`, `skipped`, `stale`, fehlend) belegt
+weder Bereitschaft noch Scheitern: Sie steht als `inconclusive_jobs` im Bericht
+und ergibt `UNOBSERVED` ohne Issue-Kommentar, statt still als bestanden zu
+gelten.
 
 Der **verbindliche** Kanal ist der Kommentar im Betriebs-Issue: Die
 Repository-Variable `RUNNER_HEARTBEAT_ISSUE` ist Pflicht, die Auswertung

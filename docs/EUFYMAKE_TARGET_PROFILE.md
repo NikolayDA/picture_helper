@@ -69,6 +69,12 @@ Vertrag dieses Assets.
   beobachtbar verwendet. Manuelle Studio-Maße können diesen Startwert ersetzen.
 - Priorität im vollständigen Rollenverbund, Rundung, Registrierung und
   tatsächliches Druckmaß bleiben bis #689 physisch offen.
+- Das eufyMake-Standard-Flachbett (330 × 420 mm, `STANDARD_FLATBED_MM` in
+  `bgremover/eufymake_export.py`) ist bewusst **nicht** Teil des Profils: Der
+  Validator warnt mit `print_area_exceeded`/`fit_standard_flatbed`, wenn das
+  Motiv es überschreitet (Herstellerquelle nur per Suchmaschinen-Extraktion
+  belegt, Grad S). Das Maß wandert erst mit belegter Quelle in eine
+  Profilversion.
 
 ## Validierung und Abhilfe
 
@@ -81,13 +87,14 @@ Beispiele sind `asset_size_mismatch` + `match_canvas_dimensions`,
 
 ## Manifest und Legacy-Zuordnung
 
-Neue Manifeste behalten die alten Felder `profile` und `profile_version` und
-ergänzen:
+Neue Manifeste behalten die bisherigen Felder – `profile`, `profile_version`,
+`kind`, `note`, `height_semantics`, `open_questions`, `target` (Pixelmaße,
+Bittiefe, physische mm und getrennte X-/Y-DPI) und `assets[]` – und ergänzen
+seit #691:
 
 - `profile_contract`: vollständiger Profilsnapshot mit Schema, Zielumgebung,
   Rollen-, Maß-, Validierungs- und Evidenzvertrag;
 - `producer`: Anwendung und BgRemover-Version;
-- `target`: Pixelmaße, physische mm und getrennte X-/Y-DPI;
 - `assets[].channel_interpretation`: Wertebereich, Richtung, Semantik,
   Alpha-Regel, Status und Evidenz-IDs.
 
@@ -108,3 +115,19 @@ Erst vollständig protokollierte, freigegebene Hardwareläufe aus #688–#690
 dürfen offene Eigenschaften hochstufen. Eine solche Hochstufung erfordert
 Profil- und Golden-Review; widersprechende Ergebnisse erzeugen eine neue
 Profilversion statt einer stillen Bedeutungsänderung.
+
+Der Snapshot in `profile_contract` wird beim Lesen strikt mit dem registrierten
+Vertrag verglichen (`resolve_manifest_profile`): Jede Änderung an v1 – auch an
+Freitextfeldern wie `scope` oder `reference` – macht früher geschriebene
+Manifeste derselben Version unlesbar (`ProfileContractMismatchError`). Deshalb
+erhält jede inhaltliche Änderung eine neue Profilversion; der Golden-Test
+erzwingt diese bewusste Entscheidung.
+
+Bekannter offener Punkt (Review 2026-09-02): Die Evidenzreferenz
+`manufacturer-height-direction` zeigt auf
+`docs/history/EUFYMAKE-687-QUELLENREGISTER.md`; das Quellenverzeichnis liegt
+tatsächlich in
+[`EUFYMAKE-687-ANNAHMENINVENTAR.md`](history/EUFYMAKE-687-ANNAHMENINVENTAR.md)
+(Abschnitt „2. Quellen-/Evidenzverzeichnis"). Die Korrektur ist eine
+Snapshot-Änderung und erfolgt in einem eigenen PR, bevor ein Release Profil v1
+ausliefert.

@@ -300,6 +300,59 @@ def test_a_changed_date_still_refreshes_an_untouched_skeleton(fixture_repo: Path
     assert "## [9.9.9] – 2026-09-15" not in changelog.content
 
 
+def test_unreleased_entries_move_under_the_skeleton_and_survive_a_rerun(
+    fixture_repo: Path,
+) -> None:
+    """Review 2026-09-02: Ein gefülltes ``[Unreleased]`` ist vor einem Release der
+    Normalfall. Seine Einträge wandern beim ersten Lauf unter das Gerüst der
+    neuen Version; ein zweiter Lauf – auch mit anderem Datum – erkennt das
+    Gerüst weiterhin und lässt die gewanderten Einträge wortgleich stehen.
+    Vorher scheiterte jeder Wiederholungslauf mit „weicht vom Gerüst ab".
+    """
+    predecessor = _current_freeze_version(fixture_repo)
+    entry = "- **Neues Werkzeug (#1).** Stand vor dem Lauf unter [Unreleased]."
+    for language in LANGUAGES:
+        path = fixture_repo / pr.changelog_path(language)
+        text = path.read_text("utf-8")
+        text = re.sub(
+            r"(?m)^## \[Unreleased\][ \t]*$",
+            f"## [Unreleased]\n\n### Neu\n\n{entry}",
+            text,
+            count=1,
+        )
+        path.write_text(text, "utf-8")
+
+    pr.apply(fixture_repo, pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor).files)
+    changelog = fixture_repo / "CHANGELOG.md"
+    first = changelog.read_text("utf-8")
+    unreleased = first.split("## [Unreleased]", 1)[1].split("## [9.9.9]", 1)[0]
+    assert entry not in unreleased and "- " not in unreleased, "Unreleased muss leer sein"
+    section = first.split("## [9.9.9]", 1)[1].split("\n## [", 1)[0]
+    assert entry in section and pr.PLACEHOLDER in section
+
+    # Gleiches Datum: byte-gleich.
+    pr.apply(fixture_repo, pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor).files)
+    assert changelog.read_text("utf-8") == first
+
+    # Anderes Datum: Gerüst erneuert, gewanderter Eintrag bleibt.
+    later = pr.ReleaseInputs(
+        version="9.9.9", release_date="2026-10-01", base_tag="v9.9.8", base_sha="a" * 40
+    )
+    refreshed = next(
+        item
+        for item in pr.plan(fixture_repo, later, predecessor_version=predecessor).files
+        if item.path == "CHANGELOG.md"
+    ).content
+    assert "## [9.9.9] – 2026-10-01" in refreshed and "2026-09-15" not in refreshed
+    assert entry in refreshed and refreshed.count(entry) == 1
+
+    # Handarbeit an der letzten Gerüstzeile bleibt geschützt.
+    head, _, tail = first.rpartition(pr.PLACEHOLDER)
+    changelog.write_text(f"{head}keine{tail}", "utf-8")
+    with pytest.raises(pr.PrepareError, match="weicht vom erzeugten Gerüst ab"):
+        pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor)
+
+
 def test_the_freeze_boilerplate_never_carries_the_placeholder_itself() -> None:
     """#932-Review (P1): Der Wächter durchsucht die ganze Datei.
 

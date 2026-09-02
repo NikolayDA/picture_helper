@@ -8,8 +8,6 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
-## [2.9.0] – 2026-08-26
-
 ### Added
 
 - **Versioned EufyMake target profile (#691).** Planner, validator, dialog, and
@@ -20,6 +18,12 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   conservative HEIGHT default but, like gloss and physical dimensions, remains
   explicitly provisional and warning-gated until hardware tests. Legacy profile
   references remain readable; no container migration is required.
+  A previously saved bit depth stays preselected until it is changed in the
+  dialog. Contract: [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
+
+## [2.9.0] – 2026-08-26
+
+### Added
 
 - **Zoom pill now also in the 3D relief preview.** The floating zoom
   control from the 2D canvas now also appears in the 3D view and drives the
