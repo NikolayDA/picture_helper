@@ -33,9 +33,25 @@ def _canonical_json() -> str:
 
 
 def test_profile_v1_matches_reviewed_golden_contract() -> None:
-    """Jede Vertragsänderung erfordert eine bewusste Profilversionsentscheidung."""
+    """Jede Vertragsänderung erfordert eine bewusste Profilversionsentscheidung.
+
+    Neu gesetzt am 2026-09-02: Die Evidenzreferenz ``manufacturer-height-direction``
+    zeigte auf eine nie angelegte Datei (``EUFYMAKE-687-QUELLENREGISTER.md``) und
+    verweist jetzt auf das Annahmeninventar. Die Korrektur blieb innerhalb von
+    v1, weil noch kein Release Profil v1 ausgeliefert hat und kein eingechecktes
+    Manifest einen Snapshot trug; ab jetzt verlangt jede Snapshot-Änderung eine
+    neue Profilversion.
+    """
     digest = hashlib.sha256(_canonical_json().encode("utf-8")).hexdigest()
-    assert digest == "caa7d34abc48b215355fe13b8a69b1c70a241878b371885eabecf05f41c8fdea"
+    assert digest == "11b8053e5d79938aea0e19cf137f5111524de21192e1de8f3c4e5861839f845d"
+
+
+def test_evidence_references_point_to_existing_repository_files() -> None:
+    """Ein Repo-Pfad im Evidenzvertrag landet in jedem Manifest – er muss existieren."""
+    root = Path(__file__).resolve().parent.parent
+    for item in DEFAULT_TARGET_PROFILE.evidence:
+        if item.reference.startswith("docs/"):
+            assert (root / item.reference).is_file(), item.reference
 
 
 def test_profile_contract_is_json_roundtrip_safe() -> None:
