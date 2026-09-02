@@ -14,8 +14,9 @@ Ergebnisdokument für
   das Vier-Dateien-Paket `export_mm_dpi_conflict/` für I-06 und die sechs
   `export_gloss_*`-Pakete aus #690.
 - **Studio-Beobachtung:** für Startgröße, DPI-Priorität, X/Y-DPI,
-  Mehrfachimport, manuelle Größe, Rotation sowie Einzelbild- und nativen
-  COLOR/HEIGHT-Crop am 2026-09-02/03 durchgeführt. Alle Importe und die
+  Mehrfachimport, manuelle Größe, Rotation, Einzelbild- und nativen
+  COLOR/HEIGHT-Crop sowie die HEIGHT-Seitenverhältnisregel am 2026-09-02/03
+  durchgeführt. Alle Importe und die
   destruktiven Crops wurden vom
   Benutzer für die konkret benannten Dateien beziehungsweise die vorbereitete
   Auswahl freigegeben.
@@ -133,6 +134,7 @@ deshalb nicht geraten. Es wurde kein Druck ausgelöst.
 | I-08 native HEIGHT-Zuweisung und Crop | Am 2026-09-03 wurde `height_registration_16bit.png` über `Customize Texture` → `Upload Height Map Image` dem COLOR-Objekt zugewiesen; Studio zeigte `3D` und eine passende 3D-Vorschau. Der bestätigte Crop änderte dieses Objekt von W/H 90,31/90,31 mm und X/Y 122,34/164,84 mm auf W/H 44,86/90,31 mm und X/Y 167,79/164,84 mm. Die `3D`-Zuordnung blieb erhalten. Die separate `gloss_registration.png` blieb bei 90,31×90,31 mm und X/Y 122,34/164,84 mm. Weder `Preview` noch `Print` wurde ausgelöst. |
 | Rotation von `mm_typisch_phys_xy.png` um 90° | Die intrinsischen Felder bleiben 101,60×203,18 mm, Winkel 90°. Die sichtbare Bounding Box wird ohne Skalierung gedreht und auf X/Y 65,91/159,19 mm neu zentriert. |
 | Crop auf der rotierten X/Y-Fixture | Die intrinsische Breite wurde von 101,60 auf 50,80 mm halbiert; Höhe 203,18 mm und Winkel 90° blieben erhalten. Danach zeigte Studio X/Y 65,91/210,00 mm und keine zusätzliche Warnung. Das sichtbare Motiv entspricht der gewählten Hälfte. |
+| I-12 `color_height_reference.png` + `height_wedge_16bit_aspect.png` | Bei COLOR 256×256 und HEIGHT 256×128 zeigte Studio `Depth image ratio does not match the original image`. Die HEIGHT-Datei wurde nicht übernommen; die vorherige HEIGHT-Zuweisung sowie W/H 90,31/90,31 mm und X/Y 122,34/164,84 mm des COLOR-Objekts blieben unverändert. |
 
 ## Empirischer Vertrag und offene Grenzen
 
@@ -146,6 +148,7 @@ deshalb nicht geraten. Es wurde kein Druck ausgelöst.
 | manuelle Studio-Größe gegen Dateiwerte | 21,67×21,67 mm überschreibt 43,35×43,35 mm | offen | Manuelle Größe hat nach dem Import Vorrang. Null-/Extremwerte benötigen produktseitige Grenzen und Warnungen; das Studio-Verhalten allein ist nicht sicher genug. |
 | COLOR/HEIGHT/GLOSS-Ausdehnung und Registrierung | gleiche 90,31-mm-Startausdehnung und identische Zentrierung; zunächst unabhängige „Flat“-Ebenen. HEIGHT lässt sich dem COLOR-Objekt nativ zuweisen; der separate Gloss-Layer bleibt unabhängig | offen | Gleiche Pixelmaße führen zur gleichen Startausdehnung. Die native COLOR/HEIGHT-Kopplung ist belegt; eine automatische Dreierkopplung mit Gloss und die physische Registrierung sind nicht belegt. |
 | Crop, Rand, Offset, Zentrierung, Rotation | Vor Crop rechnerisch zentriert; 90° rotiert ohne Skalierung. Der Einzelbild-Crop halbiert die intrinsische Breite auf 50,80 mm. Beim nativen COLOR/HEIGHT-Objekt ändert der I-08-Crop W von 90,31 auf 44,86 mm und X von 122,34 auf 167,79 mm; H/Y bleiben 90,31/164,84 mm, die 3D-Zuordnung bleibt bestehen. Der separate Gloss-Layer bleibt unverändert | offen | Rotation, Einzelbild-Crop und Crop-Kopplung innerhalb des nativen COLOR/HEIGHT-Objekts sind belegt. Die Positionsänderung ist exakt zu übernehmen. Eine automatische COLOR/HEIGHT/GLOSS-Gesamtkopplung existiert in diesem Aufbau nicht; Druckrand, physischer Offset und die registrierte Gloss-Ausgabe bleiben offen. |
+| Abweichendes HEIGHT-Seitenverhältnis | I-04: 128×128 auf 256×256 akzeptiert und flächig angepasst; I-12: 256×128 auf 256×256 mit expliziter Ratio-Warnung abgelehnt | offen | Studio toleriert abweichende Pixelmaße bei gleicher Seitenrelation, nicht aber eine abweichende Seitenrelation. Writer/Validator dürfen diesen Fehler weiterhin blockieren. |
 
 Für #691 darf der vorläufige Studio-Teilvertrag bereits als
 Validierungsgrundlage dienen. Drucktoleranzen, die explizite Registrierung des
