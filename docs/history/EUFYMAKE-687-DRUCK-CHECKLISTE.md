@@ -120,14 +120,15 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 28 | G-07 (HEIGHT 0/32768/65535 × Gloss 128) | ☑ | ☑ |
 | 29 | G-08 (Registrierung/Schachbrett) | ☑ | ☑ |
 
-Die #688-Zeile 21 (I-13) wurde am 2026-09-02 mit Studio 4.2.2 /
-Editor 1.20.0 dateivalidiert und importiert; der Befund ist in der
-Importprotokoll-Tabelle der Protokollvorlagen festgehalten. Die #690-Zeilen
-22–29 wurden am selben Tag mit derselben Studio-/Editor-Version abgeschlossen
-und in der #690-Ergebnisakte protokolliert. „Import“ bedeutet hier ausdrücklich
-den Bilddialog-Grenzbefund: getrennte „Flat“-Ebenen ohne native
-HEIGHT-/GLOSS-Zuordnung oder Maskenkopplung. Es wurde weder **Preview** noch
-**Print** ausgelöst; die physischen Aussagen bleiben offen.
+Die #688-Zeile 21 (I-13) wurde am 2026-09-02 dateivalidiert und zunächst über
+den Bilddialog importiert. Am 2026-09-03 wurde `height_mean_16bit.png` zusätzlich
+im selben `color_alpha_coverage.png`-Objekt nativ über `Customize Texture`
+zugewiesen; `3D` und die drei Alpha-/Farbfelder blieben in der Vorschau sichtbar.
+Die #690-Zeilen 22–29 wurden am 2026-09-02 mit Studio 4.2.2 / Editor 1.20.0
+abgeschlossen und in der #690-Ergebnisakte protokolliert; dort bedeutet
+„Import“ weiterhin ausdrücklich den Bilddialog-Grenzbefund ohne native
+Gloss-Maskenkopplung. Es wurde weder **Preview** noch **Print** ausgelöst; die
+physischen Aussagen bleiben offen.
 
 I-08 wurde am 2026-09-03 ergänzt: Die 16-Bit-HEIGHT-Datei wurde über den
 nativen `Customize Texture`-Pfad dem COLOR-Objekt zugewiesen. Der Crop blieb
@@ -141,11 +142,13 @@ native `.empf`-Projekte reaktiviert.
 Die bis dahin noch offenen Pflichtzeilen wurden am 2026-09-03 abgeschlossen.
 I-02 und I-03 akzeptierten 16- und 8-Bit-HEIGHT nativ; I-04 skalierte die
 pixelhalbierte, aber seitenverhältnisgleiche HEIGHT-Datei auf die unveränderte
-COLOR-Fläche; I-07 und I-11 zeigten Plateau beziehungsweise diskrete Stufen.
-I-12 wurde mit der ausdrücklichen Warnung `Depth image ratio does not match the
-original image` abgelehnt und ersetzte die bestehende HEIGHT-Zuweisung nicht.
-Alle Ergebnisse stehen im Importprotokoll. Es wurde weiterhin weder
-**Preview** noch **Print** ausgelöst; der Budgetstand bleibt **0/35**.
+COLOR-Fläche. Die invertierte 16-Bit-Gegenprobe kehrte die Neigungsrichtung der
+3D-Keilvorschau um; I-07 zeigte Null-Grundfläche und Vollweiß-Plateau, I-11 die
+diskreten Stufen und I-13 die native Alpha×HEIGHT-Kopplung. I-12 wurde mit der
+ausdrücklichen Warnung `Depth image ratio does not match the original image`
+abgelehnt und ersetzte die bestehende HEIGHT-Zuweisung nicht. Alle Ergebnisse
+stehen im Importprotokoll. Es wurde weiterhin weder **Preview** noch **Print**
+ausgelöst; der Budgetstand bleibt **0/35**.
 
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 

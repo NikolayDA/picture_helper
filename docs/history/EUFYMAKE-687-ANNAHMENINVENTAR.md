@@ -791,6 +791,9 @@ oder Registrierung auf Material.
 | V4-T2 | I-04: 128×128-HEIGHT bei 256×256-COLOR und gleicher 1:1-Seitenrelation ohne Warnung auf der unveränderten 90,31×90,31-mm-Objektfläche akzeptiert | T |
 | V4-T3 | I-07: `height_max_16bit.png` als gleichmäßiges Plateau; I-11: `height_steps_16bit.png` mit acht sichtbaren Plateaus | T |
 | V4-T4 | I-12: 256×128-HEIGHT bei 256×256-COLOR mit `Depth image ratio does not match the original image` abgelehnt; bestehende HEIGHT-Zuweisung und Geometrie blieben unverändert | T |
+| V4-T5 | I-03-Gegenprobe: Normalkeil 0→65535 links→rechts und invertierter 16-Bit-Keil 65535→0 nativ angenommen; sichtbare Umkehr der 3D-Neigungsrichtung | T |
+| V4-T6 | I-07-Null-Gegenprobe: `height_zero_16bit.png` nativ ohne Warnung angenommen und als ebene Grundfläche dargestellt | T |
+| V4-T7 | I-13: `height_mean_16bit.png` nativ im selben `color_alpha_coverage.png`-Objekt zugewiesen; `3D` und drei weiterhin erkennbare Alpha-/Farbfelder | T |
 | V4-P1 | Pre-Import-Report: 41/41 Fixtures und 7/7 Pakete erfolgreich; Report-SHA-256 `8c7264f842395a21a55b93006f2f598b08eb71cc95c528a53b21b5531daf885f` | P |
 
 ### 2. Aktualisierte Testmatrix
@@ -799,16 +802,16 @@ oder Registrierung auf Material.
 | --- | --- | --- |
 | I-01 | abgeschlossen | kanonischer COLOR-Einzelimport ist `mm_typisch_phys.png`; Paket-`color_motif.png` bleibt I-06 zugeordnet |
 | I-02 | abgeschlossen | nativer dimensionsgleicher 16-Bit-HEIGHT-Import |
-| I-03 (8/16 Bit) | abgeschlossen | beide Träger akzeptiert; tatsächliche Präzisionsnutzung bleibt physisch offen |
+| I-03 (8/16 Bit) | abgeschlossen | beide Träger akzeptiert; invertierte 16-Bit-Gegenprobe bestätigt editorseitige Richtung, tatsächliche Präzisionsnutzung und physische Monotonie bleiben offen |
 | I-04 | abgeschlossen | Pixelmaß darf bei gleicher Seitenrelation abweichen; Studio passt an die COLOR-Fläche an |
 | I-05/I-06 | abgeschlossen | `pHYs`, Manifest- und Mehrfachimport-Priorität wie in Evidenzversion 2/3 protokolliert |
-| I-07 | abgeschlossen | editorseitige Vollweiß-/Plateau-Darstellung |
+| I-07 | abgeschlossen | editorseitige Null-Grundfläche und Vollweiß-/Plateau-Darstellung; physische Grenzhöhen und Clipping offen |
 | I-08 | abgeschlossen | nativer COLOR/HEIGHT-Crop gekoppelt; separater Gloss-Layer unabhängig |
 | I-09 Legacy/aktuell | nicht anwendbar | optionaler `.empf`-Explorationslauf gemäß Evidenzversion 3 |
 | I-10 | abgeschlossen | normal/invertiert als Bild akzeptiert; physische Gloss-Polarität offen |
 | I-11 | abgeschlossen | diskrete Sollstufen in der Editorvorschau sichtbar |
 | I-12 | abgeschlossen | abweichende Seitenrelation wird ausdrücklich und ohne stillen Ersatz abgelehnt |
-| I-13 | abgeschlossen | Alpha-Felder und konstante nicht-null HEIGHT importiert; physische Wirkung offen |
+| I-13 | abgeschlossen | konstantes nicht-null HEIGHT nativ im selben COLOR-Objekt; Alpha-/Farbfelder bleiben in der 3D-Vorschau erkennbar, physische Wirkung offen |
 | G-01 bis G-08 | abgeschlossen auf Importebene | native Gloss-Verfügbarkeit allgemein belegt; zellspezifische Druckparameter und physische Aussagen offen |
 
 Damit sind alle 27 verpflichtenden Phase-1-Zeilen abgeschlossen und die
@@ -819,8 +822,8 @@ zählen gemäß Scope-Entscheid nicht dazu.
 
 | ID | Status V4 | Begründung bzw. Änderung |
 | --- | --- | --- |
-| EM-F03 | **teilbestätigt** | Studio akzeptiert 8- und 16-Bit-PNG nativ; ob 16 Bit im Druck mehr als 8 Bit auflöst, bleibt unbewiesen. |
-| EM-H04 | **teilbestätigt** | Vollweiß erscheint im Editor als gleichmäßiges Plateau; physisches Clipping und die tatsächliche Maximalhöhe bleiben unbewiesen. |
+| EM-F03 | **widerlegt; Profil umgesetzt** | Die ursprüngliche 8-Bit-Default-Annahme bleibt widerlegt und Profil v1 verwendet 16 Bit. Studio akzeptiert 8- und 16-Bit-PNG nativ; ob 16 Bit im Druck mehr als 8 Bit auflöst, bleibt als getrennte Präzisionsfrage unbewiesen. |
+| EM-H04 | **offen** | Vollweiß erscheint im Editor als gleichmäßiges Plateau; diese konstante Vorschau unterscheidet jedoch weder Clipping noch Sättigung oder Normalisierung. Physisches Clipping und die tatsächliche Maximalhöhe bleiben unbewiesen. |
 | EM-G04 | **bestätigt** | Abweichende absolute HEIGHT-Pixelmaße sind bei gleicher Seitenrelation akzeptiert; eine abweichende Seitenrelation wird mit expliziter Warnung fail-closed abgelehnt. |
 | EM-S03 | **für Studio 4.2.2 und die Pflichtmatrix bestätigt; historischer Gegenbeleg bleibt** | Keine verpflichtende Zelle endete mit stillem, unsichtbarem Import; I-06-JSON und I-12 lieferten stattdessen eindeutige Nichtauswahl beziehungsweise Warnung. Der B2-Befund aus Studio 2.6.0.2 wird dadurch nicht umgedeutet. |
 
