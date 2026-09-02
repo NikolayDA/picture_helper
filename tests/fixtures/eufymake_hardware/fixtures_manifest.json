@@ -1,8 +1,71 @@
 {
-  "schema": 1,
+  "schema": 2,
   "generated_by": "scripts/eufymake_fixture_generator.py",
-  "fixture_count": 31,
+  "fixture_count": 34,
   "fixtures": [
+    {
+      "filename": "color_alpha_coverage.png",
+      "role": "color_motif",
+      "pattern": "alpha_coverage_fields",
+      "bit_depth": 8,
+      "png_mode": "RGBA",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "paired_height_file": "height_mean_16bit.png",
+        "paired_height_value": 32768,
+        "rgb_payload": [
+          40,
+          80,
+          220
+        ],
+        "alpha_fields": [
+          {
+            "x_start": 0,
+            "x_end_exclusive": 85,
+            "alpha": 0
+          },
+          {
+            "x_start": 85,
+            "x_end_exclusive": 171,
+            "alpha": 128
+          },
+          {
+            "x_start": 171,
+            "x_end_exclusive": 256,
+            "alpha": 255
+          }
+        ],
+        "purpose": "I-13: Alpha/Coverage bei konstanter nicht-null HEIGHT"
+      },
+      "sha256": "1d2b8c9a0824ccc7bf669c8c1d89ea448440adde88af55f333242d9d1001f3b3",
+      "bytes": 870
+    },
+    {
+      "filename": "color_height_reference.png",
+      "role": "color_motif",
+      "pattern": "height_registration_reference",
+      "bit_depth": 8,
+      "png_mode": "RGBA",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "paired_height_files": [
+          "height_wedge_16bit.png",
+          "height_registration_16bit.png"
+        ],
+        "alpha_levels": [
+          255
+        ],
+        "purpose": "I-02: dimensionsgleich mit HEIGHT-Keil; I-08: pixelgleiche Registriermarker"
+      },
+      "sha256": "8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493",
+      "bytes": 1773
+    },
     {
       "filename": "gloss_checkerboard.png",
       "role": "gloss_mask",
@@ -183,6 +246,26 @@
       },
       "sha256": "b5d195a24d1de3dd3f3939292a7adb9447aa93ec0680b5bf25e998d70f6c2e73",
       "bytes": 565
+    },
+    {
+      "filename": "height_registration_16bit.png",
+      "role": "height_map",
+      "pattern": "registration_landmarks",
+      "bit_depth": 16,
+      "png_mode": "I;16",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "paired_color_file": "color_height_reference.png",
+        "background_value": 0,
+        "landmark_value": 65535,
+        "source_rule": "COLOR-Pixel ungleich RGB(255,255,255) ist Landmark",
+        "purpose": "I-08: horizontale und vertikale Crop-Registrierung"
+      },
+      "sha256": "aad17d01503fb53e55d50ffb306c8bf05f2842dc53b0eb4c0ce07ad65e18f8d7",
+      "bytes": 1251
     },
     {
       "filename": "height_steps_16bit.png",

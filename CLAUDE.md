@@ -317,7 +317,7 @@ Ein Paket, `bgremover/`:
   Die daraus folgenden **Hardware-Realtests** (#688–#690, Epic #681) sind
   separat verregelt: [`EUFYMAKE-687-TESTGOVERNANCE.md`](docs/history/EUFYMAKE-687-TESTGOVERNANCE.md)
   (Status/Freigabe siehe dort Abschnitt 4; #801: Materialbudget/Abbruchkriterien über
-  12 Druckvarianten, Gerätebedienung, Datenschutz-/Lizenz-/Ablageregeln für
+  13 Druckvarianten, Gerätebedienung, Datenschutz-/Lizenz-/Ablageregeln für
   Testfotos), [`EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`](docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md)
   (Datei-, Import- und Druckprotokoll – die **einzige** Ablage der am
   Zielrechner *beobachteten* Werte: „Tatsächlicher SHA-256", Studio-Meldungen

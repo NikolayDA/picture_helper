@@ -15,6 +15,11 @@ Drei Fixture-Rollen, alle unter ``tests/fixtures/eufymake_hardware/``:
 - **HEIGHT** (#688-Testdesign): sieben Muster (Nullfläche, Maximalfläche,
   monotoner Keil, invertierter Keil, diskrete Stufen, Impuls/Kante,
   konstanter Mittelwert), je als 8-Bit ``L`` und 16-Bit ``I;16``.
+- **COLOR/HEIGHT-Kontrollen** (#688-Testdesign): ein voll opakes
+  Registriermotiv mit exakt demselben Pixelmaß wie die HEIGHT-Referenz sowie
+  ein dreigeteiltes RGBA-Motiv mit 0/50/100 % Alpha. Letzteres wird mit einer
+  konstanten, nicht-null HEIGHT-Map kombiniert und trennt dadurch
+  Alpha/Coverage vom digitalen Höhenwert.
 - **mm/DPI** (#689-Testdesign): ein Kontrollmotiv mit Messrahmen und
   Achsenmarkern (asymmetrische Markierungsdichte auf X- vs. Y-Achse, damit
   ein achsenspezifischer Skalierungsfehler sichtbar wird) in drei
@@ -72,11 +77,17 @@ from bgremover.height_map import (  # noqa: E402  (Pfad muss vor dem Import steh
 DEFAULT_OUT_DIR = ROOT / "tests" / "fixtures" / "eufymake_hardware"
 MANIFEST_FILENAME = "fixtures_manifest.json"
 # Schema 1: erste Fassung (Rolle, Muster, Bittiefe, PNG-Modus, Maße, Parameter,
-# SHA-256, Bytegröße je Fixture).
-SCHEMA_VERSION = 1
+# SHA-256, Bytegröße je Fixture). Schema 2 bindet den für #688 erweiterten
+# Satz inklusive Alpha- und Registrierkontrollen; ein alter 31er-Satz kann so
+# am Zielrechner nicht mehr still als aktuell gelten.
+SCHEMA_VERSION = 2
 
 HEIGHT_SIZE = (256, 256)  # (Breite, Höhe) px – klein genug fürs Repo, groß
 # genug für eine sichtbare Stufen-/Keilauflösung.
+COLOR_HEIGHT_PAIR_SIZE = HEIGHT_SIZE
+ALPHA_FIELD_LEVELS = (0, 128, 255)
+ALPHA_FIELD_RGB = (40, 80, 220)
+REGISTRATION_PATTERN = "registration_landmarks"
 GLOSS_SIZE = (256, 256)
 CHECKER_SQUARE = 16  # px je Schachbrettfeld bei 256 px Kantenlänge → 16×16 Felder.
 STEP_LEVELS = 8  # diskrete Stufen für Höhen-/Gloss-„Treppenkeil"-Fixtures.
@@ -326,6 +337,99 @@ def _draw_control_motif(width: int, height: int) -> Image.Image:
     return img
 
 
+def _draw_alpha_coverage_motif(width: int, height: int) -> tuple[Image.Image, list[dict[str, int]]]:
+    """Drei gleich große Felder mit gleichem RGB und 0/128/255 Alpha erzeugen.
+
+    Der RGB-Payload bleibt über alle Felder exakt konstant, damit beobachtete
+    Deckungs-/Underbase-Unterschiede nur vom Alpha-Wert abhängen können. Die
+    256 Pixel Breite sind nicht durch drei teilbar; die deterministischen
+    Grenzen verteilen das eine Restpixel auf das mittlere Feld.
+    """
+    boundaries = [round(index * width / len(ALPHA_FIELD_LEVELS)) for index in range(4)]
+    array = np.empty((height, width, 4), dtype=np.uint8)
+    array[:, :, :3] = ALPHA_FIELD_RGB
+    fields: list[dict[str, int]] = []
+    for index, alpha in enumerate(ALPHA_FIELD_LEVELS):
+        start, end = boundaries[index], boundaries[index + 1]
+        array[:, start:end, 3] = alpha
+        fields.append({"x_start": start, "x_end_exclusive": end, "alpha": alpha})
+    return Image.fromarray(array, mode="RGBA"), fields
+
+
+def _height_registration_from_color(reference: Image.Image) -> Image.Image:
+    """Nicht-weiße COLOR-Marker pixelgenau als 16-Bit-Relief-Landmarks abbilden."""
+    rgb = np.array(reference.convert("RGB"), dtype=np.uint8)
+    landmarks = np.any(rgb != 255, axis=2)
+    values = np.where(landmarks, HEIGHT_MAX_16BIT, 0).astype(np.uint16)
+    raw = np.ascontiguousarray(values, dtype="<u2").tobytes()
+    return Image.frombytes("I;16", reference.size, raw)
+
+
+def generate_color_height_control_fixtures() -> list[FixtureSpec]:
+    """Dimensionsgleiche COLOR-Referenz und Alpha/Coverage-Kontrolle für #688."""
+    width, height = COLOR_HEIGHT_PAIR_SIZE
+    reference = _draw_control_motif(width, height)
+    registration_height = _height_registration_from_color(reference)
+    alpha_motif, alpha_fields = _draw_alpha_coverage_motif(width, height)
+    return [
+        FixtureSpec(
+            filename="color_height_reference.png",
+            role="color_motif",
+            pattern="height_registration_reference",
+            bit_depth=8,
+            png_mode="RGBA",
+            image=reference,
+            params={
+                "width_px": width,
+                "height_px": height,
+                "paired_height_files": [
+                    "height_wedge_16bit.png",
+                    "height_registration_16bit.png",
+                ],
+                "alpha_levels": [255],
+                "purpose": (
+                    "I-02: dimensionsgleich mit HEIGHT-Keil; I-08: "
+                    "pixelgleiche Registriermarker"
+                ),
+            },
+        ),
+        FixtureSpec(
+            filename="height_registration_16bit.png",
+            role="height_map",
+            pattern=REGISTRATION_PATTERN,
+            bit_depth=16,
+            png_mode="I;16",
+            image=registration_height,
+            params={
+                "width_px": width,
+                "height_px": height,
+                "paired_color_file": "color_height_reference.png",
+                "background_value": 0,
+                "landmark_value": HEIGHT_MAX_16BIT,
+                "source_rule": "COLOR-Pixel ungleich RGB(255,255,255) ist Landmark",
+                "purpose": "I-08: horizontale und vertikale Crop-Registrierung",
+            },
+        ),
+        FixtureSpec(
+            filename="color_alpha_coverage.png",
+            role="color_motif",
+            pattern="alpha_coverage_fields",
+            bit_depth=8,
+            png_mode="RGBA",
+            image=alpha_motif,
+            params={
+                "width_px": width,
+                "height_px": height,
+                "paired_height_file": "height_mean_16bit.png",
+                "paired_height_value": 32768,
+                "rgb_payload": list(ALPHA_FIELD_RGB),
+                "alpha_fields": alpha_fields,
+                "purpose": "I-13: Alpha/Coverage bei konstanter nicht-null HEIGHT",
+            },
+        ),
+    ]
+
+
 def generate_mm_dpi_fixtures() -> list[FixtureSpec]:
     specs: list[FixtureSpec] = []
     for combo in MM_DPI_COMBOS:
@@ -407,6 +511,7 @@ def generate_all_fixtures() -> list[FixtureSpec]:
         *generate_height_fixtures(),
         *generate_pixel_size_variant_fixture(),
         *generate_aspect_ratio_variant_fixture(),
+        *generate_color_height_control_fixtures(),
         *generate_mm_dpi_fixtures(),
         *generate_gloss_fixtures(),
     ]

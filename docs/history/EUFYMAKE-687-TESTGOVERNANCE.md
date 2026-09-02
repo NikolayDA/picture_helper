@@ -17,17 +17,20 @@ gesetzten Policy, jetzt mit expliziter Freigabe (Abschnitt 4).
 ## 1. Abbruchkriterien Materialverbrauch (verbindlich)
 
 - **Gesamtbudget für die aktuelle Matrix:** Das
-  [Druckprotokoll](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md) hat 12 Tabellenzeilen,
+  [Druckprotokoll](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md) hat 13 Tabellenzeilen,
   je eine physisch zu druckende Variante: I-02, I-03 8-Bit, I-03 16-Bit,
   I-04, I-05 konsistent, I-07, I-08 vor Crop, I-08 nach Crop, I-10 normal,
-  I-10 invertiert, I-11 (Treppenkeil, H-02), I-12 (Seitenverhältnis, H-03) –
-  **12 Varianten**. I-08 und I-10 vergleichen dabei inhaltlich je zwei
+  I-10 invertiert, I-11 (Treppenkeil, H-02), I-12 (Seitenverhältnis, H-03)
+  und I-13 (Alpha/Coverage bei nicht-null HEIGHT) – **13 Varianten**. I-08
+  und I-10 vergleichen dabei inhaltlich je zwei
   Ausprägungen (vor/nach Crop bzw. normal/invertiert), stehen aber bereits
   als zwei getrennte Tabellenzeilen mit je eigener Wiederholungsmessung im
   Druckprotokoll – Zeilenzahl und Variantenzahl sind hier deckungsgleich.
-  Bei „Erst- + eine Wiederholungsmessung" je Variante (nächster Punkt)
-  ergibt das ein hartes Limit von **maximal 24 physischen Drucken** für
-  #688–#690 in der jetzigen Fassung der Matrix.
+  Das freigegebene harte Limit bleibt **maximal 24 physische Drucke** für
+  #688–#690. Nach je einem Erstlauf (13 Drucke) bleiben damit höchstens elf
+  Wiederholungen; die Kernaussagen aus dem Druckprotokoll haben Vorrang. Ein
+  zweiter Lauf jeder einzelnen Variante ist ohne neues Zusatzbudget nicht
+  mehr möglich.
 - Erweitert sich die Matrix später (neue Testzellen aus offenen
   Widersprüchen), ist die daraus rechnerisch folgende neue Zahl nur ein
   **Vorschlag** – kein automatisches Zusatzbudget. Neue Zellen lösen immer
@@ -135,6 +138,13 @@ Aktualisiert: 2026-08-15 – Testmatrix um I-11 (H-02, Treppenkeil-Druck) und
   hatte. Gesamtbudget entsprechend von 20 auf 24 physische Drucke erhöht
   (12 Varianten × max. 2). UV-Sicherheitshinweise und iCloud-Drive-Ablage
   (Abschnitte 2–3) unverändert gegenüber der ursprünglichen Freigabe.
+Aktualisiert: 2026-09-02 – I-13 für Alpha/Coverage bei nicht-null HEIGHT
+  ergänzt, I-02 auf ein dimensionsgleiches COLOR/HEIGHT-Paar umgestellt und
+  I-08 mit einem pixelgenauen COLOR/HEIGHT-Registrierungspaar abgesichert.
+  Das Gesamtbudget bleibt unverändert bei 24 Drucken; nach 13
+  Erstläufen werden Wiederholungen auf die Kernaussagen priorisiert. Es ist
+  kein zusätzlicher Materialverbrauch über die bisherige Freigabe hinaus
+  freigegeben.
 ```
 
 Damit gelten die Regeln aus den Abschnitten 1–3 für die Realtests aus

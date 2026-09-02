@@ -168,6 +168,13 @@ def test_docs_history_is_not_a_broad_neutral_class() -> None:
     policy = rpp.load_policy()
     dry_run = rpp.classify_path("docs/history/RELEASE-RUNBOOK-DRY-RUN-2026-08-01.md", policy)
     assert (dry_run.classification, dry_run.explicit) == (rpp.RELEASE_NEUTRAL, True)
+    height_contract = rpp.classify_path(
+        "docs/history/EUFYMAKE-688-HEIGHT-VERTRAG.md", policy
+    )
+    assert (height_contract.classification, height_contract.explicit) == (
+        rpp.RELEASE_NEUTRAL,
+        True,
+    )
     unknown = rpp.classify_path("docs/history/NEW_RELEASE_CONTRACT.md", policy)
     assert (unknown.classification, unknown.explicit) == (rpp.CANDIDATE_RELEVANT, False)
 
