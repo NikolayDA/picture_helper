@@ -202,11 +202,15 @@ def insert_changelog_section(text: str, language: str, version: str, release_dat
     Idempotent: Ein bereits vorhandener Abschnitt derselben Version wird
     erneuert – aber **nur**, wenn er mit dem unveraenderten Geruest beginnt.
     Verglichen wird ausschliesslich der Geruest-Teil; die dahinter gewanderten
-    Eintraege bleiben wortgleich stehen. Vor dem Review vom 2026-09-02 wurde der
-    ganze Abschnitt verglichen, und jeder zweite Lauf scheiterte bei gefuelltem
-    ``[Unreleased]`` – also im Normalfall vor einem Release. Ein redaktionell
-    bearbeitetes Geruest bleibt unangetastet und fuehrt zum Abbruch; ein
-    Vorbereitungsskript darf Handarbeit nicht ueberschreiben.
+    Eintraege bleiben wortgleich stehen. Ueber die CLI ist dieser Zweig nur im
+    Wiederanlauf erreichbar (``pyproject.toml`` von Hand zurueckgedreht, die
+    CHANGELOGs stehen gelassen) – ein regulaerer zweiter Lauf bricht schon am
+    Downgrade-Schutz aus #944 ab, weil ``pyproject.toml`` bereits die
+    Zielversion traegt; ``plan()`` direkt und die Idempotenz-Tests treffen ihn
+    immer. Vor dem Review vom 2026-09-02 wurde der ganze Abschnitt verglichen,
+    und dieser Zweig scheiterte bei gefuelltem ``[Unreleased]`` grundsaetzlich.
+    Ein redaktionell bearbeitetes Geruest bleibt unangetastet und fuehrt zum
+    Abbruch; ein Vorbereitungsskript darf Handarbeit nicht ueberschreiben.
     """
     section = changelog_section(language, version, release_date)
     existing = re.search(

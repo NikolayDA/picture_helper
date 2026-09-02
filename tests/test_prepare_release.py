@@ -307,7 +307,10 @@ def test_unreleased_entries_move_under_the_skeleton_and_survive_a_rerun(
     Normalfall. Seine Einträge wandern beim ersten Lauf unter das Gerüst der
     neuen Version; ein zweiter Lauf – auch mit anderem Datum – erkennt das
     Gerüst weiterhin und lässt die gewanderten Einträge wortgleich stehen.
-    Vorher scheiterte jeder Wiederholungslauf mit „weicht vom Gerüst ab".
+    Über die CLI trifft das nur den Wiederanlauf mit zurückgedrehter
+    ``pyproject.toml`` (sonst greift der Downgrade-Schutz zuerst); ``plan()``
+    direkt trifft den Zweig immer, und vorher scheiterte er bei gefülltem
+    ``[Unreleased]`` grundsätzlich mit „weicht vom Gerüst ab".
     """
     predecessor = _current_freeze_version(fixture_repo)
     entry = "- **Neues Werkzeug (#1).** Stand vor dem Lauf unter [Unreleased]."
@@ -351,6 +354,51 @@ def test_unreleased_entries_move_under_the_skeleton_and_survive_a_rerun(
     changelog.write_text(f"{head}keine{tail}", "utf-8")
     with pytest.raises(pr.PrepareError, match="weicht vom erzeugten Gerüst ab"):
         pr.plan(fixture_repo, _inputs(), predecessor_version=predecessor)
+
+
+def test_cli_rerun_needs_a_pyproject_reset_and_then_keeps_moved_entries(
+    fixture_repo: Path, tmp_path: Path, capsys
+) -> None:
+    """#954-Review: der Wiederanlaufweg über die CLI, nicht nur über ``plan()``.
+
+    Ein unveränderter zweiter Aufruf ist **kein** Wiederanlauf: ``pyproject.toml``
+    trägt nach dem ersten Lauf die Zielversion, und ``main()`` bricht am
+    #944-Schutz ab, bevor ``insert_changelog_section`` läuft. Erst
+    ``git checkout pyproject.toml`` erreicht den Zweig erneut – dann bleiben
+    die aus ``[Unreleased]`` gewanderten Einträge stehen und das Ergebnis ist
+    byte-gleich.
+    """
+    entry = "- **Neues Werkzeug (#1).** Stand vor dem Lauf unter [Unreleased]."
+    for language in LANGUAGES:
+        path = fixture_repo / pr.changelog_path(language)
+        path.write_text(
+            re.sub(
+                r"(?m)^## \[Unreleased\][ \t]*$",
+                f"## [Unreleased]\n\n### Neu\n\n{entry}",
+                path.read_text("utf-8"),
+                count=1,
+            ),
+            "utf-8",
+        )
+    args = [
+        "9.9.9", "--date", "2026-09-15", "--repo", str(fixture_repo),
+        "--issue-output", str(tmp_path / "issue.md"),
+    ]
+    assert pr.main(args) == 0
+    changelog = fixture_repo / "CHANGELOG.md"
+    first = changelog.read_text("utf-8")
+    assert entry in first.split("## [9.9.9]", 1)[1].split("\n## [", 1)[0]
+
+    # Unveränderter zweiter Aufruf: Downgrade-/Gleichheitsschutz, nichts geschrieben.
+    assert pr.main(args) == 2
+    err = capsys.readouterr().err
+    assert "pyproject" in err and "9.9.9" in err
+    assert changelog.read_text("utf-8") == first
+
+    # Wiederanlauf: pyproject zurückdrehen, CHANGELOGs stehen lassen.
+    _git(fixture_repo, "checkout", "--", "pyproject.toml")
+    assert pr.main(args) == 0
+    assert changelog.read_text("utf-8") == first
 
 
 def test_the_freeze_boilerplate_never_carries_the_placeholder_itself() -> None:

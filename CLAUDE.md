@@ -1183,10 +1183,12 @@ CHANGELOG-Abschnitte, AppStream-Eintrag, den Rollover der Pfadpolicy
 Pfad und blockierte das Gate), das Scope-Freeze-Gerüst und das vorbefüllte
 Release-Issue. Gleiche Eingaben ergeben byte-gleiche Ausgaben; ein zweiter Lauf
 hebt die Policy-Version **nicht** erneut an. Einträge unter `[Unreleased]`
-wandern beim ersten Lauf unter das Gerüst der neuen Version; der
-Wiederholungslauf vergleicht nur den Gerüst-Teil und lässt sie stehen (Review
-2026-09-02 – vorher scheiterte jeder zweite Lauf bei gefülltem `[Unreleased]`,
-also im Normalfall vor einem Release).
+wandern beim ersten Lauf unter das Gerüst der neuen Version; ein erneuter
+`plan()`-Lauf auf diesem Stand (Wiederanlauf mit von Hand zurückgedrehter
+`pyproject.toml`, Idempotenz-Tests) vergleicht nur den Gerüst-Teil und lässt
+sie stehen (Review 2026-09-02). Ein regulärer zweiter CLI-Lauf bricht ohnehin
+vorher am Downgrade-Schutz ab, weil `pyproject.toml` die Zielversion schon
+trägt.
 
 **Es entscheidet nichts.** Scope, Auswirkung, betroffene Anwender:innen,
 Upgrade-Relevanz und bekannte Einschränkungen stehen als `TODO(release)` im
