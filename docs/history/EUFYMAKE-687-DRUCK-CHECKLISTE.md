@@ -90,26 +90,26 @@ abgleichen (**nicht** ungeprüft übernehmen).
 
 | # | Zelle | ☐ Dateivalidierung (§1) | ☐ Import + Importprotokoll (§2) |
 | --- | --- | --- | --- |
-| 1 | I-01 | ☐ | ☐ |
-| 2 | I-02 | ☐ | ☐ |
-| 3 | I-03 (8 Bit) | ☐ | ☐ |
-| 4 | I-03 (16 Bit) | ☐ | ☐ |
-| 5 | I-04 (Referenz + halbierte Kopie) | ☐ | ☐ |
-| 6 | I-05 (ohne `pHYs`) | ☐ | ☐ |
-| 7 | I-05 (konsistent) | ☐ | ☐ |
-| 8 | I-05 (widersprüchlich) | ☐ | ☐ |
-| 9 | I-05 (X/Y 300/150 dpi) | ☐ | ☐ |
-| 10 | I-06 (`export_mm_dpi_conflict/manifest.json` allein) | ☐ | ☐ |
-| 11 | I-06 (kompletter Vier-Dateien-Exportordner) | ☐ | ☐ |
-| 12 | I-07 | ☐ | ☐ |
+| 1 | I-01 | ☑ | ☑ |
+| 2 | I-02 | ☑ | ☑ |
+| 3 | I-03 (8 Bit) | ☑ | ☑ |
+| 4 | I-03 (16 Bit) | ☑ | ☑ |
+| 5 | I-04 (Referenz + halbierte Kopie) | ☑ | ☑ |
+| 6 | I-05 (ohne `pHYs`) | ☑ | ☑ |
+| 7 | I-05 (konsistent) | ☑ | ☑ |
+| 8 | I-05 (widersprüchlich) | ☑ | ☑ |
+| 9 | I-05 (X/Y 300/150 dpi) | ☑ | ☑ |
+| 10 | I-06 (`export_mm_dpi_conflict/manifest.json` allein) | ☑ | ☑ |
+| 11 | I-06 (kompletter Vier-Dateien-Exportordner) | ☑ | ☑ |
+| 12 | I-07 | ☑ | ☑ |
 | 13 | I-08 (COLOR/HEIGHT/GLOSS vor Crop) | ☑ | ☑ |
 | 14 | I-08 (COLOR/HEIGHT/GLOSS nach Crop) | ☑ | ☑ |
 | 15 | I-09 (Legacy) | — (n. z.) | — (n. z.) |
 | 16 | I-09 (aktuell) | — (n. z.) | — (n. z.) |
-| 17 | I-10 (normal) | ☐ | ☐ |
-| 18 | I-10 (invertiert) | ☐ | ☐ |
-| 19 | I-11 | ☐ | ☐ |
-| 20 | I-12 | ☐ | ☐ |
+| 17 | I-10 (normal) | ☑ | ☑ |
+| 18 | I-10 (invertiert) | ☑ | ☑ |
+| 19 | I-11 | ☑ | ☑ |
+| 20 | I-12 | ☑ | ☑ |
 | 21 | I-13 (Alpha/Coverage) | ☑ | ☑ |
 | 22 | G-01 (Gloss min/mittel/max) | ☑ | ☑ |
 | 23 | G-02 (normal/invertiert) | ☑ | ☑ |
@@ -138,14 +138,23 @@ Bestandteil des bestätigten BgRemover-PNG-Workflows. Die Zeilen bleiben zur
 Transparenz erhalten und werden nur bei einer späteren Produktentscheidung für
 native `.empf`-Projekte reaktiviert.
 
+Die bis dahin noch offenen Pflichtzeilen wurden am 2026-09-03 abgeschlossen.
+I-02 und I-03 akzeptierten 16- und 8-Bit-HEIGHT nativ; I-04 skalierte die
+pixelhalbierte, aber seitenverhältnisgleiche HEIGHT-Datei auf die unveränderte
+COLOR-Fläche; I-07 und I-11 zeigten Plateau beziehungsweise diskrete Stufen.
+I-12 wurde mit der ausdrücklichen Warnung `Depth image ratio does not match the
+original image` abgelehnt und ersetzte die bestehende HEIGHT-Zuweisung nicht.
+Alle Ergebnisse stehen im Importprotokoll. Es wurde weiterhin weder
+**Preview** noch **Print** ausgelöst; der Budgetstand bleibt **0/35**.
+
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 
-- [ ] Alle 27 verpflichtenden Zeilen aus Phase 1 abgeschlossen; I-09 Legacy/
+- [x] Alle 27 verpflichtenden Zeilen aus Phase 1 abgeschlossen; I-09 Legacy/
       aktuell sind gemäß Scope-Entscheid vom 2026-09-03 nicht anwendbar;
       keine ungeklärten Sicherheits-/Fehlerfälle offen.
-- [ ] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
+- [x] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
       protokolliert, nicht nur bei „Ja" übersprungen.
-- [ ] Budget-Startstand notiert (0 von 35 am allerersten Testtag, sonst der
+- [x] Budget-Startstand notiert (**0 von 35**, 2026-09-03; sonst der
       aus Abschnitt 1 übertragene Vortagesstand).
 
 ## 5. Phase 3 — Druck je Variante (13 Stammvarianten + 11 Gloss-Läufe, max. 35 Drucke gesamt)

@@ -1,7 +1,7 @@
 # EufyMake-HEIGHT-Vertrag – Ergebnisakte für Issue #688
 
-> **Status: Druckmessung ausstehend; drei kontrollierte Studio-Importe und die
-> native HEIGHT-Zuweisung sind protokolliert.** Dieses Dokument trennt Herstellerangaben,
+> **Status: Druckmessung ausstehend; alle verpflichtenden druckfreien
+> HEIGHT-Importzellen sind protokolliert.** Dieses Dokument trennt Herstellerangaben,
 > repositoryseitige Dateiprüfungen, Studio-Importbeobachtungen und noch offene
 > Druckmessungen strikt voneinander. Leere Messfelder sind kein negatives
 > Ergebnis und dürfen nicht als Bestätigung interpretiert werden.
@@ -16,10 +16,10 @@
 | Hardware/Flatbed | E1 im Editor online; kein Druck gestartet |
 | Betriebssystem | macOS 26.6.2 (Build 25G83) |
 | Material/Tinte/Ink-Mode | |
-| Texturmodus und Höhenregler | `Customize Texture`; Regler nicht verändert |
+| Texturmodus und Höhenregler | `Customize Texture`; Ink Mode `Color Raised`; Stärke 2,50 mm; Regler nicht verändert |
 | Messmittel | |
 | Geschätzte Messunsicherheit | |
-| Pre-Import-Report | 34/34 erfolgreich; Manifest-Schema 2; erwarteter Manifest-SHA-256 `794e7890d169516900534b7a0166b5cd477589bef05d952c045db2a45d172308`; Report-SHA-256 `06314d3bd605a6535c467481b82f22de6d6a2f601207d679ddf85d9cfe2ffdcf`; Pillow 12.3.0 |
+| Pre-Import-Report | 41/41 Fixtures und 7/7 Exportpakete erfolgreich; Manifest-Schema 4; erwarteter und tatsächlicher Manifest-SHA-256 `8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758`; Report-SHA-256 `8c7264f842395a21a55b93006f2f598b08eb71cc95c528a53b21b5531daf885f` |
 | Foto-/Messdatenablage | gemäß `EUFYMAKE-687-TESTGOVERNANCE.md` |
 
 ## 2. Bereits belegter Ausgangsstand
@@ -41,14 +41,14 @@ neu erzeugt werden.
 
 | #688-Kriterium | Zelle/Fixture | Importnachweis | Druck-/Messnachweis | Ergebnis |
 | --- | --- | --- | --- | --- |
-| 8 Bit vs. 16 Bit akzeptiert/genutzt | I-03, `height_wedge_8bit.png`, `height_wedge_16bit.png` | | | offen |
-| Minimal-/Mittel-/Maximalwert | `height_zero_*`, `height_mean_*`, I-07 `height_max_*`, I-11 Stufen | | | offen |
-| Richtung und Monotonie | I-02/I-03 Keil, invertierte HEIGHT-Fixtures als Gegenprobe | | | offen |
-| Quantisierung/Clipping/Tonwertauflösung | I-03, I-07, I-11 | | | offen |
+| 8 Bit vs. 16 Bit akzeptiert/genutzt | I-03, `height_wedge_8bit.png`, `height_wedge_16bit.png` | beide nativ ohne Warnung akzeptiert; vergleichbare 3D-Keilvorschau | | Import belegt; tatsächliche Präzisionsnutzung offen |
+| Minimal-/Mittel-/Maximalwert | `height_zero_*`, `height_mean_*`, I-07 `height_max_*`, I-11 Stufen | Mittelwert über I-13, Vollweiß über I-07 und Stufen über I-11 sichtbar; Nullwert im Keil enthalten | | Studio-Teil belegt; physische Höhe offen |
+| Richtung und Monotonie | I-02/I-03 Keil, invertierte HEIGHT-Fixtures als Gegenprobe | Keile nativ akzeptiert und als Gefälle sichtbar | | Editorbeobachtung belegt; physische Richtung/Monotonie offen |
+| Quantisierung/Clipping/Tonwertauflösung | I-03, I-07, I-11 | Vollweiß als Plateau, acht Sollstufen getrennt sichtbar; 8/16 Bit ohne sichtbare Differenz bei dieser Vorschau | | Editorbeobachtung belegt; Druckauflösung/Clipping offen |
 | Nullpunkt/Grundfläche | `height_zero_16bit.png`, Kontrollkörper | | | offen |
 | Digitalwert → physische Höhe | I-11; Messpunkte je Stufe in mm | | | offen |
-| Höhenregler/Texturmodus als Skalierungsachse | konstante Einstellung je Vergleich; ggf. eigene Matrixzeile | | | offen |
-| Fehlend/Nullfläche/konstant/Dimensionsabweichung | I-01, `height_zero_16bit.png`, `height_mean_16bit.png`, I-04/I-12 | | | offen |
+| Höhenregler/Texturmodus als Skalierungsachse | konstante Einstellung je Vergleich; ggf. eigene Matrixzeile | `Customize Texture`, `Color Raised`, 2,50 mm für die Vergleiche unverändert | | Vergleichsparameter belegt; physische Skalierung offen |
+| Fehlend/Nullfläche/konstant/Dimensionsabweichung | I-01, `height_zero_16bit.png`, `height_mean_16bit.png`, I-04/I-12 | COLOR allein akzeptiert; halbe Pixelkante bei gleichem Verhältnis auf volle Fläche abgebildet; konstante Mitte/Maximum akzeptiert; abweichendes Seitenverhältnis ausdrücklich abgelehnt | | Importvertrag belegt; physische Auswirkung offen |
 | Alpha/Coverage bei nicht-null HEIGHT | I-13, `color_alpha_coverage.png` + `height_mean_16bit.png` | | | offen |
 | Crop-/Registrierungstreue | I-08, `color_height_reference.png` + `height_registration_16bit.png` mit pixelgleichen X/Y-Landmarken | | | offen |
 | Filterung/Glättung/Normalisierung | `height_impulse_edge_*`, Keile | | | offen |
@@ -66,6 +66,11 @@ Abnahmekriterien bis zur reproduzierbaren Ablage und Druckmessung offen.
 | Zelle | Kontrolliertes Paar | Beobachtung | Einordnung |
 | --- | --- | --- | --- |
 | I-02 | `color_height_reference.png` + `height_wedge_16bit.png` | Beide Dateien wurden ohne sichtbare Importwarnung akzeptiert. COLOR und HEIGHT besitzen 256×256 Pixel; Studio zeigte für COLOR 90,31×90,31 mm. `Customize Texture` erzeugte eine sichtbare 3D-Vorschau. | Importbeobachtung; akzeptierter 16-Bit-Träger und dimensionsgleiche Kopplung, aber keine belastbare Aussage zu Monotonie, Bittiefennutzung oder mm-Höhe. Dieses Paar wird nicht mehr für I-08 verwendet. |
+| I-03 | `color_height_reference.png` + `height_wedge_8bit.png` beziehungsweise `height_wedge_16bit.png` | Beide Bittiefen wurden nativ ohne Warnung akzeptiert, erhielten ein `3D`-Objekt und zeigten bei identischem `Color Raised`-/2,50-mm-Aufbau eine vergleichbare Keilvorschau. | Importbeobachtung: Akzeptanz beider Träger belegt; eine Ausnutzung der zusätzlichen 16-Bit-Stufen ist aus der Vorschau nicht ableitbar und bleibt Druckmessung. |
+| I-04 | `color_height_reference.png` + `height_wedge_16bit_half.png` | Die 128×128-HEIGHT-Datei mit gleichem 1:1-Seitenverhältnis wurde ohne Warnung auf dem 256×256-COLOR-Objekt akzeptiert. Das Objekt blieb 90,31×90,31 mm; die Höhenvorschau belegte die volle Fläche. | Importbeobachtung: absolute Pixelgleichheit ist für diesen Pfad nicht erforderlich, das Seitenverhältnis dagegen relevant. Filterung/Interpolation und Druckwirkung bleiben offen. |
+| I-07 | `color_height_reference.png` + `height_max_16bit.png` | Vollweiß wurde ohne Warnung akzeptiert und als gleichmäßiges Plateau in der 3D-Vorschau dargestellt; `Color Raised` und 2,50 mm blieben unverändert. | Importbeobachtung: editorseitige Sättigungsdarstellung belegt; tatsächliche Maximalhöhe und Clipping bleiben offen. |
+| I-11 | `color_height_reference.png` + `height_steps_16bit.png` | Die 16-Bit-Treppenkarte wurde ohne Warnung akzeptiert; acht diskrete Plateaus waren in der 3D-Vorschau erkennbar. | Importbeobachtung: Stufentrennung im Editor belegt; Digitalwert→mm-Kennlinie und Reproduzierbarkeit bleiben Druckmessung. |
+| I-12 | `color_height_reference.png` + `height_wedge_16bit_aspect.png` | Studio zeigte exakt `Depth image ratio does not match the original image`. Die 256×128-HEIGHT-Datei wurde für das 256×256-COLOR-Objekt nicht übernommen; die vorherige Treppen-HEIGHT-Zuweisung und Objektgeometrie blieben unverändert. | Importbeobachtung: abweichende Seitenrelation wird fail-closed abgelehnt; keine stille Skalierung. |
 | I-13 | `color_alpha_coverage.png` + `height_mean_16bit.png` (konstant 32768) | Das nach dem Review korrigierte COLOR-Fixture wurde erneut ohne sichtbare Importwarnung akzeptiert. Alle drei Felder tragen RGB `(40, 80, 220)`; auf der Leinwand ließ Alpha 0 den Untergrund vollständig sichtbar, Alpha 128 mischte das mittlere Feld, Alpha 255 deckte das rechte Feld. Die unveränderte nicht-null 16-Bit-HEIGHT-Datei war im selben Prüfpfad bereits akzeptiert worden und hatte eine 3D-Vorschau erzeugt. | Importbeobachtung; die COLOR-Seite variiert nur Alpha und vermeidet den früheren RGB-Störfaktor. Unterbase, Deckung und physische Reliefhöhe bleiben ohne Druck offen. |
 | I-08 | `color_height_reference.png` + `height_registration_16bit.png` | Am 2026-09-03 wurde COLOR importiert und über `Customize Texture` → `Upload Height Map Image` die 16-Bit-HEIGHT-Datei nativ zugewiesen. Studio akzeptierte sie ohne Warnung, kennzeichnete das Objekt mit `3D` und zeigte die asymmetrischen Landmarken in der 3D-Vorschau. Ein anschließend bestätigter Crop reduzierte W von 90,31 auf 44,86 mm und verschob X von 122,34 auf 167,79 mm; H 90,31 mm und Y 164,84 mm blieben erhalten. Die `3D`-Zuordnung und die passend beschnittene 3D-Vorschau blieben bestehen. Die separat importierte `gloss_registration.png` blieb dagegen unverändert bei 90,31×90,31 mm und X/Y 122,34/164,84 mm. | Importbeobachtung: nativer 16-Bit-HEIGHT-Träger und Crop-Kopplung innerhalb des COLOR/HEIGHT-Objekts belegt. Keine Aussage zur Nutzung aller 65.536 Werte, mm-Höhe oder physischen Registrierung; ein separater Gloss-Layer folgt dem Crop nicht automatisch. Weder `Preview` noch `Print` wurde ausgelöst. |
 

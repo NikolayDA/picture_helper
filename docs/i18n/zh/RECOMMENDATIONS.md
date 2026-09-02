@@ -19,7 +19,7 @@
 
 **发布评估：尚未启动候选版本。** 自 `v2.9.0`（2026-08-29）以来，在已审计状态 `e7c379d` 共有 34 个主线提交。随着 PR #953（版本化 EufyMake 目标配置文件、16 位 HEIGHT 默认值、对话框中的配置文件与 X/Y DPI 显示、清单溯源），`[Unreleased]` 首次包含用户可见的条目；其余均为发布自动化、文档与治理。**v2.10.0** 是仅含 #953 发布，还是与 COLOR 色调引擎（史诗 #682 的 #693/#694，ADR #692）一起发布，由负责人决定。PR #956 已以明确保留 v1 的决策及 golden/导出包保护修正错误引用，因此 #691 不再新增发布阻塞；常规发布门禁仍为准。
 
-**EufyMake #681/#687–#691：** PR #948、#951–#953 与 #956 已合并。Studio 4.2.2 现还证实了原生 16 位 HEIGHT 路径（`Customize Texture`）、COLOR/HEIGHT 对象内部的联动裁剪，以及明确的 `Gloss Varnish` 墨水模式。独立 Gloss 图层不会自动跟随 COLOR/HEIGHT 裁剪，因此极性、强度和物理对位仍待验证。I-09（`.empf`）被归为已确认 PNG 范围外的可选探索，不阻塞 #687、#691 或发布。仍需完成 #688–#690 的 E1 物理测量及 #687 收尾评审。
+**EufyMake #681/#687–#691：** PR #948、#951–#953、#956 与 #959 已合并。Studio 4.2.2 中全部 27 个必需的无打印导入测试格均已完成。除原生 8/16 位 HEIGHT、COLOR/HEIGHT 联动裁剪和 `Gloss Varnish` 外，还证实：像素尺寸不同但宽高比相同会被接受，而 HEIGHT 宽高比不同会以 `Depth image ratio does not match the original image` 拒绝。I-09（`.empf`）仍不阻塞。仅剩 #688–#690 的 E1 物理测量及 #687 收尾评审。
 
 保持不变并已关闭：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项、v2.7.0 至 v2.9.0 各版本，以及史诗 #741（含其十一个子议题）、史诗 #805（含 #806–#811）、#817 与 #821；自上次同步以来新关闭：#943（PR #944）与 #692（PR #947）（详见以往轮次）。
 
@@ -29,10 +29,10 @@
 
 | # | 标题 | 相关性 | 复杂度 | 建议模型（投入） | 下一步 |
 |---|------|--------|--------|--------------------|--------|
-| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake 目标配置文件 —— 验证 Height/Gloss/mm-DPI | 🟠 高（关系到最重要导出目标的正确性） | 🔴 高（5 个子议题，需要物理硬件） | –（Epic） | 集成与引用修正已完成；HEIGHT/Gloss 路径和 I-08 已预检，I-09 不阻塞。仍需 #688–#690 与收尾评审 |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🔴 高（仓库材料已齐；剩余部分需要真实硬件） | –（无需 Agent；需要真实的 EufyMake 硬件） | 阻塞（外部）—— 已完成 17/18 项；I-08 已执行，I-09 明确不阻塞。仅余 #688–#690 后的收尾评审 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 受阻（外部）—— 原生 16 位 HEIGHT 导入和 3D 预览已证实；实际精度利用及物理测量仍待完成 |
-| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 受阻（外部）—— I-08 证实 COLOR/HEIGHT 联动裁剪，但独立 Gloss 图层不联动；仍需物理对位、测量和公差 |
+| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake 目标配置文件 —— 验证 Height/Gloss/mm-DPI | 🟠 高（关系到最重要导出目标的正确性） | 🔴 高（5 个子议题，需要物理硬件） | –（Epic） | 集成及全部 27 个必需无打印测试格已完成；I-09 不阻塞。仍需 #688–#690 与收尾评审 |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🔴 高（仓库材料已齐；剩余部分需要真实硬件） | –（无需 Agent；需要真实的 EufyMake 硬件） | 阻塞（外部）—— 已完成 17/18 项及全部 27 个必需导入测试格。仅余 #688–#690 后的收尾评审 |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 受阻（外部）—— 8/16 位 HEIGHT、像素尺寸、平台、阶梯和宽高比预检已完成；仍需物理精度、浮雕和毫米测量 |
+| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 受阻（外部）—— 包含裁剪和 HEIGHT 宽高比处理的 Studio 契约已证实；仅余物理对位、测量和公差 |
 | [#690](https://github.com/NikolayDA/picture_helper/issues/690) | 验证 gloss/亮光漆语义 | 🟡 中（代码中 gloss 已标记为“experimental”） | 🔴 高（需物理打印、消耗材料） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— 原生 `Gloss Varnish` 已预检；仍需逐单元对位及物理极性、强度和材料效果 |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | 将带版本号的目标配置文件整合进 validator/writer/对话框/文档 | 🟠 高（强化生产环境导出路径） | 🟢 发布关键余项较低；🔴 收尾需硬件 | Sonnet，中 + 后续硬件 | 实现已具备发布条件 —— #953 集成 v1，#956 以 v1 决策和保护修正引用；仅余 #688–#690 后的后续升级 |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR 色调/灰度引擎 | 🟡 中高（激光路线图基础，非当前缺陷） | 🔴 高（剩余 4 个子议题：核心→UI→集成→验收） | – （史诗） | 进行中：ADR #692 已批准；接下来是核心 #693 |
