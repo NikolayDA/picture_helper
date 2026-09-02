@@ -4,9 +4,12 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import struct
 import sys
+import zlib
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -261,3 +264,120 @@ def test_inspector_cli_rejects_wrong_trusted_manifest_hash_with_diagnostics(
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["ok"] is False
     assert report["manifest"]["expected_sha256"] == "0" * 64
+
+
+# ── parse_png: Fehlerpfade (#954-Review, vorher ungetestet) ─────────────
+
+
+def _png_chunk(kind: bytes, payload: bytes) -> bytes:
+    crc = zlib.crc32(kind + payload) & 0xFFFFFFFF
+    return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", crc)
+
+
+_IHDR_1x1_GRAY = struct.pack(">IIBBBBB", 1, 1, 8, 0, 0, 0, 0)
+_IDAT_1x1 = zlib.compress(b"\x00\x00")  # Filterbyte + ein Pixel
+_PHYS_300DPI = struct.pack(">IIB", 11811, 11811, 1)
+
+
+def _png(*chunks: bytes) -> bytes:
+    return inspector.PNG_SIGNATURE + b"".join(chunks)
+
+
+def _valid_png(*, phys: bool = False) -> bytes:
+    middle = (_png_chunk(b"pHYs", _PHYS_300DPI),) if phys else ()
+    return _png(
+        _png_chunk(b"IHDR", _IHDR_1x1_GRAY),
+        *middle,
+        _png_chunk(b"IDAT", _IDAT_1x1),
+        _png_chunk(b"IEND", b""),
+    )
+
+
+def test_parse_png_reads_ihdr_chunks_and_phys_of_a_minimal_file() -> None:
+    parsed = inspector.parse_png(_valid_png(phys=True))
+    assert parsed["chunks"] == ["IHDR", "pHYs", "IDAT", "IEND"]
+    assert parsed["ihdr"]["width"] == 1 and parsed["ihdr"]["bit_depth"] == 8
+    assert parsed["phys"]["x_pixels_per_meter"] == 11811 and parsed["phys"]["unit"] == 1
+    assert inspector.parse_png(_valid_png())["phys"] is None
+
+
+def _crc_flipped(data: bytes) -> bytes:
+    # Letztes CRC-Byte des IHDR-Chunks kippen: 8 Signatur + 4 Länge + 4 Typ + 13 Daten + 4 CRC
+    index = 8 + 4 + 4 + 13 + 3
+    return data[:index] + bytes([data[index] ^ 0x01]) + data[index + 1 :]
+
+
+@pytest.mark.parametrize(
+    ("label", "data", "message"),
+    [
+        ("signature", b"GIF89a" + _valid_png()[6:], "PNG-Signatur"),
+        ("crc", _crc_flipped(_valid_png()), "CRC-Abweichung im Chunk IHDR"),
+        (
+            "order",
+            _png(
+                _png_chunk(b"pHYs", _PHYS_300DPI),
+                _png_chunk(b"IHDR", _IHDR_1x1_GRAY),
+                _png_chunk(b"IDAT", _IDAT_1x1),
+                _png_chunk(b"IEND", b""),
+            ),
+            "IHDR muss der erste PNG-Chunk sein",
+        ),
+        ("truncated", _valid_png()[:-4], "abgeschnittener PNG-Chunk"),
+        ("trailing", _valid_png() + b"\x00", "unerwartete Daten hinter dem IEND-Chunk"),
+        (
+            "duplicate-ihdr",
+            _png(
+                _png_chunk(b"IHDR", _IHDR_1x1_GRAY),
+                _png_chunk(b"IHDR", _IHDR_1x1_GRAY),
+                _png_chunk(b"IDAT", _IDAT_1x1),
+                _png_chunk(b"IEND", b""),
+            ),
+            "doppelter IHDR-Chunk",
+        ),
+        (
+            "duplicate-phys",
+            _png(
+                _png_chunk(b"IHDR", _IHDR_1x1_GRAY),
+                _png_chunk(b"pHYs", _PHYS_300DPI),
+                _png_chunk(b"pHYs", _PHYS_300DPI),
+                _png_chunk(b"IDAT", _IDAT_1x1),
+                _png_chunk(b"IEND", b""),
+            ),
+            "doppelter pHYs-Chunk",
+        ),
+        (
+            "missing-idat",
+            _png(_png_chunk(b"IHDR", _IHDR_1x1_GRAY), _png_chunk(b"IEND", b"")),
+            "IDAT-Chunk fehlt",
+        ),
+        (
+            "missing-iend",
+            _png(_png_chunk(b"IHDR", _IHDR_1x1_GRAY), _png_chunk(b"IDAT", _IDAT_1x1)),
+            "IEND-Chunk fehlt",
+        ),
+        (
+            "iend-with-data",
+            _png(
+                _png_chunk(b"IHDR", _IHDR_1x1_GRAY),
+                _png_chunk(b"IDAT", _IDAT_1x1),
+                _png_chunk(b"IEND", b"x"),
+            ),
+            "IEND-Chunk enthält unerwartete Daten",
+        ),
+    ],
+)
+def test_parse_png_rejects_structural_defects(label: str, data: bytes, message: str) -> None:
+    with pytest.raises(ValueError, match=message):
+        inspector.parse_png(data)
+
+
+def test_inspector_reports_a_truncated_fixture_per_file_instead_of_raising(tmp_path: Path) -> None:
+    """Ein defekter Transfer wird als Dateibefund protokolliert, nicht als Traceback."""
+    out_dir = _fixtures(tmp_path)
+    target = out_dir / "height_zero_8bit.png"
+    target.write_bytes(target.read_bytes()[:-4])
+
+    report = inspector.inspect_fixture_dir(out_dir)
+    result = next(entry for entry in report["fixtures"] if entry["filename"] == target.name)
+    assert report["ok"] is False and result["ok"] is False
+    assert any("abgeschnitten" in error for error in result["errors"]), result["errors"]
