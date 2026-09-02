@@ -460,10 +460,32 @@ def test_a_startup_failure_is_a_device_finding_with_an_alert_path() -> None:
     (``if: failure()``) bliebe aus – der laut §7 einzige rechtzeitige Kanal."""
     state = hb.queue_state(_jobs("ok", "startup"), EXPECTED)
     assert state.failed == ("Heartbeat Linux aarch64",)
+    assert state.failed_conclusions == (("Heartbeat Linux aarch64", "startup_failure"),)
     assert state.inconclusive == ()
     verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
     assert verdict == hb.VERDICT_FAIL
     assert "nicht einsatzbereit" in detail
+    # #954-Review: Es lief keine Pruefung und es gibt kein Joblog – der Text
+    # nennt die Konklusion statt einer „nicht bestandenen Pruefung".
+    assert "startup_failure" in detail and "kein Joblog" in detail
+    assert "Bereitschaftsprüfung nicht bestanden" not in detail
+
+
+def test_the_summary_names_a_startup_failure_and_its_remedy(tmp_path: Path) -> None:
+    state = hb.queue_state(_jobs("ok", "startup"), EXPECTED)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
+    report = hb.build_report(
+        verdict=verdict, detail=detail, expected=EXPECTED, state=state,
+        acceptance_s=900, deadline_s=1500, run_url="",
+    )
+    hb.write_outputs(report, report_path=tmp_path / "r.json", summary_path=tmp_path / "s.md")
+    payload = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
+    assert payload["failed_job_conclusions"] == [
+        {"name": "Heartbeat Linux aarch64", "conclusion": "startup_failure"}
+    ]
+    summary = (tmp_path / "s.md").read_text(encoding="utf-8")
+    assert "❌ angenommen, aber nicht gestartet (startup_failure)" in summary
+    assert "Runner-Workspace (`_work`) bereinigen" in summary
 
 
 def test_a_completed_job_without_conclusion_never_passes() -> None:
