@@ -39,12 +39,14 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
+from bgremover._version import get_version
 from bgremover.eufymake_export import (
     AssetPixelFormat,
     ExportAsset,
     ExportPlan,
     build_export_plan,
 )
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, EufyMakeTargetProfile
 from bgremover.eufymake_validate import (
     ExportFinding,
     split_findings,
@@ -181,8 +183,11 @@ def _render_gloss(layer_image: Image.Image, target: tuple[int, int]) -> Image.Im
     return _ensure_size(gray, target, _DATA_RESAMPLE)
 
 
-def _asset_manifest(asset: ExportAsset) -> dict[str, Any]:
+def _asset_manifest(
+    asset: ExportAsset, contract: EufyMakeTargetProfile
+) -> dict[str, Any]:
     """Maschinenlesbare Beschreibung eines Assets fürs Manifest."""
+    rule = contract.asset_for(asset.role)
     return {
         "filename": asset.filename,
         "role": asset.role.value,
@@ -190,15 +195,32 @@ def _asset_manifest(asset: ExportAsset) -> dict[str, Any]:
         "bit_depth": asset.bit_depth,
         "required": asset.required,
         "experimental": asset.experimental,
+        "channel_interpretation": {
+            "value_range": list(rule.value_range_for(asset.bit_depth)),
+            "direction": rule.direction.value,
+            "semantics": rule.semantics,
+            "semantics_status": rule.semantics_status.value,
+            "alpha_semantics": rule.alpha_semantics,
+            "alpha_status": rule.alpha_status.value if rule.alpha_status else None,
+            "evidence_ids": list(rule.evidence_ids),
+        },
     }
 
 
 def _build_manifest(plan: ExportPlan) -> dict[str, Any]:
     """Baut das ``manifest.json``-Objekt aus dem Plan (reine Daten, kein UI-Text)."""
     target = plan.target
+    contract = plan.contract
+    if (plan.profile, plan.profile_version) != (
+        contract.profile_id,
+        contract.profile_version,
+    ):
+        raise EufyMakeWriteError("Exportplan und Zielprofilreferenz widersprechen sich")
     return {
         "profile": plan.profile,
         "profile_version": plan.profile_version,
+        "profile_contract": contract.to_dict(),
+        "producer": {"application": "BgRemover", "version": get_version()},
         "kind": "eufymake_import_assets",
         "note": (
             "BgRemover-Importpaket für EufyMake Studio – keine offizielle "
@@ -214,7 +236,7 @@ def _build_manifest(plan: ExportPlan) -> dict[str, Any]:
             ),
             "dpi": list(target.dpi) if target.dpi is not None else None,
         },
-        "assets": [_asset_manifest(asset) for asset in plan.assets],
+        "assets": [_asset_manifest(asset, contract) for asset in plan.assets],
     }
 
 
@@ -321,6 +343,7 @@ def write_export(
     overwrite: bool = False,
     confirm_warnings: bool = False,
     validate: bool = True,
+    profile: EufyMakeTargetProfile = DEFAULT_TARGET_PROFILE,
 ) -> Path:
     """Validiert, rendert und schreibt das EufyMake-Importpaket atomar nach ``dest``.
 
@@ -340,12 +363,22 @@ def write_export(
     roles = None if optional_roles is None else tuple(optional_roles)
     if validate:
         errors, warnings = split_findings(
-            validate_export(project, requested_optional_roles=roles, bit_depth=bit_depth)
+            validate_export(
+                project,
+                requested_optional_roles=roles,
+                bit_depth=bit_depth,
+                profile=profile,
+            )
         )
         if errors:
             raise ExportValidationError(errors)
         if warnings and not confirm_warnings:
             raise ExportConfirmationRequired(warnings)
-    plan = build_export_plan(project, optional_roles=roles, bit_depth=bit_depth)
+    plan = build_export_plan(
+        project,
+        optional_roles=roles,
+        bit_depth=bit_depth,
+        profile=profile,
+    )
     rendered = render_export(project, plan)
     return _atomic_publish(rendered, target_dir, overwrite=overwrite)

@@ -28,6 +28,7 @@ from bgremover.eufymake_export import (
     OpenQuestion,
     build_export_plan,
 )
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE
 from bgremover.project_model import (
     META_BIT_DEPTH,
     META_PHYSICAL_SIZE_MM,
@@ -62,7 +63,7 @@ def test_color_motif_falls_back_to_composite_without_role() -> None:
     assert motif.role is LayerRole.COLOR_MOTIF
     assert motif.required is True
     assert motif.pixel_format is AssetPixelFormat.RGBA
-    assert motif.bit_depth == DEFAULT_BIT_DEPTH
+    assert motif.bit_depth == 8
     # Ohne Rolle stammt das Motiv aus dem COLOR-Komposit.
     assert motif.source_layer_id is None
     assert motif.from_color_composite is True
@@ -234,6 +235,7 @@ def test_plan_carries_profile_and_version() -> None:
     assert plan.profile == EXPORT_PROFILE
     assert plan.profile_version == EXPORT_PROFILE_VERSION
     assert isinstance(plan.profile_version, int)
+    assert plan.contract is DEFAULT_TARGET_PROFILE
 
 
 def test_height_semantics_is_light_is_high() -> None:
@@ -272,7 +274,7 @@ def test_bit_depth_read_from_metadata() -> None:
     assert plan.target.bit_depth == 16
     # Die Höhenkarte erbt die geplante Bittiefe, das Farbmotiv bleibt 8-Bit.
     assert plan.asset_for(LayerRole.HEIGHT_MAP).bit_depth == 16  # type: ignore[union-attr]
-    assert plan.color_motif.bit_depth == DEFAULT_BIT_DEPTH
+    assert plan.color_motif.bit_depth == 8
 
 
 def test_physical_size_unknown_without_metadata() -> None:

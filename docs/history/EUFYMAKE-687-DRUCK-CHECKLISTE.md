@@ -146,6 +146,23 @@ Ursprung, Skalierung, Rotation und Registrierung protokolliert sein. Ist keiner
 der beiden Pfade eindeutig verfügbar, bleibt die Zelle blockiert und wird nicht
 als gewöhnliches Graustufenbild gedruckt.
 
+**Pending #690 – nicht freigegeben:** Die folgenden Gloss-Läufe sind Teil des
+Testentwurfs, aber noch keine der freigegebenen 13 Varianten. Vor jedem Lauf
+müssen Owner-Freigabe und ein konkreter freier oder ersetzter Platz innerhalb
+des unveränderten 24-Drucke-Budgets in dieser Tabelle stehen. Ein leeres Feld
+bedeutet **blockiert**, nicht „außerhalb des Budgets erlaubt".
+
+| Zelle | Owner-Freigabe (Datum/Verweis) | Budgetplatz/ersetzte Variante | HEIGHT-/Gloss-Preflight | Status |
+| --- | --- | --- | --- | --- |
+| G-01 | | | nativer Gloss-/Spot-UV-Pfad | blockiert |
+| G-02 | | | nativer Gloss-/Spot-UV-Pfad | blockiert |
+| G-03 | | | nativer Gloss-/Spot-UV-Pfad | blockiert |
+| G-04a/b/c | | | Produktionswriter-Assets importieren; nativer Gloss-/Spot-UV-Pfad | blockiert |
+| G-05 | | | feste Dimensions-/Registrierungsregel | blockiert |
+| G-06 | | | nativer Gloss-/Spot-UV-Pfad; Basispass fixiert | blockiert |
+| G-07 | | | native HEIGHT-/Texture- und Gloss-Zuweisung; Reliefwerte fixiert | blockiert |
+| G-08 | | | nativer Gloss-/Spot-UV-Pfad; Registrierung fixiert | blockiert |
+
 **Vor jedem Foto (Governance Abschnitt 3, verbindlich):**
 
 - [ ] Keine Personen, Gesichter, Kennzeichen oder private Räume im Bild;

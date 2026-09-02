@@ -56,8 +56,8 @@ Dimensionsfehlerpaket ersetzt anschließend kontrolliert die Gloss-Datei.
 | G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | Polarität | 0→255 / 255→0 | beide getrennt und ohne Warnung importiert | ausstehend |
 | G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | kontinuierlich, quantisiert, binär oder normalisiert | 8 Stufen 0…255 / Keil 64…192 | beide getrennt und ohne Warnung importiert | ausstehend |
 | G-04a | `export_gloss_absent/` | keine Gloss-Rolle | keine Datei/Referenz | Paket semantisch geprüft; Studio-Bilddialog importiert kein Manifest | ausstehend |
-| G-04b | `export_gloss_zero/` | vorhandene Nullfläche | 0 | äquivalentes `gloss_min.png` als normale Ebene importiert | ausstehend |
-| G-04c | `export_gloss_full/` | voll gesetzte Fläche | 255 | äquivalentes `gloss_max.png` als normale Ebene importiert | ausstehend |
+| G-04b | `export_gloss_zero/` | vorhandene Nullfläche | 0 | pixeläquivalentes `gloss_min.png` als normale Ebene importiert; Produktionswriter-Datei selbst noch nicht importiert | ausstehend |
+| G-04c | `export_gloss_full/` | voll gesetzte Fläche | 255 | pixeläquivalentes `gloss_max.png` als normale Ebene importiert; Produktionswriter-Datei selbst noch nicht importiert | ausstehend |
 | G-05 | `export_gloss_dimension_mismatch/` | Dimensionsregel | COLOR/Manifest 256×256; Gloss 128×256 | Gloss separat als 45,16×90,31 mm importiert; kein Scaling/Fehler | nur falls Import sicher interpretierbar |
 | G-06 | `export_gloss_alpha_coverage/` | COLOR-Alpha bei konstantem Gloss/HEIGHT | Alpha 0/128/255; RGB konstant; Gloss 128; HEIGHT 32768 | drei PNGs als unabhängige „Flat“-Ebenen importiert | ausstehend |
 | G-07 | `export_gloss_height_cross/` | HEIGHT bei konstantem Gloss/COLOR | HEIGHT 0/32768/65535; Gloss 128; COLOR opak | drei PNGs als unabhängige „Flat“-Ebenen importiert | ausstehend |
@@ -100,7 +100,7 @@ und keine Beziehung zwischen den Ebenen ab.
 | G-01 | 2026-09-02; 4.2.2/1.20.0 | keine | 0/128/255 sichtbar; je 90,31×90,31 mm; drei getrennte „Flat“-Ebenen | keine | Keine Aussage über Klarlack ohne Druck |
 | G-02 | 2026-09-02; 4.2.2/1.20.0 | keine | normaler und invertierter Keil je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Invertierte Bilddarstellung ist noch keine Polaritätsbestätigung |
 | G-03 | 2026-09-02; 4.2.2/1.20.0 | keine | Stufen und 64…192-Keil je 90,31×90,31 mm; Tonwerte sichtbar | keine | Tonwertanzeige ist noch keine Intensitätskennlinie |
-| G-04a/b/c | 2026-09-02; 4.2.2/1.20.0 | keine PNG-Warnung | fehlend nur als Paketvertrag prüfbar; Null/voll über bytegleiche min/max-PNGs sichtbar | keine; JSON im bereits geprüften Bilddialog nicht auswählbar | Studio-Bildimport besitzt keinen beobachtbaren Paket-/Optionalitätsvertrag |
+| G-04a/b/c | 2026-09-02; 4.2.2/1.20.0 | keine PNG-Warnung | fehlend nur als Paketvertrag prüfbar; Null/voll über pixeläquivalente, aber nicht byteidentische min/max-PNGs sichtbar | keine; JSON im bereits geprüften Bilddialog nicht auswählbar | Studio-Bildimport besitzt keinen beobachtbaren Paket-/Optionalitätsvertrag; Writer-Paketassets bleiben separat zu importieren |
 | G-05 | 2026-09-02; 4.2.2/1.20.0 | keine | 128×256 px separat als 45,16×90,31 mm, X/Y 144,91/164,84 mm, 0° | kein Scaling, kein Beschnitt, keine Ablehnung | Studio erkennt keinen Dimensionskonflikt, weil es keine Rollen verknüpft |
 | G-06 | 2026-09-02; 4.2.2/1.20.0 | keine | COLOR, HEIGHT und konstantes Gloss je separat 90,31×90,31 mm; Alpha-Felder im COLOR sichtbar | alle „Flat“; keine Rollenzuordnung oder Maskenkopplung | COLOR-Alpha-Wirkung auf physischen Gloss-Auftrag bleibt offen |
 | G-07 | 2026-09-02; 4.2.2/1.20.0 | keine | COLOR, 16-Bit-HEIGHT 0/32768/65535 und Gloss je separat 90,31×90,31 mm | alle „Flat“; keine Rollenzuordnung oder Maskenkopplung | HEIGHT-Wirkung auf physischen Gloss-Auftrag bleibt offen |
@@ -143,6 +143,20 @@ registrierten Gloss-Pass. G-05 darf nur laufen, wenn vorab eine explizite
 Dimensions-/Registrierungsregel festgelegt wurde; automatisches Skalieren ist
 kein gültiger Befund.
 
+Für **G-07** ist zusätzlich vor dem Basispass eine sichtbare native
+HEIGHT-/Texture-Zuweisung erforderlich. Texturmodus, Relief-/Maximalhöhe,
+Underbase, Passzahl und jede weitere HEIGHT-relevante Studio-/Geräteoption
+werden einmal festgelegt und für 0/32768/65535 unverändert protokolliert. Ist
+diese native Zuweisung in der verwendeten Version nicht eindeutig verfügbar,
+bleibt G-07 blockiert; drei gewöhnliche Flat-Graustufenbilder sind kein Ersatz.
+
+Die G-01–G-08-Läufe sind außerdem **nicht** durch die bisherige Freigabe der
+13 Varianten innerhalb des 24-Drucke-Budgets autorisiert. Vor Preview/Print
+muss der Owner die konkrete Zuordnung zu einem freien/ersetzten Budgetplatz
+ausdrücklich freigeben und die Pending-Tabelle in
+`EUFYMAKE-687-DRUCK-CHECKLISTE.md` aktualisieren. Ohne beides bleibt jeder
+physische Gloss-Lauf blockiert.
+
 **Abbruchkriterium:** Wenn weder eine native Gloss-Rolle noch der dokumentierte
 Spot-UV-Zweipass eindeutig auswählbar ist, bleibt der physische Teil blockiert.
 Dann wird weder **Preview** noch **Print** gestartet und insbesondere kein
@@ -183,7 +197,8 @@ Vergleichslayout.
 | Dimensionsregel | Writer blockiert; Studio importiert 128×256 separat als 45,16×90,31 mm | G-05 | Writer und isolierter Studio-Import belegt; Rollenverbund offen |
 | Registrierung/minimale Struktur | | G-08 | offen |
 
-Erst wenn diese Tabelle physisch befüllt ist, darf #691 die experimentelle
-Gloss-Warnung durch ein versioniertes Zielprofil ersetzen. Versions-, Material-
-oder Ink-Mode-Abweichungen bleiben sichtbare Profilgrenzen oder werden als
-Folge-Issue erfasst.
+#691 führt bereits ein **vorläufiges** versioniertes Zielprofil ein, ersetzt die
+experimentelle Gloss-Warnung aber ausdrücklich nicht. Erst wenn diese Tabelle
+physisch befüllt ist, darf eine neue Profilversion Gloss-Richtung oder
+-Intensität als bestätigt führen. Versions-, Material- oder Ink-Mode-
+Abweichungen bleiben sichtbare Profilgrenzen oder werden als Folge-Issue erfasst.

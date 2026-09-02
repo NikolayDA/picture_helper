@@ -17,6 +17,7 @@ import pytest
 from PIL import Image
 
 from bgremover.eufymake_export import build_export_plan
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE
 from bgremover.eufymake_writer import (
     MANIFEST_FILENAME,
     ExportConfirmationRequired,
@@ -98,7 +99,7 @@ def test_color_motif_from_explicit_role_layer() -> None:
 def test_height_is_grayscale_light_is_high() -> None:
     project = _color_project((4, 1))
     _add_height(project)  # Reihe 0,85,170,255
-    plan = build_export_plan(project)
+    plan = build_export_plan(project, bit_depth=8)
     height = render_export(project, plan).assets[1]
     assert height.asset.role is LayerRole.HEIGHT_MAP
     assert height.image.mode == "L"
@@ -172,7 +173,7 @@ def test_all_assets_have_target_size() -> None:
 def test_scaling_is_deterministic_nearest_for_data() -> None:
     project = _color_project((2, 1))
     _add_height(project, _row_gray((2, 1)))  # Werte 0, 255
-    plan = build_export_plan(project)
+    plan = build_export_plan(project, bit_depth=8)
     big = dataclasses.replace(plan, target=dataclasses.replace(plan.target, pixel_size=(4, 1)))
     rendered = render_export(project, big)
     for item in rendered.assets:
@@ -198,6 +199,33 @@ def test_manifest_describes_plan() -> None:
     # ``.empf`` maschinenlesbar über die offene Frage.
     assert manifest["kind"] == "eufymake_import_assets"
     assert "native_empf_project" in manifest["open_questions"]
+    assert manifest["profile_contract"]["status"] == "provisional"
+    assert manifest["profile_contract"]["target_environment"]["studio_version"] == "4.2.2"
+    assert manifest["producer"]["application"] == "BgRemover"
+    assert manifest["producer"]["version"]
+    height = manifest["assets"][1]
+    assert height["channel_interpretation"]["value_range"] == [0, 65535]
+    assert height["channel_interpretation"]["direction"] == "light_is_high"
+    assert height["channel_interpretation"]["semantics_status"] == "provisional"
+
+
+def test_8bit_height_manifest_uses_8bit_channel_range() -> None:
+    project = _color_project((4, 2))
+    _add_height(project)
+    manifest = render_export(project, build_export_plan(project, bit_depth=8)).manifest
+    height = manifest["assets"][1]
+    assert height["bit_depth"] == 8
+    assert height["channel_interpretation"]["value_range"] == [0, 255]
+
+
+def test_manifest_keeps_separate_xy_dpi() -> None:
+    project = _color_project((300, 600))
+    project.set_physical_size_mm(25.4, 25.4)
+    manifest = render_export(project, build_export_plan(project)).manifest
+    assert manifest["target"]["dpi"] == [300.0, 600.0]
+    dimensions = manifest["profile_contract"]["dimensions"]
+    assert dimensions["png_phys_axes_independent"] is True
+    assert dimensions["print_size_status"] == "open"
 
 
 # ── Atomares Schreiben: Erfolg & Kollision ───────────────────────────────
@@ -206,9 +234,8 @@ def test_write_publishes_all_assets(tmp_path: Path) -> None:
     project = _color_project()
     _add_height(project)
     dest = tmp_path / "export"
-    # Höhenkarte am DEFAULT_BIT_DEPTH (8) löst seit #687 BIT_DEPTH_UNCONFIRMED
-    # aus (unbestätigte Herstellerempfehlung, 16 Bit) – hier geht es um das
-    # Schreiben der Assets, nicht um die Bittiefen-Bestätigungspflicht.
+    # Auch der konservative 16-Bit-Default bleibt bis zur physischen Messung
+    # bestätigungspflichtig; hier geht es um den Schreibpfad.
     out = write_export(project, dest, confirm_warnings=True)
     assert out == dest
     names = sorted(p.name for p in dest.iterdir())
@@ -217,6 +244,24 @@ def test_write_publishes_all_assets(tmp_path: Path) -> None:
     json.loads((dest / MANIFEST_FILENAME).read_text(encoding="utf-8"))
     # Kein natives .empf erzeugt.
     assert not any(p.suffix == ".empf" for p in dest.iterdir())
+
+
+def test_writer_consumes_selected_profile_without_hardcoded_filename(tmp_path: Path) -> None:
+    color_rule = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE.asset_for(LayerRole.COLOR_MOTIF),
+        filename="future_color.png",
+    )
+    profile = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE,
+        profile_id="test-future-profile",
+        assets=(color_rule, *DEFAULT_TARGET_PROFILE.assets[1:]),
+    )
+    dest = tmp_path / "future"
+    write_export(_color_project(), dest, profile=profile)
+    assert (dest / "future_color.png").is_file()
+    manifest = json.loads((dest / MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    assert manifest["profile"] == "test-future-profile"
+    assert manifest["profile_contract"] == profile.to_dict()
 
 
 def test_existing_target_without_overwrite_raises(tmp_path: Path) -> None:

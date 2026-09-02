@@ -12,6 +12,7 @@ import pytest
 from PIL import Image
 
 from bgremover.eufymake_export_dialog import EufyMakeExportDialog
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, ProfileStatus
 from bgremover.eufymake_validate import ExportCheckCode
 from bgremover.project_model import LayerKind, LayerRole, Project
 
@@ -59,6 +60,32 @@ def test_dialog_builds_with_honest_title(qapp) -> None:
         assert "EufyMake Studio" in dlg.windowTitle()
         # Keine Behauptung eines fertigen .empf-Projekts.
         assert ".empf" not in dlg.windowTitle()
+    finally:
+        dlg.close()
+
+
+@pytest.mark.ui_smoke
+def test_dialog_shows_selected_profile_version_and_environment(qapp) -> None:
+    dlg = EufyMakeExportDialog(_color_project())
+    try:
+        assert dlg.selected_profile() is DEFAULT_TARGET_PROFILE
+        assert f"v{DEFAULT_TARGET_PROFILE.profile_version}" in dlg._profile_combo.currentText()
+        assert DEFAULT_TARGET_PROFILE.target_environment.device in dlg._environment_label.text()
+        assert DEFAULT_TARGET_PROFILE.target_environment.studio_version in dlg._environment_label.text()
+        assert DEFAULT_TARGET_PROFILE.status is ProfileStatus.PROVISIONAL
+    finally:
+        dlg.close()
+
+
+@pytest.mark.ui_smoke
+def test_dialog_shows_effective_xy_dpi_separately(qapp) -> None:
+    project = _color_project((300, 600))
+    project.set_physical_size_mm(25.4, 25.4)
+    dlg = EufyMakeExportDialog(project)
+    try:
+        text = dlg._physical_label.text()
+        assert "X 300.0" in text
+        assert "Y 600.0" in text
     finally:
         dlg.close()
 
@@ -149,9 +176,9 @@ def test_warning_requires_explicit_confirmation(qapp) -> None:
 
 
 @pytest.mark.ui_smoke
-def test_8bit_adds_unconfirmed_warning(qapp) -> None:
-    # Seit #687 (unbestätigte Herstellerempfehlung: 16 Bit für Höhenkarten) ist
-    # der DEFAULT_BIT_DEPTH-Pfad (8) der unbestätigte, nicht mehr 16 Bit.
+def test_height_carrier_warns_at_default_and_legacy_depth(qapp) -> None:
+    # Der konservative Default ist 16 Bit; bis zur #688-Hardwaremessung bleiben
+    # sowohl dieser als auch der 8-Bit-Legacyträger unbestätigt.
     # Der Befund wird über den stabilen ``ExportCheckCode`` geprüft, nicht mehr
     # über den übersetzten Labeltext (#869). Die Sichtbarkeit der
     # Bestätigungs-Checkbox bleibt bewusst eine Widget-Assertion: dass eine
@@ -162,16 +189,18 @@ def test_8bit_adds_unconfirmed_warning(qapp) -> None:
     project = _with_height(_color_project())
     dlg = EufyMakeExportDialog(project)
     try:
-        assert dlg.selected_bit_depth() == 8
+        assert dlg.selected_bit_depth() == 16
         codes = [finding.code for finding in dlg.current_findings()]
         assert codes == [ExportCheckCode.BIT_DEPTH_UNCONFIRMED]
         assert not dlg._confirm.isHidden()
 
-        dlg._bit_combo.setCurrentIndex(dlg._bit_combo.findData(16))
+        dlg._bit_combo.setCurrentIndex(dlg._bit_combo.findData(8))
 
-        assert dlg.selected_bit_depth() == 16
-        assert dlg.current_findings() == ()
-        assert dlg._confirm.isHidden()
+        assert dlg.selected_bit_depth() == 8
+        assert [finding.code for finding in dlg.current_findings()] == [
+            ExportCheckCode.BIT_DEPTH_UNCONFIRMED
+        ]
+        assert not dlg._confirm.isHidden()
     finally:
         dlg.close()
 

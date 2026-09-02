@@ -80,13 +80,12 @@ def test_clean_project_has_no_findings() -> None:
     assert validate_export(_color_project()) == ()
 
 
-def test_color_plus_nonconstant_height_at_16bit_is_clean() -> None:
-    # Bei DEFAULT_BIT_DEPTH (8) warnt seit #687 BIT_DEPTH_UNCONFIRMED (siehe
-    # test_8bit_height_is_unconfirmed_warning) – „clean" gilt daher nur noch am
-    # vom Hersteller (unbestätigt) empfohlenen 16-Bit-Pfad.
+def test_color_plus_nonconstant_height_at_16bit_warns_unconfirmed() -> None:
+    # Studio akzeptiert den Träger, die physische Nutzung der Niederbits ist bis
+    # zum #688-Drucknachweis aber ausdrücklich offen.
     project = _with_height(_color_project())
     project.metadata[META_BIT_DEPTH] = 16
-    assert validate_export(project) == ()
+    assert _codes(validate_export(project)) == [ExportCheckCode.BIT_DEPTH_UNCONFIRMED]
 
 
 def test_validation_is_deterministic() -> None:
@@ -120,6 +119,8 @@ def test_requested_optional_role_missing_is_error() -> None:
     assert missing.severity is Severity.ERROR
     assert missing.role is LayerRole.HEIGHT_MAP
     assert missing.params["role_name"] == LayerRole.HEIGHT_MAP.value
+    assert missing.filename == "height_map.png"
+    assert missing.remedy == "assign_requested_role"
 
 
 def test_size_mismatch_is_error() -> None:
@@ -196,20 +197,18 @@ def test_gloss_always_warns_ink_mode() -> None:
 
 
 def test_8bit_height_is_unconfirmed_warning() -> None:
-    # 8 Bit ist DEFAULT_BIT_DEPTH – der Default-Pfad ohne META_BIT_DEPTH (#687:
-    # unbestätigte Herstellerhinweise empfehlen 16 Bit für Höhenkarten, daher
-    # warnt gerade der 8-Bit-Pfad statt des 16-Bit-Pfads).
+    # 8 Bit bleibt ein importierbarer, aber physisch unbestätigter Legacy-Pfad.
     project = _with_height(_color_project())
-    findings = validate_export(project)
+    findings = validate_export(project, bit_depth=8)
     warn = next(f for f in findings if f.code is ExportCheckCode.BIT_DEPTH_UNCONFIRMED)
     assert warn.severity is Severity.WARNING
     assert warn.params["bits"] == 8
 
 
-def test_16bit_height_has_no_bitdepth_warning() -> None:
+def test_16bit_height_is_also_unconfirmed_until_hardware_measurement() -> None:
     project = _with_height(_color_project())
     project.metadata[META_BIT_DEPTH] = 16
-    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED not in _codes(validate_export(project))
+    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED in _codes(validate_export(project))
 
 
 def test_bit_depth_override_triggers_warning() -> None:
@@ -219,12 +218,12 @@ def test_bit_depth_override_triggers_warning() -> None:
     assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED in _codes(findings)
 
 
-def test_bit_depth_override_to_16_clears_warning() -> None:
-    # Override 16 überschreibt einen 8-Bit-Metadatendefault → keine Warnung mehr.
+def test_bit_depth_override_to_16_keeps_hardware_warning() -> None:
+    # Override 16 überschreibt den Metadatenwert, bleibt physisch aber unbestätigt.
     project = _with_height(_color_project())
     project.metadata[META_BIT_DEPTH] = 8
     findings = validate_export(project, bit_depth=16)
-    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED not in _codes(findings)
+    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED in _codes(findings)
 
 
 def test_invalid_bit_depth_override_is_error() -> None:
@@ -440,15 +439,14 @@ def test_8bit_target_with_true_16bit_heights_warns_precision_loss() -> None:
 
 
 def test_16bit_target_does_not_warn_precision_loss() -> None:
-    # 16 Bit ist seit #687 der unbestätigt *empfohlene* Pfad – weder Präzisions-
-    # noch Bittiefen-Warnung feuert hier mehr.
+    # 16 Bit verliert keine Niederbits; die Hardware-Warnung bleibt separat.
     values = np.array([[0x1234, 0x0000], [0x8000, 0xFFFF]], dtype=np.uint16)
     project = _with_height_payload(_color_project((2, 2)), values)
     findings = validate_export(
         project, requested_optional_roles=(LayerRole.HEIGHT_MAP,), bit_depth=16)
     codes = [f.code for f in findings]
     assert ExportCheckCode.HEIGHT_PRECISION_LOSS not in codes
-    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED not in codes
+    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED in codes
 
 
 def test_8bit_target_without_low_bits_does_not_warn_precision_loss() -> None:

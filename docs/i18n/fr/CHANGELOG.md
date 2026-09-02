@@ -13,6 +13,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Profil cible EufyMake versionné (#691).** Planificateur, validateur, dialogue
+  et writer utilisent un contrat unique pour rôles, fichiers, canaux, mesures,
+  environnement, preuves et remèdes stables. Le dialogue affiche la version et
+  les DPI X/Y séparés ; le manifeste inclut le profil et la version BgRemover.
+  16 bits est le défaut HEIGHT prudent, mais reste, comme le gloss et les mesures
+  physiques, provisoire et soumis à avertissement jusqu'aux tests matériels. Les
+  références anciennes restent lisibles ; aucune migration de conteneur.
+
 - **La pilule de zoom aussi dans l'aperçu 3D du relief.** Le contrôle de
   zoom flottant du canevas 2D apparaît désormais aussi dans la vue 3D et y
   pilote le zoom de la caméra (100 % = vue ajustée, mêmes pas de ±10 % ; le

@@ -799,15 +799,25 @@ BgRemover **Import-Assets** für EufyMake Studio – **keine** fertige
 - **Gloss-Maske** (optional, experimentell) als Hilfsasset – nur verfügbar, wenn
   eine Ebene die Rolle *Gloss* trägt.
 
-Im Dialog wählen Sie den Exportordner, die optionalen Assets und die
-**Bittiefe** der Höhenkarte (8 Bit Standard, 16 Bit experimentell). Eine
+Im Dialog sehen Sie das **vorläufige Zielprofil samt Vertragsversion und
+Studio-Zielumgebung**, wählen den Exportordner, die optionalen Assets und die
+**Bittiefe** der Höhenkarte. 16 Bit ist der konservative Default; 8 Bit bleibt
+als Legacy-Option. Beide Träger sind physisch noch nicht bestätigt. Sind
+Projektmaße gesetzt, zeigt der Dialog Pixel, mm sowie effektive X- und Y-DPI
+getrennt. Eine
 **Pre-Export-Prüfung** läuft fortlaufend mit und meldet Befunde nach
 Schweregrad:
 
 - **Fehler** (⛔) blockieren den Export, bis sie behoben sind – z. B. ein
   fehlendes Farbmotiv oder nicht zusammenpassende Größen.
 - **Warnungen** (⚠️) müssen bewusst bestätigt werden – z. B. leere Höhen-/
-  Gloss-Daten oder die unbestätigte 16-Bit-Ausgabe.
+  Gloss-Daten, offene HEIGHT-Trägernutzung oder die notwendige native
+  Gloss-Zuweisung in Studio.
+
+`manifest.json` ist interne Provenienz mit Profil-/App-Version,
+Kanalinterpretation, Pixel/mm und X-/Y-DPI; es wird von Studio 4.2.2 nicht als
+Importpaket ausgewertet. Offene Hardwareeigenschaften bleiben darin als
+vorläufig/offen markiert.
 
 Danach importieren und positionieren Sie die Assets in EufyMake Studio,
 weisen dort Ink-Modi/Layer zu und speichern das Studio-Projekt selbst als
@@ -960,7 +970,8 @@ Menü bzw. Karten-Inspector erreichbar.
 - Die **2D-Vorschau** ist eine reine Bildschirmanzeige; der Bildexport
   schreibt unverändert das Farb-Komposit.
 - Der **EufyMake-Export** erzeugt nur Import-Assets, **keine** native
-  `.empf`-Datei; die 16-Bit-Höhenausgabe ist experimentell.
+  `.empf`-Datei. Zielprofil v1 ist vorläufig; HEIGHT-Nutzung, physisches Maß
+  und Gloss-Semantik warten noch auf die Hardwaretests.
 - Das **App-Bundle** (`BgRemover.app`) ist macOS-spezifisch; unter Linux
   läuft die Anwendung über den direkten Programmstart. Windows gehört
   derzeit nicht zur offiziell getesteten Matrix.

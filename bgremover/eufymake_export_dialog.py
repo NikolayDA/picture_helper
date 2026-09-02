@@ -31,6 +31,12 @@ from PyQt6.QtWidgets import (
 )
 
 from bgremover.eufymake_export import EufyMakeExportError, derive_export_target
+from bgremover.eufymake_profile import (
+    DEFAULT_PROFILE_REGISTRY,
+    DEFAULT_TARGET_PROFILE,
+    EufyMakeTargetProfile,
+    ProfileStatus,
+)
 from bgremover.eufymake_validate import (
     ExportFinding,
     format_finding,
@@ -39,13 +45,6 @@ from bgremover.eufymake_validate import (
 )
 from bgremover.i18n import tr
 from bgremover.project_model import LayerRole, Project
-
-# Auswählbare Bittiefen: (Wert, i18n-Key des Labels). 8 Bit ist Standard, 16 Bit
-# ist ausdrücklich experimentell/unbestätigt (löst eine #354-Warnung aus).
-_BIT_DEPTHS: tuple[tuple[int, str], ...] = (
-    (8, "eufymake.dialog.bit_depth.8"),
-    (16, "eufymake.dialog.bit_depth.16"),
-)
 
 
 class EufyMakeExportDialog(QDialog):
@@ -57,12 +56,14 @@ class EufyMakeExportDialog(QDialog):
         *,
         include_height: bool = True,
         include_gloss: bool = True,
-        bit_depth: int = 8,
+        bit_depth: int = DEFAULT_TARGET_PROFILE.default_height_bit_depth,
         dest_dir: str = "",
+        profile: EufyMakeTargetProfile = DEFAULT_TARGET_PROFILE,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._project = project
+        self._initial_profile = profile
         self._has_height = project.layer_by_role(LayerRole.HEIGHT_MAP) is not None
         self._has_gloss = project.layer_by_role(LayerRole.GLOSS_MASK) is not None
         self.setWindowTitle(tr("eufymake.dialog.title"))
@@ -83,8 +84,10 @@ class EufyMakeExportDialog(QDialog):
         intro.setStyleSheet("color: #bbb;")
         lay.addWidget(intro)
 
+        lay.addWidget(self._build_profile_group())
         lay.addWidget(self._build_assets_group(include_height, include_gloss))
         lay.addWidget(self._build_target_group(bit_depth))
+        self._profile_combo.currentIndexChanged.connect(self._profile_changed)
         lay.addWidget(self._build_dest_group(dest_dir))
 
         findings_grp = QGroupBox(tr("eufymake.dialog.section.findings"))
@@ -109,6 +112,32 @@ class EufyMakeExportDialog(QDialog):
         btn_row.addWidget(cancel)
         btn_row.addWidget(self._export_btn)
         lay.addLayout(btn_row)
+
+    def _build_profile_group(self) -> QGroupBox:
+        grp = QGroupBox(tr("eufymake.dialog.section.profile"))
+        box = QVBoxLayout(grp)
+        self._profile_combo = QComboBox()
+        profiles = list(DEFAULT_PROFILE_REGISTRY.profiles())
+        if self._initial_profile not in profiles:
+            profiles.append(self._initial_profile)
+        selected_index = 0
+        for index, profile in enumerate(profiles):
+            self._profile_combo.addItem(
+                tr(
+                    "eufymake.dialog.profile.option",
+                    name=profile.display_name,
+                    version=profile.profile_version,
+                ),
+                profile,
+            )
+            if profile == self._initial_profile:
+                selected_index = index
+        self._profile_combo.setCurrentIndex(selected_index)
+        box.addWidget(self._profile_combo)
+        self._environment_label = _hint("")
+        box.addWidget(self._environment_label)
+        self._update_environment_text()
+        return grp
 
     def _build_assets_group(self, include_height: bool, include_gloss: bool) -> QGroupBox:
         grp = QGroupBox(tr("eufymake.dialog.section.assets"))
@@ -151,9 +180,7 @@ class EufyMakeExportDialog(QDialog):
         depth_row = QHBoxLayout()
         depth_row.addWidget(QLabel(tr("eufymake.dialog.bit_depth")))
         self._bit_combo = QComboBox()
-        # Literale tr(...) je Eintrag, damit die i18n-Key-Hygiene die Nutzung sieht.
-        self._bit_combo.addItem(tr("eufymake.dialog.bit_depth.8"), 8)
-        self._bit_combo.addItem(tr("eufymake.dialog.bit_depth.16"), 16)
+        self._populate_bit_depths(bit_depth)
         index = self._bit_combo.findData(bit_depth)
         self._bit_combo.setCurrentIndex(index if index >= 0 else 0)
         self._bit_combo.currentIndexChanged.connect(self._recompute)
@@ -162,8 +189,50 @@ class EufyMakeExportDialog(QDialog):
 
         w, h = self._project.size
         box.addWidget(_hint(tr("eufymake.dialog.size", w=w, h=h)))
-        box.addWidget(_hint(self._physical_text()))
+        self._physical_label = _hint(self._physical_text())
+        box.addWidget(self._physical_label)
         return grp
+
+    def _populate_bit_depths(self, preferred: int) -> None:
+        """Füllt die HEIGHT-Tiefen ausschließlich aus dem gewählten Profil."""
+        previous_block = self._bit_combo.blockSignals(True)
+        self._bit_combo.clear()
+        for depth in self.selected_profile().height_bit_depths:
+            if depth == 8:
+                label = tr("eufymake.dialog.bit_depth.8")
+            elif depth == 16:
+                label = tr("eufymake.dialog.bit_depth.16")
+            else:
+                label = f"{depth} Bit"
+            self._bit_combo.addItem(label, depth)
+        index = self._bit_combo.findData(preferred)
+        if index < 0:
+            index = self._bit_combo.findData(self.selected_profile().default_height_bit_depth)
+        self._bit_combo.setCurrentIndex(max(index, 0))
+        self._bit_combo.blockSignals(previous_block)
+
+    def _profile_changed(self, _index: int = -1) -> None:
+        previous = self.selected_bit_depth()
+        self._populate_bit_depths(previous)
+        self._update_environment_text()
+        self._recompute()
+
+    def _update_environment_text(self) -> None:
+        profile = self.selected_profile()
+        status = (
+            tr("eufymake.dialog.profile.status.provisional")
+            if profile.status is ProfileStatus.PROVISIONAL
+            else profile.status.value
+        )
+        environment = profile.target_environment
+        self._environment_label.setText(
+            tr(
+                "eufymake.dialog.profile.environment",
+                device=environment.device,
+                studio=environment.studio_version,
+                status=status,
+            )
+        )
 
     def _build_dest_group(self, dest_dir: str) -> QGroupBox:
         grp = QGroupBox(tr("eufymake.dialog.section.dest"))
@@ -187,7 +256,11 @@ class EufyMakeExportDialog(QDialog):
     # ── Live-Prüfung ────────────────────────────────────────────────────
     def _physical_text(self) -> str:
         try:
-            target = derive_export_target(self._project, bit_depth=self.selected_bit_depth())
+            target = derive_export_target(
+                self._project,
+                bit_depth=self.selected_bit_depth(),
+                profile=self.selected_profile(),
+            )
         except EufyMakeExportError:
             # Ungültige physische Metadaten o. Ä. zeigt die Befundliste; hier nur
             # neutral „nicht gesetzt", statt den Dialogaufbau abzubrechen.
@@ -195,8 +268,14 @@ class EufyMakeExportDialog(QDialog):
         if target.physical_size_mm is None or target.dpi is None:
             return tr("eufymake.dialog.physical.unset")
         mw, mh = target.physical_size_mm
-        dpi = (target.dpi[0] + target.dpi[1]) / 2
-        return tr("eufymake.dialog.physical", w=f"{mw:g}", h=f"{mh:g}", dpi=f"{dpi:.0f}")
+        x_dpi, y_dpi = target.dpi
+        return tr(
+            "eufymake.dialog.physical",
+            w=f"{mw:g}",
+            h=f"{mh:g}",
+            x_dpi=f"{x_dpi:.1f}",
+            y_dpi=f"{y_dpi:.1f}",
+        )
 
     def _recompute(self) -> None:
         """Berechnet die Befunde neu und aktualisiert Anzeige + Buttons."""
@@ -204,7 +283,9 @@ class EufyMakeExportDialog(QDialog):
             self._project,
             requested_optional_roles=self.selected_optional_roles(),
             bit_depth=self.selected_bit_depth(),
+            profile=self.selected_profile(),
         )
+        self._physical_label.setText(self._physical_text())
         self._errors, self._warnings = split_findings(findings)
         if not findings:
             self._findings_label.setText(tr("eufymake.dialog.findings.ok"))
@@ -254,6 +335,13 @@ class EufyMakeExportDialog(QDialog):
 
     def selected_bit_depth(self) -> int:
         return int(self._bit_combo.currentData())
+
+    def selected_profile(self) -> EufyMakeTargetProfile:
+        """Das Profilobjekt, das Prüfung und Writer unverändert weiterreichen."""
+        profile = self._profile_combo.currentData()
+        if not isinstance(profile, EufyMakeTargetProfile):  # pragma: no cover - UI-Invariante
+            raise RuntimeError("EufyMake-Dialog ohne gültiges Zielprofil")
+        return profile
 
     def selected_destination(self) -> str:
         return self._dest_edit.text().strip()

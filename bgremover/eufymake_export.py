@@ -23,6 +23,12 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 
+from bgremover.eufymake_profile import (
+    DEFAULT_TARGET_PROFILE,
+    AssetPixelFormat,
+    EufyMakeTargetProfile,
+    HeightSemantics,
+)
 from bgremover.project_model import (
     META_BIT_DEPTH,
     META_PHYSICAL_SIZE_MM,
@@ -33,24 +39,13 @@ from bgremover.project_model import (
 from bgremover.units import MM_PER_INCH as MM_PER_INCH  # Re-Export (Rückwärtskompat.)
 from bgremover.units import UnitsError
 
-# Profil-/Versionskennung des Pakets. **BgRemover-Konvention**, keine offizielle
-# EufyMake-Kennung: trennt spätere Konventionsänderungen sauber vom Projektmodell
-# und erlaubt #353–#355, gegen eine stabile Version zu planen.
-EXPORT_PROFILE = "bgremover-eufymake-import"
-EXPORT_PROFILE_VERSION = 1
-
-# Kanonische, deterministische Asset-Dateinamen (BgRemover-Konvention). Bewusst
-# verlustfreie PNGs; die logische Paketstruktur bleibt für Ordner *und* ZIP gleich.
-_ASSET_FILENAMES: dict[LayerRole, str] = {
-    LayerRole.COLOR_MOTIF: "color_motif.png",
-    LayerRole.HEIGHT_MAP: "height_map.png",
-    LayerRole.GLOSS_MASK: "gloss_mask.png",
-}
-
-# Standard-Bittiefe pro Kanal. 8 Bit ist der dokumentierte, konservative Default;
-# 16 Bit bleibt als Hook für die (offiziell nicht bestätigte) Höhen-Tiefe möglich.
-DEFAULT_BIT_DEPTH = 8
-_SUPPORTED_BIT_DEPTHS = (8, 16)
+# Rückwärtskompatible Re-Exports. Quelle ist ausschließlich das versionierte
+# Zielprofil; der konservative HEIGHT-Default ist seit #691 16 Bit. Ob Studio
+# die zusätzlichen Niederbits physisch nutzt, bleibt im Profil ausdrücklich offen.
+EXPORT_PROFILE = DEFAULT_TARGET_PROFILE.profile_id
+EXPORT_PROFILE_VERSION = DEFAULT_TARGET_PROFILE.profile_version
+DEFAULT_BIT_DEPTH = DEFAULT_TARGET_PROFILE.default_height_bit_depth
+_SUPPORTED_BIT_DEPTHS = DEFAULT_TARGET_PROFILE.height_bit_depths
 
 # Druckfläche des eufyMake-E1-Standard-Flachbetts in mm (Breite × Tiefe).
 # **Herstellerquelle, aber nur über Suchmaschinen-Extraktion belegt** (Recherche
@@ -64,19 +59,6 @@ STANDARD_FLATBED_MM = (330.0, 420.0)
 # Die px↔mm↔DPI-Geometrie (``MM_PER_INCH``, Ableitungen) lebt seit #376 zentral in
 # :mod:`bgremover.units`; ``MM_PER_INCH`` wird oben re-exportiert, damit bisherige
 # Importeure (Tests/Module) unverändert weiterfunktionieren.
-
-
-class AssetPixelFormat(Enum):
-    """Logisches Pixelformat eines Assets (PIL-Modus erst beim Rendern in #353)."""
-
-    RGBA = "rgba"  # Farbe mit Alpha – Farbmotiv
-    GRAYSCALE = "grayscale"  # einkanalige Graustufe – Höhenkarte / Gloss-Maske
-
-
-class HeightSemantics(Enum):
-    """Vertraglich fixierte Höhen-Interpretation einer Graustufenkarte."""
-
-    LIGHT_IS_HIGH = "light_is_high"  # hell = hoch, dunkel = niedrig (offiziell belegt)
 
 
 # Der eine, vertraglich garantierte Höhenkonventionswert. Modul, Plan und spätere
@@ -174,6 +156,7 @@ class ExportPlan:
     assets: tuple[ExportAsset, ...]
     height_semantics: HeightSemantics
     open_questions: tuple[OpenQuestion, ...]
+    contract: EufyMakeTargetProfile
 
     def asset_for(self, role: LayerRole) -> ExportAsset | None:
         """Geplantes Asset zur Rolle oder ``None``, falls nicht im Paket."""
@@ -201,7 +184,9 @@ class ExportPlan:
         return tuple(asset.filename for asset in self.assets)
 
 
-def _derive_bit_depth(metadata: dict[str, object]) -> int:
+def _derive_bit_depth(
+    metadata: dict[str, object], profile: EufyMakeTargetProfile
+) -> int:
     """Liest ``META_BIT_DEPTH`` strukturiert aus oder fällt auf den Default zurück.
 
     **Nur ein fehlender Schlüssel** ergibt :data:`DEFAULT_BIT_DEPTH`. Ein
@@ -212,18 +197,23 @@ def _derive_bit_depth(metadata: dict[str, object]) -> int:
     Korrektur, die korrupte Metadaten als 8 Bit kaschiert.
     """
     if META_BIT_DEPTH not in metadata:
-        return DEFAULT_BIT_DEPTH
+        return profile.default_height_bit_depth
     raw = metadata[META_BIT_DEPTH]
     if isinstance(raw, bool) or not isinstance(raw, int):
         raise InvalidBitDepthError(f"{META_BIT_DEPTH} muss ein Integer sein, war {raw!r}")
-    if raw not in _SUPPORTED_BIT_DEPTHS:
+    if raw not in profile.height_bit_depths:
         raise InvalidBitDepthError(
-            f"{META_BIT_DEPTH} muss in {_SUPPORTED_BIT_DEPTHS} liegen, war {raw}"
+            f"{META_BIT_DEPTH} muss in {profile.height_bit_depths} liegen, war {raw}"
         )
     return raw
 
 
-def coerce_bit_depth(metadata: dict[str, object], override: int | None) -> int:
+def coerce_bit_depth(
+    metadata: dict[str, object],
+    override: int | None,
+    *,
+    profile: EufyMakeTargetProfile = DEFAULT_TARGET_PROFILE,
+) -> int:
     """Effektive Bittiefe: ``override`` (validiert) hat Vorrang, sonst Metadaten.
 
     Geteilte Regel für Plan und Prüfung (#355): Eine explizite UI-Wahl (8/16) wird
@@ -231,15 +221,20 @@ def coerce_bit_depth(metadata: dict[str, object], override: int | None) -> int:
     :class:`InvalidBitDepthError`); ohne Override greift die Metadaten-Ableitung.
     """
     if override is None:
-        return _derive_bit_depth(metadata)
-    if override not in _SUPPORTED_BIT_DEPTHS:
+        return _derive_bit_depth(metadata, profile)
+    if override not in profile.height_bit_depths:
         raise InvalidBitDepthError(
-            f"Bittiefe muss in {_SUPPORTED_BIT_DEPTHS} liegen, war {override!r}"
+            f"Bittiefe muss in {profile.height_bit_depths} liegen, war {override!r}"
         )
     return override
 
 
-def _derive_target(project: Project, *, bit_depth: int | None = None) -> ExportTarget:
+def _derive_target(
+    project: Project,
+    *,
+    bit_depth: int | None = None,
+    profile: EufyMakeTargetProfile = DEFAULT_TARGET_PROFILE,
+) -> ExportTarget:
     """Baut die :class:`ExportTarget`-Parameter reproduzierbar aus dem Projekt.
 
     Physische Größe und DPI stammen aus den **Projektmodell-Gettern** (#376/#378):
@@ -249,7 +244,7 @@ def _derive_target(project: Project, *, bit_depth: int | None = None) -> ExportT
     – als :class:`InvalidPhysicalSizeError` gemeldet. ``bit_depth`` überschreibt
     die aus den Metadaten abgeleitete Tiefe (UI-Wahl).
     """
-    depth = coerce_bit_depth(project.metadata, bit_depth)
+    depth = coerce_bit_depth(project.metadata, bit_depth, profile=profile)
     try:
         physical_size = project.physical_size_mm
         dpi = project.dpi
@@ -263,7 +258,12 @@ def _derive_target(project: Project, *, bit_depth: int | None = None) -> ExportT
     )
 
 
-def derive_export_target(project: Project, *, bit_depth: int | None = None) -> ExportTarget:
+def derive_export_target(
+    project: Project,
+    *,
+    bit_depth: int | None = None,
+    profile: EufyMakeTargetProfile = DEFAULT_TARGET_PROFILE,
+) -> ExportTarget:
     """Öffentliche Ableitung der Zielparameter – auch ohne vorhandenes Farbmotiv.
 
     Liefert Pixelgröße, physische Größe, DPI und (effektive) Bittiefe unabhängig
@@ -271,7 +271,7 @@ def derive_export_target(project: Project, *, bit_depth: int | None = None) -> E
     die Zielinfos schon zeigen will, während die Prüfung noch Fehler meldet.
     Ungültige Metadaten werfen weiterhin strukturierte Fehler.
     """
-    return _derive_target(project, bit_depth=bit_depth)
+    return _derive_target(project, bit_depth=bit_depth, profile=profile)
 
 
 def _has_contributing_color(project: Project) -> bool:
@@ -300,7 +300,9 @@ def can_render_color_motif(project: Project) -> bool:
     return _has_contributing_color(project)
 
 
-def _plan_color_motif(project: Project) -> ExportAsset:
+def _plan_color_motif(
+    project: Project, contract: EufyMakeTargetProfile
+) -> ExportAsset:
     """Plant das **erforderliche** Farbmotiv aus Rolle oder COLOR-Komposit.
 
     Trägt eine Ebene die Rolle ``COLOR_MOTIF``, ist sie die explizite Quelle
@@ -322,25 +324,27 @@ def _plan_color_motif(project: Project) -> ExportAsset:
             "Kein Farbmotiv: weder eine COLOR_MOTIF-Rolle noch eine zum Komposit "
             "beitragende (sichtbare, opake) COLOR-Ebene vorhanden"
         )
+    rule = contract.asset_for(LayerRole.COLOR_MOTIF)
     return ExportAsset(
         role=LayerRole.COLOR_MOTIF,
-        filename=_ASSET_FILENAMES[LayerRole.COLOR_MOTIF],
-        pixel_format=AssetPixelFormat.RGBA,
-        bit_depth=DEFAULT_BIT_DEPTH,
-        required=True,
+        filename=rule.filename,
+        pixel_format=rule.pixel_format,
+        bit_depth=rule.default_bit_depth,
+        required=rule.required,
         source_layer_id=source_id,
+        experimental=rule.experimental,
     )
 
 
-# Optionale Rollen, die der Plan auswählbar führt; das Farbmotiv ist immer Pflicht.
-_PLAN_OPTIONAL_ROLES: tuple[LayerRole, ...] = (LayerRole.HEIGHT_MAP, LayerRole.GLOSS_MASK)
-
-
-def _resolve_optional_roles(optional_roles: Iterable[LayerRole] | None) -> frozenset[LayerRole]:
+def _resolve_optional_roles(
+    optional_roles: Iterable[LayerRole] | None,
+    contract: EufyMakeTargetProfile,
+) -> frozenset[LayerRole]:
     """Welche optionalen Rollen ins Paket dürfen: ``None`` = alle, sonst die Auswahl."""
+    supported = frozenset(contract.optional_roles)
     if optional_roles is None:
-        return frozenset(_PLAN_OPTIONAL_ROLES)
-    return frozenset(optional_roles) & frozenset(_PLAN_OPTIONAL_ROLES)
+        return supported
+    return frozenset(optional_roles) & supported
 
 
 def build_export_plan(
@@ -348,6 +352,7 @@ def build_export_plan(
     *,
     optional_roles: Iterable[LayerRole] | None = None,
     bit_depth: int | None = None,
+    profile: EufyMakeTargetProfile = DEFAULT_TARGET_PROFILE,
 ) -> ExportPlan:
     """Bildet ein :class:`Project` deterministisch auf einen :class:`ExportPlan` ab.
 
@@ -364,46 +369,50 @@ def build_export_plan(
     (:class:`EufyMakeExportError`-Subtypen). Es wird **kein** natives ``.empf``
     geplant.
     """
-    target = _derive_target(project, bit_depth=bit_depth)
-    included = _resolve_optional_roles(optional_roles)
+    target = _derive_target(project, bit_depth=bit_depth, profile=profile)
+    included = _resolve_optional_roles(optional_roles, profile)
 
-    assets: list[ExportAsset] = [_plan_color_motif(project)]
+    assets: list[ExportAsset] = [_plan_color_motif(project, profile)]
     open_questions: list[OpenQuestion] = [OpenQuestion.NATIVE_EMPF_PROJECT]
 
     height_layer = project.layer_by_role(LayerRole.HEIGHT_MAP)
     if height_layer is not None and LayerRole.HEIGHT_MAP in included:
+        rule = profile.asset_for(LayerRole.HEIGHT_MAP)
         assets.append(
             ExportAsset(
                 role=LayerRole.HEIGHT_MAP,
-                filename=_ASSET_FILENAMES[LayerRole.HEIGHT_MAP],
-                pixel_format=AssetPixelFormat.GRAYSCALE,
+                filename=rule.filename,
+                pixel_format=rule.pixel_format,
                 bit_depth=target.bit_depth,
-                required=False,
+                required=rule.required,
                 source_layer_id=height_layer.id,
+                experimental=rule.experimental,
             )
         )
         open_questions.append(OpenQuestion.HEIGHT_MAP_BIT_DEPTH)
 
     gloss_layer = project.layer_by_role(LayerRole.GLOSS_MASK)
     if gloss_layer is not None and LayerRole.GLOSS_MASK in included:
+        rule = profile.asset_for(LayerRole.GLOSS_MASK)
         assets.append(
             ExportAsset(
                 role=LayerRole.GLOSS_MASK,
-                filename=_ASSET_FILENAMES[LayerRole.GLOSS_MASK],
-                pixel_format=AssetPixelFormat.GRAYSCALE,
-                bit_depth=DEFAULT_BIT_DEPTH,
-                required=False,
+                filename=rule.filename,
+                pixel_format=rule.pixel_format,
+                bit_depth=rule.default_bit_depth,
+                required=rule.required,
                 source_layer_id=gloss_layer.id,
-                experimental=True,
+                experimental=rule.experimental,
             )
         )
         open_questions.append(OpenQuestion.GLOSS_MASK_SEMANTICS)
 
     return ExportPlan(
-        profile=EXPORT_PROFILE,
-        profile_version=EXPORT_PROFILE_VERSION,
+        profile=profile.profile_id,
+        profile_version=profile.profile_version,
         target=target,
         assets=tuple(assets),
         height_semantics=HEIGHT_SEMANTICS,
         open_questions=tuple(open_questions),
+        contract=profile,
     )
