@@ -107,14 +107,20 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 19 | I-11 | ☐ | ☐ |
 | 20 | I-12 | ☐ | ☐ |
 | 21 | I-13 (Alpha/Coverage) | ☐ | ☐ |
-| 22 | G-01 (Gloss min/mittel/max) | ☐ | ☐ |
-| 23 | G-02 (normal/invertiert) | ☐ | ☐ |
-| 24 | G-03 (Stufen + 64…192-Keil) | ☐ | ☐ |
-| 25 | G-04a/b/c (fehlend/Null/voll) | ☐ | ☐ |
-| 26 | G-05 (Gloss 128×256 gegen COLOR 256×256) | ☐ | ☐ |
-| 27 | G-06 (Alpha 0/128/255 × Gloss 128) | ☐ | ☐ |
-| 28 | G-07 (HEIGHT 0/32768/65535 × Gloss 128) | ☐ | ☐ |
-| 29 | G-08 (Registrierung/Schachbrett) | ☐ | ☐ |
+| 22 | G-01 (Gloss min/mittel/max) | ☑ | ☑ |
+| 23 | G-02 (normal/invertiert) | ☑ | ☑ |
+| 24 | G-03 (Stufen + 64…192-Keil) | ☑ | ☑ |
+| 25 | G-04a/b/c (fehlend/Null/voll) | ☑ | ☑ |
+| 26 | G-05 (Gloss 128×256 gegen COLOR 256×256) | ☑ | ☑ |
+| 27 | G-06 (Alpha 0/128/255 × Gloss 128) | ☑ | ☑ |
+| 28 | G-07 (HEIGHT 0/32768/65535 × Gloss 128) | ☑ | ☑ |
+| 29 | G-08 (Registrierung/Schachbrett) | ☑ | ☑ |
+
+Die #690-Zeilen 22–29 wurden am 2026-09-02 mit Studio 4.2.2 / Editor 1.20.0
+abgeschlossen und in der #690-Ergebnisakte protokolliert. „Import“ bedeutet
+hier ausdrücklich den Bilddialog-Grenzbefund: getrennte „Flat“-Ebenen ohne
+native GLOSS-Zuordnung. Es wurde weder **Preview** noch **Print** ausgelöst;
+die physischen Aussagen bleiben offen.
 
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 

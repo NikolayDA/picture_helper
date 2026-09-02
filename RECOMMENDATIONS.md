@@ -35,7 +35,7 @@ für Nutzer:innen keinen sichtbaren Inhalt. Vorgesehener Scope für ein spätere
 **v2.10.0**: die COLOR-Tonwert-Engine (#693/#694 aus Epic #682) auf Basis des
 jetzt verabschiedeten ADR #692, gegebenenfalls plus #949.
 
-**EufyMake #681/#687–#691:** PR #951 ist gemergt; #690 erweitert den reproduzierbaren Satz auf 41 Einzel-Fixtures und sieben echte Exportpakete. Getrennte X-/Y-DPI, Manifest-/`pHYs`-Konflikte, Gloss 0/128/255, 64…192-Normalisierung, Dimensionsabweichung sowie Alpha×Gloss und HEIGHT×Gloss sind automatisiert geprüft. Studio 4.2.2 bestätigt den #689-Importvertrag; die neuen #690-Importe und alle physischen Gloss-/HEIGHT-Messungen bleiben offen. #687 steht bei 17/18 Kriterien und wartet auf die Abschluss-Review nach den Realtests.
+**EufyMake #681/#687–#691:** PR #951 ist gemergt; #690 erweitert den reproduzierbaren Satz auf 41 Einzel-Fixtures und sieben echte Exportpakete. Getrennte X-/Y-DPI, Manifest-/`pHYs`-Konflikte, Gloss 0/128/255, 64…192-Normalisierung, Dimensionsabweichung sowie Alpha×Gloss und HEIGHT×Gloss sind automatisiert geprüft. Studio 4.2.2 bestätigt nun auch für #690 den Bildimport-Grenzvertrag: alle PNGs bleiben unabhängige „Flat“-Ebenen ohne GLOSS-Rollenzuordnung; die physischen Gloss-/HEIGHT-Messungen bleiben offen. #687 steht bei 17/18 Kriterien und wartet auf die Abschluss-Review nach den Realtests.
 
 Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.9.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #943 (PR #944) und #692 (PR #947) (Details: Vorige Runden).
 
@@ -49,7 +49,7 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Annahmeninventar, Herstellerquellen, Testmatrix | 🟠 Hoch (verbindliche Grundlage für #688–#691) | 🔴 Hoch (Repository-Material vollständig; Rest braucht reale Hardware) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – 17/18 Akzeptanzkriterien erledigt; I-06 ist in Studio beobachtet, offen bleibt die Abschluss-Review nach den Realtests aus #688–#690 |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | HEIGHT-Bittiefe/-Semantik auf realer Hardware validieren | 🟠 Hoch (Reliefhöhe direkt betroffen) | 🔴 Hoch (physischer Drucker, Fixtures, Messprotokoll) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – PR #948 ist gemergt und die Repository-Vorbereitung abgeschlossen; offen bleiben die übrige Importmatrix sowie sichere physische E1-Druck-, Relief- und mm-Messungen |
 | [#689](https://github.com/NikolayDA/picture_helper/issues/689) | mm/DPI, Zielgröße, Positionierungsvertrag validieren | 🟠 Hoch (Druckgröße/Registrierung) | 🔴 Hoch (physische Messungen, Kontrollmotive) | – (kein Agent; reale Hardware nötig) | In Bearbeitung – Repository-Satz und Studio-Teilvertrag sind dokumentiert: 72-dpi-Fallback, X/Y-`pHYs`, Manifestgrenze, manuelle Größe, Rotation und Einzelbild-Crop. Offen sind rollenübergreifender Crop/Registrierung, physische Messungen und Drucktoleranzen |
-| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Gloss-/Klarlack-Semantik validieren | 🟡 Mittel (Gloss ist laut Code bereits „experimental“) | 🔴 Hoch (physische Drucke, Materialverbrauch) | – (kein Agent; reale Hardware nötig) | Blocked (extern) + Vorarbeit vollständig – Schema 4 deckt fehlend/0/128/255, begrenzten Keil, Dimension, Alpha×Gloss, HEIGHT×Gloss und Registrierung ab; Studio-Import und physischer Glossbefund bleiben offen |
+| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Gloss-/Klarlack-Semantik validieren | 🟡 Mittel (Gloss ist laut Code bereits „experimental“) | 🔴 Hoch (physische Drucke, Materialverbrauch) | – (kein Agent; reale Hardware nötig) | Blocked (extern) + Digital-/Importteil vollständig – Schema 4 und Studio 4.2.2 belegen Fixtures, Pakete, 72-dpi-Geometrie sowie unabhängige „Flat“-Ebenen ohne GLOSS-Zuordnung; offen bleibt der physische Glossbefund |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Versioniertes Zielprofil in Validator/Writer/Dialog/Doku | 🟠 Hoch (härtet den produktiven Exportpfad) | 🟠 Hoch (Cross-Cutting über eufymake_export/_validate/_writer + UI) | Opus, hoch | Blocked – wartet auf #688–#690 |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR-Tonwert-/Graustufen-Engine | 🟡 Mittel-Hoch (Roadmap-Fundament für Laser, kein akuter Bug) | 🔴 Hoch (4 verbleibende Teil-Issues: Kern→UI→Integration→Abnahme) | – (Epic) | In Bearbeitung – ADR #692 ist verabschiedet; als Nächstes den Kern #693 |
 | [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Qt-freier Kern: Histogramm/Graustufe/Levels/Gamma | 🟡 Mittel-Hoch | 🟡 Mittel (Erweiterung von `color_ops.py`, gut isoliert testbar) | Sonnet, hoch | Startbereit – ADR #692 (PR #947) liefert den Datenvertrag; Kern gegen dessen Formeln implementieren und testen |
@@ -95,8 +95,8 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 2. **#949** – vier kleine, klar umrissene Teständerungen ohne Produktionsrisiko; guter
    Parallel-PR neben dem Epic.
 3. Nach Geräte-/Materialfreigabe die offenen physischen Messungen aus **#689**
-   zusammen mit #687 (Rest), #688 und #690 durchführen; der Studio-Importteil
-   von #689 ist bereits dokumentiert.
+   zusammen mit #687 (Rest), #688 und #690 durchführen; die Studio-Importteile
+   von #689 und #690 sind bereits dokumentiert.
 4. **#883** (MAS-Lizenzstrategie) entscheidet über den Mac-App-Store-Pfad #882 –
    ohne diesen Owner-Entscheid bleibt die gesamte Kette #884–#907 blockiert.
 

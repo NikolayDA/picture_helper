@@ -73,7 +73,7 @@ IHDR-Bittiefe/-Farbtyp, vollständige Chunkfolge, `pHYs` und Chunk-CRCs direkt
 aus den übertragenen Dateien. Der Pillow-Modus ist nur ein Diagnosefeld; die
 Formatentscheidung beruht auf IHDR. Der im Befehl fest vorgegebene
 Manifest-SHA bindet das kopierte Verzeichnis an den versionierten Sollsatz.
-Nur Exitcode 0, `"ok": true`, Manifest-Schema 3 und derselbe Soll-Hash erlauben
+Nur Exitcode 0, `"ok": true`, Manifest-Schema 4 und derselbe Soll-Hash erlauben
 den anschließenden Import; der Report wird mit den Nachweisen abgelegt.
 
 **Repository-Gesamtprüfung (2026-09-02, automatisiert, kein Studio-Zugriff):**
@@ -248,11 +248,11 @@ Dateivalidierungsprotokoll derselben Zeile.
 | I-08 (nach Crop) | | | | | | | Ja / Nein | | |
 | I-09 (Legacy) | | | | | | | Ja / Nein | | |
 | I-09 (aktuell) | | | | | | | Ja / Nein | | |
-| I-10 (normal) | | | | | | | Ja / Nein | | |
-| I-10 (invertiert) | | | | | | | Ja / Nein | | |
+| I-10 (normal) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, 90,31×90,31 mm | „Flat“; keine Rollenzuordnung | Nein | Live-Sitzung, kein Screenshot-Artefakt | Bildimport belegt keine Gloss-Polarität; kein Druck |
+| I-10 (invertiert) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, 90,31×90,31 mm | „Flat“; keine Rollenzuordnung | Nein | Live-Sitzung, kein Screenshot-Artefakt | Bildimport belegt keine Gloss-Polarität; kein Druck |
 | I-11 | | | | | | | Ja / Nein | | |
 | I-12 | | | | | | | Ja / Nein | | |
-| I-13 (Alpha/Coverage) | | | | | | | Ja / Nein | | |
+| I-13 (Alpha/Coverage) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | drei PNGs sichtbar, je 90,31×90,31 mm | drei getrennte „Flat“-Ebenen; keine Rollenzuordnung | Nein | Live-Sitzung, kein Screenshot-Artefakt | Alpha-Felder im COLOR sichtbar; Wirkung auf Gloss/HEIGHT ohne Druck offen |
 
 ### 2.1 mm/DPI-Detailwerte für #689
 
@@ -279,6 +279,29 @@ Rundung wird nach der Regel in
 [`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md)
 bewertet. „Nichts passiert" bleibt auch hier ein Ergebnis und wird zusätzlich
 in der allgemeinen Importtabelle markiert.
+
+### 2.2 Gloss-Importdetailwerte für #690
+
+Live-Sitzung am 2026-09-02 mit Studio 4.2.2 / Editor 1.20.0; E1 online,
+Firmware nicht angezeigt. Der unmittelbar vorher erzeugte Inspectorreport
+bestätigte 41/41 Einzel-Fixtures und 7/7 Pakete. Es wurde weder **Preview**
+noch **Print** ausgelöst.
+
+| Zelle | Importierte Dateien | Studio-Ergebnis | Warnung/Änderung | Belegte Grenze |
+| --- | --- | --- | --- | --- |
+| G-01 | `gloss_min.png`, `gloss_mean.png`, `gloss_max.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | 0/128/255 werden als Bilder akzeptiert, nicht als Glossmenge bestätigt |
+| G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | je 90,31×90,31 mm; sichtbar und getrennt | keine | keine Polaritätsaussage ohne Druck |
+| G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | je 90,31×90,31 mm; Stufen bzw. begrenzter Keil sichtbar | keine | keine Aussage über kontinuierlichen, quantisierten, binären oder normalisierten Auftrag |
+| G-04a/b/c | `export_gloss_absent/` digital; Null/voll über bytegleiche `gloss_min.png`/`gloss_max.png` | fehlend im Paketvertrag; Null/voll als normale Einzelbilder | keine PNG-Warnung; JSON im Bilddialog nicht auswählbar | Bilddialog hat keinen beobachtbaren Paket-/Optionalitätsvertrag |
+| G-05 | `gloss_dimensions_half_width.png` | 128×256 px → 45,16×90,31 mm; X/Y 144,91/164,84 mm; 0° | kein Scaling, Beschnitt oder Fehler | Studio verknüpft die Datei nicht mit COLOR/Manifest und erkennt deshalb keinen Konflikt |
+| G-06 | drei PNGs aus `export_gloss_alpha_coverage/` | je 90,31×90,31 mm; drei unabhängige „Flat“-Ebenen; Alpha-Felder im COLOR sichtbar | keine Rollenzuordnung oder Maskenkopplung | physische Alpha×Gloss-Wirkung offen |
+| G-07 | drei PNGs aus `export_gloss_height_cross/` | je 90,31×90,31 mm; 16-Bit-HEIGHT 0/32768/65535 sichtbar; drei unabhängige „Flat“-Ebenen | keine Rollenzuordnung oder Maskenkopplung | physische HEIGHT×Gloss-Wirkung offen |
+| G-08 | `gloss_registration.png`, `gloss_checkerboard.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Druckregistrierung, Filterung und Bleeding offen |
+
+Bei allen 256×256-Dateien ohne `pHYs` verwendete Studio den bereits in #689
+belegten 72-dpi-Fallback: 90,31×90,31 mm, X/Y 122,34/164,84 mm, 0°. Namen,
+PNG-Modus und gemeinsamer Exportordner erzeugten keine automatische
+COLOR-/HEIGHT-/GLOSS-Semantik.
 
 **„Nichts passiert"-Fall (EM-S03):** Laut Annahmeninventar wurde für Studio
 2.6.0.2 ein still geladener, aber unsichtbarer Import berichtet; spätere

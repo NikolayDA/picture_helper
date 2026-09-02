@@ -1,7 +1,7 @@
 # EufyMake-Gloss-/Coverage-Vertrag – Ergebnisakte für Issue #690
 
-> **Status: reproduzierbarer Datei- und Importtestsatz vollständig; physische
-> Klarlackmessung ausstehend.** Dieses Dokument trennt Herstellerangabe,
+> **Status: reproduzierbarer Datei- und Studio-Importtestsatz vollständig;
+> physische Klarlackmessung ausstehend.** Dieses Dokument trennt Herstellerangabe,
 > Repositoryprüfung, Studio-Importbeobachtung und Druckbefund. Ein sichtbares
 > Graustufenbild im Editor beweist weder die Gloss-Polarität noch einen
 > Klarlackauftrag.
@@ -48,16 +48,16 @@ nur das Dimensionsfehlerpaket ersetzt anschließend kontrolliert die Gloss-Datei
 
 | Zelle | Dateien/Paket | Isolierte Variable | Digitaler Sollwert | Import | Druck |
 | --- | --- | --- | --- | --- | --- |
-| G-01 | `gloss_min.png`, `gloss_mean.png`, `gloss_max.png` | Minimum/Mitte/Maximum | 0 / 128 / 255 | ausstehend | ausstehend |
-| G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | Polarität | 0→255 / 255→0 | ausstehend | ausstehend |
-| G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | kontinuierlich, quantisiert, binär oder normalisiert | 8 Stufen 0…255 / Keil 64…192 | ausstehend | ausstehend |
-| G-04a | `export_gloss_absent/` | keine Gloss-Rolle | keine Datei/Referenz | ausstehend | ausstehend |
-| G-04b | `export_gloss_zero/` | vorhandene Nullfläche | 0 | ausstehend | ausstehend |
-| G-04c | `export_gloss_full/` | voll gesetzte Fläche | 255 | ausstehend | ausstehend |
-| G-05 | `export_gloss_dimension_mismatch/` | Dimensionsregel | COLOR/Manifest 256×256; Gloss 128×256 | ausstehend | nur falls Import sicher interpretierbar |
-| G-06 | `export_gloss_alpha_coverage/` | COLOR-Alpha bei konstantem Gloss/HEIGHT | Alpha 0/128/255; RGB konstant; Gloss 128; HEIGHT 32768 | ausstehend | ausstehend |
-| G-07 | `export_gloss_height_cross/` | HEIGHT bei konstantem Gloss/COLOR | HEIGHT 0/32768/65535; Gloss 128; COLOR opak | ausstehend | ausstehend |
-| G-08 | `gloss_registration.png`, `gloss_checkerboard.png` | Registrierung, Filterung, Bleeding | Landmarkmaske 0/255; 16-px-Schachbrett | Import-Grundlage aus #689; neuer Gloss-Lauf ausstehend | ausstehend |
+| G-01 | `gloss_min.png`, `gloss_mean.png`, `gloss_max.png` | Minimum/Mitte/Maximum | 0 / 128 / 255 | als drei getrennte „Flat“-Ebenen importiert | ausstehend |
+| G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | Polarität | 0→255 / 255→0 | beide getrennt und ohne Warnung importiert | ausstehend |
+| G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | kontinuierlich, quantisiert, binär oder normalisiert | 8 Stufen 0…255 / Keil 64…192 | beide getrennt und ohne Warnung importiert | ausstehend |
+| G-04a | `export_gloss_absent/` | keine Gloss-Rolle | keine Datei/Referenz | Paket semantisch geprüft; Studio-Bilddialog importiert kein Manifest | ausstehend |
+| G-04b | `export_gloss_zero/` | vorhandene Nullfläche | 0 | äquivalentes `gloss_min.png` als normale Ebene importiert | ausstehend |
+| G-04c | `export_gloss_full/` | voll gesetzte Fläche | 255 | äquivalentes `gloss_max.png` als normale Ebene importiert | ausstehend |
+| G-05 | `export_gloss_dimension_mismatch/` | Dimensionsregel | COLOR/Manifest 256×256; Gloss 128×256 | Gloss separat als 45,16×90,31 mm importiert; kein Scaling/Fehler | nur falls Import sicher interpretierbar |
+| G-06 | `export_gloss_alpha_coverage/` | COLOR-Alpha bei konstantem Gloss/HEIGHT | Alpha 0/128/255; RGB konstant; Gloss 128; HEIGHT 32768 | drei PNGs als unabhängige „Flat“-Ebenen importiert | ausstehend |
+| G-07 | `export_gloss_height_cross/` | HEIGHT bei konstantem Gloss/COLOR | HEIGHT 0/32768/65535; Gloss 128; COLOR opak | drei PNGs als unabhängige „Flat“-Ebenen importiert | ausstehend |
+| G-08 | `gloss_registration.png`, `gloss_checkerboard.png` | Registrierung, Filterung, Bleeding | Landmarkmaske 0/255; 16-px-Schachbrett | beide als getrennte „Flat“-Ebenen importiert | ausstehend |
 
 Die Zellen G-06 und G-07 sind absichtlich getrennt. G-06 variiert ausschließlich
 COLOR-Alpha; G-07 ausschließlich HEIGHT. Dadurch darf eine spätere Abweichung
@@ -83,16 +83,31 @@ nicht beiden Einflussgrößen zugleich zugeschrieben werden.
 
 ## 5. Studio-Importprotokoll
 
+Live-Sitzung am 2026-09-02 mit Studio 4.2.2 / Editor 1.20.0 und online
+angezeigtem E1. Die Dateien wurden nach erfolgreichem Inspectorlauf einzeln
+über den Bilddialog importiert. Es wurde weder **Preview** noch **Print**
+ausgelöst. Alle 256×256-PNGs ohne `pHYs` erschienen bei 72-dpi-Fallback mit
+90,31×90,31 mm, X/Y 122,34/164,84 mm und 0°. Studio leitete aus Dateiname,
+Graustufenmodus oder gemeinsamem Exportordner keine COLOR-/HEIGHT-/GLOSS-Rolle
+und keine Beziehung zwischen den Ebenen ab.
+
 | Zelle | Datum/Version | Warnung | Darstellung/Größe | automatische Änderung | Aussagegrenze |
 | --- | --- | --- | --- | --- | --- |
-| G-01 | | | | | Keine Aussage über Klarlack ohne Druck |
-| G-02 | | | | | Invertierte Bilddarstellung ist noch keine Polaritätsbestätigung |
-| G-03 | | | | | Tonwertanzeige ist noch keine Intensitätskennlinie |
-| G-04a/b/c | | | | | Manifest- und Einzelbildimport getrennt festhalten |
-| G-05 | | | | | Scaling/Beschnitt/Ablehnung exakt protokollieren |
-| G-06 | | | | | COLOR-Alpha-Wirkung von Gloss-Auftrag trennen |
-| G-07 | | | | | HEIGHT-Wirkung von Gloss-Auftrag trennen |
-| G-08 | | | | | Registrierung im Druck separat messen |
+| G-01 | 2026-09-02; 4.2.2/1.20.0 | keine | 0/128/255 sichtbar; je 90,31×90,31 mm; drei getrennte „Flat“-Ebenen | keine | Keine Aussage über Klarlack ohne Druck |
+| G-02 | 2026-09-02; 4.2.2/1.20.0 | keine | normaler und invertierter Keil je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Invertierte Bilddarstellung ist noch keine Polaritätsbestätigung |
+| G-03 | 2026-09-02; 4.2.2/1.20.0 | keine | Stufen und 64…192-Keil je 90,31×90,31 mm; Tonwerte sichtbar | keine | Tonwertanzeige ist noch keine Intensitätskennlinie |
+| G-04a/b/c | 2026-09-02; 4.2.2/1.20.0 | keine PNG-Warnung | fehlend nur als Paketvertrag prüfbar; Null/voll über bytegleiche min/max-PNGs sichtbar | keine; JSON im bereits geprüften Bilddialog nicht auswählbar | Studio-Bildimport besitzt keinen beobachtbaren Paket-/Optionalitätsvertrag |
+| G-05 | 2026-09-02; 4.2.2/1.20.0 | keine | 128×256 px separat als 45,16×90,31 mm, X/Y 144,91/164,84 mm, 0° | kein Scaling, kein Beschnitt, keine Ablehnung | Studio erkennt keinen Dimensionskonflikt, weil es keine Rollen verknüpft |
+| G-06 | 2026-09-02; 4.2.2/1.20.0 | keine | COLOR, HEIGHT und konstantes Gloss je separat 90,31×90,31 mm; Alpha-Felder im COLOR sichtbar | alle „Flat“; keine Rollenzuordnung oder Maskenkopplung | COLOR-Alpha-Wirkung auf physischen Gloss-Auftrag bleibt offen |
+| G-07 | 2026-09-02; 4.2.2/1.20.0 | keine | COLOR, 16-Bit-HEIGHT 0/32768/65535 und Gloss je separat 90,31×90,31 mm | alle „Flat“; keine Rollenzuordnung oder Maskenkopplung | HEIGHT-Wirkung auf physischen Gloss-Auftrag bleibt offen |
+| G-08 | 2026-09-02; 4.2.2/1.20.0 | keine | Registrierung und Schachbrett je separat 90,31×90,31 mm | beide „Flat“; keine gemeinsame Registrierung erzeugt | Registrierung, Filterung und Bleeding im Druck separat messen |
+
+**Importbefund:** Der Studio-Bilddialog akzeptiert die kontrollierten 8-Bit-
+Gloss-Träger und den 16-Bit-HEIGHT-Kreuzträger als sichtbare Bildobjekte. Das
+ist ausschließlich ein Akzeptanz- und Geometriebefund. Die getrennten Ebenen
+belegen gerade **keine** native Gloss-Semantik; eine physische Polarität,
+Mengenkennlinie, Alpha-Maskierung oder HEIGHT-Wechselwirkung lässt sich daraus
+nicht ableiten.
 
 ## 6. Physisches Mess- und Fotoprotokoll
 
@@ -120,13 +135,13 @@ Vergleichslayout.
 
 | Frage | Bestätigter Wert | Evidenz | Status |
 | --- | --- | --- | --- |
-| Wertebereich/Bittiefe/Modus | 0…255 / 8 Bit / `L` als Testträger | Repositoryprüfung | Träger belegt; Studioakzeptanz offen |
+| Wertebereich/Bittiefe/Modus | 0…255 / 8 Bit / `L` als Testträger | Repositoryprüfung + Studio-Import | als normale „Flat“-Bilder akzeptiert; Gloss-Semantik offen |
 | Richtung | | G-02 + Hersteller A11 | offen |
 | kontinuierlich/quantisiert/binär/normalisiert | | G-03 | offen |
 | Maskierung durch COLOR-Alpha | | G-06 | offen |
 | Abhängigkeit von HEIGHT | | G-07 | offen |
-| Optionalität/Nullverhalten | keine Rolle schreibt keine Datei | G-04a; Druckvergleich G-04 offen | teilweise belegt |
-| Dimensionsregel | Writer blockiert; Studio-Fremddatenverhalten | G-05 | Writer belegt, Studio offen |
+| Optionalität/Nullverhalten | keine Rolle schreibt keine Datei; Studio-Bilddialog hat keinen Paketvertrag | G-04a + Import; Druckvergleich G-04 offen | digital belegt; physisch offen |
+| Dimensionsregel | Writer blockiert; Studio importiert 128×256 separat als 45,16×90,31 mm | G-05 | Writer und isolierter Studio-Import belegt; Rollenverbund offen |
 | Registrierung/minimale Struktur | | G-08 | offen |
 
 Erst wenn diese Tabelle physisch befüllt ist, darf #691 die experimentelle
