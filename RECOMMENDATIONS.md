@@ -30,7 +30,7 @@ und zusätzliche Snapshot-/Bundle-Guards ergänzt; der frühere releasekritische
 die Release-Skripte; beide verändern die EufyMake-Empirie nicht.
 
 **Release-Einschätzung: noch kein Kandidat angestoßen.** Seit `v2.9.0`
-(2026-08-29) liegen 31 Mainline-Commits vor. Mit PR #953 (versioniertes
+(2026-08-29) liegen am geprüften Mainline-Stand `e7c379d` 34 Commits vor. Mit PR #953 (versioniertes
 EufyMake-Zielprofil, 16-Bit-HEIGHT-Default, Profil- und X/Y-DPI-Anzeige im
 Dialog, Manifest-Provenienz) steht erstmals ein nutzersichtbarer Eintrag in
 `[Unreleased]`; alles andere ist Release-Automatisierung, Doku und Governance.

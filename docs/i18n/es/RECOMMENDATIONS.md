@@ -29,7 +29,7 @@ snapshot/paquetes; con ello queda resuelto el punto crítico de #691. #955 solo
 afecta a la documentación de pruebas y #957 a los scripts de publicación.
 
 **Valoración de publicación: aún no se ha lanzado ningún candidato.** Desde
-`v2.9.0` (2026-08-29) hay 31 commits en la rama principal. Con el PR #953 (perfil
+`v2.9.0` (2026-08-29) hay 34 commits en la rama principal en el estado auditado `e7c379d`. Con el PR #953 (perfil
 de destino EufyMake versionado, HEIGHT por defecto en 16 bits, perfil y DPI X/Y
 en el diálogo, procedencia del manifiesto) `[Unreleased]` contiene por primera
 vez una entrada visible para las personas usuarias; el resto es automatización

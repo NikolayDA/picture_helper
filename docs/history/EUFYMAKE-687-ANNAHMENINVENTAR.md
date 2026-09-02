@@ -562,21 +562,13 @@ Ergänzungen/Korrekturen der Importzellen:
 | --- | --- | --- | --- | --- |
 | I-06 | `manifest.json` allein und kompletter BgRemover-Ordner | Träger | JSON abgelehnt; Ordnerverhalten **offen**, nicht vorab „bestätigt“ | sichtbare Meldung/kein Effekt protokollieren |
 | I-08 | Motiv samt Height Map vor/nach Crop in Studio | Crop | Farbmotiv und Depth Map bleiben registriert; Forumssnippet B11 meldet mögliches Auseinanderlaufen | identische Referenzmarker + Vorschau-Differenz |
-| I-09 | Legacy-`.empf` aus B1 und aktuell von Studio exportiertes `.empf` | Containergeneration | **Optionaler Explorationslauf, nicht blockierend:** `.empf` ist ein separater nativer Projektpfad; BgRemovers bestätigter Scope liefert PNG-Einzeldateien und erzeugt kein `.empf` (`OpenQuestion.NATIVE_EMPF_PROJECT`). | Nur bei späterer Produktentscheidung für native Projekte: Dateisignatur/Importmeldung, keine Umgehung der Verschlüsselung |
+| I-09 | Legacy-`.empf` aus B1 und aktuell von Studio exportiertes `.empf` | Containergeneration | Legacy importierbar; aktuelle Datei nicht als schlichtes ZIP lesbar | Dateisignatur/Importmeldung, keine Umgehung der Verschlüsselung |
 | I-10 | Gloss-Maske schwarz/weiß invertiert, sonst identisch | Polarität | A11: Schwarz erhält Gloss, Weiß nicht | Vorschau und kleiner Zweitdruck nach Sicherheitsfreigabe |
 
 Weiter offen bleiben volle 16-Bit-Nutzung (H-01), Graustufe→mm-Kennlinie (H-02),
 abweichende Kartenmaße (H-03), `pHYs`/Startgröße (G-01/G-02),
 Gloss-Intensitätsabstufung (GL-01) und die Registrierung des Zweitdrucks. Die bisher
 genannten Texturhöhen 3/1 mm werden als eigener UI-/Herstellerquellen-Check ergänzt.
-
-**Scope-Entscheid I-09 (2026-09-03):** Der Vergleich Legacy gegen aktuelles
-`.empf` validiert weder den BgRemover-Writer noch seinen manuellen PNG-Importpfad.
-I-06 und der native HEIGHT-Import belegen den aktuell unterstützten Träger.
-I-09 bleibt als optionaler, klar abgegrenzter Explorationslauf erhalten, ist
-aber kein Gate für #687, #691 oder einen Release. Erst eine bewusste
-Produktentscheidung, `OpenQuestion.NATIVE_EMPF_PROJECT` in den Scope zu nehmen,
-macht den Lauf und ein eigenes Migrationsarbeitspaket verpflichtend.
 
 **Nachtrag (2026-08-15):** H-02 und H-03 hatten in der obigen Tabelle zunächst
 keine eigene Testzelle – die Ergänzungsrunde deckte nur I-06/I-08/I-09/I-10 ab.
@@ -705,3 +697,68 @@ Manifestreferenz. Polarität, Intensitätskennlinie, Alpha-/HEIGHT-Maskierung,
 Registrierung und Materialabhängigkeit bleiben bis zum getrennten Studio- und
 Druckbefund offen. Die Ergebnisakte ist
 [`EUFYMAKE-690-GLOSS-VERTRAG.md`](EUFYMAKE-690-GLOSS-VERTRAG.md).
+
+---
+
+## Evidenzversion 3 (2026-09-03)
+
+### 0. Methodik und Grenzen
+
+Version 3 ergänzt die ältere Evidenz, ohne Version 1 oder 2 umzudeuten. Sie
+stützt sich auf den kontrollierten Studio-Lauf in
+`EUFYMAKE-688-HEIGHT-VERTRAG.md`, `EUFYMAKE-689-MM-DPI-VERTRAG.md` und
+`EUFYMAKE-690-GLOSS-VERTRAG.md` sowie auf den unveränderten Produktvertrag im
+Repository. Studio 4.2.2 / Editor 1.20.0 zeigte den E1 online; die Firmware
+wurde nicht angezeigt. Es wurde weder `Preview` noch `Print` ausgelöst und es
+entstand kein physischer Druckbefund.
+
+### 1. Entscheidungspunkt I-09
+
+Der Vergleich Legacy gegen aktuelles `.empf` validiert weder den
+BgRemover-Writer noch seinen bestätigten manuellen PNG-Einzeldatei-Importpfad.
+I-06 und der native HEIGHT-Import belegen den aktuell unterstützten Träger.
+I-09 bleibt deshalb als optionaler, klar abgegrenzter Explorationslauf
+erhalten, ist aber kein Gate für #687, #691 oder einen Release. Erst eine
+bewusste Produktentscheidung, `OpenQuestion.NATIVE_EMPF_PROJECT` in den Scope
+zu nehmen, macht den Lauf und ein eigenes Migrationsarbeitspaket verpflichtend.
+
+### 2. Quellen und Evidenz
+
+Version 3 führt keine neue externe Quelle ein. Die Entscheidung kombiniert
+die in Version 2 bereits getrennten Importpfade mit folgenden aktuellen
+Nachweisen:
+
+| ID | Nachweis | Evidenzgrad |
+| --- | --- | --- |
+| V3-T1 | I-06: `manifest.json` im Bilddialog nicht auswählbar; PNGs nur einzeln importierbar | T (Studio-Beobachtung vom 2026-09-02) |
+| V3-T2 | Native 16-Bit-HEIGHT-Zuweisung über `Customize Texture` → `Upload Height Map Image` | T (Studio-Beobachtung vom 2026-09-03) |
+| V3-P1 | BgRemover erzeugt PNG-Assets und hält `OpenQuestion.NATIVE_EMPF_PROJECT` sichtbar offen | P (Repositoryvertrag und Tests) |
+
+### 3. Aktualisiertes Annahmeninventar
+
+| ID | Status V3 | Begründung bzw. Änderung gegenüber V2 |
+| --- | --- | --- |
+| EM-C02 | **Produktentscheidung; I-09 nicht blockierend** | Der aktuelle Scope erzeugt bewusst kein natives `.empf`. Ein Legacy-/Current-Containertest wird erst bei einer gegenteiligen Produktentscheidung verpflichtend. |
+
+### 4. Offene Punkte
+
+Offen bleiben die physischen HEIGHT-, mm/DPI- und Gloss-Nachweise aus
+#688–#690 sowie danach die Abschluss-Review von #687. Die Scope-Entscheidung
+für I-09 bestätigt weder `.empf`-Kompatibilität noch dessen interne Struktur.
+
+### 5. Aktualisierte Testmatrix
+
+| Zelle | Status V3 | Verbindlichkeit |
+| --- | --- | --- |
+| I-09 Legacy | nicht ausgeführt / nicht anwendbar | optionaler Explorationslauf |
+| I-09 aktuell | nicht ausgeführt / nicht anwendbar | optionaler Explorationslauf |
+
+### 6. Konsequenzen aus Version 3
+
+1. I-09 bleibt aus Transparenzgründen in den Vorlagen erhalten, zählt aber
+   nicht zu den verpflichtenden Phase-1-Zeilen.
+2. #687 bleibt bei 17/18 Akzeptanzkriterien; das letzte Kriterium ist die
+   Abschluss-Review nach den Realtests, nicht ein `.empf`-Vergleich.
+3. Eine spätere Aufnahme nativer `.empf`-Projekte erfordert eine neue
+   Produktentscheidung, den optionalen I-09-Lauf und ein eigenes
+   Migrationsarbeitspaket.

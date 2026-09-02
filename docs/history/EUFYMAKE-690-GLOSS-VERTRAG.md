@@ -1,7 +1,8 @@
 # EufyMake-Gloss-/Coverage-Vertrag – Ergebnisakte für Issue #690
 
-> **Status: reproduzierbarer Datei- und Studio-Importtestsatz sowie nativer
-> Gloss-Preflight vollständig; physische Klarlackmessung ausstehend.** Dieses Dokument trennt Herstellerangabe,
+> **Status: reproduzierbarer Datei- und Studio-Importtestsatz vollständig;
+> allgemeine Verfügbarkeit des nativen `Gloss Varnish`-Pfads belegt,
+> zellspezifischer Preflight und physische Klarlackmessung ausstehend.** Dieses Dokument trennt Herstellerangabe,
 > Repositoryprüfung, Studio-Importbeobachtung und Druckbefund. Ein sichtbares
 > Graustufenbild im Editor beweist weder die Gloss-Polarität noch einen
 > Klarlackauftrag.

@@ -29,7 +29,7 @@ point critique de #691 est donc résolu. #955 ne touche que la documentation des
 tests et #957 les scripts de publication.
 
 **Évaluation de publication : aucun candidat lancé pour l'instant.** Depuis
-`v2.9.0` (2026-08-29), 31 commits sur la branche principale. Avec la PR #953
+`v2.9.0` (2026-08-29), 34 commits sur la branche principale à l'état audité `e7c379d`. Avec la PR #953
 (profil cible EufyMake versionné, HEIGHT par défaut en 16 bits, profil et DPI
 X/Y dans le dialogue, provenance du manifeste), `[Unreleased]` contient pour la
 première fois une entrée visible pour les utilisateurs ; le reste relève de

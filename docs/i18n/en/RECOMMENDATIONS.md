@@ -30,7 +30,7 @@ only affects test-suite documentation and #957 release scripts; neither changes
 the EufyMake empirical findings.
 
 **Release assessment: no candidate started yet.** Since `v2.9.0` (2026-08-29)
-there are 31 mainline commits. With PR #953 (versioned EufyMake target profile,
+there are 34 mainline commits at the audited `e7c379d` state. With PR #953 (versioned EufyMake target profile,
 16-bit HEIGHT default, profile and X/Y DPI display in the dialog, manifest
 provenance) `[Unreleased]` holds its first user-visible entry; everything else
 is release automation, documentation, and governance. Whether **v2.10.0** ships
