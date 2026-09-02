@@ -118,7 +118,11 @@ zweiter Aufruf bricht danach am Downgrade-Schutz ab, weil `pyproject.toml`
 bereits die Zielversion trägt; wer nach einem Abbruch zwischen den Dateien
 `pyproject.toml` zurückdreht (`git checkout pyproject.toml`) und erneut
 aufruft, bekommt ein unverändertes Gerüst erneuert, die gewanderten Einträge
-bleiben stehen.
+bleiben stehen. Nach dem Wandern stehen die Gerüst-Überschriften und die
+mitgebrachten Überschriften doppelt im neuen Abschnitt (zweimal
+`### Hinzugefügt`); das Freeze-Gate blockiert nur die `TODO(release)`-Lücken,
+nicht diese Doppelung – sie ist beim Ausformulieren von Hand zusammenzuführen,
+sonst landet sie über `extract_release_notes.py` im Release-Body.
 
 Scheitert dieser Aufruf an einem GitHub-/Netzfehler, bleibt der Rohstand
 vollständig geschrieben, und der gerenderte Issue-Text liegt als Datei bereit:
