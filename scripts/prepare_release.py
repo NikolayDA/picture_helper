@@ -733,10 +733,23 @@ def apply(repo: Path, planned: list[PlannedFile]) -> None:
     eine halb geschriebene Datei. Ein Abbruch **zwischen** den Dateien bleibt
     möglich, ist im Arbeitsbaum aber per ``git checkout`` umkehrbar – die
     einzige Ablage außerhalb der Versionskontrolle (der Issue-Text) liegt
-    seit #943 Befund 4 bereits vor dem ersten Schreiben hier.
+    seit #943 Befund 4 bereits vor dem ersten Schreiben hier. Ein ``OSError``
+    wird als :class:`PrepareError` gemeldet, der Datei und bereits geschriebenen
+    Stand nennt (#954-Review): ``pyproject.toml`` ist die erste Datei, ein
+    stiller Traceback ließe den Aufrufer ohne Hinweis auf das Zurücksetzen.
     """
+    written: list[str] = []
     for item in planned:
-        write_text_atomic(repo / item.path, item.content)
+        try:
+            write_text_atomic(repo / item.path, item.content)
+        except OSError as exc:
+            done = ", ".join(written) if written else "keine"
+            raise PrepareError(
+                f"{item.path} konnte nicht geschrieben werden ({exc}). Bereits "
+                f"geschrieben: {done} – im Arbeitsbaum per `git checkout -- <Datei>` "
+                "zurücksetzen, dann das Skript unverändert erneut ausführen."
+            ) from exc
+        written.append(item.path)
 
 
 def sha256_file(path: Path) -> str:
@@ -762,6 +775,10 @@ def write_text_atomic(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
     try:
+        # Der ``umask``-Trick unten ist prozessglobal (kein Thread-Schutz) –
+        # das Skript ist single-threaded, ein Aufruf aus Threads wäre neu zu
+        # bewerten. ``path.stat()`` folgt Symlinks: Ein getrackter Symlink
+        # würde durch eine reguläre Datei ersetzt, kein Release-Pfad ist einer.
         # Modus erhalten (#944-Review): ``mkstemp`` erzeugt 0600, und
         # ``os.replace`` installierte diesen Inode über die getrackte
         # 0644-Datei – pyproject/CHANGELOGs wären danach für andere Konten
@@ -1008,6 +1025,9 @@ def main(argv: list[str] | None = None) -> int:
                 fallback = fallback_issue_path(args.version, repo)
                 issue_path = fallback
                 write_text_atomic(fallback, issue_body)
+                # Pfad sofort nennen (#954-Review): Scheitert ``apply`` weiter
+                # unten, bliebe die Ablage sonst verwaist und unbenannt.
+                print(f"  gesichert für den Wiederanlauf: {fallback}")
         except OSError as exc:
             print(
                 f"FEHLER: Issue-Ablage nicht beschreibbar ({exc}). Es wurde noch "
@@ -1020,7 +1040,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry_run:
         print(f"Vorbereitung {predecessor_version} → {args.version} ({release_date}), nur Bericht:")
     else:
-        apply(repo, prepared.files)
+        try:
+            apply(repo, prepared.files)
+        except PrepareError as exc:
+            # Kein Traceback für einen Dateifehler: Die Meldung nennt Datei,
+            # bereits geschriebenen Stand und die Issue-Ablage (#954-Review).
+            hint = f" Issue-Ablage: {issue_path}." if issue_path is not None else ""
+            print(f"FEHLER: {exc}{hint}", file=sys.stderr)
+            return 2
     for item in prepared.files:
         print(f"  {'geplant' if args.dry_run else 'geschrieben'}: {item.path}")
     print(f"  Pfadpolicy: Version {prepared.policy_version} (current-freeze umgehängt)")
@@ -1037,8 +1064,6 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(f"\n--- Release-Issue: {issue_title} ---")
         print(issue_body)
-        if fallback is not None:
-            print(f"\n  gesichert für den Wiederanlauf: {fallback}")
 
     if args.create_issue and not args.dry_run:
         # Oben gesetzt: entweder ``--issue-output`` oder die Fallback-Ablage.

@@ -714,6 +714,51 @@ def test_the_issue_file_is_persisted_before_the_repo_is_touched(
     assert 'version = "9.9.9"' not in (fixture_repo / "pyproject.toml").read_text("utf-8")
 
 
+def test_a_failed_apply_names_the_file_the_written_state_and_the_issue_file(
+    fixture_repo: Path, tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """#954-Review: ``apply`` lag außerhalb jeder Fehlerbehandlung – ein
+    ``OSError`` mitten im Schreiben endete als Traceback (Exit 1), ohne
+    Datei, Stand oder die schon angelegte Issue-Ablage zu nennen."""
+    issue = tmp_path / "issue.md"
+    original = pr.write_text_atomic
+
+    def flaky(path: Path, text: str) -> None:
+        if path.name == "CHANGELOG.md" and path.parent == fixture_repo:
+            raise OSError(28, "No space left on device")
+        original(path, text)
+
+    monkeypatch.setattr(pr, "write_text_atomic", flaky)
+    code = pr.main(
+        ["9.9.9", "--date", "2026-09-15", "--repo", str(fixture_repo), "--issue-output", str(issue)]
+    )
+    err = capsys.readouterr().err
+    assert code == 2
+    assert "CHANGELOG.md konnte nicht geschrieben werden" in err
+    assert "Bereits geschrieben: pyproject.toml" in err
+    assert "git checkout" in err and f"Issue-Ablage: {issue}" in err
+    assert issue.is_file()
+
+
+def test_the_fallback_issue_path_is_printed_before_apply_can_fail(
+    fixture_repo: Path, tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """Die ``mkdtemp``-Ablage wird vor ``apply`` genannt – sonst bliebe sie nach
+    einem Dateifehler verwaist und unbenannt (#954-Review)."""
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+
+    def boom(repo: Path, planned) -> None:
+        raise pr.PrepareError("pyproject.toml konnte nicht geschrieben werden (Test)")
+
+    monkeypatch.setattr(pr, "apply", boom)
+    code = pr.main(["9.9.9", "--date", "2026-09-15", "--repo", str(fixture_repo), "--create-issue"])
+    captured = capsys.readouterr()
+    assert code == 2
+    saved = re.search(r"(?m)^\s*gesichert für den Wiederanlauf: (.+)$", captured.out)
+    assert saved is not None and Path(saved.group(1)).is_file()
+    assert f"Issue-Ablage: {saved.group(1)}" in captured.err
+
+
 def test_the_downgrade_guard_compares_numerically_not_lexicographically(
     fixture_repo: Path, capsys
 ) -> None:
