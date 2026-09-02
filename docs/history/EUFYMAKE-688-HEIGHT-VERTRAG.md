@@ -19,7 +19,7 @@
 | Texturmodus und Höhenregler | `Customize Texture`; Regler nicht verändert |
 | Messmittel | |
 | Geschätzte Messunsicherheit | |
-| Pre-Import-Report | 33/33 erfolgreich; SHA-256 `3991f8ed4e12edbe546cebc19b2e914d3c9642c7775bc8b3d7976e54d80f214a` |
+| Pre-Import-Report | 34/34 erfolgreich; Manifest-Schema 2; erwarteter Manifest-SHA-256 `794e7890d169516900534b7a0166b5cd477589bef05d952c045db2a45d172308`; Report-SHA-256 `06314d3bd605a6535c467481b82f22de6d6a2f601207d679ddf85d9cfe2ffdcf`; Pillow 12.3.0 |
 | Foto-/Messdatenablage | gemäß `EUFYMAKE-687-TESTGOVERNANCE.md` |
 
 ## 2. Bereits belegter Ausgangsstand
@@ -29,7 +29,7 @@
 | PNG-Graustufen-HEIGHT wird vom Hersteller beschrieben; 16 Bit/Kanal wird empfohlen, wenn verfügbar. | Herstellerangabe | A2 in `EUFYMAKE-687-ANNAHMENINVENTAR.md` | belegt |
 | Weiß entspricht hoch, Schwarz niedrig. | Herstellerangabe | A2/A3 im Annahmeninventar | belegt |
 | Die Datei trägt relative Grauwerte, keine absolute mm-Höhe. | Herstellerangabe/Ableitung | EM-H03 V2 | belegt; mm-Abbildung offen |
-| Die 33 versionierten Fixtures stimmen in SHA-256, Bytegröße, Modus, IHDR, Chunkfolge, `pHYs` und CRC mit `fixtures_manifest.json` überein. | Dateiprüfung, keine Studioaussage | `scripts/eufymake_fixture_inspector.py`; lokaler Basisreport | belegt |
+| Die 34 versionierten Fixtures stimmen in SHA-256, Bytegröße, IHDR, Chunkfolge, `pHYs` und CRC mit dem separat per SHA-256 verankerten Schema-2-Manifest überein. Der von Pillow gemeldete Modus wird diagnostisch protokolliert, ist aber wegen möglicher Versionsunterschiede kein hartes Kriterium. | Dateiprüfung, keine Studioaussage | `scripts/eufymake_fixture_inspector.py`; lokaler Basisreport | belegt |
 | Studio nutzt tatsächlich alle 65.536 Werte und bildet sie auf eine bestimmte mm-Kennlinie ab. | – | keine Hardwaremessung | offen |
 
 ## 3. Kriterien- und Evidenzmatrix
@@ -50,6 +50,7 @@ neu erzeugt werden.
 | Höhenregler/Texturmodus als Skalierungsachse | konstante Einstellung je Vergleich; ggf. eigene Matrixzeile | | | offen |
 | Fehlend/Nullfläche/konstant/Dimensionsabweichung | I-01, `height_zero_16bit.png`, `height_mean_16bit.png`, I-04/I-12 | | | offen |
 | Alpha/Coverage bei nicht-null HEIGHT | I-13, `color_alpha_coverage.png` + `height_mean_16bit.png` | | | offen |
+| Crop-/Registrierungstreue | I-08, `color_height_reference.png` + `height_registration_16bit.png` mit pixelgleichen X/Y-Landmarken | | | offen |
 | Filterung/Glättung/Normalisierung | `height_impulse_edge_*`, Keile | | | offen |
 | Reproduzierbarkeit | zweiter unabhängiger Lauf der Kernaussagen | | | offen |
 
@@ -64,8 +65,9 @@ Abnahmekriterien bis zur reproduzierbaren Ablage und Druckmessung offen.
 
 | Zelle | Kontrolliertes Paar | Beobachtung | Einordnung |
 | --- | --- | --- | --- |
-| I-02/I-08 | `color_height_reference.png` + `height_wedge_16bit.png` | Beide Dateien wurden ohne sichtbare Importwarnung akzeptiert. COLOR und HEIGHT besitzen 256×256 Pixel; Studio zeigte für COLOR 90,31×90,31 mm. `Customize Texture` erzeugte eine sichtbare 3D-Vorschau. | Importbeobachtung; akzeptierter 16-Bit-Träger und dimensionsgleiche Kopplung, aber keine belastbare Aussage zu Monotonie, Bittiefennutzung oder mm-Höhe. |
-| I-13 | `color_alpha_coverage.png` + `height_mean_16bit.png` (konstant 32768) | COLOR wurde ohne sichtbare Importwarnung akzeptiert. Auf der Leinwand ließ Alpha 0 den Untergrund vollständig sichtbar, Alpha 128 mischte das mittlere Feld, Alpha 255 deckte das rechte Feld. Die nicht-null 16-Bit-HEIGHT-Datei wurde akzeptiert und erzeugte eine 3D-Vorschau. | Importbeobachtung; Alpha wird in der Editor-Darstellung berücksichtigt. Unterbase, Deckung und physische Reliefhöhe bleiben ohne Druck offen. |
+| I-02 | `color_height_reference.png` + `height_wedge_16bit.png` | Beide Dateien wurden ohne sichtbare Importwarnung akzeptiert. COLOR und HEIGHT besitzen 256×256 Pixel; Studio zeigte für COLOR 90,31×90,31 mm. `Customize Texture` erzeugte eine sichtbare 3D-Vorschau. | Importbeobachtung; akzeptierter 16-Bit-Träger und dimensionsgleiche Kopplung, aber keine belastbare Aussage zu Monotonie, Bittiefennutzung oder mm-Höhe. Dieses Paar wird nicht mehr für I-08 verwendet. |
+| I-13 | `color_alpha_coverage.png` + `height_mean_16bit.png` (konstant 32768) | Das nach dem Review korrigierte COLOR-Fixture wurde erneut ohne sichtbare Importwarnung akzeptiert. Alle drei Felder tragen RGB `(40, 80, 220)`; auf der Leinwand ließ Alpha 0 den Untergrund vollständig sichtbar, Alpha 128 mischte das mittlere Feld, Alpha 255 deckte das rechte Feld. Die unveränderte nicht-null 16-Bit-HEIGHT-Datei war im selben Prüfpfad bereits akzeptiert worden und hatte eine 3D-Vorschau erzeugt. | Importbeobachtung; die COLOR-Seite variiert nur Alpha und vermeidet den früheren RGB-Störfaktor. Unterbase, Deckung und physische Reliefhöhe bleiben ohne Druck offen. |
+| I-08 | `color_height_reference.png` + `height_registration_16bit.png` | Die neue HEIGHT-Datei bildet die nicht-weißen COLOR-Landmarken pixelgenau mit 65535 und den weißen Hintergrund mit 0 ab; Generator- und Regressionstest vergleichen jedes Pixel. Ein neuer Studio-Crop wurde noch nicht ausgeführt. | Repositoryseitige Paarprüfung, keine Studio- oder Hardwareaussage; Crop-/Registrierungskriterium bleibt offen. |
 
 ## 4. Messschema für HEIGHT → mm
 

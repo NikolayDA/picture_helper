@@ -3,13 +3,16 @@
 
 Der Generator belegt, wie die Testdateien entstehen. Dieses Skript liest die
 bereits übertragenen Dateien dagegen unabhängig neu ein: SHA-256, Bytegröße,
-PIL-Modus, IHDR-Felder, PNG-Chunkfolge, ``pHYs`` und CRC jedes Chunks. Der
-JSON-Report ist der maschinenlesbare Pre-Import-Nachweis für #688–#690.
+Pillow-Lesbarkeit/-Version, IHDR-Felder, PNG-Chunkfolge, ``pHYs`` und CRC
+jedes Chunks. Der Pillow-Modus ist nur diagnostisch; Bittiefe und Farbtyp
+werden versionsunabhängig aus IHDR validiert. Der JSON-Report ist der
+maschinenlesbare Pre-Import-Nachweis für #688–#690.
 
 Aufruf am Zielrechner, nachdem die Fixtures dorthin kopiert wurden::
 
     python scripts/eufymake_fixture_inspector.py \
       --fixture-dir tests/fixtures/eufymake_hardware \
+      --expected-manifest-sha256 794e7890d169516900534b7a0166b5cd477589bef05d952c045db2a45d172308 \
       --output eufymake-pre-import-report.json
 
 Exitcode 0 bedeutet, dass Dateiliste und alle geprüften Eigenschaften mit dem
@@ -22,16 +25,19 @@ import argparse
 import hashlib
 import json
 import struct
+import sys
 import zlib
 from pathlib import Path
 from typing import Any
 
 from PIL import Image
+from PIL import __version__ as PILLOW_VERSION
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIXTURE_DIR = ROOT / "tests" / "fixtures" / "eufymake_hardware"
 MANIFEST_FILENAME = "fixtures_manifest.json"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+EXPECTED_MANIFEST_SCHEMA = 2
 
 _PNG_COLOR_TYPE_BY_MODE = {
     "L": 0,
@@ -151,7 +157,6 @@ def _inspect_entry(path: Path, expected: dict[str, Any]) -> dict[str, Any]:
     comparisons = (
         (actual["sha256"], expected["sha256"], "SHA-256"),
         (actual["bytes"], expected["bytes"], "Bytegröße"),
-        (pil_mode, expected["png_mode"], "PIL-Modus"),
         (pil_size, [expected["width"], expected["height"]], "Bildmaß"),
         (ihdr["bit_depth"], expected["bit_depth"], "IHDR-Bittiefe"),
     )
@@ -208,11 +213,16 @@ def _inspect_entry(path: Path, expected: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def inspect_fixture_dir(fixture_dir: Path) -> dict[str, Any]:
+def inspect_fixture_dir(
+    fixture_dir: Path,
+    *,
+    expected_manifest_sha256: str | None = None,
+) -> dict[str, Any]:
     """Manifest und alle referenzierten PNGs prüfen; niemals still ergänzen."""
     fixture_dir = fixture_dir.resolve()
     manifest_path = fixture_dir / MANIFEST_FILENAME
     manifest_data = manifest_path.read_bytes()
+    manifest_sha256 = _sha256(manifest_data)
     manifest = json.loads(manifest_data.decode("utf-8"))
     entries = manifest.get("fixtures")
     if not isinstance(entries, list):
@@ -251,6 +261,19 @@ def inspect_fixture_dir(fixture_dir: Path) -> dict[str, Any]:
         seen_filenames.add(filename)
 
     global_errors: list[str] = []
+    if manifest.get("schema") != EXPECTED_MANIFEST_SCHEMA:
+        global_errors.append(
+            "Manifest-Schema: erwartet "
+            f"{EXPECTED_MANIFEST_SCHEMA}, tatsächlich {manifest.get('schema')!r}"
+        )
+    if (
+        expected_manifest_sha256 is not None
+        and manifest_sha256 != expected_manifest_sha256
+    ):
+        global_errors.append(
+            "Manifest-SHA-256: erwartet "
+            f"{expected_manifest_sha256}, tatsächlich {manifest_sha256}"
+        )
     if manifest.get("fixture_count") != len(entries):
         global_errors.append(
             "fixture_count stimmt nicht mit der Anzahl der Manifestzeilen überein"
@@ -280,7 +303,7 @@ def inspect_fixture_dir(fixture_dir: Path) -> dict[str, Any]:
             continue
         try:
             results.append(_inspect_entry(path, entry))
-        except (OSError, ValueError, struct.error) as exc:
+        except (OSError, ValueError, struct.error, Image.DecompressionBombError) as exc:
             results.append({
                 "filename": entry["filename"],
                 "role": entry.get("role"),
@@ -292,10 +315,12 @@ def inspect_fixture_dir(fixture_dir: Path) -> dict[str, Any]:
     failed = sum(not result["ok"] for result in results)
     return {
         "schema": 1,
+        "inspector": {"pillow_version": PILLOW_VERSION},
         "fixture_dir": str(fixture_dir),
         "manifest": {
             "filename": MANIFEST_FILENAME,
-            "sha256": _sha256(manifest_data),
+            "sha256": manifest_sha256,
+            "expected_sha256": expected_manifest_sha256,
             "schema": manifest.get("schema"),
             "declared_fixture_count": manifest.get("fixture_count"),
         },
@@ -312,6 +337,22 @@ def inspect_fixture_dir(fixture_dir: Path) -> dict[str, Any]:
     }
 
 
+def _sha256_argument(value: str) -> str:
+    normalized = value.lower()
+    if len(normalized) != 64 or any(char not in "0123456789abcdef" for char in normalized):
+        raise argparse.ArgumentTypeError("erwartet werden genau 64 hexadezimale Zeichen")
+    return normalized
+
+
+def _print_failure_summary(report: dict[str, Any]) -> None:
+    for error in report["errors"]:
+        print(f"FEHLER: {error}", file=sys.stderr)
+    for fixture in report["fixtures"]:
+        if not fixture["ok"]:
+            details = "; ".join(fixture["errors"])
+            print(f"FEHLER: {fixture['filename']}: {details}", file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture-dir", type=Path, default=DEFAULT_FIXTURE_DIR)
@@ -320,10 +361,18 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="JSON-Report schreiben; ohne Angabe wird er auf stdout ausgegeben.",
     )
+    parser.add_argument(
+        "--expected-manifest-sha256",
+        type=_sha256_argument,
+        help="Vertrauenswürdiger SHA-256 des erwarteten Fixture-Manifests.",
+    )
     args = parser.parse_args(argv)
 
     try:
-        report = inspect_fixture_dir(args.fixture_dir)
+        report = inspect_fixture_dir(
+            args.fixture_dir,
+            expected_manifest_sha256=args.expected_manifest_sha256,
+        )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         parser.exit(2, f"Fixture-Prüfung konnte nicht gestartet werden: {exc}\n")
 
@@ -333,10 +382,14 @@ def main(argv: list[str] | None = None) -> int:
     else:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(rendered, encoding="utf-8")
+        status = "OK" if report["ok"] else "FEHLER"
         print(
-            f"{report['summary']['passed']}/{report['summary']['expected']} Fixtures OK; "
-            f"Report: {args.output}"
+            f"Status: {status}; "
+            f"{report['summary']['passed']}/{report['summary']['expected']} Fixtures geprüft; "
+            f"Report: {args.output}",
         )
+        if not report["ok"]:
+            _print_failure_summary(report)
     return 0 if report["ok"] else 1
 
 

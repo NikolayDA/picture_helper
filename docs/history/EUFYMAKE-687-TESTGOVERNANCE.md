@@ -138,9 +138,10 @@ Aktualisiert: 2026-08-15 – Testmatrix um I-11 (H-02, Treppenkeil-Druck) und
   hatte. Gesamtbudget entsprechend von 20 auf 24 physische Drucke erhöht
   (12 Varianten × max. 2). UV-Sicherheitshinweise und iCloud-Drive-Ablage
   (Abschnitte 2–3) unverändert gegenüber der ursprünglichen Freigabe.
-Aktualisiert: 2026-09-01 – I-13 für Alpha/Coverage bei nicht-null HEIGHT
-  ergänzt und I-02/I-08 auf ein dimensionsgleiches COLOR/HEIGHT-Paar
-  umgestellt. Das Gesamtbudget bleibt unverändert bei 24 Drucken; nach 13
+Aktualisiert: 2026-09-02 – I-13 für Alpha/Coverage bei nicht-null HEIGHT
+  ergänzt, I-02 auf ein dimensionsgleiches COLOR/HEIGHT-Paar umgestellt und
+  I-08 mit einem pixelgenauen COLOR/HEIGHT-Registrierungspaar abgesichert.
+  Das Gesamtbudget bleibt unverändert bei 24 Drucken; nach 13
   Erstläufen werden Wiederholungen auf die Kernaussagen priorisiert. Es ist
   kein zusätzlicher Materialverbrauch über die bisherige Freigabe hinaus
   freigegeben.

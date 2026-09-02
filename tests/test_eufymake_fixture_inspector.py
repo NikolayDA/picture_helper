@@ -119,6 +119,40 @@ def test_inspector_rejects_duplicate_manifest_filename(tmp_path: Path) -> None:
         raise AssertionError("doppelter Manifestdateiname wurde akzeptiert")
 
 
+def test_inspector_rejects_stale_manifest_schema(tmp_path: Path) -> None:
+    out_dir = _fixtures(tmp_path)
+    manifest_path = out_dir / gen.MANIFEST_FILENAME
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["schema"] = 1
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    report = inspector.inspect_fixture_dir(out_dir)
+    assert report["ok"] is False
+    assert any("Manifest-Schema" in error for error in report["errors"])
+
+
+def test_inspector_reports_decompression_bomb_as_fixture_failure(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    out_dir = _fixtures(tmp_path)
+    original_open = inspector.Image.open
+
+    def open_with_bomb(path, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if Path(path).name == "height_zero_8bit.png":
+            raise inspector.Image.DecompressionBombError("Test-Bild ist zu groß")
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(inspector.Image, "open", open_with_bomb)
+    report = inspector.inspect_fixture_dir(out_dir)
+    failed = next(
+        entry for entry in report["fixtures"]
+        if entry["filename"] == "height_zero_8bit.png"
+    )
+    assert report["ok"] is False
+    assert failed["errors"] == ["Test-Bild ist zu groß"]
+
+
 def test_inspector_cli_writes_machine_readable_report(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
     out_dir = _fixtures(tmp_path)
     report_path = tmp_path / "reports" / "pre-import.json"
@@ -132,4 +166,28 @@ def test_inspector_cli_writes_machine_readable_report(tmp_path: Path, capsys) ->
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["ok"] is True
     assert report["summary"]["failed"] == 0
-    assert "Fixtures OK" in capsys.readouterr().out
+    assert report["inspector"]["pillow_version"] == inspector.PILLOW_VERSION
+    assert "Status: OK" in capsys.readouterr().out
+
+
+def test_inspector_cli_rejects_wrong_trusted_manifest_hash_with_diagnostics(
+    tmp_path: Path,
+    capsys,
+) -> None:  # type: ignore[no-untyped-def]
+    out_dir = _fixtures(tmp_path)
+    report_path = tmp_path / "pre-import.json"
+
+    assert inspector.main([
+        "--fixture-dir",
+        str(out_dir),
+        "--output",
+        str(report_path),
+        "--expected-manifest-sha256",
+        "0" * 64,
+    ]) == 1
+    captured = capsys.readouterr()
+    assert "Status: FEHLER" in captured.out
+    assert "Manifest-SHA-256" in captured.err
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["ok"] is False
+    assert report["manifest"]["expected_sha256"] == "0" * 64

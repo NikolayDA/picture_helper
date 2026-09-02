@@ -13,7 +13,7 @@
 
 ## Aktueller Stand (2026-08-31, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
 
-**Nachtrag 2026-09-02 (#688-Vorbereitung):** Zwei neue COLOR-Fixtures schließen die Alpha/Coverage-Lücke und liefern ein dimensionsgleiches I-02/I-08-Paar. Der unabhängige Pre-Import-Inspector bestätigt alle 33 Fixtures; zwei kontrollierte Importpfade wurden in Studio 4.2.2 ohne sichtbare Warnung angenommen. Offen bleiben die restliche Importmatrix und physische E1-Druckmessungen.
+**Nachtrag 2026-09-02 (#688-Vorbereitung):** Zwei neue COLOR-Fixtures und eine korrespondierende HEIGHT-Registriermap schließen Alpha/Coverage- und Crop-Konfundierungen. Der unabhängige Pre-Import-Inspector bestätigt alle 34 Fixtures; zwei kontrollierte Importpfade wurden in Studio 4.2.2 ohne sichtbare Warnung angenommen. Offen bleiben die restliche Importmatrix und physische E1-Druckmessungen.
 
 **Tagesaudit 2026-08-31 (Stand `551d055`):** Geprüft wurden die zwölf heute
 gemergten PRs #927–#932, #935–#938, #940, #941 und die dadurch geschlossenen
@@ -55,7 +55,7 @@ Mac-App-Store-Pfad als blockiertes Epic; #883–#907 konkretisieren dessen
 Lizenz-, Konto-, Sandbox-, Paketierungs-, Store- und Betriebsphasen. Vor technischer Umsetzung muss
 zuerst die Lizenzstrategie entschieden werden. Kein neuer 🔴-Befund.
 
-**EufyMake #681/#687–#691:** Die vorhandenen 33 Fixtures, Protokollvorlagen und die freigegebene Testgovernance sind jetzt in den Issues abgebildet. #687 steht bei 16/18 Kriterien; offen bleiben I-06 (Ordner/Manifest) und die Abschluss-Review nach den Realtests. Herstellerquelle und Testhypothese für den separaten Spot-UV-Pfad lauten Schwarz = Gloss, Weiß = kein Gloss; volle 16-Bit-Nutzung, `pHYs`-Priorität, Graustufe→mm und Gloss-Intensität bleiben echte Hardwarefragen aus #688–#690.
+**EufyMake #681/#687–#691:** Die vorhandenen 34 Fixtures, Protokollvorlagen und die freigegebene Testgovernance sind jetzt in den Issues abgebildet. #687 steht bei 16/18 Kriterien; offen bleiben I-06 (Ordner/Manifest) und die Abschluss-Review nach den Realtests. Herstellerquelle und Testhypothese für den separaten Spot-UV-Pfad lauten Schwarz = Gloss, Weiß = kein Gloss; volle 16-Bit-Nutzung, `pHYs`-Priorität, Graustufe→mm und Gloss-Intensität bleiben echte Hardwarefragen aus #688–#690.
 
 Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.8.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (vom Owner geschlossen), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (vom Owner geschlossen) und #878 (PR #908/#910) (Details: Vorige Runden).
 

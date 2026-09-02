@@ -26,13 +26,15 @@ Quelldokumente.
 - [ ] Kinder/Haustiere werden während laufender Drucke vom Gerät ferngehalten.
 - [ ] iCloud-Drive-Ordner angelegt (nicht geteilt), z. B.
       `iCloud Drive/BgRemover-EufyMake-Testfotos/687/`.
-- [ ] Fixtures aktuell: entweder die committeten Fixtures aus
-      `tests/fixtures/eufymake_hardware/` verwenden oder frisch erzeugen
-      (`python scripts/eufymake_fixture_generator.py generate`).
+- [ ] Exakt die committeten Fixtures aus
+      `tests/fixtures/eufymake_hardware/` verwenden; am Zielrechner nicht neu
+      erzeugen, weil der folgende Vertrauens-Hash die Repository-Bytes bindet.
 - [ ] Unabhängigen Pre-Import-Report am Zielrechner erzeugt:
-      `python scripts/eufymake_fixture_inspector.py --output
-      eufymake-pre-import-report.json`; Ergebnis `ok: true`, Report bei den
-      übrigen Testnachweisen abgelegt.
+      `python scripts/eufymake_fixture_inspector.py
+      --expected-manifest-sha256
+      794e7890d169516900534b7a0166b5cd477589bef05d952c045db2a45d172308
+      --output eufymake-pre-import-report.json`; Ergebnis `ok: true`, Schema 2
+      und Soll-Hash bestätigt, Report bei den übrigen Nachweisen abgelegt.
 - [ ] Die drei Protokolltabellen aus `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`
       griffbereit (digital oder ausgedruckt), um sie parallel zu dieser
       Checkliste auszufüllen.
@@ -138,7 +140,7 @@ festgelegt. Nach je einem Erstlauf der 13 Varianten bleiben im unveränderten
 24er-Budget höchstens elf Wiederholungen. Deshalb zuerst die Kernaussagen
 wiederholen; nicht automatisch jede Variante zweimal drucken.
 
-| # | Variante | Lauf 1 | Lauf 2 | Lauf 3+ (nur mit Owner-Freigabe, Vermerk wo/warum) | Fotoreferenz eingetragen | Druckprotokoll-Zeile ausgefüllt |
+| # | Variante | Lauf 1 | Lauf 2 (max. elf; Kernaussagen zuerst) | Lauf 3+ (nur mit Owner-Freigabe, Vermerk wo/warum) | Fotoreferenz eingetragen | Druckprotokoll-Zeile ausgefüllt |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | I-02 | ☐ | ☐ | | ☐ | ☐ |
 | 2 | I-03 (8 Bit) | ☐ | ☐ | | ☐ | ☐ |
@@ -160,7 +162,9 @@ mit – auch ein Fehldruck ohne verwertbare Messung (Abschnitt 2), auch ein
 mit Owner-Freigabe genehmigter dritter Lauf. Summe über alle drei Spalten
 und alle 13 Zeilen darf **24 nicht überschreiten**; bei 20/24 oder mehr die
 Budget-Eskalation aus Abschnitt 2 dieser Checkliste prüfen, bevor
-weitergedruckt wird.
+weitergedruckt wird. Sobald elf Kästchen in „Lauf 2" belegt sind, alle übrigen
+Kästchen dieser Spalte sichtbar streichen; eine Umpriorisierung ersetzt eine
+noch nicht gestartete Wiederholung und erhöht das Budget nicht.
 
 ## 6. Am Ende des Testtags
 

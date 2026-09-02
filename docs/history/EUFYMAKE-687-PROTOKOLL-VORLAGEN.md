@@ -45,7 +45,7 @@ Fixture-Erzeugung.
 | I-05 | PNG mit `pHYs` konsistent vs. widersprüchlich vs. ohne | `pHYs` | #689 |
 | I-06 | `manifest.json` allein und kompletter BgRemover-Ordner | Träger | #687 |
 | I-07 | Vollweiße Höhenkarte | Sättigung | #688 |
-| I-08 | `color_height_reference.png` samt `height_wedge_16bit.png` vor/nach Crop in Studio | Crop | #689 |
+| I-08 | `color_height_reference.png` samt `height_registration_16bit.png` vor/nach Crop in Studio | Crop | #689 |
 | I-09 | Legacy-`.empf` vs. aktuell exportiertes `.empf` | Containergeneration | #687 |
 | I-10 | Gloss-Maske schwarz/weiß invertiert | Polarität | #690 |
 | I-11 | Höhenkarte mit Treppenkeil (bekannte, diskrete Stufen) | Graustufe→mm-Kennlinie (H-02) | #688 |
@@ -63,19 +63,23 @@ Der reproduzierbare Standardaufruf am Zielrechner ist:
 ```bash
 python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
+  --expected-manifest-sha256 794e7890d169516900534b7a0166b5cd477589bef05d952c045db2a45d172308 \
   --output eufymake-pre-import-report.json
 ```
 
-Der Report liest SHA-256, Bytegröße, PIL-Modus, IHDR-Bittiefe/-Farbtyp,
-vollständige Chunkfolge, `pHYs` und Chunk-CRCs direkt aus den übertragenen
-Dateien. Nur Exitcode 0 und `"ok": true` erlauben den anschließenden Import;
-der Report wird zusammen mit Screenshot-/Messreferenzen abgelegt.
+Der Report liest SHA-256, Bytegröße, Pillow-Lesbarkeit/-Version,
+IHDR-Bittiefe/-Farbtyp, vollständige Chunkfolge, `pHYs` und Chunk-CRCs direkt
+aus den übertragenen Dateien. Der Pillow-Modus ist nur ein Diagnosefeld; die
+Formatentscheidung beruht auf IHDR. Der im Befehl fest vorgegebene
+Manifest-SHA bindet das kopierte Verzeichnis an den versionierten Sollsatz.
+Nur Exitcode 0, `"ok": true`, Manifest-Schema 2 und derselbe Soll-Hash erlauben
+den anschließenden Import; der Report wird mit den Nachweisen abgelegt.
 
-**Repository-Gesamtprüfung (2026-09-01, automatisiert, kein Studio-Zugriff):**
-Alle 33 im Repository committeten Fixtures wurden direkt gegen
+**Repository-Gesamtprüfung (2026-09-02, automatisiert, kein Studio-Zugriff):**
+Alle 34 im Repository committeten Fixtures wurden direkt gegen
 `fixtures_manifest.json` geprüft – SHA-256 der Datei, Bytegröße, PNG-Modus/
 IHDR-Bittiefe/-Farbtyp, Maße sowie eine vollständige Chunk-Liste (per
-struct-Parsing der PNG-Bytes, nicht nur über PIL). Ergebnis: **alle 33
+struct-Parsing der PNG-Bytes, nicht nur über PIL). Ergebnis: **alle 34
 Dateien stimmen mit dem Manifest überein**, keine Datei enthält
 Chunks außer `IHDR`/`IDAT`/`IEND` und – wo im Manifest dokumentiert –
 `pHYs`. Das ersetzt **nicht** die Prüfung unmittelbar vor dem Import bei dir
@@ -108,13 +112,14 @@ I-04-Variante (`tests/test_eufymake_fixture_generator.py`, dort
 
 **Ergänzung (#688-Vorbereitung, I-02/I-08/I-13):**
 `color_height_reference.png` ist 256×256 px groß und damit dimensionsgleich
-zu `height_wedge_16bit.png`; I-02 und I-08 verwenden dieses Paar, sodass die
-Reliefzuordnung bzw. Crop-Registrierung nicht mehr mit einer unkontrollierten
-Größen-/Seitenverhältnisabweichung vermischt wird. `color_alpha_coverage.png`
-enthält drei Felder mit Alpha 0/128/255 und wird in I-13 mit der durchgehend
-nicht-null `height_mean_16bit.png` (digitaler Wert 32768) kombiniert. Die
-Generator-Tests prüfen Feldgrenzen, Alphawerte, identische Maße und den
-konstanten HEIGHT-Wert bitgenau.
+zu `height_wedge_16bit.png` (I-02). Für I-08 bildet
+`height_registration_16bit.png` alle nicht-weißen, asymmetrischen
+COLOR-Landmarks pixelgenau als 0/65535-Relief ab; dadurch wird ein Versatz auf
+X und Y nach Crop sichtbar. `color_alpha_coverage.png` enthält bei konstantem
+RGB-Payload 40/80/220 drei Felder mit Alpha 0/128/255 und wird in I-13 mit der
+durchgehend nicht-null `height_mean_16bit.png` (digitaler Wert 32768)
+kombiniert. Die Generator-Tests prüfen Landmarks, Feldgrenzen, Alphawerte,
+identische Maße sowie konstante RGB- und HEIGHT-Werte bitgenau.
 
 **Wichtiger Befund dabei:** Mehrere Fixtures mit unterschiedlicher **Rolle**
 sind **bytegleich**, weil sie denselben normalisierten Muster-Generator bei
@@ -140,11 +145,11 @@ Dateinamen prüfen, nicht nur den Hash.
 | I-05 (konsistent) | `mm_klein_phys.png` | `37a78c832895222f3ee659f64589fc9096f9e8925c6058f65394db6e1cfb37c8` | `37a78c832895222f3ee659f64589fc9096f9e8925c6058f65394db6e1cfb37c8` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 150 dpi → 150,012 ist Rundungsartefakt des `pHYs`-Ganzzahlformats, kein Fehler |
 | I-05 (widersprüchlich) | `mm_klein_phys_conflict.png` | `1e02f7004559030c7aa859a2c34ecbd7bfce9c4f786a4406eb0b5b5b69fba983` | `1e02f7004559030c7aa859a2c34ecbd7bfce9c4f786a4406eb0b5b5b69fba983` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_klein_*`, `pHYs` bewusst auf 300 statt 150 dpi gesetzt |
 | I-06 (`manifest.json` allein) | `fixtures_manifest.json` | – (kein Bild-Asset) | – | – | – | – | – | – | n. z. | Kein PNG – Validierung hier bedeutungslos, Testzweck ist Studios Reaktion auf die Datei |
-| I-06 (kompletter Ordner) | alle 34 Dateien in `tests/fixtures/eufymake_hardware/` (33 PNG-Fixtures + `fixtures_manifest.json`) | siehe alle Zeilen dieser Tabelle | siehe alle Zeilen dieser Tabelle | – | – | – | – | – | ✅ OK (33 PNGs hash-verifiziert; `fixtures_manifest.json` liegt vor, hat aber keinen Selbst-Hash) | Beim Import den **kompletten** Ordner inkl. Manifest verwenden, nicht nur die 33 Bilder – sonst wird nicht das reale BgRemover-Lieferbündel getestet. Auf Bytegleichheit über Rollen hinweg achten, siehe Hinweis oben |
+| I-06 (kompletter Ordner) | alle 35 Dateien in `tests/fixtures/eufymake_hardware/` (34 PNG-Fixtures + `fixtures_manifest.json`) | siehe alle Zeilen dieser Tabelle | siehe alle Zeilen dieser Tabelle | – | – | – | – | – | ✅ OK (34 PNGs hash-verifiziert; Manifest-SHA extern gebunden) | Beim Import den **kompletten** Ordner inkl. Manifest verwenden, nicht nur die 34 Bilder – sonst wird nicht das reale BgRemover-Lieferbündel getestet. Auf Bytegleichheit über Rollen hinweg achten, siehe Hinweis oben |
 | I-07 | `height_max_8bit.png` | `f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44` | `f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_max.png` |
 | I-07 | `height_max_16bit.png` | `f9e865c79a144fc5f90144136aafae9391e4a8f2efd1e388b8593019a6bdc0ad` | `f9e865c79a144fc5f90144136aafae9391e4a8f2efd1e388b8593019a6bdc0ad` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| I-08 (vor/nach Crop) | `color_height_reference.png` | `8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493` | `8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Identische Referenzmarker und Maße wie HEIGHT; Crop ist die einzige Variation |
-| I-08 (vor/nach Crop) | `height_wedge_16bit.png` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| I-08 (vor/nach Crop) | `color_height_reference.png` | `8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493` | `8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Asymmetrische X-/Y-Marker; pixelgleich zur HEIGHT-Registriermap |
+| I-08 (vor/nach Crop) | `height_registration_16bit.png` | `aad17d01503fb53e55d50ffb306c8bf05f2842dc53b0eb4c0ce07ad65e18f8d7` | `aad17d01503fb53e55d50ffb306c8bf05f2842dc53b0eb4c0ce07ad65e18f8d7` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Nicht-weiße COLOR-Pixel exakt als 65535-Landmarks, Hintergrund 0 |
 | I-09 (Legacy) | externes `.empf` (nicht im Repo) | – | – | – | – | – | – | – | n. z. | Kein BgRemover-Fixture – aus Community-Quelle B1 (`empf-generator`) zu beschaffen |
 | I-09 (aktuell) | ein **aktuell von EufyMake Studio selbst** exportiertes `.empf` (nicht von BgRemover) | – | – | – | – | – | – | – | offen | Kein BgRemover-Fixture – erfordert ein reales Studio-Projekt, aus der aktuellen Studio-Version exportiert. Testzweck laut Annahmeninventar (V2, I-09): prüfen, ob das seit 2.7.0.6 verschlüsselt gekapselte aktuelle `.empf`-Format importierbar bleibt bzw. sich vom alten Legacy-ZIP unterscheidet – **nicht** ob BgRemover `.empf` erzeugen kann (das bleibt bewusst Nicht-Ziel, `OpenQuestion.NATIVE_EMPF_PROJECT`) |
 | I-10 (normal) | `gloss_wedge.png` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_wedge_8bit.png` |
@@ -152,7 +157,7 @@ Dateinamen prüfen, nicht nur den Hash.
 | I-11 | `height_steps_8bit.png` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_steps.png` – siehe Hinweis oben; validiert, aber nicht die für den Druck vorgesehene Variante (siehe I-11 16 Bit) |
 | I-11 | `height_steps_16bit.png` | `ec6de68fca3a77c895f44f90a1550574501ed533202bad9531f1fcaa390344fc` | `ec6de68fca3a77c895f44f90a1550574501ed533202bad9531f1fcaa390344fc` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Für I-11 gedruckte Variante (16-Bit-kanonisch) |
 | I-12 | `height_wedge_16bit_aspect.png` | `9067d1ecabfc0067ba64c7036e28004e210945637b2c2ba53886596c90f45053` | `9067d1ecabfc0067ba64c7036e28004e210945637b2c2ba53886596c90f45053` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 256×128 (2:1), direkt neu erzeugt statt aus der 256×256-Referenz resized (siehe Ergänzung oben) |
-| I-13 | `color_alpha_coverage.png` | `7c012faf9edd8f1ae6ada189aea5a0a93a8944e038dd37a724344fac43a60d15` | `7c012faf9edd8f1ae6ada189aea5a0a93a8944e038dd37a724344fac43a60d15` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Drei Felder: Alpha 0/128/255; RGB-Payload bleibt auch bei Alpha 0 definiert |
+| I-13 | `color_alpha_coverage.png` | `1d2b8c9a0824ccc7bf669c8c1d89ea448440adde88af55f333242d9d1001f3b3` | `1d2b8c9a0824ccc7bf669c8c1d89ea448440adde88af55f333242d9d1001f3b3` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Drei Felder Alpha 0/128/255; RGB-Payload in allen Feldern konstant 40/80/220 |
 | I-13 | `height_mean_16bit.png` | `37390f6ab68310bd3f5a2f43615d5c7d6784b414cba6ca48a52a6fe1310ec475` | `37390f6ab68310bd3f5a2f43615d5c7d6784b414cba6ca48a52a6fe1310ec475` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 256×256, konstanter digitaler Wert 32768 (> 0) unter allen drei Alpha-Feldern |
 
 **Zusätzliche Fixtures** (nicht in einer I-01…I-13-Zelle referenziert, aber
@@ -178,11 +183,11 @@ mitverifiziert – bei Bedarf einer eigenen Testzelle zuordnen):
 | zusätzlich | `gloss_steps.png` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_steps_8bit.png` |
 | zusätzlich | `gloss_checkerboard.png` | `b6f2791be91d19ade1de1f05c858d321201c3b231060b9633ef1dd8323fc161d` | `b6f2791be91d19ade1de1f05c858d321201c3b231060b9633ef1dd8323fc161d` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 
-**Ergebnis der Basisprüfung: 33/33 Fixtures OK, 0 Abweichungen** (29
+**Ergebnis der Basisprüfung: 34/34 Fixtures OK, 0 Abweichungen** (29
 ursprüngliche Fixtures zzgl. der
 später ergänzten I-04-Variante `height_wedge_16bit_half.png` und der
-I-12-Variante `height_wedge_16bit_aspect.png` sowie der beiden
-COLOR-Kontrollen, siehe „Ergänzung" oben; `height_steps_8bit.png`/
+I-12-Variante `height_wedge_16bit_aspect.png`, der beiden COLOR-Kontrollen und
+der HEIGHT-Registriermap, siehe „Ergänzung" oben; `height_steps_8bit.png`/
 `height_steps_16bit.png` waren
 bereits Teil der ursprünglichen 29, nur ihre Zuordnung zu I-11 ist neu).
 Damit ist die im Repository committete Fixture-Menge nachweislich konsistent

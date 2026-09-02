@@ -587,7 +587,7 @@ fehlende Testzelle, kein Ergebnis.
 
 ---
 
-## Nachtrag zur #688-Testvorbereitung (2026-09-01)
+## Nachtrag zur #688-Testvorbereitung (2026-09-02)
 
 Die Prüfung des tatsächlich eingecheckten Materials ergab zwei
 Konfundierungen, die vor einem Hardwarelauf geschlossen werden mussten:
@@ -600,21 +600,29 @@ Konfundierungen, die vor einem Hardwarelauf geschlossen werden mussten:
    noch Protokollzelle.
 
 Der deterministische Generator ergänzt deshalb
-`color_height_reference.png` (RGBA, 256×256, voll opak) und
-`color_alpha_coverage.png` (RGBA, 256×256, drei Felder Alpha 0/128/255). I-02
-und I-08 verwenden die erste Datei zusammen mit der dimensionsgleichen
-`height_wedge_16bit.png`. Die neue Zelle **I-13** kombiniert die zweite Datei
-mit `height_mean_16bit.png`, deren digitaler HEIGHT-Wert über die gesamte
-Fläche konstant 32768 und damit sicher nicht null ist.
+`color_height_reference.png` (RGBA, 256×256, voll opak), die daraus
+pixelgenau abgeleitete `height_registration_16bit.png` und
+`color_alpha_coverage.png` (RGBA, 256×256, konstantes RGB 40/80/220, drei
+Felder Alpha 0/128/255). I-02 verwendet die COLOR-Referenz mit dem
+dimensionsgleichen `height_wedge_16bit.png`; I-08 verwendet sie mit der
+HEIGHT-Registriermap, deren asymmetrische horizontale und vertikale Landmarks
+exakt auf den nicht-weißen COLOR-Markern liegen. Die neue Zelle **I-13**
+kombiniert die Alpha-Datei mit `height_mean_16bit.png`, deren digitaler
+HEIGHT-Wert über die gesamte Fläche konstant 32768 und damit sicher nicht null
+ist. Somit variieren in I-13 weder RGB noch HEIGHT, sondern ausschließlich die
+Coverage.
 
 | Zelle | Eingabe | Variierter Faktor | Erwartete Beobachtung | Messmethode |
 | --- | --- | --- | --- | --- |
 | I-02 | `color_height_reference.png` + `height_wedge_16bit.png` | HEIGHT zugeordnet, identisches Pixelmaß | Reliefzuordnung ohne Größen-Konfundierung; hell = hoch | Studio-Vorschau + Screenshot |
-| I-08 | dasselbe dimensionsgleiche Paar vor/nach Crop | Crop | Referenzmarker und Relief bleiben registriert | Vorschau-Differenz + Ausdruck |
-| I-13 | `color_alpha_coverage.png` + `height_mean_16bit.png` | COLOR-Alpha 0/128/255 bei konstantem HEIGHT 32768 | Coverage-/Underbase-Effekt je Feld, ohne HEIGHT-Wert als Störvariable | Vorschau + Druckmessung/Fotoreferenz |
+| I-08 | `color_height_reference.png` + `height_registration_16bit.png` vor/nach Crop | Crop | Pixelgleiche asymmetrische COLOR-/HEIGHT-Landmarks bleiben auf X und Y registriert | Vorschau-Differenz + Ausdruck |
+| I-13 | `color_alpha_coverage.png` + `height_mean_16bit.png` | COLOR-Alpha 0/128/255 bei konstantem RGB und HEIGHT 32768 | Coverage-/Underbase-Effekt je Feld, ohne Farbe oder HEIGHT-Wert als Störvariable | Vorschau + Druckmessung/Fotoreferenz |
 
 Der neue unabhängige Pre-Import-Inspector
 `scripts/eufymake_fixture_inspector.py` liest am Zielrechner SHA-256,
-Bytegröße, PIL-Modus, IHDR, vollständige Chunkfolge, `pHYs` und CRCs aus und
-schreibt einen JSON-Nachweis. Dieser Nachtrag ändert keine Hardwareaussage:
+Bytegröße, Pillow-Lesbarkeit/-Version, IHDR, vollständige Chunkfolge, `pHYs`
+und CRCs aus und schreibt einen JSON-Nachweis. Der Pillow-Modus bleibt
+diagnostisch; die Formatprüfung verwendet die rohen IHDR-Felder. Schema 2 und
+der extern vorgegebene Manifest-SHA binden den Report an den aktuellen Satz.
+Dieser Nachtrag ändert keine Hardwareaussage:
 Import- und Druckresultate bleiben bis zum realen Test als **offen** markiert.
