@@ -32,7 +32,7 @@ Quelldokumente.
 - [ ] Unabhängigen Pre-Import-Report am Zielrechner erzeugt:
       `python scripts/eufymake_fixture_inspector.py
       --expected-manifest-sha256
-      be71d47fe0f4aab8a80aedd181a91ecf611087840216b2e4f0cf1dda79d2de5c
+      effeed5a295d17807efc041728249193b081058eb6a98a2dbfd2611722bf99a8
       --output eufymake-pre-import-report.json`; Ergebnis `ok: true`, Schema 4
       und Soll-Hash bestätigt, Report bei den übrigen Nachweisen abgelegt.
 - [ ] Die drei Protokolltabellen aus `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`

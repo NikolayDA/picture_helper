@@ -17,15 +17,15 @@
 | Material/Tinte/Klarlack/Ink-Mode | ausstehend; kein Druck gestartet |
 | Beleuchtung/Messmittel | ausstehend |
 | Fixture-Katalog | Schema 4; 41 Einzel-Fixtures; 7 Exportpakete |
-| Manifest-Vertrauensanker | `be71d47fe0f4aab8a80aedd181a91ecf611087840216b2e4f0cf1dda79d2de5c` |
-| Pre-Import-Report | 41/41 Fixtures und 7/7 Pakete OK; Report-SHA-256 `a0f1ac56c34674fb899255a38fbab962c3eb44004fab2273cddce5767b1535da` |
+| Manifest-Vertrauensanker | `effeed5a295d17807efc041728249193b081058eb6a98a2dbfd2611722bf99a8` |
+| Pre-Import-Report | 41/41 Fixtures und 7/7 Pakete OK; Report-SHA-256 `bbfd9f0e64723dddcc163578de0909a24fdc5c48c353604edbf46ad80465ec66` |
 
 Vor jedem weiteren Studio- oder Drucklauf ist der Report neu zu erzeugen:
 
 ```bash
 .venv/bin/python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
-  --expected-manifest-sha256 be71d47fe0f4aab8a80aedd181a91ecf611087840216b2e4f0cf1dda79d2de5c \
+  --expected-manifest-sha256 effeed5a295d17807efc041728249193b081058eb6a98a2dbfd2611722bf99a8 \
   --output eufymake-690-pre-import.json
 ```
 

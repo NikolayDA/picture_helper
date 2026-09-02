@@ -53,6 +53,13 @@ Verzeichnis dokumentiert (Schema :data:`SCHEMA_VERSION`). Die Sollbeziehung
 zwischen Pixelmaß und physischer Größe ist ``mm = Pixel / DPI × 25,4``
 (:func:`px_to_mm`), gerundet auf drei Nachkommastellen.
 
+Die PNG-Bytes werden nach der Bilderzeugung mit einer lokalen kanonischen
+Serialisierung geschrieben: fester Filtertyp, feste zlib-Parameter, genau die
+vertraglich vorgesehenen Chunks. Bereits vorhandene Dateien werden nie als
+Quelle wiederverwendet. Damit ist der Katalog eine reine Funktion der
+Fixture-Spezifikation; Encoder- oder Altdatei-Drift wird im Bytevergleich
+sichtbar und kann keinen neuen Manifest-Hash still überdecken.
+
 Zwei weitere, kein eigenständiges Muster im obigen Sinn: die
 **Pixelmaß-Variante** (I-04, #688/#689-Testdesign) ist eine
 präzisionserhaltende 128×128-Kopie von ``height_wedge_16bit.png`` (halbe
@@ -71,9 +78,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import io
 import json
+import struct
 import sys
+import zlib
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -760,47 +768,77 @@ def generate_all_fixtures() -> list[FixtureSpec]:
 
 # ── Schreiben + Manifest ─────────────────────────────────────────────────────
 
-def _snapshot_files(directory: Path) -> dict[str, bytes]:
-    """Vorhandene Bundle-Dateien für plattformneutrale Regeneration sichern."""
-    if not directory.is_dir():
-        return {}
-    return {path.name: path.read_bytes() for path in directory.iterdir() if path.is_file()}
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_PNG_MODE_CONTRACT: dict[str, tuple[int, int]] = {
+    "L": (8, 0),
+    "RGBA": (8, 6),
+    "I;16": (16, 0),
+}
 
 
-def _png_bytes_semantically_equal(left: bytes, right: bytes) -> bool:
-    """Pixel, Modus, Maße und pHYs vergleichen; zlib-Bytes dürfen abweichen."""
-    try:
-        with (
-            Image.open(io.BytesIO(left)) as left_image,
-            Image.open(io.BytesIO(right)) as right_image,
-        ):
-            if left_image.mode != right_image.mode or left_image.size != right_image.size:
-                return False
-            if left_image.info.get("dpi") != right_image.info.get("dpi"):
-                return False
-            return bool(np.array_equal(np.array(left_image), np.array(right_image)))
-    except OSError:
-        return False
+def _png_chunk(chunk_type: bytes, payload: bytes) -> bytes:
+    """Einen PNG-Chunk mit deterministischer Länge und CRC serialisieren."""
+    crc = zlib.crc32(chunk_type + payload) & 0xFFFFFFFF
+    return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", crc)
 
 
-def _restore_equivalent_files(directory: Path, previous: dict[str, bytes]) -> None:
-    """Semantisch gleiche alte Bytes behalten, um Pillow/zlib-Churn zu vermeiden."""
-    for filename, old_data in previous.items():
-        path = directory / filename
-        if not path.is_file():
-            continue
-        new_data = path.read_bytes()
-        equivalent = (
-            _png_bytes_semantically_equal(old_data, new_data)
-            if path.suffix.lower() == ".png"
-            else (
-                json.loads(old_data) == json.loads(new_data)
-                if path.suffix.lower() == ".json"
-                else old_data == new_data
-            )
-        )
-        if equivalent:
-            path.write_bytes(old_data)
+def _canonical_png_bytes(
+    image: Image.Image,
+    *,
+    dpi: tuple[float, float] | None = None,
+) -> bytes:
+    """PNG mit fester Filter-/Kompressionsstrategie plattformneutral kodieren.
+
+    Pillow bleibt für die Pixelmodelle zuständig; die PNG-Serialisierung ist
+    absichtlich lokal festgelegt. Damit hängen Fixture-Hashes weder von
+    vorhandenen Zieldateien noch von Pillows PNG-Encoderheuristiken ab. Eine
+    Änderung dieser Regel erzeugt sichtbaren Byte-/Manifest-Drift in den Tests.
+    """
+    if image.mode not in _PNG_MODE_CONTRACT:
+        raise ValueError(f"Nicht unterstützter kanonischer PNG-Modus: {image.mode}")
+    bit_depth, color_type = _PNG_MODE_CONTRACT[image.mode]
+    width, height = image.size
+    if image.mode == "L":
+        pixels = np.asarray(image, dtype=np.uint8).tobytes(order="C")
+        row_size = width
+    elif image.mode == "RGBA":
+        pixels = np.asarray(image, dtype=np.uint8).tobytes(order="C")
+        row_size = width * 4
+    else:
+        pixels = np.asarray(image, dtype=np.uint16).astype(">u2", copy=False).tobytes()
+        row_size = width * 2
+
+    # Filtertyp 0 pro Zeile verhindert plattformabhängige Encoderheuristiken.
+    raw = b"".join(
+        b"\x00" + pixels[offset : offset + row_size]
+        for offset in range(0, len(pixels), row_size)
+    )
+    compressor = zlib.compressobj(
+        level=9,
+        method=zlib.DEFLATED,
+        wbits=zlib.MAX_WBITS,
+        memLevel=9,
+        strategy=zlib.Z_FIXED,
+    )
+    compressed = compressor.compress(raw) + compressor.flush()
+    ihdr = struct.pack(">IIBBBBB", width, height, bit_depth, color_type, 0, 0, 0)
+    chunks = [_png_chunk(b"IHDR", ihdr)]
+    if dpi is not None:
+        x_ppm = int(float(dpi[0]) / 0.0254 + 0.5)
+        y_ppm = int(float(dpi[1]) / 0.0254 + 0.5)
+        chunks.append(_png_chunk(b"pHYs", struct.pack(">IIB", x_ppm, y_ppm, 1)))
+    chunks.extend((_png_chunk(b"IDAT", compressed), _png_chunk(b"IEND", b"")))
+    return _PNG_SIGNATURE + b"".join(chunks)
+
+
+def _write_canonical_png(
+    image: Image.Image,
+    path: Path,
+    *,
+    dpi: tuple[float, float] | None = None,
+) -> None:
+    """Ein Fixture-PNG ausschließlich nach dem kanonischen Vertrag schreiben."""
+    path.write_bytes(_canonical_png_bytes(image, dpi=dpi))
 
 def _write_mm_dpi_export_bundle(out_dir: Path) -> dict[str, Any]:
     """Erzeugt I-06 über den echten Writer und versieht PNGs mit Konflikt-pHYs."""
@@ -830,7 +868,6 @@ def _write_mm_dpi_export_bundle(out_dir: Path) -> dict[str, Any]:
     project.set_dpi(*EXPORT_TARGET_DPI)
 
     bundle_dir = out_dir / EXPORT_BUNDLE_DIRNAME
-    previous = _snapshot_files(bundle_dir)
     write_export(
         project,
         bundle_dir,
@@ -853,9 +890,7 @@ def _write_mm_dpi_export_bundle(out_dir: Path) -> dict[str, Any]:
             image = source.copy()
         # Erst nach dem Schließen des Quell-Handles überschreiben, damit die
         # Fixture-Erzeugung auch auf Windows funktioniert.
-        image.save(path, "PNG", dpi=EXPORT_PHYS_DPI)
-
-    _restore_equivalent_files(bundle_dir, previous)
+        _write_canonical_png(image, path, dpi=EXPORT_PHYS_DPI)
 
     files: list[dict[str, Any]] = []
     for filename, (role, png_mode, bit_depth) in png_contracts.items():
@@ -995,7 +1030,6 @@ def _write_gloss_scenario_bundle(
         gloss_image=gloss_image,
     )
     bundle_dir = out_dir / directory
-    previous = _snapshot_files(bundle_dir)
     write_export(
         project,
         bundle_dir,
@@ -1004,8 +1038,11 @@ def _write_gloss_scenario_bundle(
         confirm_warnings=True,
     )
     if replacement_gloss is not None:
-        replacement_gloss.save(bundle_dir / "gloss_mask.png", "PNG")
-    _restore_equivalent_files(bundle_dir, previous)
+        _write_canonical_png(replacement_gloss, bundle_dir / "gloss_mask.png")
+    for path in sorted(bundle_dir.glob("*.png")):
+        with Image.open(path) as source:
+            image = source.copy()
+        _write_canonical_png(image, path)
 
     png_contracts: list[tuple[str, str, str, dict[str, Any]]] = [
         ("color_motif.png", "color_motif", color_pattern, {}),
@@ -1192,10 +1229,14 @@ def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any
     entries: list[dict[str, Any]] = []
     for spec in sorted(specs, key=lambda s: s.filename):
         path = out_dir / spec.filename
-        previous = path.read_bytes() if path.is_file() else None
-        spec.image.save(path, "PNG", **spec.save_kwargs)
-        if previous is not None and _png_bytes_semantically_equal(previous, path.read_bytes()):
-            path.write_bytes(previous)
+        unsupported_kwargs = set(spec.save_kwargs) - {"dpi"}
+        if unsupported_kwargs:
+            raise ValueError(
+                f"Nicht unterstützte PNG-Optionen für {spec.filename}: "
+                f"{sorted(unsupported_kwargs)}"
+            )
+        dpi = spec.save_kwargs.get("dpi")
+        _write_canonical_png(spec.image, path, dpi=dpi)
         data = path.read_bytes()
         entries.append({
             "filename": spec.filename,

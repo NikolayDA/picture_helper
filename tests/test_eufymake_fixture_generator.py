@@ -77,6 +77,20 @@ def test_manifest_written_twice_is_byte_identical(tmp_path: Path) -> None:
     assert manifest_a == manifest_b
 
 
+def test_generation_overwrites_corrupt_existing_bytes_deterministically(
+    tmp_path: Path,
+) -> None:
+    dirty = _write(tmp_path, "dirty")
+    clean = _write(tmp_path, "clean")
+    (dirty / "gloss_min.png").write_bytes(b"not a png")
+
+    gen.write_fixtures(gen.generate_all_fixtures(), dirty)
+
+    for clean_path in sorted(path for path in clean.rglob("*") if path.is_file()):
+        relative = clean_path.relative_to(clean)
+        assert (dirty / relative).read_bytes() == clean_path.read_bytes(), relative
+
+
 # ── Manifest ↔ tatsächliche Dateieigenschaften ──────────────────────────
 
 def test_manifest_entries_match_actual_file_properties(tmp_path: Path) -> None:
@@ -534,11 +548,6 @@ def test_gloss_scenario_bundles_cover_all_orthogonal_cases(tmp_path: Path) -> No
 
 # ── Checked-in Fixtures dürfen nicht vom Generator abweichen ────────────
 
-_MANIFEST_CONTENT_KEYS = (
-    "role", "pattern", "bit_depth", "png_mode", "width", "height", "params",
-)
-
-
 def test_checked_in_fixtures_are_self_consistent() -> None:
     """Der versionierte Manifest-Vertrauensanker muss zu den Repo-Bytes passen."""
     report = inspector.inspect_fixture_dir(CHECKED_IN_DIR)
@@ -559,17 +568,32 @@ def test_documented_trust_hash_matches_checked_in_manifest() -> None:
         )
 
 
-def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
-    """Eingecheckte Fixtures dürfen inhaltlich nicht vom aktuellen Generator abweichen.
+def test_protocol_lists_every_fixture_with_current_hash() -> None:
+    """Die manuelle Prüftabelle darf weder Dateien noch neue Hashes auslassen."""
+    manifest = json.loads(
+        (CHECKED_IN_DIR / gen.MANIFEST_FILENAME).read_text(encoding="utf-8")
+    )
+    protocol = (
+        ROOT / "docs" / "history" / "EUFYMAKE-687-PROTOKOLL-VORLAGEN.md"
+    ).read_text(encoding="utf-8")
+    for entry in manifest["fixtures"]:
+        expected_cells = (
+            f"`{entry['filename']}` | `{entry['sha256']}` | `{entry['sha256']}`"
+        )
+        assert expected_cells in protocol, entry["filename"]
 
-    Verglichen werden Pixelinhalt und Bildmetadaten (Modus, Maße, ``dpi``) statt
-    PNG-Rohbytes: der zlib-Kompressionsstream unterscheidet sich je nach
-    Plattform/Pillow-Build – auf dem macOS-Kandidatenbau von 2.8.0 (Run
-    31968057273) erzeugte derselbe Generator für dieselben Pixel andere Bytes
-    *und* eine andere Dateigröße als das unter Linux eingecheckte Fixture, obwohl
-    Breite/Höhe/Modus/Parameter bitgenau gleich blieben. Ein reiner Byte-Vergleich
-    wäre daher plattformabhängig und kein echter Drift-Nachweis.
-    """
+    mm_contract = (
+        ROOT / "docs" / "history" / "EUFYMAKE-689-MM-DPI-VERTRAG.md"
+    ).read_text(encoding="utf-8")
+    expected_summary = (
+        f"Schema {manifest['schema']} · {manifest['fixture_count']} Einzel-Fixtures · "
+        f"{manifest['bundle_count']} Exportpakete"
+    )
+    assert expected_summary in mm_contract
+
+
+def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
+    """Eingecheckte Fixtures müssen dem kanonischen Generator bytegenau entsprechen."""
     assert CHECKED_IN_DIR.is_dir(), (
         "tests/fixtures/eufymake_hardware/ fehlt – "
         "python scripts/eufymake_fixture_generator.py generate ausführen"
@@ -587,27 +611,10 @@ def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
         "Generators ab – neu generieren und committen."
     )
 
-    checked_in_manifest = json.loads(
-        (CHECKED_IN_DIR / gen.MANIFEST_FILENAME).read_text(encoding="utf-8")
-    )
-    fresh_manifest = json.loads((fresh_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
-    checked_in_by_name = {e["filename"]: e for e in checked_in_manifest["fixtures"]}
-    fresh_by_name = {e["filename"]: e for e in fresh_manifest["fixtures"]}
-    assert checked_in_by_name.keys() == fresh_by_name.keys()
-    for filename, fresh_entry in fresh_by_name.items():
-        checked_in_entry = checked_in_by_name[filename]
-        for key in _MANIFEST_CONTENT_KEYS:
-            assert checked_in_entry[key] == fresh_entry[key], f"{filename}: {key} weicht ab"
-
-    assert checked_in_manifest["bundle_count"] == fresh_manifest["bundle_count"]
-    checked_in_bundles = json.loads(json.dumps(checked_in_manifest["bundles"]))
-    fresh_bundles = json.loads(json.dumps(fresh_manifest["bundles"]))
-    for bundles in (checked_in_bundles, fresh_bundles):
-        for bundle in bundles:
-            for entry in bundle["files"]:
-                entry.pop("sha256")
-                entry.pop("bytes")
-    assert checked_in_bundles == fresh_bundles
+    for relative in checked_in_files:
+        assert (CHECKED_IN_DIR / relative).read_bytes() == (
+            fresh_dir / relative
+        ).read_bytes(), f"{relative}: Byte-Drift"
 
     for name in checked_in_files:
         if name.name == gen.MANIFEST_FILENAME:
