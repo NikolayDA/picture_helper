@@ -12,10 +12,10 @@ Ergebnisdokument für
 - **Dateievidenz:** vollständig und automatisiert geprüft. Es gibt 36
   Einzel-Fixtures sowie ein echtes BgRemover-Exportpaket mit vier Dateien.
 - **Studio-Beobachtung:** für Startgröße, DPI-Priorität, X/Y-DPI,
-  Mehrfachimport, manuelle Größe und Rotation am 2026-09-02 durchgeführt.
-  Der Crop ist vorbereitet, aber wegen seiner destruktiven Wirkung noch nicht
-  angewendet. Alle Importe wurden vom Benutzer für die konkret benannten
-  Dateien freigegeben.
+  Mehrfachimport, manuelle Größe, Rotation und einen kontrollierten Crop am
+  2026-09-02 durchgeführt. Alle Importe und der destruktive Crop wurden vom
+  Benutzer für die konkret benannten Dateien beziehungsweise die vorbereitete
+  Auswahl freigegeben.
 - **Druckmessung:** offen. Es wurde kein Druck ausgelöst. Vor einem Druck sind
   die E1-Warnungen zu abgelaufenem Scraper, Luftfilter und gelber Tinte zu
   klären und die freigegebene Geräte-/Material-Governance anzuwenden.
@@ -128,7 +128,7 @@ deshalb nicht geraten. Es wurde kein Druck ausgelöst.
 | manuelle Größe auf einem ausgewählten Bundle-PNG | 21,67 mm Breite ergab bei gekoppeltem Seitenverhältnis 21,67 mm Höhe und überschreibt damit die Datei-Startgröße. Der Nullwertversuch wurde auf einen kleinen positiven Wert begrenzt; danach zeigte die Kopplung ein instabiles Verhältnis. Eine anschließende Breite von 1000 mm ergab 1000×1254,78 mm und X/Y −810,83/−1023,11 ohne Warnung. Der Ablauf ist ein Validierungs-Warnfall, kein belastbarer Extremwertvertrag. |
 | I-08 `color_height_reference.png`, `height_registration_16bit.png`, `gloss_registration.png` | Alle drei Dateien ohne `pHYs` starteten einzeln mit 90,31×90,31 mm und X/Y 122,34/164,84 mm. Die gemeinsame Ausdehnung und Zentrierung bleiben erhalten; Studio ordnet die Rollen jedoch nicht automatisch zu, sondern importiert sie als „Flat“. |
 | Rotation von `mm_typisch_phys_xy.png` um 90° | Die intrinsischen Felder bleiben 101,60×203,18 mm, Winkel 90°. Die sichtbare Bounding Box wird ohne Skalierung gedreht und auf X/Y 65,91/159,19 mm neu zentriert. |
-| Crop-Vorschau | Auf der rotierten X/Y-Fixture ist eine Halbierung der intrinsischen Breite auf 50,80 mm bei 203,18 mm Höhe vorbereitet. Der destruktive „Crop“-Schritt wurde noch nicht bestätigt und nicht angewendet. |
+| Crop auf der rotierten X/Y-Fixture | Die intrinsische Breite wurde von 101,60 auf 50,80 mm halbiert; Höhe 203,18 mm und Winkel 90° blieben erhalten. Danach zeigte Studio X/Y 65,91/210,00 mm und keine zusätzliche Warnung. Das sichtbare Motiv entspricht der gewählten Hälfte. |
 
 ## Empirischer Vertrag und offene Grenzen
 
@@ -141,10 +141,10 @@ deshalb nicht geraten. Es wurde kein Druck ausgelöst.
 | Manifest 300 dpi gegen PNG 150 dpi | JSON im Bildimport nicht auswählbar; drei PNGs starten gemäß `pHYs` mit je 43,35 mm | offen | Für den beobachteten Bildimport hat das Manifest keine Wirkung. Ein anderer, ausdrücklich dokumentierter Paketimportweg wäre separat zu prüfen. |
 | manuelle Studio-Größe gegen Dateiwerte | 21,67×21,67 mm überschreibt 43,35×43,35 mm | offen | Manuelle Größe hat nach dem Import Vorrang. Null-/Extremwerte benötigen produktseitige Grenzen und Warnungen; das Studio-Verhalten allein ist nicht sicher genug. |
 | COLOR/HEIGHT/GLOSS-Ausdehnung und Registrierung | gleiche 90,31-mm-Ausdehnung und identische Zentrierung; alle Rollen als unabhängige „Flat“-Ebenen | offen | Gleiche Pixelmaße führen zur gleichen Startausdehnung. Semantische Zuordnung und pixelgenaue Registrierung im Produktionsmodus sind noch nicht belegt. |
-| Crop, Rand, Offset, Zentrierung, Rotation | Zentrierung rechnerisch konsistent; 90° rotiert ohne Skalierung, W/H-Felder bleiben intrinsisch; Crop nur vorbereitet | offen | Rotation ist für dieses Profil belegt. Crop-Wirkung sowie Druckrand und physischer Offset bleiben offen. |
+| Crop, Rand, Offset, Zentrierung, Rotation | Vor Crop rechnerisch zentriert; 90° rotiert ohne Skalierung. Crop halbiert die intrinsische Breite auf 50,80 mm, erhält Höhe und Winkel und setzt X/Y auf 65,91/210,00 mm | offen | Rotation und der kontrollierte Einzelbild-Crop sind für dieses Profil belegt. Die Positionsänderung ist exakt zu übernehmen, nicht als unveränderte Zentrierung anzunehmen. Rollenübergreifender Crop, Druckrand und physischer Offset bleiben offen. |
 
 Für #691 darf der vorläufige Studio-Teilvertrag bereits als
-Validierungsgrundlage dienen. Drucktoleranzen, Crop-Wirkung und semantische
-Rollenregistrierung dürfen erst nach den noch offenen Realtests festgeschrieben
-werden. Versionsabhängige Abweichungen sind gegen Studio 4.2.2 / Editor 1.20.0
-zu bewerten.
+Validierungsgrundlage dienen. Drucktoleranzen, rollenübergreifende Crop-Wirkung
+und semantische Rollenregistrierung dürfen erst nach den noch offenen
+Realtests festgeschrieben werden. Versionsabhängige Abweichungen sind gegen
+Studio 4.2.2 / Editor 1.20.0 zu bewerten.
