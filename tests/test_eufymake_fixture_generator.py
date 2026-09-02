@@ -67,18 +67,31 @@ def _without_transport_fields(value: object) -> object:
     return value
 
 
-def _legacy_export_view(manifest: dict[str, object]) -> dict[str, object]:
-    """Projiziert ein neues Manifest auf den unveränderlichen Hardwarestand.
+#: Writer-Stand der sieben eingecheckten Exportpakete: Commit c814945 (PR #952),
+#: also **vor** #953. Ihre ``manifest.json`` sind bewusst die am 2026-09-02 in
+#: Studio 4.2.2 geprüften Bytes (Legacy-Referenz ohne Snapshot) und werden nicht
+#: mit jedem Writer-Schritt neu erzeugt: Eine Regeneration änderte 12 per Pillow
+#: geschriebene PNGs plattformabhängig und damit den Manifest-Vertrauensanker in
+#: vier Dokumenten, ohne dass Studio das Manifest überhaupt liest. Der aktuelle
+#: Writer ergänzt seit #953 genau diese Felder; ``_legacy_export_view`` blendet sie
+#: auf **beiden** Seiten aus, und ``test_checked_in_bundle_manifests_are_the_frozen_pre_953_writer_state``
+#: hält den eingefrorenen Stand fest.
+FROZEN_BUNDLE_WRITER_COMMIT = "c814945"
+POST_953_MANIFEST_FIELDS = frozenset({"profile_contract", "producer"})
+POST_953_ASSET_FIELDS = frozenset({"channel_interpretation"})
 
-    Die am 2026-09-02 geprüften Paketmanifeste bleiben absichtlich bytegenaue
-    Legacy-Evidenz. Der aktuelle Writer ergänzt Profilsnapshot, Producer und
-    Kanalinterpretation; diese additiven Felder dürfen den alten Nachweis nicht
-    nachträglich umschreiben.
+
+def _legacy_export_view(manifest: dict[str, object]) -> dict[str, object]:
+    """Projiziert ein Paketmanifest auf den eingefrorenen Writer-Stand.
+
+    Symmetrisch auf eingecheckte und frisch erzeugte Manifeste angewandt: Die
+    seit #953 additiven Felder (``POST_953_MANIFEST_FIELDS``/``POST_953_ASSET_FIELDS``)
+    dürfen den alten Nachweis weder umschreiben noch den Vergleich brechen.
     """
     projected = {
         key: value
         for key, value in manifest.items()
-        if key not in {"profile_contract", "producer"}
+        if key not in POST_953_MANIFEST_FIELDS
     }
     assets = projected.get("assets")
     if isinstance(assets, list):
@@ -86,7 +99,7 @@ def _legacy_export_view(manifest: dict[str, object]) -> dict[str, object]:
             {
                 key: value
                 for key, value in asset.items()
-                if key != "channel_interpretation"
+                if key not in POST_953_ASSET_FIELDS
             }
             if isinstance(asset, dict)
             else asset
@@ -646,7 +659,14 @@ def test_documented_trust_hash_matches_checked_in_manifest() -> None:
 
 
 def test_protocol_lists_every_fixture_with_current_hash() -> None:
-    """Die manuelle Prüftabelle darf weder Dateien noch neue Hashes auslassen."""
+    """Die manuelle Prüftabelle darf weder Dateien noch neue Hashes auslassen.
+
+    Gebunden ist nur die Soll-Spalte „Erwarteter SHA-256". Die Spalte
+    „Tatsächlicher SHA-256" ist laut CLAUDE.md die einzige Ablage der am
+    Zielrechner *beobachteten* Werte – sie darf abweichen oder leer bleiben,
+    sonst wäre ein echter Befund ohne roten ``make check`` nicht eintragbar
+    (#954-Review).
+    """
     manifest = json.loads(
         (CHECKED_IN_DIR / gen.MANIFEST_FILENAME).read_text(encoding="utf-8")
     )
@@ -654,9 +674,7 @@ def test_protocol_lists_every_fixture_with_current_hash() -> None:
         ROOT / "docs" / "history" / "EUFYMAKE-687-PROTOKOLL-VORLAGEN.md"
     ).read_text(encoding="utf-8")
     for entry in manifest["fixtures"]:
-        expected_cells = (
-            f"`{entry['filename']}` | `{entry['sha256']}` | `{entry['sha256']}`"
-        )
+        expected_cells = f"`{entry['filename']}` | `{entry['sha256']}` |"
         assert expected_cells in protocol, entry["filename"]
 
     mm_contract = (
@@ -667,6 +685,36 @@ def test_protocol_lists_every_fixture_with_current_hash() -> None:
         f"{manifest['bundle_count']} Exportpakete"
     )
     assert expected_summary in mm_contract
+
+
+def test_checked_in_bundle_manifests_are_the_frozen_pre_953_writer_state(tmp_path: Path) -> None:
+    """Der eingefrorene Paketstand ist eine Entscheidung, keine Vergesslichkeit.
+
+    Die eingecheckten Manifeste tragen keines der seit #953 additiven Felder und
+    bleiben Legacy-Referenzen; der aktuelle Writer schreibt die Felder sehr wohl –
+    nur deshalb ist die Projektion in ``_legacy_export_view`` überhaupt nötig.
+    Schlägt die erste Hälfte fehl, wurden die Pakete neu erzeugt: Dann sind
+    Vertrauensanker (vier Dokumente), Protokolltabelle und diese Projektion
+    bewusst nachzuziehen, nicht dieser Test.
+    """
+    checked_in = sorted(CHECKED_IN_DIR.glob("export_*/manifest.json"))
+    assert len(checked_in) == 7
+    for path in checked_in:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        assert not POST_953_MANIFEST_FIELDS & manifest.keys(), (
+            f"{path.name} in {path.parent.name} trägt Felder des Writers nach #953 – "
+            f"eingefrorener Stand ist {FROZEN_BUNDLE_WRITER_COMMIT}; Anker nachziehen"
+        )
+        for asset in manifest["assets"]:
+            assert not POST_953_ASSET_FIELDS & asset.keys(), path.parent.name
+        assert resolve_manifest_profile(manifest).legacy_reference is True, path.parent.name
+
+    fresh_dir = _write(tmp_path, "fresh")
+    fresh = json.loads(
+        (fresh_dir / gen.EXPORT_BUNDLE_DIRNAME / "manifest.json").read_text(encoding="utf-8")
+    )
+    assert fresh.keys() >= POST_953_MANIFEST_FIELDS, "Projektion wäre überflüssig"
+    assert all(asset.keys() >= POST_953_ASSET_FIELDS for asset in fresh["assets"])
 
 
 def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:

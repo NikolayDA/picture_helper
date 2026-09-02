@@ -126,6 +126,17 @@ identische Maße sowie konstante RGB- und HEIGHT-Werte bitgenau.
 
 **Ergänzung (#689-Vorbereitung, I-05/I-06/I-08):**
 `mm_typisch_phys_xy.png` trägt getrennte X-/Y-Werte von ca. 300/150 dpi.
+**Writer-Stand der sieben Exportpakete (Nachtrag 2026-09-02):** Alle Pakete
+(`export_mm_dpi_conflict/` und die sechs `export_gloss_*/`) stammen aus dem
+Writer-Stand `c814945` (PR #952), also von **vor** #953. Ihre `manifest.json`
+tragen weder `profile_contract` noch `producer` noch
+`assets[].channel_interpretation`; sie bleiben bewusst die am 2026-09-02 in
+Studio 4.2.2 importierten Bytes (Studio liest das Manifest ohnehin nicht). Eine
+Neuerzeugung schriebe diese Felder und plattformabhängige Paket-PNGs und damit
+einen neuen Manifest-Vertrauensanker – sie ist nur bewusst zulässig, mit Nachzug
+des Ankers in allen vier Dokumenten, dieser Tabelle und der Legacy-Projektion in
+`tests/test_eufymake_fixture_generator.py`.
+
 Der Unterordner `export_mm_dpi_conflict/` stammt aus dem produktiven
 BgRemover-Writer und enthält die kanonischen vier Paketdateien; sein
 `manifest.json` fordert 300×300 dpi, während die drei PNGs 150×150 dpi im

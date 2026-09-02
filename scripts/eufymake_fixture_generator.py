@@ -64,7 +64,14 @@ Maße und Metadaten geprüft; die Pixel selbst sind nur mit der gepinnten
 Pillow-Version (``requirements/constraints.txt``) versionsstabil, weil
 Landmarken über ``ImageDraw`` und die Pixelmaß-Variante über LANCZOS entstehen.
 PNGs der Produktionswriter-Pakete bleiben bis auf die ausdrücklich
-dokumentierten Konfliktmodifikationen unverändert.
+dokumentierten Konfliktmodifikationen unverändert. Die sieben eingecheckten
+Pakete sind der eingefrorene Writer-Stand c814945 (PR #952, vor #953): ihre
+``manifest.json`` tragen weder ``profile_contract`` noch ``producer`` noch
+``channel_interpretation``. Ein heutiger ``generate``-Lauf schreibt diese Felder
+und per Pillow plattformabhängige Paket-PNGs – wer die Pakete neu einchecken
+will, zieht bewusst den Manifest-Vertrauensanker in vier Dokumenten, die
+Protokolltabelle und die Legacy-Projektion in ``tests/test_eufymake_fixture_generator.py``
+nach.
 
 Zwei weitere, kein eigenständiges Muster im obigen Sinn: die
 **Pixelmaß-Variante** (I-04, #688/#689-Testdesign) ist eine
