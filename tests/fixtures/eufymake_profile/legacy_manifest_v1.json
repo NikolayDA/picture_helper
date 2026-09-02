@@ -1,0 +1,6 @@
+{
+  "profile": "bgremover-eufymake-import",
+  "profile_version": 1,
+  "kind": "eufymake_import_assets",
+  "note": "Eingefrorene Legacy-Referenz ohne profile_contract; nicht vom Fixture-Generator überschreiben."
+}

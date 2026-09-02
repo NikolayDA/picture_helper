@@ -264,6 +264,23 @@ def test_writer_consumes_selected_profile_without_hardcoded_filename(tmp_path: P
     assert manifest["profile_contract"] == profile.to_dict()
 
 
+def test_writer_rejects_profile_filename_that_escapes_destination(tmp_path: Path) -> None:
+    color_rule = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE.asset_for(LayerRole.COLOR_MOTIF),
+        filename="../outside.png",
+    )
+    profile = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE,
+        profile_id="test-unsafe-profile",
+        assets=(color_rule, *DEFAULT_TARGET_PROFILE.assets[1:]),
+    )
+    dest = tmp_path / "unsafe"
+    with pytest.raises(ValueError, match="Asset-Dateiname"):
+        write_export(_color_project(), dest, profile=profile)
+    assert not dest.exists()
+    assert not (tmp_path / "outside.png").exists()
+
+
 def test_existing_target_without_overwrite_raises(tmp_path: Path) -> None:
     project = _color_project()
     dest = tmp_path / "export"

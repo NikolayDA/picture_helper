@@ -489,6 +489,13 @@ sagen. Außerdem bleibt `DEFAULT_BIT_DEPTH = 8`; der Standardpfad erzeugt damit
 weiterhin die neue Warnung. Ob der Default auf 16 Bit wechseln soll, gehört nach
 H-01 in #688/#691.
 
+**Nachtrag 2026-09-02 (#691):** Das versionierte Zielprofil v1 setzt den
+konservativen Default inzwischen auf 16 Bit. Beide Träger bleiben bis zur
+physischen #688-Messung ausdrücklich unbestätigt; 8 Bit ist weiterhin als
+Legacy-Auswahl mit Warnung verfügbar. Damit ist die hier festgehaltene offene
+Default-Entscheidung umgesetzt, ohne eine Nutzung aller 65536 Stufen zu
+behaupten.
+
 Die Werte „Relief 5 mm / Flat Raised 3 mm / Pattern 1 mm“ sind durch die direkt
 gelesenen A4/A5 nicht vollständig belegt. B6 trägt nur die 5-mm-Angabe für Relief.
 Bis Original-UI oder weitere Herstellerquelle die Werte 3/1 mm bestätigt, dürfen

@@ -35,6 +35,7 @@ from bgremover.eufymake_profile import (
     DEFAULT_PROFILE_REGISTRY,
     DEFAULT_TARGET_PROFILE,
     EufyMakeTargetProfile,
+    ProfileRegistry,
     ProfileStatus,
 )
 from bgremover.eufymake_validate import (
@@ -61,6 +62,9 @@ class EufyMakeExportDialog(QDialog):
         profile: EufyMakeTargetProfile = DEFAULT_TARGET_PROFILE,
         parent: QWidget | None = None,
     ) -> None:
+        # Direkte Test-/Integrationsprofile durchlaufen dieselben Invarianten
+        # wie die global registrierten Profile, bevor UI-Properties sie lesen.
+        ProfileRegistry((profile,))
         super().__init__(parent)
         self._project = project
         self._initial_profile = profile
@@ -149,8 +153,12 @@ class EufyMakeExportDialog(QDialog):
         box.addWidget(_hint(tr("eufymake.dialog.color_motif.hint")))
 
         self._height_cb = QCheckBox(tr("eufymake.dialog.height"))
-        self._height_cb.setEnabled(self._has_height)
-        self._height_cb.setChecked(self._has_height and include_height)
+        self._configure_asset_checkbox(
+            self._height_cb,
+            LayerRole.HEIGHT_MAP,
+            available=self._has_height,
+            requested=include_height,
+        )
         self._height_cb.toggled.connect(self._recompute)
         box.addWidget(self._height_cb)
         height_hint = (
@@ -161,8 +169,12 @@ class EufyMakeExportDialog(QDialog):
         box.addWidget(_hint(height_hint))
 
         self._gloss_cb = QCheckBox(tr("eufymake.dialog.gloss"))
-        self._gloss_cb.setEnabled(self._has_gloss)
-        self._gloss_cb.setChecked(self._has_gloss and include_gloss)
+        self._configure_asset_checkbox(
+            self._gloss_cb,
+            LayerRole.GLOSS_MASK,
+            available=self._has_gloss,
+            requested=include_gloss,
+        )
         self._gloss_cb.toggled.connect(self._recompute)
         box.addWidget(self._gloss_cb)
         gloss_hint = (
@@ -173,6 +185,37 @@ class EufyMakeExportDialog(QDialog):
         box.addWidget(_hint(gloss_hint))
         return grp
 
+    def _configure_asset_checkbox(
+        self,
+        checkbox: QCheckBox,
+        role: LayerRole,
+        *,
+        available: bool,
+        requested: bool,
+    ) -> None:
+        """Spiegelt optionale und verpflichtende Profilrollen im Dialog."""
+        profile = self.selected_profile()
+        supported = any(asset.role is role for asset in profile.assets)
+        required = role in profile.required_roles
+        checkbox.setEnabled(available and supported and not required)
+        checkbox.setChecked(available and supported and (required or requested))
+
+    def _sync_asset_checkboxes(self) -> None:
+        """Übernimmt Rollenpflichten nach einem Profilwechsel signalarm."""
+        for checkbox, role, available in (
+            (self._height_cb, LayerRole.HEIGHT_MAP, self._has_height),
+            (self._gloss_cb, LayerRole.GLOSS_MASK, self._has_gloss),
+        ):
+            requested = checkbox.isChecked()
+            previous_block = checkbox.blockSignals(True)
+            self._configure_asset_checkbox(
+                checkbox,
+                role,
+                available=available,
+                requested=requested,
+            )
+            checkbox.blockSignals(previous_block)
+
     def _build_target_group(self, bit_depth: int) -> QGroupBox:
         grp = QGroupBox(tr("eufymake.dialog.section.target"))
         box = QVBoxLayout(grp)
@@ -181,8 +224,6 @@ class EufyMakeExportDialog(QDialog):
         depth_row.addWidget(QLabel(tr("eufymake.dialog.bit_depth")))
         self._bit_combo = QComboBox()
         self._populate_bit_depths(bit_depth)
-        index = self._bit_combo.findData(bit_depth)
-        self._bit_combo.setCurrentIndex(index if index >= 0 else 0)
         self._bit_combo.currentIndexChanged.connect(self._recompute)
         depth_row.addWidget(self._bit_combo, 1)
         box.addLayout(depth_row)
@@ -214,16 +255,20 @@ class EufyMakeExportDialog(QDialog):
     def _profile_changed(self, _index: int = -1) -> None:
         previous = self.selected_bit_depth()
         self._populate_bit_depths(previous)
+        self._sync_asset_checkboxes()
         self._update_environment_text()
         self._recompute()
 
     def _update_environment_text(self) -> None:
         profile = self.selected_profile()
-        status = (
-            tr("eufymake.dialog.profile.status.provisional")
-            if profile.status is ProfileStatus.PROVISIONAL
-            else profile.status.value
-        )
+        if profile.status is ProfileStatus.PROVISIONAL:
+            status = tr("eufymake.dialog.profile.status.provisional")
+        elif profile.status is ProfileStatus.VALIDATED:
+            status = tr("eufymake.dialog.profile.status.validated")
+        elif profile.status is ProfileStatus.RETIRED:
+            status = tr("eufymake.dialog.profile.status.retired")
+        else:  # pragma: no cover - Enum wird bewusst vollständig behandelt
+            raise AssertionError(f"Unbekannter Profilstatus: {profile.status!r}")
         environment = profile.target_environment
         self._environment_label.setText(
             tr(
@@ -327,9 +372,10 @@ class EufyMakeExportDialog(QDialog):
     def selected_optional_roles(self) -> list[LayerRole]:
         """Die vom Nutzer einbezogenen optionalen Rollen (nur aktivierte)."""
         roles: list[LayerRole] = []
-        if self._height_cb.isChecked():
+        optional_roles = self.selected_profile().optional_roles
+        if self._height_cb.isChecked() and LayerRole.HEIGHT_MAP in optional_roles:
             roles.append(LayerRole.HEIGHT_MAP)
-        if self._gloss_cb.isChecked():
+        if self._gloss_cb.isChecked() and LayerRole.GLOSS_MASK in optional_roles:
             roles.append(LayerRole.GLOSS_MASK)
         return roles
 

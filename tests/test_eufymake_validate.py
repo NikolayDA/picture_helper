@@ -6,6 +6,7 @@ sowie die de/en-i18n-Parität (Keys + Platzhalter, Coverage) ab.
 """
 from __future__ import annotations
 
+import dataclasses
 import re
 
 import numpy as np
@@ -13,6 +14,7 @@ import pytest
 from PIL import Image
 
 import bgremover.i18n as i18n
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE
 from bgremover.eufymake_validate import (
     ExportCheckCode,
     ExportFinding,
@@ -121,6 +123,24 @@ def test_requested_optional_role_missing_is_error() -> None:
     assert missing.params["role_name"] == LayerRole.HEIGHT_MAP.value
     assert missing.filename == "height_map.png"
     assert missing.remedy == "assign_requested_role"
+
+
+def test_required_non_color_role_is_validated_even_when_not_requested() -> None:
+    required_height_profile = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE,
+        assets=tuple(
+            dataclasses.replace(asset, required=True)
+            if asset.role is LayerRole.HEIGHT_MAP
+            else asset
+            for asset in DEFAULT_TARGET_PROFILE.assets
+        ),
+    )
+    findings = validate_export(
+        _color_project(), requested_optional_roles=[], profile=required_height_profile
+    )
+    missing = next(f for f in findings if f.code is ExportCheckCode.OPTIONAL_ROLE_MISSING)
+    assert missing.role is LayerRole.HEIGHT_MAP
+    assert missing.severity is Severity.ERROR
 
 
 def test_size_mismatch_is_error() -> None:

@@ -58,10 +58,10 @@ def test_legacy_manifest_reference_is_resolved_but_marked() -> None:
     assert resolved.legacy_reference is True
 
 
-def test_hardware_fixture_manifest_remains_a_readable_legacy_reference() -> None:
+def test_frozen_legacy_manifest_remains_a_readable_reference() -> None:
     manifest_path = (
         Path(__file__).parent
-        / "fixtures/eufymake_hardware/export_mm_dpi_conflict/manifest.json"
+        / "fixtures/eufymake_profile/legacy_manifest_v1.json"
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     resolved = resolve_manifest_profile(manifest)
@@ -110,6 +110,72 @@ def test_registry_accepts_a_future_profile_without_consumer_branch() -> None:
     assert registry.resolve(future.profile_id, future.profile_version) is future
     with pytest.raises(ValueError, match="bereits registriert"):
         registry.register(future)
+
+
+def test_registry_requires_roles_used_by_every_consumer() -> None:
+    profile = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE,
+        assets=tuple(
+            asset
+            for asset in DEFAULT_TARGET_PROFILE.assets
+            if asset.role is not LayerRole.HEIGHT_MAP
+        ),
+    )
+    with pytest.raises(ValueError, match="Consumer-Rollen.*height_map"):
+        ProfileRegistry((profile,))
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ["manifest.json", "Manifest.JSON", "../outside.png", "nested/asset.png", r"..\outside.png"],
+)
+def test_registry_rejects_reserved_or_non_basename_asset_filenames(
+    filename: str,
+) -> None:
+    assets = list(DEFAULT_TARGET_PROFILE.assets)
+    assets[0] = dataclasses.replace(assets[0], filename=filename)
+    profile = dataclasses.replace(DEFAULT_TARGET_PROFILE, assets=tuple(assets))
+    with pytest.raises(ValueError, match="Asset-Dateiname"):
+        ProfileRegistry((profile,))
+
+
+def test_registry_rejects_duplicate_asset_filenames_case_insensitively() -> None:
+    assets = list(DEFAULT_TARGET_PROFILE.assets)
+    assets[1] = dataclasses.replace(assets[1], filename="COLOR_MOTIF.PNG")
+    profile = dataclasses.replace(DEFAULT_TARGET_PROFILE, assets=tuple(assets))
+    with pytest.raises(ValueError, match="Asset-Dateiname"):
+        ProfileRegistry((profile,))
+
+
+@pytest.mark.parametrize("version", [True, "1", 1.0])
+def test_registry_rejects_non_integer_profile_versions(version: object) -> None:
+    profile = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE,
+        profile_version=version,  # type: ignore[arg-type]
+    )
+    with pytest.raises(ValueError, match="Profilversion"):
+        ProfileRegistry((profile,))
+
+
+def test_registry_rejects_duplicate_bit_depth_ranges() -> None:
+    assets = list(DEFAULT_TARGET_PROFILE.assets)
+    height = assets[1]
+    assets[1] = dataclasses.replace(
+        height,
+        value_ranges=height.value_ranges + ((8, (0, 255)),),
+    )
+    profile = dataclasses.replace(DEFAULT_TARGET_PROFILE, assets=tuple(assets))
+    with pytest.raises(ValueError, match="Wertebereiche"):
+        ProfileRegistry((profile,))
+
+
+def test_registry_requires_every_stable_validation_code() -> None:
+    profile = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE,
+        validation_rules=DEFAULT_TARGET_PROFILE.validation_rules[:-1],
+    )
+    with pytest.raises(ValueError, match="unvollständige"):
+        ProfileRegistry((profile,))
 
 
 def test_profile_keeps_hardware_unknowns_open() -> None:

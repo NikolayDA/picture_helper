@@ -28,6 +28,7 @@ from bgremover.eufymake_profile import (
     AssetPixelFormat,
     EufyMakeTargetProfile,
     HeightSemantics,
+    ProfileRegistry,
 )
 from bgremover.project_model import (
     META_BIT_DEPTH,
@@ -89,6 +90,10 @@ class MissingColorMotifError(EufyMakeExportError):
     """Das erforderliche Farbmotiv lässt sich aus dem Projekt nicht ableiten."""
 
 
+class MissingRequiredAssetError(EufyMakeExportError):
+    """Eine vom Zielprofil geforderte Nicht-COLOR-Rolle fehlt im Projekt."""
+
+
 class InvalidBitDepthError(EufyMakeExportError):
     """``META_BIT_DEPTH`` hält einen ungültigen Wert (kein 8/16-Bit-Integer)."""
 
@@ -104,10 +109,10 @@ class ExportAsset:
     ``role`` ist die abgebildete Ebenenrolle, ``filename`` der deterministische
     BgRemover-Dateiname. ``source_layer_id`` benennt die Quell-Ebene; für ein
     Farbmotiv ohne explizite ``COLOR_MOTIF``-Rolle ist es ``None`` und meint das
-    **COLOR-Komposit** (siehe :attr:`from_color_composite`). ``required`` ist nur
-    für das Farbmotiv ``True``; ``experimental`` markiert Assets mit offener
-    Semantik (Gloss-Maske). Es werden hier **keine Pixel** gehalten – das Rendern
-    übernimmt #353.
+    **COLOR-Komposit** (siehe :attr:`from_color_composite`). ``required`` folgt
+    dem gewählten Zielprofil; ``experimental`` markiert Assets mit offener
+    Semantik (Gloss-Maske). Es werden hier **keine Pixel** gehalten – das
+    Rendern übernimmt #353.
     """
 
     role: LayerRole
@@ -356,12 +361,11 @@ def build_export_plan(
 ) -> ExportPlan:
     """Bildet ein :class:`Project` deterministisch auf einen :class:`ExportPlan` ab.
 
-    Rollen→Assets: ``COLOR_MOTIF`` ergibt das **erforderliche** Farbmotiv (RGBA,
-    8 Bit), ``HEIGHT_MAP`` und ``GLOSS_MASK`` jeweils ein **optionales**
-    Graustufen-Asset – Letzteres ``experimental`` wegen offener Gloss-Semantik.
-    ``optional_roles`` wählt, welche optionalen Rollen einbezogen werden:
-    ``None`` (Standard) nimmt **alle** vorhandenen, eine Auswahl beschränkt das
-    Paket darauf (für die UI-Abwahl, #355). Die Höhenkarte erbt die geplante
+    Rollen→Assets: ``COLOR_MOTIF`` ergibt das erforderliche Farbmotiv (RGBA,
+    8 Bit), ``HEIGHT_MAP`` und ``GLOSS_MASK`` Graustufen-Assets. Profilpflichten
+    werden immer einbezogen; ``optional_roles`` wählt nur die optionalen Rollen:
+    ``None`` (Standard) nimmt alle vorhandenen, eine Auswahl beschränkt das Paket
+    darauf (für die UI-Abwahl, #355). Die Höhenkarte erbt die geplante
     Bittiefe aus ``META_BIT_DEPTH`` (8/16), die Gloss-Maske bleibt konservativ
     8-Bit. Zielparameter (Pixelgröße, physische Größe, DPI, Bittiefe) werden
     reproduzierbar aus den Projektmetadaten bzw. dokumentierten Defaults
@@ -369,43 +373,63 @@ def build_export_plan(
     (:class:`EufyMakeExportError`-Subtypen). Es wird **kein** natives ``.empf``
     geplant.
     """
+    # Direkt übergebene Profile müssen dieselben Invarianten erfüllen wie
+    # Registry-Profile; insbesondere dürfen ihre Dateinamen den Zielordner
+    # nicht verlassen oder mit dem Manifest kollidieren.
+    ProfileRegistry((profile,))
     target = _derive_target(project, bit_depth=bit_depth, profile=profile)
-    included = _resolve_optional_roles(optional_roles, profile)
+    included = _resolve_optional_roles(optional_roles, profile) | frozenset(
+        role for role in profile.required_roles if role is not LayerRole.COLOR_MOTIF
+    )
 
     assets: list[ExportAsset] = [_plan_color_motif(project, profile)]
     open_questions: list[OpenQuestion] = [OpenQuestion.NATIVE_EMPF_PROJECT]
 
     height_layer = project.layer_by_role(LayerRole.HEIGHT_MAP)
-    if height_layer is not None and LayerRole.HEIGHT_MAP in included:
+    if LayerRole.HEIGHT_MAP in included:
         rule = profile.asset_for(LayerRole.HEIGHT_MAP)
-        assets.append(
-            ExportAsset(
-                role=LayerRole.HEIGHT_MAP,
-                filename=rule.filename,
-                pixel_format=rule.pixel_format,
-                bit_depth=target.bit_depth,
-                required=rule.required,
-                source_layer_id=height_layer.id,
-                experimental=rule.experimental,
+        if height_layer is None:
+            if rule.required:
+                raise MissingRequiredAssetError(
+                    f"Profil {profile.reference} fordert Rolle "
+                    f"{LayerRole.HEIGHT_MAP.value!r}"
+                )
+        else:
+            assets.append(
+                ExportAsset(
+                    role=LayerRole.HEIGHT_MAP,
+                    filename=rule.filename,
+                    pixel_format=rule.pixel_format,
+                    bit_depth=target.bit_depth,
+                    required=rule.required,
+                    source_layer_id=height_layer.id,
+                    experimental=rule.experimental,
+                )
             )
-        )
-        open_questions.append(OpenQuestion.HEIGHT_MAP_BIT_DEPTH)
+            open_questions.append(OpenQuestion.HEIGHT_MAP_BIT_DEPTH)
 
     gloss_layer = project.layer_by_role(LayerRole.GLOSS_MASK)
-    if gloss_layer is not None and LayerRole.GLOSS_MASK in included:
+    if LayerRole.GLOSS_MASK in included:
         rule = profile.asset_for(LayerRole.GLOSS_MASK)
-        assets.append(
-            ExportAsset(
-                role=LayerRole.GLOSS_MASK,
-                filename=rule.filename,
-                pixel_format=rule.pixel_format,
-                bit_depth=rule.default_bit_depth,
-                required=rule.required,
-                source_layer_id=gloss_layer.id,
-                experimental=rule.experimental,
+        if gloss_layer is None:
+            if rule.required:
+                raise MissingRequiredAssetError(
+                    f"Profil {profile.reference} fordert Rolle "
+                    f"{LayerRole.GLOSS_MASK.value!r}"
+                )
+        else:
+            assets.append(
+                ExportAsset(
+                    role=LayerRole.GLOSS_MASK,
+                    filename=rule.filename,
+                    pixel_format=rule.pixel_format,
+                    bit_depth=rule.default_bit_depth,
+                    required=rule.required,
+                    source_layer_id=gloss_layer.id,
+                    experimental=rule.experimental,
+                )
             )
-        )
-        open_questions.append(OpenQuestion.GLOSS_MASK_SEMANTICS)
+            open_questions.append(OpenQuestion.GLOSS_MASK_SEMANTICS)
 
     return ExportPlan(
         profile=profile.profile_id,

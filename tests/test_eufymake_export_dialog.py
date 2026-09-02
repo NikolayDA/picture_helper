@@ -7,10 +7,13 @@ und direkt inspiziert.
 """
 from __future__ import annotations
 
+import dataclasses
+
 import numpy as np
 import pytest
 from PIL import Image
 
+import bgremover.i18n as i18n
 from bgremover.eufymake_export_dialog import EufyMakeExportDialog
 from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, ProfileStatus
 from bgremover.eufymake_validate import ExportCheckCode
@@ -78,6 +81,41 @@ def test_dialog_shows_selected_profile_version_and_environment(qapp) -> None:
 
 
 @pytest.mark.ui_smoke
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        (ProfileStatus.PROVISIONAL, "vorläufig"),
+        (ProfileStatus.VALIDATED, "validiert"),
+        (ProfileStatus.RETIRED, "zurückgezogen"),
+    ],
+)
+def test_dialog_localizes_every_profile_status(qapp, status, expected) -> None:
+    previous_locale = i18n.current_locale()
+    i18n.configure_locale("de")
+    profile = dataclasses.replace(DEFAULT_TARGET_PROFILE, status=status)
+    dlg = EufyMakeExportDialog(_color_project(), profile=profile)
+    try:
+        assert expected in dlg._environment_label.text()
+    finally:
+        dlg.close()
+        i18n.configure_locale(previous_locale)
+
+
+@pytest.mark.ui_smoke
+def test_dialog_rejects_profile_without_height_contract(qapp) -> None:
+    profile = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE,
+        assets=tuple(
+            asset
+            for asset in DEFAULT_TARGET_PROFILE.assets
+            if asset.role is not LayerRole.HEIGHT_MAP
+        ),
+    )
+    with pytest.raises(ValueError, match="Consumer-Rollen.*height_map"):
+        EufyMakeExportDialog(_color_project(), profile=profile)
+
+
+@pytest.mark.ui_smoke
 def test_dialog_shows_effective_xy_dpi_separately(qapp) -> None:
     project = _color_project((300, 600))
     project.set_physical_size_mm(25.4, 25.4)
@@ -124,6 +162,28 @@ def test_defaults_can_uncheck_capable_assets(qapp) -> None:
     try:
         assert dlg._height_cb.isEnabled() and not dlg._height_cb.isChecked()
         assert dlg.selected_optional_roles() == []
+    finally:
+        dlg.close()
+
+
+@pytest.mark.ui_smoke
+def test_required_height_role_cannot_be_unchecked(qapp) -> None:
+    profile = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE,
+        assets=tuple(
+            dataclasses.replace(asset, required=True)
+            if asset.role is LayerRole.HEIGHT_MAP
+            else asset
+            for asset in DEFAULT_TARGET_PROFILE.assets
+        ),
+    )
+    dlg = EufyMakeExportDialog(
+        _with_height(_color_project()), include_height=False, profile=profile
+    )
+    try:
+        assert dlg._height_cb.isChecked()
+        assert not dlg._height_cb.isEnabled()
+        assert LayerRole.HEIGHT_MAP not in dlg.selected_optional_roles()
     finally:
         dlg.close()
 
@@ -201,6 +261,15 @@ def test_height_carrier_warns_at_default_and_legacy_depth(qapp) -> None:
             ExportCheckCode.BIT_DEPTH_UNCONFIRMED
         ]
         assert not dlg._confirm.isHidden()
+    finally:
+        dlg.close()
+
+
+@pytest.mark.ui_smoke
+def test_unknown_preferred_bit_depth_falls_back_to_profile_default(qapp) -> None:
+    dlg = EufyMakeExportDialog(_with_height(_color_project()), bit_depth=0)
+    try:
+        assert dlg.selected_bit_depth() == DEFAULT_TARGET_PROFILE.default_height_bit_depth
     finally:
         dlg.close()
 

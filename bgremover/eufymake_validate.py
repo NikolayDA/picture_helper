@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from enum import Enum
 
 import numpy as np
 from PIL import Image
@@ -31,7 +30,11 @@ from bgremover.eufymake_export import (
     can_render_color_motif,
     coerce_bit_depth,
 )
-from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, EufyMakeTargetProfile
+from bgremover.eufymake_profile import (
+    DEFAULT_TARGET_PROFILE,
+    EufyMakeTargetProfile,
+    ExportCheckCode,
+)
 
 # Geteiltes Befund-Framework (#379): Schweregrad und die Aufteilungs-/Blockier-
 # Helfer liegen zentral in ``export_checks``; hier re-exportiert, damit die
@@ -53,29 +56,6 @@ from bgremover.units import UnitsError
 # ``f"{_I18N_PREFIX}{code.value}"`` (siehe ``ExportFinding.i18n_key``); die
 # de/en-Übersetzungen liegen zentral in :mod:`bgremover.i18n`.
 _I18N_PREFIX = "eufymake.export."
-
-
-class ExportCheckCode(Enum):
-    """Stabile Befund-Codes der Konsistenzprüfung (Reihenfolge = Sortierrang).
-
-    Die Reihenfolge ist Teil des Vertrags: sie bestimmt die deterministische
-    Sortierung der Befundliste (zuerst nach Schweregrad, dann nach dieser
-    Deklarationsreihenfolge, dann nach Rolle).
-    """
-
-    # ── Harte Fehler (blockieren) ───────────────────────────────────────
-    COLOR_MOTIF_MISSING = "color_motif_missing"
-    OPTIONAL_ROLE_MISSING = "optional_role_missing"
-    ASSET_SIZE_MISMATCH = "asset_size_mismatch"
-    INVALID_TARGET_PARAMS = "invalid_target_params"
-    # ── Warnungen (Export nach Bestätigung möglich) ─────────────────────
-    HEIGHT_MAP_EMPTY = "height_map_empty"
-    GLOSS_MASK_EMPTY = "gloss_mask_empty"
-    BIT_DEPTH_UNCONFIRMED = "bit_depth_unconfirmed"
-    HEIGHT_PRECISION_LOSS = "height_precision_loss"
-    GLOSS_INK_MODE = "gloss_ink_mode"
-    PHYSICAL_SIZE_UNVERIFIED = "physical_size_unverified"
-    PRINT_AREA_EXCEEDED = "print_area_exceeded"
 
 
 # Deklarationsrang je Code für die stabile Sortierung.
@@ -160,8 +140,9 @@ def validate_export(
     """Prüft ``project`` auf konsistente, exportierbare Import-Assets.
 
     ``requested_optional_roles`` benennt die optionalen Rollen, die der Aufrufer
-    exportieren möchte; ``None`` bedeutet „alle aktuell im Projekt vergebenen
-    optionalen Rollen". ``target_size`` ist die gemeinsame Zielgröße ``(w, h)``;
+    exportieren möchte; Profilpflichten werden unabhängig davon immer geprüft.
+    ``None`` bedeutet „alle aktuell im Projekt vergebenen optionalen Rollen".
+    ``target_size`` ist die gemeinsame Zielgröße ``(w, h)``;
     ``None`` nutzt die Canvas-Größe. ``bit_depth`` überschreibt die aus den
     Metadaten abgeleitete Tiefe (UI-Wahl 8/16). Es werden **alle** zutreffenden
     Befunde gesammelt (nicht nur der erste) und deterministisch sortiert
@@ -169,12 +150,18 @@ def validate_export(
     """
     target = target_size if target_size is not None else project.size
     if requested_optional_roles is None:
-        requested = tuple(
+        optional = {
             role for role in profile.optional_roles if project.layer_by_role(role) is not None
-        )
+        }
     else:
         wanted = set(requested_optional_roles)
-        requested = tuple(role for role in profile.optional_roles if role in wanted)
+        optional = {role for role in profile.optional_roles if role in wanted}
+    requested = tuple(
+        asset.role
+        for asset in profile.assets
+        if asset.role is not LayerRole.COLOR_MOTIF
+        and (asset.required or asset.role in optional)
+    )
 
     findings: list[ExportFinding] = []
 

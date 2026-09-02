@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 14,
+  "policy_version": 15,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -436,6 +436,14 @@
       "evidence": ["bgremover/eufymake_export.py und eufymake_validate.py nennen den Pfad nur als Kommentarverweis, kein open()/read_text()"]
     },
     {
+      "id": "eufymake-target-profile-adr",
+      "kind": "exact",
+      "path": "docs/history/ADR-2026-eufymake-zielprofil.md",
+      "sample_path": "docs/history/ADR-2026-eufymake-zielprofil.md",
+      "reason": "Historische Architekturentscheidung zum versionierten EufyMake-Zielprofil; kein Build-, Paket-, Test- oder Release-Gate liest die Datei als Eingabe.",
+      "evidence": ["Nur CLAUDE.md verlinkt die ADR als Entwicklungsdokumentation; Produktcode und Tests beziehen den Vertrag aus bgremover/eufymake_profile.py"]
+    },
+    {
       "id": "eufymake-687-annahmeninventar",
       "kind": "exact",
       "path": "docs/history/EUFYMAKE-687-ANNAHMENINVENTAR.md",
@@ -539,6 +547,7 @@
     {"id": "release-ref-decoupling-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-ref-entkopplung.md", "sample_path": "docs/history/ADR-2026-release-ref-entkopplung.md", "reason": "Die ADR legt fest, auf welchem Ref ein Release laeuft, wie dessen Unveraenderlichkeit erzwungen wird und welches Restrisiko bewusst bleibt; sie traegt damit dieselbe Vertragsklasse wie die uebrigen Release-ADRs."},
     {"id": "eufymake-689-mm-dpi-vertrag", "kind": "exact", "path": "docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md", "sample_path": "docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md", "reason": "Der mm/DPI-Vertrag enthält den vom Fixture-Test gelesenen Manifest-Vertrauensanker und beeinflusst damit ein Release-Gate."},
     {"id": "eufymake-690-gloss-vertrag", "kind": "exact", "path": "docs/history/EUFYMAKE-690-GLOSS-VERTRAG.md", "sample_path": "docs/history/EUFYMAKE-690-GLOSS-VERTRAG.md", "reason": "Der Gloss-Vertrag enthält den vom Fixture-Test gelesenen Manifest-Vertrauensanker und beeinflusst damit ein Release-Gate."},
+    {"id": "eufymake-target-profile-contract", "kind": "exact", "path": "docs/EUFYMAKE_TARGET_PROFILE.md", "sample_path": "docs/EUFYMAKE_TARGET_PROFILE.md", "reason": "Der kanonische Zielprofilvertrag dokumentiert das ausgelieferte EufyMake-Exportverhalten, seine Warnungen und die Manifest-Kompatibilität."},
     {"id": "build-anomalies-register", "kind": "exact", "path": "release/build-anomalies.json", "sample_path": "release/build-anomalies.json", "reason": "Das Register bekannter Build-Anomalien steuert die Anomalie-Durchsicht in Runbook-Schritt 4 und gehoert damit zur Freigabeentscheidung; ein Eintrag aendert, was der Security-Owner als bekannt sieht."},
     {"id": "path-policy", "kind": "exact", "path": "release/path-policy.json", "sample_path": "release/path-policy.json", "reason": "Die Policy steuert fail-closed Kandidaten- und Freeze-Klassifikation."},
     {"id": "redesign-spec", "kind": "exact", "path": "docs/REDESIGN_SPEC.md", "sample_path": "docs/REDESIGN_SPEC.md", "reason": "tests/test_theme.py liest §2/§3 als Drift-Guard-Quelle fuer theme.py-Farbtoken; der Inhalt beeinflusst das Ergebnis der Full-CI-Tests im Kandidatenbau (#480)."},

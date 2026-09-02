@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import PurePosixPath, PureWindowsPath
 from typing import Any
 
 from bgremover.project_model import LayerRole
@@ -61,6 +62,22 @@ class ValidationSeverity(Enum):
 
     ERROR = "error"
     WARNING = "warning"
+
+
+class ExportCheckCode(Enum):
+    """Stabile Befund-Codes; Deklarationsreihenfolge ist der Sortierrang."""
+
+    COLOR_MOTIF_MISSING = "color_motif_missing"
+    OPTIONAL_ROLE_MISSING = "optional_role_missing"
+    ASSET_SIZE_MISMATCH = "asset_size_mismatch"
+    INVALID_TARGET_PARAMS = "invalid_target_params"
+    HEIGHT_MAP_EMPTY = "height_map_empty"
+    GLOSS_MASK_EMPTY = "gloss_mask_empty"
+    BIT_DEPTH_UNCONFIRMED = "bit_depth_unconfirmed"
+    HEIGHT_PRECISION_LOSS = "height_precision_loss"
+    GLOSS_INK_MODE = "gloss_ink_mode"
+    PHYSICAL_SIZE_UNVERIFIED = "physical_size_unverified"
+    PRINT_AREA_EXCEEDED = "print_area_exceeded"
 
 
 @dataclass(frozen=True)
@@ -228,6 +245,10 @@ class EufyMakeTargetProfile:
         return tuple(asset.role for asset in self.assets if not asset.required)
 
     @property
+    def required_roles(self) -> tuple[LayerRole, ...]:
+        return tuple(asset.role for asset in self.assets if asset.required)
+
+    @property
     def height_bit_depths(self) -> tuple[int, ...]:
         return self.asset_for(LayerRole.HEIGHT_MAP).supported_bit_depths
 
@@ -281,6 +302,10 @@ class ProfileRegistry:
             self.register(profile)
 
     def register(self, profile: EufyMakeTargetProfile) -> None:
+        if isinstance(profile.profile_version, bool) or not isinstance(
+            profile.profile_version, int
+        ):
+            raise ValueError("Profilversion muss ein Integer sein")
         key = (profile.profile_id, profile.profile_version)
         if key in self._profiles:
             raise ValueError(f"Profil bereits registriert: {profile.reference}")
@@ -290,17 +315,51 @@ class ProfileRegistry:
                 f"erwartet ist {PROFILE_SCHEMA_VERSION}"
             )
         roles = [asset.role for asset in profile.assets]
-        if len(set(roles)) != len(roles) or LayerRole.COLOR_MOTIF not in roles:
+        required_consumer_roles = {LayerRole.COLOR_MOTIF, LayerRole.HEIGHT_MAP}
+        if len(set(roles)) != len(roles):
             raise ValueError(f"Profil {profile.reference} hat keine eindeutigen Rollen")
+        missing_consumer_roles = required_consumer_roles - set(roles)
+        if missing_consumer_roles:
+            missing = ", ".join(sorted(role.value for role in missing_consumer_roles))
+            raise ValueError(
+                f"Profil {profile.reference} fehlen erforderliche Consumer-Rollen: "
+                f"{missing}"
+            )
         evidence_ids = {item.evidence_id for item in profile.evidence}
+        normalized_filenames: set[str] = set()
         for asset in profile.assets:
-            range_depths = {bit_depth for bit_depth, _ in asset.value_ranges}
+            filename = asset.filename
+            normalized_filename = filename.casefold() if isinstance(filename, str) else ""
+            if (
+                not isinstance(filename, str)
+                or not filename
+                or PurePosixPath(filename).name != filename
+                or PureWindowsPath(filename).name != filename
+                or normalized_filename == "manifest.json"
+                or normalized_filename in normalized_filenames
+            ):
+                raise ValueError(
+                    f"Profil {profile.reference}: unsicherer oder doppelter "
+                    f"Asset-Dateiname {filename!r}"
+                )
+            normalized_filenames.add(normalized_filename)
+
+            range_depth_list = [bit_depth for bit_depth, _ in asset.value_ranges]
+            range_depths = set(range_depth_list)
+            if len(set(asset.supported_bit_depths)) != len(asset.supported_bit_depths):
+                raise ValueError(
+                    f"Profil {profile.reference}: doppelte unterstützte Tiefe für "
+                    f"{asset.role.value}"
+                )
             if asset.default_bit_depth not in asset.supported_bit_depths:
                 raise ValueError(
                     f"Profil {profile.reference}: Default-Tiefe für {asset.role.value} "
                     "ist nicht unterstützt"
                 )
-            if range_depths != set(asset.supported_bit_depths):
+            if (
+                len(range_depth_list) != len(range_depths)
+                or range_depths != set(asset.supported_bit_depths)
+            ):
                 raise ValueError(
                     f"Profil {profile.reference}: Wertebereiche für {asset.role.value} "
                     "decken die unterstützten Tiefen nicht exakt ab"
@@ -310,9 +369,15 @@ class ProfileRegistry:
                     f"Profil {profile.reference}: unbekannte Evidenz-ID für {asset.role.value}"
                 )
         codes = [rule.code for rule in profile.validation_rules]
-        if len(set(codes)) != len(codes) or any(not rule.remedy for rule in profile.validation_rules):
+        expected_codes = {code.value for code in ExportCheckCode}
+        if (
+            len(set(codes)) != len(codes)
+            or set(codes) != expected_codes
+            or any(not rule.remedy for rule in profile.validation_rules)
+        ):
             raise ValueError(
-                f"Profil {profile.reference} hat doppelte Codes oder leere Abhilfen"
+                f"Profil {profile.reference} hat unvollständige/doppelte Codes "
+                "oder leere Abhilfen"
             )
         self._profiles[key] = profile
 

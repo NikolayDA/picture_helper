@@ -199,6 +199,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Ziel: {device}, Studio {studio} · Status: {status}"
         ),
         "eufymake.dialog.profile.status.provisional": "vorläufig – Hardwaretests offen",
+        "eufymake.dialog.profile.status.validated": "validiert – Hardwaretests bestätigt",
+        "eufymake.dialog.profile.status.retired": "zurückgezogen – nicht mehr verwenden",
         "eufymake.dialog.section.assets": "Assets",
         "eufymake.dialog.color_motif": "Farbmotiv (erforderlich)",
         "eufymake.dialog.color_motif.hint": (
@@ -1120,6 +1122,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Target: {device}, Studio {studio} · status: {status}"
         ),
         "eufymake.dialog.profile.status.provisional": "provisional – hardware tests open",
+        "eufymake.dialog.profile.status.validated": "validated – hardware tests confirmed",
+        "eufymake.dialog.profile.status.retired": "retired – do not use",
         "eufymake.dialog.section.assets": "Assets",
         "eufymake.dialog.color_motif": "Color motif (required)",
         "eufymake.dialog.color_motif.hint": (
@@ -2044,6 +2048,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.profile.status.provisional": (
             "provisional – pruebas de hardware pendientes"
         ),
+        "eufymake.dialog.profile.status.validated": (
+            "validado – pruebas de hardware confirmadas"
+        ),
+        "eufymake.dialog.profile.status.retired": "retirado – no utilizar",
         "eufymake.dialog.section.assets": "Assets",
         "eufymake.dialog.color_motif": "Motivo de color (obligatorio)",
         "eufymake.dialog.color_motif.hint": (
@@ -2973,6 +2981,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.profile.status.provisional": (
             "provisoire – tests matériels en attente"
         ),
+        "eufymake.dialog.profile.status.validated": (
+            "validé – tests matériels confirmés"
+        ),
+        "eufymake.dialog.profile.status.retired": "retiré – ne plus utiliser",
         "eufymake.dialog.section.assets": "Assets",
         "eufymake.dialog.color_motif": "Motif couleur (obligatoire)",
         "eufymake.dialog.color_motif.hint": (
@@ -3901,6 +3913,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.profile.status.provisional": (
             "попередній – апаратні тести ще відкриті"
         ),
+        "eufymake.dialog.profile.status.validated": (
+            "перевірений – апаратні тести підтверджено"
+        ),
+        "eufymake.dialog.profile.status.retired": (
+            "виведений з експлуатації – не використовувати"
+        ),
         "eufymake.dialog.section.assets": "Ресурси",
         "eufymake.dialog.color_motif": "Колірний мотив (обов'язково)",
         "eufymake.dialog.color_motif.hint": (
@@ -4818,6 +4836,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "目标：{device}，Studio {studio} · 状态：{status}"
         ),
         "eufymake.dialog.profile.status.provisional": "暂定——硬件测试尚未完成",
+        "eufymake.dialog.profile.status.validated": "已验证——硬件测试已确认",
+        "eufymake.dialog.profile.status.retired": "已停用——请勿使用",
         "eufymake.dialog.section.assets": "素材",
         "eufymake.dialog.color_motif": "颜色图案（必需）",
         "eufymake.dialog.color_motif.hint": (

@@ -30,6 +30,14 @@ eine neue Profilversion beziehungsweise eine neue Profil-ID und wird im
 `ProfileRegistry` registriert. Unbekannte IDs und nicht unterstützte Versionen
 werden getrennt und verständlich abgewiesen.
 
+Die Registry akzeptiert nur intern konsistente Verträge: Profilversionen sind
+echte Integer (keine booleschen Ersatzwerte), COLOR und HEIGHT sind als von den
+aktuellen Consumern benötigte Rollen vorhanden, Asset-Dateinamen sind
+eindeutige Basenames außerhalb des reservierten `manifest.json`, jede
+unterstützte Bittiefe besitzt genau einen Wertebereich und sämtliche stabilen
+Validator-Codes sind mit Abhilfe definiert. Als `required` markierte Rollen
+werden unabhängig von einer optionalen UI-Auswahl immer geprüft und exportiert.
+
 ## Rollen- und Kanalvertrag
 
 | Rolle / Datei | Format | Tiefe / Default | Werte / Richtung | Alpha | Status |

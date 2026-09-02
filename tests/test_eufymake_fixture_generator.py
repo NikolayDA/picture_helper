@@ -706,11 +706,12 @@ def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
                 (CHECKED_IN_DIR / name).read_text(encoding="utf-8")
             )
             fresh_export = json.loads((fresh_dir / name).read_text(encoding="utf-8"))
-            assert checked_in_export == _legacy_export_view(fresh_export), name
+            assert _legacy_export_view(checked_in_export) == _legacy_export_view(
+                fresh_export
+            ), name
             checked_profile = resolve_manifest_profile(checked_in_export)
             fresh_profile = resolve_manifest_profile(fresh_export)
             assert checked_profile.profile is fresh_profile.profile
-            assert checked_profile.legacy_reference is True
             assert fresh_profile.legacy_reference is False
             continue
         with (
