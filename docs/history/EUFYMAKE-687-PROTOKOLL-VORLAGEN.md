@@ -233,14 +233,14 @@ Dateivalidierungsprotokoll derselben Zeile.
 | I-03 (8 Bit) | | | | | | | Ja / Nein | | |
 | I-03 (16 Bit) | | | | | | | Ja / Nein | | |
 | I-04 | | | | | | | Ja / Nein | | |
-| I-05 (konsistent) | | | | | | | Ja / Nein | | |
-| I-05 (ohne `pHYs`) | | | | | | | Ja / Nein | | |
-| I-05 (widersprüchlich) | | | | | | | Ja / Nein | | |
-| I-05 (X/Y 300/150 dpi) | | | | | | | Ja / Nein | | |
-| I-06 (`manifest.json` allein) | | | | | | | Ja / Nein | | |
-| I-06 (kompletter Ordner) | | | | | | | Ja / Nein | | |
+| I-05 (konsistent) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, zentriert, 101,60×101,60 mm | keine | Nein | Live-Sitzung, kein Screenshot-Artefakt | E1 online; Standard Flatbed 335×420 mm; kein Druck |
+| I-05 (ohne `pHYs`) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | Motiv überschreitet Arbeitsfläche; automatische Verkleinerung angeboten | nach bestätigtem Beibehalten der Originalgröße sichtbar, 423,33×423,33 mm | keine; angebotene Verkleinerung abgelehnt | Nein | Live-Sitzung, kein Screenshot-Artefakt | 72-dpi-Fallback; kein Druck |
+| I-05 (widersprüchlich) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, zentriert, 203,18×203,18 mm | keine | Nein | Live-Sitzung, kein Screenshot-Artefakt | `pHYs`-Quantisierung wird sichtbar; kein Druck |
+| I-05 (X/Y 300/150 dpi) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, zentriert, 101,60×203,18 mm | keine | Nein | Live-Sitzung, kein Screenshot-Artefakt | Achsen getrennt; 90°-Rotation ohne Skalierung geprüft; kein Druck |
+| I-06 (`manifest.json` allein) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine Studio-Warnung | JSON im Bilddialog ausgegraut; „Öffnen“ deaktiviert | keine | Ja | Live-Sitzung, kein Screenshot-Artefakt | dieser Importweg unterstützt das Manifest nicht |
+| I-06 (kompletter Ordner) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | nur die drei PNGs gemeinsam auswählbar; drei überlagerte „Flat“-Ebenen, je 43,35×43,35 mm | keine automatische Rollenzuordnung | Nein für PNGs; JSON nicht importierbar | Live-Sitzung, kein Screenshot-Artefakt | gleiche Werte bei Wiederholungsimport; kein Druck |
 | I-07 | | | | | | | Ja / Nein | | |
-| I-08 (vor Crop) | | | | | | | Ja / Nein | | |
+| I-08 (vor Crop) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | drei Rollen einzeln sichtbar, jeweils 90,31×90,31 mm und gleich zentriert | alle als „Flat“, keine Rollenzuordnung | Nein | Live-Sitzung, kein Screenshot-Artefakt | gemeinsame Startausdehnung belegt; Produktionsregistrierung und Druck offen |
 | I-08 (nach Crop) | | | | | | | Ja / Nein | | |
 | I-09 (Legacy) | | | | | | | Ja / Nein | | |
 | I-09 (aktuell) | | | | | | | Ja / Nein | | |
@@ -259,15 +259,15 @@ sonst „nicht gesetzt". Vorher-/Nachher-Werte nicht in einer Zelle vermischen.
 
 | Testzelle/Datei | Pixel X/Y | Datei-`pHYs` X/Y | Manifest-mm/DPI | Manuelle Studio-mm X/Y | Studio vor Bestätigung: mm X/Y + Dezimalstellen | Studio nach Bestätigung: mm X/Y | Seitenverhältnis/Rotation | X-/Y-Offset, Crop, Zentrierung | Priorisierte Quelle/Beobachtung |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| I-01 `mm_typisch_phys.png` | 1200/1200 | ca. 300/300 dpi | keines | nicht gesetzt | | | | | |
-| I-05 `mm_typisch_no_phys.png` | 1200/1200 | fehlt | keines | nicht gesetzt | | | | | |
-| I-05 `mm_typisch_phys.png` | 1200/1200 | ca. 300/300 dpi | keines | nicht gesetzt | | | | | |
-| I-05 `mm_typisch_phys_conflict.png` | 1200/1200 | ca. 150/150 dpi | keines | nicht gesetzt | | | | | |
-| I-05 `mm_typisch_phys_xy.png` | 1200/1200 | ca. 300/150 dpi | keines | nicht gesetzt | | | | | |
-| I-06 `export_mm_dpi_conflict/manifest.json` allein | – | – | 21,674666… mm / 300 dpi | nicht gesetzt | | | | | |
-| I-06 kompletter Exportordner | 256/256 je PNG | ca. 150/150 dpi je PNG | 21,674666… mm / 300 dpi | nicht gesetzt | | | | | |
-| I-06 kompletter Exportordner + manuelle Größe | 256/256 je PNG | ca. 150/150 dpi je PNG | 21,674666… mm / 300 dpi | hier exakt eintragen | | | | | |
-| I-08 COLOR/HEIGHT/GLOSS vor Crop | 256/256 je Rolle | fehlt | keines | hier exakt eintragen | | | | | |
+| I-01 `mm_typisch_phys.png` | 1200/1200 | ca. 300/300 dpi | keines | nicht gesetzt | 101,60/101,60 mm; 2 Dezimalstellen | unverändert | 1:1; 0° | X/Y 116,70/159,19; automatisch zentriert | PNG-`pHYs` |
+| I-05 `mm_typisch_no_phys.png` | 1200/1200 | fehlt | keines | nicht gesetzt | Warnung vor Import; 72-dpi-Soll 423,333/423,333 mm | 423,33/423,33 mm nach „Originalgröße behalten“ | 1:1; 0° | X/Y −44,17/−1,67; automatisch zentriert und größer als Fläche | Studio-Fallback 72 dpi |
+| I-05 `mm_typisch_phys.png` | 1200/1200 | ca. 300/300 dpi | keines | nicht gesetzt | 101,60/101,60 mm; 2 Dezimalstellen | unverändert | 1:1; 0° | X/Y 116,70/159,19; automatisch zentriert | PNG-`pHYs` |
+| I-05 `mm_typisch_phys_conflict.png` | 1200/1200 | ca. 150/150 dpi | keines | nicht gesetzt | 203,18/203,18 mm; 2 Dezimalstellen | unverändert | 1:1; 0° | X/Y 65,91/108,41; automatisch zentriert | PNG-`pHYs`; Rundung aus `pHYs`-Quantisierung |
+| I-05 `mm_typisch_phys_xy.png` | 1200/1200 | ca. 300/150 dpi | keines | nicht gesetzt | 101,60/203,18 mm; 2 Dezimalstellen | unverändert | intrinsisch 101,60/203,18; bei 90° ohne Skalierung gedreht | X/Y 116,70/108,41 bei 0°; 65,91/159,19 bei 90° | X/Y-`pHYs` separat |
+| I-06 `export_mm_dpi_conflict/manifest.json` allein | – | – | 21,674666… mm / 300 dpi | nicht gesetzt | nicht anwendbar | nicht importierbar | nicht anwendbar | JSON ausgegraut; „Öffnen“ deaktiviert | Manifest über Bildimport nicht unterstützt |
+| I-06 kompletter Exportordner | 256/256 je PNG | ca. 150/150 dpi je PNG | 21,674666… mm / 300 dpi | nicht gesetzt | je PNG 43,35/43,35 mm; 2 Dezimalstellen | unverändert | je 1:1; 0° | je X/Y 145,83/188,33; überlagert und zentriert | PNG-`pHYs`; Manifest nicht auswählbar; alle Ebenen „Flat“ |
+| I-06 kompletter Exportordner + manuelle Größe | 256/256 je PNG | ca. 150/150 dpi je PNG | 21,674666… mm / 300 dpi | auf ausgewähltem PNG 21,67/21,67 mm | 43,35/43,35 mm | 21,67/21,67 mm | gekoppelt 1:1; nach Nullwertversuch instabil | Extremversuch: 1000/1254,78 mm und X/Y −810,83/−1023,11 ohne Warnung | manuell überschreibt `pHYs`; Null-/Extremwertvalidierung erforderlich |
+| I-08 COLOR/HEIGHT/GLOSS vor Crop | 256/256 je Rolle | fehlt | keines | nicht gesetzt | je 90,31/90,31 mm; 2 Dezimalstellen | unverändert | je 1:1; 0° | je X/Y 122,34/164,84; identisch zentriert | 72-dpi-Fallback; gleiche Ausdehnung, aber keine automatische Rollenzuordnung |
 | I-08 COLOR/HEIGHT/GLOSS nach Crop | 256/256 je Rolle | fehlt | keines | unverändert | | | | | |
 | I-12 abweichende HEIGHT-Dimension | COLOR 256/256; HEIGHT 256/128 | fehlt | keines | hier exakt eintragen | | | | | |
 
