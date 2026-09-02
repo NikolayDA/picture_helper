@@ -29,7 +29,7 @@ Vertrauensanker des eingecheckten Satzes:
 
 ```text
 fixtures_manifest.json
-SHA-256 f9028246d0c07de185b032a11414ac06e64e8425798a59ad7d637501f663d585
+SHA-256 69186faaf7b06c0b0a74dcdc70a1d2d214214d988c912f15d68433f88f0bc026
 Schema 3 · 36 Einzel-Fixtures · 1 Exportpaket
 ```
 
@@ -38,7 +38,7 @@ Prüfbefehl vor jedem Import:
 ```bash
 python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
-  --expected-manifest-sha256 f9028246d0c07de185b032a11414ac06e64e8425798a59ad7d637501f663d585 \
+  --expected-manifest-sha256 69186faaf7b06c0b0a74dcdc70a1d2d214214d988c912f15d68433f88f0bc026 \
   --output eufymake-pre-import-report.json
 ```
 
@@ -53,7 +53,7 @@ er zusätzlich Dateiliste und Semantik des echten `manifest.json`.
 | `mm_klein_no_phys.png` | 300×300 px | fehlt | ohne manuelle/Studio-Regel nicht bestimmt | Fallback bei fehlender Auflösung |
 | `mm_klein_phys.png` | 300×300 px | ca. 150/150 dpi | 50,8×50,8 mm | konsistente Referenz |
 | `mm_klein_phys_conflict.png` | 300×300 px | ca. 300/300 dpi | 25,4×25,4 mm | gleicher Pixelinhalt, widersprüchliche Auflösung |
-| `mm_typisch_phys_xy.png` | 1200×1200 px | ca. 300/150 dpi | 101,6×203,2 mm | X/Y getrennt; Koppeln, Normalisieren oder Ablehnen sichtbar machen |
+| `mm_typisch_phys_xy.png` | 1200×1200 px | ca. 300/150 dpi | 101,600×203,183 mm aus dem quantisierten `pHYs` | X/Y getrennt; Koppeln, Normalisieren oder Ablehnen sichtbar machen |
 
 Die bereits vorhandenen kleinen, typischen und großen Reihen decken darüber
 hinaus 300×300, 1200×1200 und 2400×1800 px bei 150/300/600 dpi ab. Für alle

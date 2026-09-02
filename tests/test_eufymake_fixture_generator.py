@@ -329,6 +329,10 @@ def test_mm_dpi_fixtures_cover_no_phys_consistent_and_conflicting(tmp_path: Path
 
         assert conflict["params"]["phys_dpi"] == combo.conflict_dpi
         assert conflict["params"]["phys_dpi"] != combo.nominal_dpi
+        assert conflict["params"]["mm_implied_by_phys_chunk"] == [
+            gen.px_to_mm_from_png_dpi(combo.width, combo.conflict_dpi),
+            gen.px_to_mm_from_png_dpi(combo.height, combo.conflict_dpi),
+        ]
         with Image.open(out_dir / conflict["filename"]) as img:
             assert round(img.info["dpi"][0]) == combo.conflict_dpi
             # Gleiches Pixelmaß wie die konsistente Variante – nur die DPI-Angabe
@@ -345,10 +349,14 @@ def test_mm_dpi_fixture_encodes_x_and_y_dpi_independently(tmp_path: Path) -> Non
         if item["filename"] == "mm_typisch_phys_xy.png"
     )
     assert entry["params"]["phys_dpi"] == list(gen.NON_SQUARE_DPI)
-    assert entry["params"]["mm_implied_by_phys_chunk"] == [101.6, 203.2]
+    assert entry["params"]["mm_implied_by_phys_chunk"] == [101.6, 203.183]
     with Image.open(out_dir / entry["filename"]) as image:
         assert round(image.info["dpi"][0]) == gen.NON_SQUARE_DPI[0]
         assert round(image.info["dpi"][1]) == gen.NON_SQUARE_DPI[1]
+        assert entry["params"]["mm_implied_by_phys_chunk"] == [
+            round(image.width / image.info["dpi"][0] * gen.MM_PER_INCH, 3),
+            round(image.height / image.info["dpi"][1] * gen.MM_PER_INCH, 3),
+        ]
 
 
 def test_i06_bundle_uses_real_writer_contract_and_conflicting_phys(tmp_path: Path) -> None:

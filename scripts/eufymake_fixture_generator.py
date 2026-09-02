@@ -137,6 +137,17 @@ def px_to_mm(px: int, dpi: float) -> float:
     return round(px / dpi * MM_PER_INCH, 3)
 
 
+def px_to_mm_from_png_dpi(px: int, dpi: float) -> float:
+    """Physische Größe aus dem ganzzahligen PNG-``pHYs``-Wert.
+
+    Pillow kodiert DPI als gerundete Pixel pro Meter. Der Manifestwert muss
+    deshalb aus genau diesem gespeicherten Integer zurückgerechnet werden und
+    darf nicht nochmals die angeforderte Fließkomma-DPI verwenden.
+    """
+    pixels_per_meter = int(dpi / (MM_PER_INCH / 1000.0) + 0.5)
+    return round(px / pixels_per_meter * 1000.0, 3)
+
+
 # ── Normalisierte Muster (0..1, Formel-/Rastermuster, keine Zufallszahlen) ──
 
 def _pattern_zero(width: int, height: int) -> np.ndarray:
@@ -495,8 +506,8 @@ def generate_mm_dpi_fixtures() -> list[FixtureSpec]:
             params={**base_params, "phys_dpi": combo.nominal_dpi, "phys_mm": expected_mm},
         ))
         conflict_mm = [
-            px_to_mm(combo.width, combo.conflict_dpi),
-            px_to_mm(combo.height, combo.conflict_dpi),
+            px_to_mm_from_png_dpi(combo.width, combo.conflict_dpi),
+            px_to_mm_from_png_dpi(combo.height, combo.conflict_dpi),
         ]
         specs.append(FixtureSpec(
             filename=f"mm_{combo.label}_phys_conflict.png", role="color_motif",
@@ -535,8 +546,8 @@ def generate_mm_dpi_fixtures() -> list[FixtureSpec]:
             ],
             "phys_dpi": [x_dpi, y_dpi],
             "mm_implied_by_phys_chunk": [
-                px_to_mm(combo.width, x_dpi),
-                px_to_mm(combo.height, y_dpi),
+                px_to_mm_from_png_dpi(combo.width, x_dpi),
+                px_to_mm_from_png_dpi(combo.height, y_dpi),
             ],
             "note": (
                 "pHYs kodiert absichtlich getrennte X-/Y-DPI. Studio muss "

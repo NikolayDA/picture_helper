@@ -640,7 +640,9 @@ Schema 3 des Fixture-Katalogs schließt diese Lücken, ohne eine
 Hardwarebeobachtung vorwegzunehmen:
 
 - `mm_typisch_phys_xy.png` kodiert bei konstanten 1200×1200 px getrennte
-  300 dpi auf X und 150 dpi auf Y (101,6×203,2 mm nach der Sollformel).
+  300 dpi auf X und 150 dpi auf Y. Der ganzzahlige `pHYs`-Chunk
+  (11811×5906 px/m) impliziert 101,600×203,183 mm; 101,6×203,2 mm sind nur
+  die Werte der Sollformel vor PNG-Quantisierung.
 - `export_mm_dpi_conflict/` ist ein über den produktiven
   `bgremover.eufymake_writer.write_export` erzeugtes Paket mit
   `color_motif.png`, `height_map.png`, `gloss_mask.png` und `manifest.json`.

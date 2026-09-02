@@ -667,8 +667,8 @@
         ],
         "phys_dpi": 150,
         "mm_implied_by_phys_chunk": [
-          203.2,
-          203.2
+          203.183,
+          203.183
         ],
         "note": "pHYs widerspricht bewusst der nominalen DPI-Annahme bei gleichem Pixelmaß (I-05)."
       },
@@ -698,7 +698,7 @@
         ],
         "mm_implied_by_phys_chunk": [
           101.6,
-          203.2
+          203.183
         ],
         "note": "pHYs kodiert absichtlich getrennte X-/Y-DPI. Studio muss anzeigen, koppeln, normalisieren oder ablehnen (I-05)."
       },
