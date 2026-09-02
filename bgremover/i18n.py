@@ -130,9 +130,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Gloss-Maske ist leer oder konstant und ist möglicherweise nutzlos."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Höhenkarte wird mit {bits} Bit exportiert – der Hersteller empfiehlt 16 Bit "
-            "„falls verfügbar“ für den ZBrush-/Photoshop-Exportworkflow von Tiefenkarten "
-            "(#687); eine allgemeine 16-Bit-Pflicht ist damit nicht belegt."
+            "Höhenkarte wird mit {bits} Bit exportiert. Studio akzeptiert den Träger; "
+            "seine physische Nutzung und Grauwert-zu-mm-Abbildung sind bis zum "
+            "Hardwaretest #688 nicht bestätigt."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Gloss ist nur ein Import-/Hilfsasset – Ink-Mode und Layerzuweisung "
@@ -193,6 +193,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Studio, weise dort Ink-Modi/Layer zu und speichere das Projekt selbst "
             "als „.empf“."
         ),
+        "eufymake.dialog.section.profile": "Zielprofil",
+        "eufymake.dialog.profile.option": "{name} · Vertrag v{version}",
+        "eufymake.dialog.profile.environment": (
+            "Ziel: {device}, Studio {studio} · Status: {status}"
+        ),
+        "eufymake.dialog.profile.status.provisional": "vorläufig – Hardwaretests offen",
+        "eufymake.dialog.profile.status.validated": "validiert – Hardwaretests bestätigt",
+        "eufymake.dialog.profile.status.retired": "zurückgezogen – nicht mehr verwenden",
         "eufymake.dialog.section.assets": "Assets",
         "eufymake.dialog.color_motif": "Farbmotiv (erforderlich)",
         "eufymake.dialog.color_motif.hint": (
@@ -212,10 +220,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.gloss.unavailable": "Keine Gloss-Ebene im Projekt.",
         "eufymake.dialog.section.target": "Zielparameter",
         "eufymake.dialog.bit_depth": "Bittiefe der Höhenkarte:",
-        "eufymake.dialog.bit_depth.8": "8 Bit (Standard)",
-        "eufymake.dialog.bit_depth.16": "16 Bit (experimentell, nicht bestätigt)",
+        "eufymake.dialog.bit_depth.8": "8 Bit (Legacy, nicht bestätigt)",
+        "eufymake.dialog.bit_depth.16": "16 Bit (konservativer Default, nicht bestätigt)",
         "eufymake.dialog.size": "Zielgröße: {w} × {h} px",
-        "eufymake.dialog.physical": "Physische Größe: {w} × {h} mm ({dpi} dpi)",
+        "eufymake.dialog.physical": (
+            "Physische Größe: {w} × {h} mm (effektiv X {x_dpi} / Y {y_dpi} dpi)"
+        ),
         "eufymake.dialog.physical.unset": "Physische Größe: nicht gesetzt",
         "eufymake.dialog.section.dest": "Ziel",
         "eufymake.dialog.dest.label": "Exportordner:",
@@ -1045,9 +1055,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "The gloss mask is empty or constant and may be useless."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Height map exported at {bits}-bit – the vendor recommends 16-bit "
-            "\"if the option is available\" for the ZBrush/Photoshop depth-map export "
-            "workflow (#687); this is not a general 16-bit requirement."
+            "Height map exported at {bits}-bit. Studio accepts the carrier, but its "
+            "physical use and grayscale-to-mm mapping remain unconfirmed until "
+            "hardware test #688."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Gloss is only an import/helper asset – ink mode and layer assignment "
@@ -1106,6 +1116,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "“.empf” project. Import and position them in Studio afterwards, assign "
             "ink modes/layers there, and save the project yourself as “.empf”."
         ),
+        "eufymake.dialog.section.profile": "Target profile",
+        "eufymake.dialog.profile.option": "{name} · contract v{version}",
+        "eufymake.dialog.profile.environment": (
+            "Target: {device}, Studio {studio} · status: {status}"
+        ),
+        "eufymake.dialog.profile.status.provisional": "provisional – hardware tests open",
+        "eufymake.dialog.profile.status.validated": "validated – hardware tests confirmed",
+        "eufymake.dialog.profile.status.retired": "retired – do not use",
         "eufymake.dialog.section.assets": "Assets",
         "eufymake.dialog.color_motif": "Color motif (required)",
         "eufymake.dialog.color_motif.hint": (
@@ -1125,10 +1143,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.gloss.unavailable": "No gloss layer in the project.",
         "eufymake.dialog.section.target": "Target parameters",
         "eufymake.dialog.bit_depth": "Height-map bit depth:",
-        "eufymake.dialog.bit_depth.8": "8-bit (default)",
-        "eufymake.dialog.bit_depth.16": "16-bit (experimental, unconfirmed)",
+        "eufymake.dialog.bit_depth.8": "8-bit (legacy, unconfirmed)",
+        "eufymake.dialog.bit_depth.16": "16-bit (conservative default, unconfirmed)",
         "eufymake.dialog.size": "Target size: {w} × {h} px",
-        "eufymake.dialog.physical": "Physical size: {w} × {h} mm ({dpi} dpi)",
+        "eufymake.dialog.physical": (
+            "Physical size: {w} × {h} mm (effective X {x_dpi} / Y {y_dpi} dpi)"
+        ),
         "eufymake.dialog.physical.unset": "Physical size: not set",
         "eufymake.dialog.section.dest": "Destination",
         "eufymake.dialog.dest.label": "Export folder:",
@@ -1957,9 +1977,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "La máscara de gloss está vacía o es constante y puede ser inútil."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Mapa de altura exportado a {bits} bits: el fabricante recomienda 16 bits "
-            "«si la opción está disponible» para el flujo de exportación de mapas de "
-            "profundidad de ZBrush/Photoshop (#687); no es un requisito general de 16 bits."
+            "Mapa de altura exportado a {bits} bits. Studio acepta el portador, pero "
+            "su uso físico y la conversión de gris a mm siguen sin confirmar hasta "
+            "la prueba de hardware #688."
         ),
         "eufymake.export.gloss_ink_mode": (
             "El gloss es solo un asset auxiliar de importación – el modo de tinta y "
@@ -2020,6 +2040,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "asigna allí los modos de tinta/capas y guarda el proyecto tú mismo "
             "como “.empf”."
         ),
+        "eufymake.dialog.section.profile": "Perfil de destino",
+        "eufymake.dialog.profile.option": "{name} · contrato v{version}",
+        "eufymake.dialog.profile.environment": (
+            "Destino: {device}, Studio {studio} · estado: {status}"
+        ),
+        "eufymake.dialog.profile.status.provisional": (
+            "provisional – pruebas de hardware pendientes"
+        ),
+        "eufymake.dialog.profile.status.validated": (
+            "validado – pruebas de hardware confirmadas"
+        ),
+        "eufymake.dialog.profile.status.retired": "retirado – no utilizar",
         "eufymake.dialog.section.assets": "Assets",
         "eufymake.dialog.color_motif": "Motivo de color (obligatorio)",
         "eufymake.dialog.color_motif.hint": (
@@ -2040,10 +2072,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.gloss.unavailable": "No hay capa de gloss en el proyecto.",
         "eufymake.dialog.section.target": "Parámetros de destino",
         "eufymake.dialog.bit_depth": "Profundidad de bits del mapa de altura:",
-        "eufymake.dialog.bit_depth.8": "8 bits (estándar)",
-        "eufymake.dialog.bit_depth.16": "16 bits (experimental, sin confirmar)",
+        "eufymake.dialog.bit_depth.8": "8 bits (legado, sin confirmar)",
+        "eufymake.dialog.bit_depth.16": "16 bits (valor conservador, sin confirmar)",
         "eufymake.dialog.size": "Tamaño objetivo: {w} × {h} px",
-        "eufymake.dialog.physical": "Tamaño físico: {w} × {h} mm ({dpi} dpi)",
+        "eufymake.dialog.physical": (
+            "Tamaño físico: {w} × {h} mm (efectivo X {x_dpi} / Y {y_dpi} dpi)"
+        ),
         "eufymake.dialog.physical.unset": "Tamaño físico: sin definir",
         "eufymake.dialog.section.dest": "Destino",
         "eufymake.dialog.dest.label": "Carpeta de exportación:",
@@ -2876,9 +2910,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Le masque gloss est vide ou constant et pourrait être inutile."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Carte de hauteur exportée en {bits} bits : le fabricant recommande 16 bits "
-            "« si l'option est disponible » pour le workflow d'export de cartes de "
-            "profondeur ZBrush/Photoshop (#687) ; ce n'est pas une obligation générale."
+            "Carte de hauteur exportée en {bits} bits. Studio accepte le support, mais "
+            "son usage physique et la conversion gris-vers-mm restent non confirmés "
+            "jusqu'au test matériel #688."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Le gloss n'est qu'un asset d'import/d'aide – le mode d'encre et "
@@ -2939,6 +2973,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Studio, affectez-y les modes d'encre/calques et enregistrez vous-même "
             "le projet en « .empf »."
         ),
+        "eufymake.dialog.section.profile": "Profil cible",
+        "eufymake.dialog.profile.option": "{name} · contrat v{version}",
+        "eufymake.dialog.profile.environment": (
+            "Cible : {device}, Studio {studio} · statut : {status}"
+        ),
+        "eufymake.dialog.profile.status.provisional": (
+            "provisoire – tests matériels en attente"
+        ),
+        "eufymake.dialog.profile.status.validated": (
+            "validé – tests matériels confirmés"
+        ),
+        "eufymake.dialog.profile.status.retired": "retiré – ne plus utiliser",
         "eufymake.dialog.section.assets": "Assets",
         "eufymake.dialog.color_motif": "Motif couleur (obligatoire)",
         "eufymake.dialog.color_motif.hint": (
@@ -2959,10 +3005,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.gloss.unavailable": "Aucun calque gloss dans le projet.",
         "eufymake.dialog.section.target": "Paramètres cibles",
         "eufymake.dialog.bit_depth": "Profondeur de bits de la carte de hauteur :",
-        "eufymake.dialog.bit_depth.8": "8 bits (par défaut)",
-        "eufymake.dialog.bit_depth.16": "16 bits (expérimental, non confirmé)",
+        "eufymake.dialog.bit_depth.8": "8 bits (hérité, non confirmé)",
+        "eufymake.dialog.bit_depth.16": "16 bits (défaut prudent, non confirmé)",
         "eufymake.dialog.size": "Taille cible : {w} × {h} px",
-        "eufymake.dialog.physical": "Taille physique : {w} × {h} mm ({dpi} dpi)",
+        "eufymake.dialog.physical": (
+            "Taille physique : {w} × {h} mm (effectif X {x_dpi} / Y {y_dpi} dpi)"
+        ),
         "eufymake.dialog.physical.unset": "Taille physique : non définie",
         "eufymake.dialog.section.dest": "Destination",
         "eufymake.dialog.dest.label": "Dossier d'export :",
@@ -3795,9 +3843,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Маска глянцю порожня або стала й може бути марною."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Карту висот експортовано в {bits}-бітному форматі — виробник рекомендує "
-            "16 біт «якщо є така можливість» для робочого процесу експорту карт глибини "
-            "ZBrush/Photoshop (#687); це не є загальною вимогою 16 біт."
+            "Карту висот експортовано у {bits}-бітному форматі. Studio приймає носій, "
+            "але його фізичне використання та перетворення сірого в мм не підтверджені "
+            "до апаратного тесту #688."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Глянець – лише допоміжний ресурс для імпорту: режим фарби та "
@@ -3857,6 +3905,20 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "проєкт «.empf». Потім імпортуйте й розмістіть їх у Studio, призначте "
             "там режими фарби/шари та збережіть проєкт самостійно як «.empf»."
         ),
+        "eufymake.dialog.section.profile": "Цільовий профіль",
+        "eufymake.dialog.profile.option": "{name} · контракт v{version}",
+        "eufymake.dialog.profile.environment": (
+            "Ціль: {device}, Studio {studio} · стан: {status}"
+        ),
+        "eufymake.dialog.profile.status.provisional": (
+            "попередній – апаратні тести ще відкриті"
+        ),
+        "eufymake.dialog.profile.status.validated": (
+            "перевірений – апаратні тести підтверджено"
+        ),
+        "eufymake.dialog.profile.status.retired": (
+            "виведений з експлуатації – не використовувати"
+        ),
         "eufymake.dialog.section.assets": "Ресурси",
         "eufymake.dialog.color_motif": "Колірний мотив (обов'язково)",
         "eufymake.dialog.color_motif.hint": (
@@ -3877,10 +3939,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.gloss.unavailable": "У проєкті немає шару глянцю.",
         "eufymake.dialog.section.target": "Цільові параметри",
         "eufymake.dialog.bit_depth": "Бітність карти висот:",
-        "eufymake.dialog.bit_depth.8": "8 біт (стандарт)",
-        "eufymake.dialog.bit_depth.16": "16 біт (експериментально, не підтверджено)",
+        "eufymake.dialog.bit_depth.8": "8 біт (застарілий, не підтверджено)",
+        "eufymake.dialog.bit_depth.16": "16 біт (обережний стандарт, не підтверджено)",
         "eufymake.dialog.size": "Цільовий розмір: {w} × {h} пкс",
-        "eufymake.dialog.physical": "Фізичний розмір: {w} × {h} мм ({dpi} dpi)",
+        "eufymake.dialog.physical": (
+            "Фізичний розмір: {w} × {h} мм (ефективно X {x_dpi} / Y {y_dpi} dpi)"
+        ),
         "eufymake.dialog.physical.unset": "Фізичний розмір: не задано",
         "eufymake.dialog.section.dest": "Призначення",
         "eufymake.dialog.dest.label": "Тека експорту:",
@@ -4708,8 +4772,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "光泽蒙版为空或恒定，可能没有用处。"
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "高度图以 {bits} 位导出——厂商针对 ZBrush/Photoshop 深度图导出流程建议"
-            "「如可用则选择」16 位（#687）；这并非普遍适用的 16 位强制要求。"
+            "高度图以 {bits} 位导出。Studio 可接受该载体，但在硬件测试 #688 完成前，"
+            "其物理使用方式及灰度到毫米的映射仍未确认。"
         ),
         "eufymake.export.gloss_ink_mode": (
             "光泽只是导入辅助素材——墨水模式和图层分配在 EufyMake Studio 中完成。"
@@ -4766,6 +4830,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "请随后在 Studio 中导入并摆放这些素材，在那里分配墨水模式/图层，"
             "并自行将项目保存为“.empf”。"
         ),
+        "eufymake.dialog.section.profile": "目标配置文件",
+        "eufymake.dialog.profile.option": "{name} · 合约 v{version}",
+        "eufymake.dialog.profile.environment": (
+            "目标：{device}，Studio {studio} · 状态：{status}"
+        ),
+        "eufymake.dialog.profile.status.provisional": "暂定——硬件测试尚未完成",
+        "eufymake.dialog.profile.status.validated": "已验证——硬件测试已确认",
+        "eufymake.dialog.profile.status.retired": "已停用——请勿使用",
         "eufymake.dialog.section.assets": "素材",
         "eufymake.dialog.color_motif": "颜色图案（必需）",
         "eufymake.dialog.color_motif.hint": (
@@ -4784,10 +4856,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.gloss.unavailable": "项目中没有光泽图层。",
         "eufymake.dialog.section.target": "目标参数",
         "eufymake.dialog.bit_depth": "高度图位深：",
-        "eufymake.dialog.bit_depth.8": "8 位（标准）",
-        "eufymake.dialog.bit_depth.16": "16 位（实验性，未经确认）",
+        "eufymake.dialog.bit_depth.8": "8 位（旧版，未经确认）",
+        "eufymake.dialog.bit_depth.16": "16 位（保守默认值，未经确认）",
         "eufymake.dialog.size": "目标尺寸：{w} × {h} px",
-        "eufymake.dialog.physical": "物理尺寸：{w} × {h} mm（{dpi} dpi）",
+        "eufymake.dialog.physical": (
+            "物理尺寸：{w} × {h} mm（有效 X {x_dpi} / Y {y_dpi} dpi）"
+        ),
         "eufymake.dialog.physical.unset": "物理尺寸：未设置",
         "eufymake.dialog.section.dest": "目标位置",
         "eufymake.dialog.dest.label": "导出文件夹：",

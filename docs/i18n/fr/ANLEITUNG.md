@@ -816,15 +816,21 @@ d'import** pour EufyMake Studio – **pas** un fichier `.empf` fini :
 - **Masque de gloss** (facultatif, expérimental) comme asset auxiliaire –
   disponible uniquement lorsqu'un calque porte le rôle *Gloss*.
 
-Dans la boîte de dialogue, vous choisissez le dossier d'export, les assets
-facultatifs et la **profondeur de bits** de la carte de hauteur (8 bits par
-défaut, 16 bits expérimental). Une **vérification de pré-export** s'exécute
+La boîte de dialogue affiche le **profil cible provisoire, sa version de contrat
+et l'environnement Studio**. Vous choisissez le dossier, les assets et la
+**profondeur** : 16 bits est le défaut prudent, 8 bits reste l'option héritée.
+Aucun support n'est physiquement confirmé. Avec des dimensions de projet, pixels,
+mm et DPI X/Y effectifs sont affichés séparément. Une **vérification** s'exécute
 en continu et signale les constats par gravité :
 
 - **Erreurs** (⛔) bloquent l'export jusqu'à correction – p. ex. un motif
   couleur manquant ou des tailles non concordantes.
 - **Avertissements** (⚠️) doivent être confirmés délibérément – p. ex. des
-  données de hauteur/gloss vides ou la sortie 16 bits non confirmée.
+  données vides, l'usage HEIGHT ouvert ou l'affectation gloss native dans Studio.
+
+`manifest.json` est une provenance interne avec versions profil/app,
+interprétation des canaux, pixels/mm et DPI X/Y ; Studio 4.2.2 ne le traite pas
+comme paquet. Les propriétés matérielles ouvertes restent signalées.
 
 Ensuite, vous importez et positionnez les assets dans EufyMake Studio, y
 attribuez les modes d'encre/calques et enregistrez le projet Studio
@@ -984,7 +990,8 @@ accessibles que via le menu ou l'inspecteur de cartes.
 - L'**aperçu 2D** est un affichage à l'écran pur ; l'export d'image écrit
   sans changement le composite couleur.
 - L'**export EufyMake** ne produit que des assets d'import, **pas** un
-  fichier `.empf` natif ; la sortie de hauteur 16 bits est expérimentale.
+  `.empf` natif. Le profil v1 est provisoire ; usage HEIGHT, mesures physiques
+  et sémantique gloss attendent les tests matériels.
 - Le **bundle d'application** (`BgRemover.app`) est spécifique à macOS ;
   sous Linux, l'application se lance directement. Windows ne fait
   actuellement pas partie de la matrice officiellement testée.

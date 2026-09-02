@@ -26,11 +26,14 @@ gesetzten Policy, jetzt mit expliziter Freigabe (Abschnitt 4).
   Ausprägungen (vor/nach Crop bzw. normal/invertiert), stehen aber bereits
   als zwei getrennte Tabellenzeilen mit je eigener Wiederholungsmessung im
   Druckprotokoll – Zeilenzahl und Variantenzahl sind hier deckungsgleich.
-  Das freigegebene harte Limit bleibt **maximal 24 physische Drucke** für
-  #688–#690. Nach je einem Erstlauf (13 Drucke) bleiben damit höchstens elf
-  Wiederholungen; die Kernaussagen aus dem Druckprotokoll haben Vorrang. Ein
-  zweiter Lauf jeder einzelnen Variante ist ohne neues Zusatzbudget nicht
-  mehr möglich.
+  Zusätzlich sind für #690 **elf Gloss-Läufe** fest eingeplant: G-01 einmal,
+  G-02 normal und invertiert jeweils zweimal sowie G-03, G-04a/b/c, G-05,
+  G-06, G-07 und G-08 jeweils einmal. Das freigegebene harte Limit beträgt
+  damit **maximal 35 physische Drucke** für #688–#690. Nach je einem Erstlauf
+  der 13 Stammvarianten und den elf fest eingeplanten Gloss-Läufen bleiben
+  höchstens elf Wiederholungen für die Stammvarianten; die Kernaussagen aus
+  dem Druckprotokoll haben Vorrang. Ein zweiter Lauf jeder einzelnen Variante
+  ist auch mit dem erhöhten Budget nicht automatisch freigegeben.
 - Erweitert sich die Matrix später (neue Testzellen aus offenen
   Widersprüchen), ist die daraus rechnerisch folgende neue Zahl nur ein
   **Vorschlag** – kein automatisches Zusatzbudget. Neue Zellen lösen immer
@@ -58,7 +61,7 @@ gesetzten Policy, jetzt mit expliziter Freigabe (Abschnitt 4).
   Wiederholungsmessung realistisch nachvollziehbar bleiben – bewusst kein
   fixer Zahlenwert, sondern nach eigenem Ermessen am Testtag zu bestimmen)
   verhindert Ermüdungsfehler bei Messung/Protokollierung.
-- **Budget-Eskalation:** Reicht das Gesamtbudget von 24 Drucken absehbar
+- **Budget-Eskalation:** Reicht das Gesamtbudget von 35 Drucken absehbar
   nicht (wiederholte Fehldrucke, neue Testzellen aus offenen Widersprüchen),
   pausieren und den Owner ausdrücklich um eine erweiterte Freigabe bitten,
   statt stillschweigend über das Limit hinaus zu drucken.
@@ -145,6 +148,14 @@ Aktualisiert: 2026-09-02 – I-13 für Alpha/Coverage bei nicht-null HEIGHT
   Erstläufen werden Wiederholungen auf die Kernaussagen priorisiert. Es ist
   kein zusätzlicher Materialverbrauch über die bisherige Freigabe hinaus
   freigegeben.
+Aktualisiert: 2026-09-02 – Owner-Entscheidung von NikolayDA: Gesamtbudget von
+  24 auf 35 physische Drucke erhöht. Die elf zusätzlichen Plätze 25–35 sind
+  ausschließlich dem #690-Mindestsatz G-01 bis G-08 zugeordnet; G-02 normal
+  und invertiert erhalten je zwei unabhängige Läufe. Die elf bisherigen
+  Wiederholungsplätze der 13 Stammvarianten bleiben erhalten. Fehldrucke
+  zählen mit; Lauf 36 oder jede Umwidmung eines Gloss-Platzes braucht eine
+  neue ausdrückliche Owner-Freigabe. Alle HEIGHT-/Gloss-Preflights und
+  Sicherheits-Abbruchkriterien bleiben unverändert verbindlich.
 ```
 
 Damit gelten die Regeln aus den Abschnitten 1–3 für die Realtests aus

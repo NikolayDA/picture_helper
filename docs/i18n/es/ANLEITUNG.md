@@ -811,16 +811,22 @@ importación** para EufyMake Studio — **no** un archivo `.empf` terminado:
 - **Máscara de gloss** (opcional, experimental) como activo auxiliar –
   disponible solo si una capa tiene el rol *Gloss*.
 
-En el diálogo eliges la carpeta de exportación, los activos opcionales
-y la **profundidad de bits** del mapa de altura (8 bits predeterminado,
-16 bits experimental). Una **comprobación previa a la exportación** se
+El diálogo muestra el **perfil de destino provisional, la versión del contrato
+y el entorno de Studio**. Eliges la carpeta, los activos y la **profundidad de
+bits**: 16 bits es el valor conservador; 8 bits sigue como opción heredada.
+Ningún portador está confirmado físicamente. Con medidas de proyecto se muestran
+píxeles, mm y DPI X/Y efectivos por separado. Una **comprobación previa** se
 ejecuta de forma continua e informa de los hallazgos según su
 gravedad:
 
 - **Errores** (⛔) bloquean la exportación hasta que se corrigen – p.
   ej. un motivo de color ausente o tamaños que no coinciden.
 - **Advertencias** (⚠️) deben confirmarse de forma deliberada – p. ej.
-  datos de altura/gloss vacíos o la salida de 16 bits sin confirmar.
+  datos vacíos, uso HEIGHT abierto o la asignación gloss nativa en Studio.
+
+`manifest.json` es procedencia interna con versiones de perfil/app,
+interpretación de canales, píxeles/mm y DPI X/Y; Studio 4.2.2 no lo interpreta
+como paquete. Las propiedades de hardware abiertas siguen marcadas como tales.
 
 Después, importa y posiciona los activos en EufyMake Studio, asigna
 allí los modos de tinta/capas y guarda el proyecto de Studio tú mismo
@@ -977,8 +983,8 @@ solo se alcanzan mediante el menú o el inspector de tarjetas.
 - La **vista previa 2D** es una visualización en pantalla pura; la
   exportación de imagen escribe sin cambios el composite de color.
 - La **exportación a EufyMake** solo genera activos de importación,
-  **no** un archivo `.empf` nativo; la salida de altura de 16 bits es
-  experimental.
+  **no** un `.empf` nativo. El perfil v1 es provisional; uso HEIGHT,
+  medidas físicas y semántica gloss esperan las pruebas de hardware.
 - El **paquete de aplicación** (`BgRemover.app`) es específico de
   macOS; en Linux la aplicación se ejecuta mediante el inicio directo
   del programa. Windows no forma parte actualmente de la matriz

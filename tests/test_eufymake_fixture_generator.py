@@ -19,6 +19,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+from bgremover.eufymake_profile import resolve_manifest_profile
+
 ROOT = Path(__file__).resolve().parent.parent
 _SPEC = importlib.util.spec_from_file_location(
     "eufymake_fixture_generator", ROOT / "scripts" / "eufymake_fixture_generator.py"
@@ -63,6 +65,34 @@ def _without_transport_fields(value: object) -> object:
     if isinstance(value, list):
         return [_without_transport_fields(item) for item in value]
     return value
+
+
+def _legacy_export_view(manifest: dict[str, object]) -> dict[str, object]:
+    """Projiziert ein neues Manifest auf den unveränderlichen Hardwarestand.
+
+    Die am 2026-09-02 geprüften Paketmanifeste bleiben absichtlich bytegenaue
+    Legacy-Evidenz. Der aktuelle Writer ergänzt Profilsnapshot, Producer und
+    Kanalinterpretation; diese additiven Felder dürfen den alten Nachweis nicht
+    nachträglich umschreiben.
+    """
+    projected = {
+        key: value
+        for key, value in manifest.items()
+        if key not in {"profile_contract", "producer"}
+    }
+    assets = projected.get("assets")
+    if isinstance(assets, list):
+        projected["assets"] = [
+            {
+                key: value
+                for key, value in asset.items()
+                if key != "channel_interpretation"
+            }
+            if isinstance(asset, dict)
+            else asset
+            for asset in assets
+        ]
+    return projected
 
 
 # ── Determinismus ────────────────────────────────────────────────────────
@@ -676,7 +706,13 @@ def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
                 (CHECKED_IN_DIR / name).read_text(encoding="utf-8")
             )
             fresh_export = json.loads((fresh_dir / name).read_text(encoding="utf-8"))
-            assert checked_in_export == fresh_export, name
+            assert _legacy_export_view(checked_in_export) == _legacy_export_view(
+                fresh_export
+            ), name
+            checked_profile = resolve_manifest_profile(checked_in_export)
+            fresh_profile = resolve_manifest_profile(fresh_export)
+            assert checked_profile.profile is fresh_profile.profile
+            assert fresh_profile.legacy_reference is False
             continue
         with (
             Image.open(CHECKED_IN_DIR / name) as checked_in_img,

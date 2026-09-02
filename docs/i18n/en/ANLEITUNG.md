@@ -747,14 +747,24 @@ finished `.empf` file:
 - **Gloss mask** (optional, experimental) as a helper asset – available only
   when a layer carries the *Gloss* role.
 
-In the dialog you choose the export folder, the optional assets, and the
-**bit depth** of the height map (8-bit default, 16-bit experimental). A
+The dialog shows the **provisional target profile, contract version, and
+Studio target environment**. You choose the export folder, optional assets,
+and height-map **bit depth**. 16-bit is the conservative default; 8-bit remains
+a legacy option. Neither carrier is physically confirmed yet. When project
+dimensions are set, the dialog shows pixels, mm, and effective X/Y DPI
+separately. A
 **pre-export check** runs continuously and reports findings by severity:
 
 - **Errors** (⛔) block the export until they are fixed – e.g. a missing
   colour motif or mismatching sizes.
 - **Warnings** (⚠️) must be confirmed deliberately – e.g. empty height/gloss
-  data or the unconfirmed 16-bit output.
+  data, open HEIGHT-carrier use, or the required native gloss assignment in
+  Studio.
+
+`manifest.json` is internal provenance containing profile/app versions,
+channel interpretation, pixels/mm, and X/Y DPI; Studio 4.2.2 does not consume
+it as an import package. Open hardware properties remain marked provisional or
+open.
 
 Afterwards you import and position the assets in EufyMake Studio, assign ink
 modes/layers there, and save the Studio project itself as `.empf`.
@@ -903,7 +913,8 @@ the card inspector.
 - The **2D preview** is a pure on-screen display; the image export
   unchangedly writes the colour composite.
 - The **EufyMake export** only produces import assets, **not** a native
-  `.empf` file; the 16-bit height output is experimental.
+  `.empf` file. Target profile v1 is provisional; HEIGHT use, physical size,
+  and gloss semantics still await hardware tests.
 - The **app bundle** (`BgRemover.app`) is macOS-specific; on Linux the
   application is launched directly. Windows is currently not part of the
   officially tested matrix.

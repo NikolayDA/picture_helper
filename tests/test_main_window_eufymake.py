@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import QMessageBox
 
 from bgremover import MainWindow
 from bgremover import main_window as mw
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE
 from bgremover.eufymake_writer import MANIFEST_FILENAME
 from bgremover.project_model import LayerKind, LayerRole
 from bgremover.settings_schema import (
@@ -70,6 +71,9 @@ def _fake_dialog_cls(*, accept=True, roles=(), bits=8, dest="", confirm=False):
 
         def selected_bit_depth(self):
             return bits
+
+        def selected_profile(self):
+            return DEFAULT_TARGET_PROFILE
 
         def selected_destination(self):
             return dest

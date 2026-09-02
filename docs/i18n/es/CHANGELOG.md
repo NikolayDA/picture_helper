@@ -13,6 +13,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Perfil de destino EufyMake versionado (#691).** Planificador, validador,
+  diálogo y writer consumen un contrato único para roles, archivos, canales,
+  medidas, entorno, evidencias y correcciones estables. El diálogo muestra la
+  versión y DPI X/Y separados; el manifiesto incluye el perfil y la versión de
+  BgRemover. 16 bits es el valor HEIGHT conservador, pero junto con gloss y las
+  medidas físicas sigue provisional y con advertencia hasta las pruebas reales.
+  Las referencias antiguas siguen legibles; no hay migración de contenedor.
+
 - **La píldora de zoom ahora también en la vista previa 3D del relieve.**
   El control de zoom flotante del lienzo 2D aparece ahora también en la
   vista 3D y controla allí el zoom de la cámara (100 % = vista encajada,

@@ -12,7 +12,7 @@ maschinenlesbare Provenienz außerhalb der Git-Historie gespeichert (siehe
 - **Basis-Tag:** `v2.8.0` (= `1bf95b08453b92a6d66cfc13622211bdf47cc5e2`)
 - **Kandidatenversion:** `2.9.0`
 - **Release-Scope:** `minor-release-2.9.0`
-- **Pfadpolicy:** `release/path-policy.json` (Version `14`)
+- **Pfadpolicy:** `release/path-policy.json` (Version `15`)
 
 Der volle Basis-SHA ist unveränderlich. Der Tagname allein genügt nicht: Das
 Gate weist ein verschobenes Tag zurück. Die Policy-Version bindet die Semantik,

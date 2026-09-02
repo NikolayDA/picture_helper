@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from enum import Enum
 
 import numpy as np
 from PIL import Image
@@ -30,6 +29,11 @@ from bgremover.eufymake_export import (
     InvalidBitDepthError,
     can_render_color_motif,
     coerce_bit_depth,
+)
+from bgremover.eufymake_profile import (
+    DEFAULT_TARGET_PROFILE,
+    EufyMakeTargetProfile,
+    ExportCheckCode,
 )
 
 # Geteiltes Befund-Framework (#379): Schweregrad und die Aufteilungs-/Blockier-
@@ -48,53 +52,11 @@ from bgremover.i18n import tr
 from bgremover.project_model import LayerRole, Project
 from bgremover.units import UnitsError
 
-# Optionale Rollen, die der Aufrufer für den Export auswählen kann. Das Farbmotiv
-# (``COLOR_MOTIF``) ist immer erforderlich und daher hier nicht enthalten.
-_OPTIONAL_ROLES: tuple[LayerRole, ...] = (LayerRole.HEIGHT_MAP, LayerRole.GLOSS_MASK)
-
 # Namensraum aller i18n-Keys dieses Moduls. Der konkrete Key eines Befunds ist
 # ``f"{_I18N_PREFIX}{code.value}"`` (siehe ``ExportFinding.i18n_key``); die
 # de/en-Übersetzungen liegen zentral in :mod:`bgremover.i18n`.
 _I18N_PREFIX = "eufymake.export."
 
-
-class ExportCheckCode(Enum):
-    """Stabile Befund-Codes der Konsistenzprüfung (Reihenfolge = Sortierrang).
-
-    Die Reihenfolge ist Teil des Vertrags: sie bestimmt die deterministische
-    Sortierung der Befundliste (zuerst nach Schweregrad, dann nach dieser
-    Deklarationsreihenfolge, dann nach Rolle).
-    """
-
-    # ── Harte Fehler (blockieren) ───────────────────────────────────────
-    COLOR_MOTIF_MISSING = "color_motif_missing"
-    OPTIONAL_ROLE_MISSING = "optional_role_missing"
-    ASSET_SIZE_MISMATCH = "asset_size_mismatch"
-    INVALID_TARGET_PARAMS = "invalid_target_params"
-    # ── Warnungen (Export nach Bestätigung möglich) ─────────────────────
-    HEIGHT_MAP_EMPTY = "height_map_empty"
-    GLOSS_MASK_EMPTY = "gloss_mask_empty"
-    BIT_DEPTH_UNCONFIRMED = "bit_depth_unconfirmed"
-    HEIGHT_PRECISION_LOSS = "height_precision_loss"
-    GLOSS_INK_MODE = "gloss_ink_mode"
-    PHYSICAL_SIZE_UNVERIFIED = "physical_size_unverified"
-    PRINT_AREA_EXCEEDED = "print_area_exceeded"
-
-
-# Schweregrad je Code – die einzige Quelle der Wahrheit für „blockiert ja/nein".
-_SEVERITY: dict[ExportCheckCode, Severity] = {
-    ExportCheckCode.COLOR_MOTIF_MISSING: Severity.ERROR,
-    ExportCheckCode.OPTIONAL_ROLE_MISSING: Severity.ERROR,
-    ExportCheckCode.ASSET_SIZE_MISMATCH: Severity.ERROR,
-    ExportCheckCode.INVALID_TARGET_PARAMS: Severity.ERROR,
-    ExportCheckCode.HEIGHT_MAP_EMPTY: Severity.WARNING,
-    ExportCheckCode.GLOSS_MASK_EMPTY: Severity.WARNING,
-    ExportCheckCode.BIT_DEPTH_UNCONFIRMED: Severity.WARNING,
-    ExportCheckCode.HEIGHT_PRECISION_LOSS: Severity.WARNING,
-    ExportCheckCode.GLOSS_INK_MODE: Severity.WARNING,
-    ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED: Severity.WARNING,
-    ExportCheckCode.PRINT_AREA_EXCEEDED: Severity.WARNING,
-}
 
 # Deklarationsrang je Code für die stabile Sortierung.
 _CODE_ORDER: dict[ExportCheckCode, int] = {
@@ -116,6 +78,8 @@ class ExportFinding:
     severity: Severity
     role: LayerRole | None = None
     params: Mapping[str, object] = field(default_factory=dict)
+    filename: str | None = None
+    remedy: str = ""
 
     @property
     def i18n_key(self) -> str:
@@ -127,9 +91,26 @@ class ExportFinding:
         return self.severity is Severity.ERROR
 
 
-def _finding(code: ExportCheckCode, role: LayerRole | None = None, **params: object) -> ExportFinding:
-    """Baut einen Befund mit dem für ``code`` registrierten Schweregrad."""
-    return ExportFinding(code=code, severity=_SEVERITY[code], role=role, params=params)
+def _finding(
+    profile: EufyMakeTargetProfile,
+    code: ExportCheckCode,
+    role: LayerRole | None = None,
+    params: Mapping[str, object] | None = None,
+    **values: object,
+) -> ExportFinding:
+    """Baut einen Befund ausschließlich aus der Profilregel."""
+    validation_rule = profile.validation_for(code.value)
+    filename = profile.asset_for(role).filename if role is not None else None
+    payload = dict(params) if params is not None else {}
+    payload.update(values)
+    return ExportFinding(
+        code=code,
+        severity=Severity(validation_rule.severity.value),
+        role=role,
+        params=payload,
+        filename=filename,
+        remedy=validation_rule.remedy,
+    )
 
 
 def _sort_key(finding: ExportFinding) -> tuple[int, int, str]:
@@ -154,12 +135,14 @@ def validate_export(
     requested_optional_roles: Iterable[LayerRole] | None = None,
     target_size: tuple[int, int] | None = None,
     bit_depth: int | None = None,
+    profile: EufyMakeTargetProfile = DEFAULT_TARGET_PROFILE,
 ) -> tuple[ExportFinding, ...]:
     """Prüft ``project`` auf konsistente, exportierbare Import-Assets.
 
     ``requested_optional_roles`` benennt die optionalen Rollen, die der Aufrufer
-    exportieren möchte; ``None`` bedeutet „alle aktuell im Projekt vergebenen
-    optionalen Rollen". ``target_size`` ist die gemeinsame Zielgröße ``(w, h)``;
+    exportieren möchte; Profilpflichten werden unabhängig davon immer geprüft.
+    ``None`` bedeutet „alle aktuell im Projekt vergebenen optionalen Rollen".
+    ``target_size`` ist die gemeinsame Zielgröße ``(w, h)``;
     ``None`` nutzt die Canvas-Größe. ``bit_depth`` überschreibt die aus den
     Metadaten abgeleitete Tiefe (UI-Wahl 8/16). Es werden **alle** zutreffenden
     Befunde gesammelt (nicht nur der erste) und deterministisch sortiert
@@ -167,19 +150,27 @@ def validate_export(
     """
     target = target_size if target_size is not None else project.size
     if requested_optional_roles is None:
-        requested = tuple(r for r in _OPTIONAL_ROLES if project.layer_by_role(r) is not None)
+        optional = {
+            role for role in profile.optional_roles if project.layer_by_role(role) is not None
+        }
     else:
         wanted = set(requested_optional_roles)
-        requested = tuple(r for r in _OPTIONAL_ROLES if r in wanted)
+        optional = {role for role in profile.optional_roles if role in wanted}
+    requested = tuple(
+        asset.role
+        for asset in profile.assets
+        if asset.role is not LayerRole.COLOR_MOTIF
+        and (asset.required or asset.role in optional)
+    )
 
     findings: list[ExportFinding] = []
 
     # ── Zielparameter (Bittiefe / physische Größe) ──────────────────────
     effective_bit_depth: int | None = None
     try:
-        effective_bit_depth = coerce_bit_depth(project.metadata, bit_depth)
+        effective_bit_depth = coerce_bit_depth(project.metadata, bit_depth, profile=profile)
     except InvalidBitDepthError as exc:
-        findings.append(_finding(ExportCheckCode.INVALID_TARGET_PARAMS, detail=str(exc)))
+        findings.append(_finding(profile, ExportCheckCode.INVALID_TARGET_PARAMS, detail=str(exc)))
     physical_size: tuple[float, float] | None = None
     try:
         # Über den strikten Projektmodell-Getter (#376), damit die Prüfung
@@ -189,10 +180,11 @@ def validate_export(
         # einer nicht abgefangenen Ausnahme aufzuschlagen.
         physical_size = project.physical_size_mm
     except UnitsError as exc:
-        findings.append(_finding(ExportCheckCode.INVALID_TARGET_PARAMS, detail=str(exc)))
+        findings.append(_finding(profile, ExportCheckCode.INVALID_TARGET_PARAMS, detail=str(exc)))
     if target[0] <= 0 or target[1] <= 0:
         findings.append(
             _finding(
+                profile,
                 ExportCheckCode.INVALID_TARGET_PARAMS,
                 detail=f"Zielgröße muss positiv sein, war {target[0]}x{target[1]}",
             )
@@ -200,13 +192,16 @@ def validate_export(
 
     # ── Farbmotiv (erforderlich) ────────────────────────────────────────
     if not can_render_color_motif(project):
-        findings.append(_finding(ExportCheckCode.COLOR_MOTIF_MISSING, role=LayerRole.COLOR_MOTIF))
+        findings.append(
+            _finding(profile, ExportCheckCode.COLOR_MOTIF_MISSING, role=LayerRole.COLOR_MOTIF)
+        )
     else:
         motif_layer = project.layer_by_role(LayerRole.COLOR_MOTIF)
         motif_size = motif_layer.size if motif_layer is not None else project.size
         if motif_size != target:
             findings.append(
                 _finding(
+                    profile,
                     ExportCheckCode.ASSET_SIZE_MISMATCH,
                     role=LayerRole.COLOR_MOTIF,
                     actual=_fmt_size(motif_size),
@@ -219,12 +214,18 @@ def validate_export(
         layer = project.layer_by_role(role)
         if layer is None:
             findings.append(
-                _finding(ExportCheckCode.OPTIONAL_ROLE_MISSING, role=role, role_name=role.value)
+                _finding(
+                    profile,
+                    ExportCheckCode.OPTIONAL_ROLE_MISSING,
+                    role=role,
+                    role_name=role.value,
+                )
             )
             continue
         if layer.size != target:
             findings.append(
                 _finding(
+                    profile,
                     ExportCheckCode.ASSET_SIZE_MISMATCH,
                     role=role,
                     actual=_fmt_size(layer.size),
@@ -242,53 +243,50 @@ def validate_export(
                 else layer_to_height(layer.image)
             )
             if int(field_.coverage.max(initial=0)) == 0 or _is_constant(field_.values):
-                findings.append(_finding(ExportCheckCode.HEIGHT_MAP_EMPTY, role=role))
-            if effective_bit_depth == 8:
-                # Recherche #687 (Grad S, unverifiziert): Herstellerquellen nennen
-                # für Höhenkarten ausdrücklich 16 Bit/Kanal „if the option is
-                # available" – das frühere Vorzeichen (Warnung bei *16* Bit) hatte
-                # ausgerechnet den vom Hersteller genannten Pfad als unbestätigt
-                # markiert, während 8 Bit stillschweigend durchlief. Bis zur
-                # Verifikation am Original (V-01) bleibt die Aussage eine
-                # unbestätigte Empfehlung, keine belegte Anforderung – daher weiter
-                # als WARNING, nicht als ERROR.
+                findings.append(_finding(profile, ExportCheckCode.HEIGHT_MAP_EMPTY, role=role))
+            if effective_bit_depth is not None:
+                # Beide Träger werden in Studio importiert; ob die 16-Bit-Niederbits
+                # physisch genutzt werden, ist ohne #688-Druckmessung ebenso offen
+                # wie der verlustbehaftete 8-Bit-Pfad. Das Profil empfiehlt 16 Bit,
+                # stuft aber keinen der beiden Träger als Hardwarefakt ein.
                 findings.append(
                     _finding(
+                        profile,
                         ExportCheckCode.BIT_DEPTH_UNCONFIRMED, role=role, bits=effective_bit_depth
                     )
                 )
                 if (
-                    layer.height_data is not None
+                    effective_bit_depth == 8
+                    and layer.height_data is not None
                     and bool(np.any(layer.height_data.values % 257 != 0))
                 ):
                     # 8-Bit-Ziel, aber echte 16-Bit-Präzision im Projekt: die
                     # Quantisierung (rint(v/257), ADR #586) verwirft Niederbits –
                     # Warnung mit Bestätigungspflicht statt stillem Verlust (#590).
                     findings.append(
-                        _finding(ExportCheckCode.HEIGHT_PRECISION_LOSS, role=role)
+                        _finding(profile, ExportCheckCode.HEIGHT_PRECISION_LOSS, role=role)
                     )
         elif role is LayerRole.GLOSS_MASK:
             if _is_constant(_gray_array(layer.image)):
-                findings.append(_finding(ExportCheckCode.GLOSS_MASK_EMPTY, role=role))
+                findings.append(_finding(profile, ExportCheckCode.GLOSS_MASK_EMPTY, role=role))
             # Gloss bleibt ein Import-/Hilfsasset – Ink-Mode/Layerzuweisung in Studio.
-            findings.append(_finding(ExportCheckCode.GLOSS_INK_MODE, role=role))
+            findings.append(_finding(profile, ExportCheckCode.GLOSS_INK_MODE, role=role))
 
     # ── Physische Größe / DPI: plausibel, aber kein Herstellervertrag ───
     if physical_size is not None:
-        findings.append(_finding(ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED))
+        findings.append(_finding(profile, ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED))
         # Druckflächen-Plausibilität gegen das Standard-Flachbett (#687/EM-G05):
         # ``check_print_area`` lieferte bislang produktiv nie einen Befund, weil
         # kein Aufrufer ein Zielmedium übergab. Hier – im EufyMake-spezifischen
         # Pfad, nicht im allgemeinen "Bild speichern" (#380), das kein Druckziel
         # kennt – ist ein Zielmedium tatsächlich vorhanden.
         for area_finding in _check_print_area(physical_size, STANDARD_FLATBED_MM):
-            # Direkt konstruiert statt über ``_finding(**params)``: ein generisch
-            # getyptes ``dict[str, object]`` ließe sich sonst nicht sicher gegen
-            # das ``role``-Schlüsselwort der Helferfunktion abgrenzen (mypy).
+            # Die Geometrieparameter werden in den profilgebundenen Befund
+            # übernommen; Schweregrad und Abhilfe bleiben dadurch zentral.
             findings.append(
-                ExportFinding(
-                    code=ExportCheckCode.PRINT_AREA_EXCEEDED,
-                    severity=_SEVERITY[ExportCheckCode.PRINT_AREA_EXCEEDED],
+                _finding(
+                    profile,
+                    ExportCheckCode.PRINT_AREA_EXCEEDED,
                     params=dict(area_finding.params),
                 )
             )

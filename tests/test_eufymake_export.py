@@ -7,6 +7,7 @@ Werten ab. Reines Datenmodell – keine Pixel, keine Dateien, kein Qt.
 """
 from __future__ import annotations
 
+import dataclasses
 import math
 
 import numpy as np
@@ -25,9 +26,11 @@ from bgremover.eufymake_export import (
     InvalidBitDepthError,
     InvalidPhysicalSizeError,
     MissingColorMotifError,
+    MissingRequiredAssetError,
     OpenQuestion,
     build_export_plan,
 )
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, EufyMakeTargetProfile
 from bgremover.project_model import (
     META_BIT_DEPTH,
     META_PHYSICAL_SIZE_MM,
@@ -62,7 +65,7 @@ def test_color_motif_falls_back_to_composite_without_role() -> None:
     assert motif.role is LayerRole.COLOR_MOTIF
     assert motif.required is True
     assert motif.pixel_format is AssetPixelFormat.RGBA
-    assert motif.bit_depth == DEFAULT_BIT_DEPTH
+    assert motif.bit_depth == 8
     # Ohne Rolle stammt das Motiv aus dem COLOR-Komposit.
     assert motif.source_layer_id is None
     assert motif.from_color_composite is True
@@ -212,6 +215,34 @@ def test_optional_roles_subset_selects_only_requested() -> None:
     assert plan.filenames == ("color_motif.png", "height_map.png")
 
 
+def _required_height_profile() -> EufyMakeTargetProfile:
+    return dataclasses.replace(
+        DEFAULT_TARGET_PROFILE,
+        assets=tuple(
+            dataclasses.replace(asset, required=True)
+            if asset.role is LayerRole.HEIGHT_MAP
+            else asset
+            for asset in DEFAULT_TARGET_PROFILE.assets
+        ),
+    )
+
+
+def test_required_non_color_asset_cannot_be_excluded() -> None:
+    plan = build_export_plan(
+        _full_project(), optional_roles=[], profile=_required_height_profile()
+    )
+    height = plan.asset_for(LayerRole.HEIGHT_MAP)
+    assert height is not None
+    assert height.required is True
+
+
+def test_missing_required_non_color_asset_blocks_plan() -> None:
+    with pytest.raises(MissingRequiredAssetError, match="height_map"):
+        build_export_plan(
+            _color_project(), optional_roles=[], profile=_required_height_profile()
+        )
+
+
 # ── bit_depth-Override (#355) ────────────────────────────────────────────
 
 def test_bit_depth_override_beats_metadata() -> None:
@@ -234,6 +265,7 @@ def test_plan_carries_profile_and_version() -> None:
     assert plan.profile == EXPORT_PROFILE
     assert plan.profile_version == EXPORT_PROFILE_VERSION
     assert isinstance(plan.profile_version, int)
+    assert plan.contract is DEFAULT_TARGET_PROFILE
 
 
 def test_height_semantics_is_light_is_high() -> None:
@@ -272,7 +304,7 @@ def test_bit_depth_read_from_metadata() -> None:
     assert plan.target.bit_depth == 16
     # Die Höhenkarte erbt die geplante Bittiefe, das Farbmotiv bleibt 8-Bit.
     assert plan.asset_for(LayerRole.HEIGHT_MAP).bit_depth == 16  # type: ignore[union-attr]
-    assert plan.color_motif.bit_depth == DEFAULT_BIT_DEPTH
+    assert plan.color_motif.bit_depth == 8
 
 
 def test_physical_size_unknown_without_metadata() -> None:
@@ -346,6 +378,7 @@ def test_invalid_physical_size_raises(bad: object) -> None:
 
 def test_structured_errors_share_common_base() -> None:
     assert issubclass(MissingColorMotifError, EufyMakeExportError)
+    assert issubclass(MissingRequiredAssetError, EufyMakeExportError)
     assert issubclass(InvalidBitDepthError, EufyMakeExportError)
     assert issubclass(InvalidPhysicalSizeError, EufyMakeExportError)
 

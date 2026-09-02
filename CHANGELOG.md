@@ -13,6 +13,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Versioniertes EufyMake-Zielprofil (#691).** Planer, Validator, Dialog und
+  Writer verwenden nun denselben maschinenlesbaren Vertrag für Rollen,
+  Dateinamen, Kanäle, Maße, Zielumgebung, Evidenzstatus und stabile
+  Befund-Abhilfen. Der Dialog zeigt Profilversion sowie getrennte X-/Y-DPI;
+  das Manifest enthält Profilsnapshot und BgRemover-Version. 16 Bit ist der
+  konservative HEIGHT-Default, bleibt wie Gloss und physische Maße aber bis zu
+  den Hardwaretests ausdrücklich vorläufig und warnpflichtig. Alte
+  Profilreferenzen bleiben lesbar; es gibt keine Container-Migration.
+
 - **Zoom-Pille auch in der 3D-Reliefvorschau.** Die schwebende
   Zoom-Kontrolle der 2D-Leinwand erscheint jetzt auch in der 3D-Ansicht und
   bedient dort den Kamera-Zoom (100 % = eingepasste Ansicht, gleiche

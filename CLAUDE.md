@@ -278,7 +278,16 @@ Ein Paket, `bgremover/`:
   `load_project(..., warnings=...)` reicht eine übersetzte Warnung an die UI
   (Statusleiste) durch (#364). Menü-/Dialog-Anbindung über das „Projekt"-Menü
   in `menu_actions.py` (#334/#335).
-- **EufyMake-Export (Plan, Epic #351):** `eufymake_export.py` — Qt-freies, strikt
+- **EufyMake-Export (Plan, Epic #351):** `eufymake_profile.py` ist seit #691 die
+  Qt-freie, strikt getypte Quelle des versionierten Zielvertrags: Profil-ID/
+  -Version, separate Studio-/Geräteumgebung, Rollen/Dateinamen/Kanäle,
+  konservativer HEIGHT-Default 16 Bit, Maße/DPI, Validierungscode+Schweregrad+
+  Abhilfe und Evidenzstatus. Profil v1 bleibt `provisional`; 16-Bit-Nutzung,
+  Grauwert→mm, physisches Druckmaß und Gloss-Semantik sind offen. Registry und
+  Legacy-Auflösung dokumentieren
+  [`docs/EUFYMAKE_TARGET_PROFILE.md`](docs/EUFYMAKE_TARGET_PROFILE.md) sowie
+  [`docs/history/ADR-2026-eufymake-zielprofil.md`](docs/history/ADR-2026-eufymake-zielprofil.md).
+  `eufymake_export.py` — Qt-freies, strikt
   getyptes Export-**Datenmodell** (#352): `build_export_plan(project)` bildet die
   Ebenenrollen deterministisch auf `ExportAsset`s in einem `ExportPlan` ab –
   `COLOR_MOTIF` ergibt das **erforderliche** RGBA-Farbmotiv (explizite Rolle oder
@@ -296,12 +305,12 @@ Ein Paket, `bgremover/`:
   ADR [`docs/history/ADR-2026-eufymake-exportpaket.md`](docs/history/ADR-2026-eufymake-exportpaket.md).
   `eufymake_validate.py` — Qt-freie **Konsistenzprüfung** (#354):
   `validate_export(project, ...)` sammelt **alle** strukturierten Befunde
-  (`ExportFinding`: stabiler `ExportCheckCode`, `error`/`warning`, Rolle, i18n-Key,
-  Platzhalter) deterministisch sortiert. Harte Fehler (fehlendes Farbmotiv, fehlende
+  (`ExportFinding`: stabiler `ExportCheckCode`, `error`/`warning`, Rolle,
+  Dateiname, maschinenlesbare Abhilfe, i18n-Key, Platzhalter) deterministisch
+  sortiert. Harte Fehler (fehlendes Farbmotiv, fehlende
   ausgewählte Rolle, Größen-Mismatch, ungültige Zielparameter) blockieren;
-  Warnungen (leere/konstante Height-/Gloss-Daten, 8-Bit-Höhenkarte unbestätigt
-  gegenüber der (Grad-S-)Herstellerempfehlung von 16 Bit (#687, seit dieser
-  Recherche das gedrehte Vorzeichen ggü. dem ursprünglichen #354-Stand), 8-Bit-Ziel
+  Warnungen (leere/konstante Height-/Gloss-Daten, 8-/16-Bit-Höhenträger bis zur
+  physischen #688-Messung unbestätigt, 8-Bit-Ziel
   mit echten 16-Bit-Höhen = Präzisionsverlust (#590), Gloss=Ink-Mode-Hilfsasset,
   physische Größe ohne Herstellervertrag, Motiv überschreitet das eufyMake-
   Standard-Flachbett `STANDARD_FLATBED_MM` = 330 × 420 mm (#687, ebenfalls Grad S))
@@ -561,7 +570,7 @@ Ein Paket, `bgremover/`:
 - **mypy:** Die Qt-armen Logikmodule sind streng getypt (`disallow_untyped_defs`
   + `check_untyped_defs`): `ai_model_status`, `ai_process`, `app_update`,
   `update_check_probe`, `image_ops`, `image_utils`, `color_ops`,
-  `eufymake_export/_validate/_writer`, `export_checks`, `gloss_preview`,
+  `eufymake_profile/_export/_validate/_writer`, `export_checks`, `gloss_preview`,
   `relief_preview`, `relief_mesh`, `renderer_provenance`, `height_map`,
   `height_ops`, `preview_mode`, `preview3d_camera`, `preview3d_capability`,
   `crop`, `project_model/_history/_schema/_io`, `recent_files`, `units` und

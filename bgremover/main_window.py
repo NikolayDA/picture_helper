@@ -47,6 +47,7 @@ from bgremover.constants import (
 )
 from bgremover.crop_bar import CropBar
 from bgremover.eufymake_export_dialog import EufyMakeExportDialog
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, EufyMakeTargetProfile
 from bgremover.eufymake_validate import format_finding
 from bgremover.eufymake_writer import (
     EufyMakeWriteError,
@@ -1411,7 +1412,11 @@ class MainWindow(QMainWindow):
             project,
             include_height=self._settings.value(EXPORT_INCLUDE_HEIGHT_KEY, True, type=bool),
             include_gloss=self._settings.value(EXPORT_INCLUDE_GLOSS_KEY, True, type=bool),
-            bit_depth=self._settings.value(EXPORT_BIT_DEPTH_KEY, 8, type=int),
+            bit_depth=self._settings.value(
+                EXPORT_BIT_DEPTH_KEY,
+                DEFAULT_TARGET_PROFILE.default_height_bit_depth,
+                type=int,
+            ),
             dest_dir=self._settings.value(EXPORT_DIR_KEY, "", type=str),
             parent=self,
         )
@@ -1420,9 +1425,17 @@ class MainWindow(QMainWindow):
             return
         roles = dlg.selected_optional_roles()
         bits = dlg.selected_bit_depth()
+        profile = dlg.selected_profile()
         dest = dlg.selected_destination()
         self._remember_export_options(dest, roles, bits)
-        self._write_eufymake(project, dest, roles, bits, dlg.warnings_confirmed())
+        self._write_eufymake(
+            project,
+            dest,
+            roles,
+            bits,
+            dlg.warnings_confirmed(),
+            profile,
+        )
 
     def _write_eufymake(
         self,
@@ -1431,6 +1444,7 @@ class MainWindow(QMainWindow):
         roles: list[LayerRole],
         bits: int,
         confirm: bool,
+        profile: EufyMakeTargetProfile = DEFAULT_TARGET_PROFILE,
         *,
         overwrite: bool = False,
     ) -> None:
@@ -1439,11 +1453,19 @@ class MainWindow(QMainWindow):
             written = write_export(
                 project, dest,
                 optional_roles=roles, bit_depth=bits,
-                confirm_warnings=confirm, overwrite=overwrite,
+                confirm_warnings=confirm, overwrite=overwrite, profile=profile,
             )
         except ExportTargetExistsError:
             if self._confirm_overwrite(dest):
-                self._write_eufymake(project, dest, roles, bits, confirm, overwrite=True)
+                self._write_eufymake(
+                    project,
+                    dest,
+                    roles,
+                    bits,
+                    confirm,
+                    profile,
+                    overwrite=True,
+                )
             else:
                 self._sb.showMessage(tr("eufymake.status.cancelled"))
             return
