@@ -11,7 +11,7 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-09-02, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
+## Aktueller Stand (2026-09-03, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
 
 **Tagesaudit 2026-09-02 (Stand `91b32b4`):** Alle 42 offenen Issues wurden mit
 Code, Merges, Kommentaren und – beim Mac-App-Store-Epic – aktuellen
@@ -22,18 +22,25 @@ Apple kann auch bei einer Gratis-App Zahlungskontoangaben für Trader verlangen
 (#884/#904), und die App-Downloadvalidierung muss in #895/#899/#906 ausdrücklich
 entschieden und getestet werden. Kein neuer Produktfehler und kein 🔴-Befund.
 
+**Nachprüfung 2026-09-03 (Stand `e7c379d`):** Die neuen PRs #955–#957 wurden
+gegen die offenen Punkte geprüft. PR #956 hat die falsche Evidenzreferenz des
+EufyMake-Profils bewusst innerhalb der noch unveröffentlichten v1 korrigiert
+und zusätzliche Snapshot-/Bundle-Guards ergänzt; der frühere releasekritische
+#691-Punkt ist damit erledigt. #955 betrifft die Test-Suite-Dokumentation, #957
+die Release-Skripte; beide verändern die EufyMake-Empirie nicht.
+
 **Release-Einschätzung: noch kein Kandidat angestoßen.** Seit `v2.9.0`
 (2026-08-29) liegen 31 Mainline-Commits vor. Mit PR #953 (versioniertes
 EufyMake-Zielprofil, 16-Bit-HEIGHT-Default, Profil- und X/Y-DPI-Anzeige im
 Dialog, Manifest-Provenienz) steht erstmals ein nutzersichtbarer Eintrag in
 `[Unreleased]`; alles andere ist Release-Automatisierung, Doku und Governance.
 Ob **v2.10.0** mit #953 allein oder erst zusammen mit der COLOR-Tonwert-Engine
-(#693/#694 aus Epic #682, ADR #692) gebaut wird, ist ein Owner-Entscheid. Vor
-jedem Release muss jedoch zuerst die falsche Evidenzreferenz im Profil-Snapshot
-aus #691 mit bewusster Profilversionsentscheidung korrigiert werden; das
-Freeze-Gate ist mit Stand `91b32b4` grün.
+(#693/#694 aus Epic #682, ADR #692) gebaut wird, ist ein Owner-Entscheid. PR
+#956 hat die falsche Evidenzreferenz mit bewusster v1-Entscheidung und
+Golden-/Bundle-Guards korrigiert. Damit besteht aus #691 kein zusätzlicher
+Releaseblocker; das normale Release-Gate bleibt maßgeblich.
 
-**EufyMake #681/#687–#691:** PRs #948, #951 und #952 sind gemergt; der reproduzierbare Satz umfasst 41 Einzel-Fixtures und sieben echte Exportpakete (Schema 4). Alpha/Coverage, Crop-Registrierung, getrennte X-/Y-DPI, Manifest-/`pHYs`-Konflikte, Gloss 0/128/255, 64…192-Normalisierung, Dimensionsabweichung sowie Alpha×Gloss und HEIGHT×Gloss sind automatisiert geprüft. Studio 4.2.2 belegt für #689 den 72-dpi-Fallback ohne `pHYs`, die achsweise `pHYs`-Priorität, das im Bildimport inaktive `manifest.json`, manuelle Größenpriorität, Rotation und Einzelbild-Crop; für #690 bleiben alle PNGs unabhängige „Flat“-Ebenen ohne GLOSS-Rollenzuordnung. PR #953 hat das **vorläufige** Zielprofil v1 (#691) integriert; die physischen E1-Messungen zu #688–#690 und damit die Hochstufung des Profils bleiben offen. #687 steht bei 17/18 Kriterien und wartet auf die Abschluss-Review nach den Realtests.
+**EufyMake #681/#687–#691:** PRs #948, #951–#953 und #956 sind gemergt; der reproduzierbare Satz umfasst 41 Einzel-Fixtures und sieben echte Exportpakete (Schema 4). Studio 4.2.2 belegt jetzt zusätzlich den nativen 16-Bit-HEIGHT-Pfad (`Customize Texture`), den gekoppelten Crop innerhalb des COLOR/HEIGHT-Objekts und den expliziten Ink Mode `Gloss Varnish`. Der separate Gloss-Layer folgt dem COLOR/HEIGHT-Crop nicht automatisch; Polarität, Intensität und physische Registrierung bleiben daher offen. I-09 (`.empf`) ist als optionaler Explorationslauf außerhalb des bestätigten PNG-Scopes eingestuft und blockiert #687/#691/Release nicht. Die physischen E1-Messungen zu #688–#690 und die Abschluss-Review von #687 bleiben offen.
 
 Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.9.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #943 (PR #944) und #692 (PR #947) (Details: Vorige Runden).
 
@@ -43,12 +50,12 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 
 | # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
 |---|-------|----------|--------------|-------------------------------|-------------------|
-| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake-Zielprofil – Height/Gloss/mm-DPI validieren | 🟠 Hoch (Korrektheit des wichtigsten Exportziels) | 🔴 Hoch (5 Teil-Issues, physische Hardware nötig) | – (Epic) | Profilintegration #691 ist vorläufig umgesetzt; vor Release die falsche Evidenzreferenz korrigieren, danach I-08/I-09, Hardwaretests #688–#690 und Abschluss-Review erledigen |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Annahmeninventar, Herstellerquellen, Testmatrix | 🟠 Hoch (verbindliche Grundlage für #688–#691) | 🔴 Hoch (Repository-Material vollständig; Rest braucht reale Hardware) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – 17/18 Akzeptanzkriterien erledigt; offen sind I-08 (rollenübergreifender Crop/Registrierung), I-09 (`.empf`) und die Abschluss-Review nach #688–#690 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | HEIGHT-Bittiefe/-Semantik auf realer Hardware validieren | 🟠 Hoch (Reliefhöhe direkt betroffen) | 🔴 Hoch (physischer Drucker, Fixtures, Messprotokoll) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – PR #948 ist gemergt und die Repository-Vorbereitung abgeschlossen; offen bleiben die übrige Importmatrix sowie sichere physische E1-Druck-, Relief- und mm-Messungen |
-| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | mm/DPI, Zielgröße, Positionierungsvertrag validieren | 🟠 Hoch (Druckgröße/Registrierung) | 🔴 Hoch (physische Messungen, Kontrollmotive) | – (kein Agent; reale Hardware nötig) | In Bearbeitung – Repository-Satz und Studio-Teilvertrag sind dokumentiert: 72-dpi-Fallback, X/Y-`pHYs`, Manifestgrenze, manuelle Größe, Rotation und Einzelbild-Crop. Offen sind rollenübergreifender Crop/Registrierung, physische Messungen und Drucktoleranzen |
-| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Gloss-/Klarlack-Semantik validieren | 🟡 Mittel (Gloss ist laut Code bereits „experimental“) | 🔴 Hoch (physische Drucke, Materialverbrauch) | – (kein Agent; reale Hardware nötig) | Blocked (extern) + Digital-/Importteil vollständig – Schema 4 und Studio 4.2.2 belegen Fixtures, Pakete, 72-dpi-Geometrie sowie unabhängige „Flat“-Ebenen ohne GLOSS-Zuordnung; offen bleibt der physische Glossbefund |
-| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Versioniertes Zielprofil in Validator/Writer/Dialog/Doku | 🟠 Hoch (härtet den produktiven Exportpfad) | 🟢 Niedrig für den releasekritischen Rest; 🔴 Hardware für Abschluss | Sonnet, mittel + später Hardware | Fast fertig – PR #953 integriert Profil v1; jetzt falsche Evidenzreferenz mit bewusster Profilversion korrigieren, später nach #688–#690 `validated` hochstufen oder neue Version anlegen |
+| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake-Zielprofil – Height/Gloss/mm-DPI validieren | 🟠 Hoch (Korrektheit des wichtigsten Exportziels) | 🔴 Hoch (5 Teil-Issues, physische Hardware nötig) | – (Epic) | Profilintegration und Referenzkorrektur sind erledigt; native HEIGHT-/Gloss-Pfade und I-08 sind vorgeprüft, I-09 ist nicht blockierend. Offen: Hardwaretests #688–#690 und Abschluss-Review |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Annahmeninventar, Herstellerquellen, Testmatrix | 🟠 Hoch (verbindliche Grundlage für #688–#691) | 🔴 Hoch (Repository-Material vollständig; Rest braucht reale Hardware) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – 17/18 Akzeptanzkriterien erledigt; I-08 ist durchgeführt, I-09 ausdrücklich nicht blockierend. Offen ist die Abschluss-Review nach #688–#690 |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | HEIGHT-Bittiefe/-Semantik auf realer Hardware validieren | 🟠 Hoch (Reliefhöhe direkt betroffen) | 🔴 Hoch (physischer Drucker, Fixtures, Messprotokoll) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – nativer 16-Bit-HEIGHT-Import und 3D-Vorschau sind belegt; offen bleiben Nutzungstiefe sowie sichere physische E1-Druck-, Relief- und mm-Messungen |
+| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | mm/DPI, Zielgröße, Positionierungsvertrag validieren | 🟠 Hoch (Druckgröße/Registrierung) | 🔴 Hoch (physische Messungen, Kontrollmotive) | – (kein Agent; reale Hardware nötig) | Blocked (extern) – Studio-Teilvertrag inklusive I-08 belegt: Crop bleibt im nativen COLOR/HEIGHT-Objekt gekoppelt, nicht zum separaten Gloss-Layer. Offen sind physische Registrierung, Messungen und Drucktoleranzen |
+| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Gloss-/Klarlack-Semantik validieren | 🟡 Mittel (Gloss ist laut Code bereits „experimental“) | 🔴 Hoch (physische Drucke, Materialverbrauch) | – (kein Agent; reale Hardware nötig) | Blocked (extern) – der native Ink Mode `Gloss Varnish` ist vorgeprüft; offen bleiben zellspezifische Registrierung sowie physische Polarität, Intensität und Materialwirkung |
+| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Versioniertes Zielprofil in Validator/Writer/Dialog/Doku | 🟠 Hoch (härtet den produktiven Exportpfad) | 🟢 Niedrig für den releasekritischen Rest; 🔴 Hardware für Abschluss | Sonnet, mittel + später Hardware | Implementierung releasebereit – PR #953 integriert Profil v1, PR #956 korrigiert die Evidenzreferenz mit bewusster v1-Entscheidung und Guards; nur die spätere Hochstufung nach #688–#690 bleibt offen |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR-Tonwert-/Graustufen-Engine | 🟡 Mittel-Hoch (Roadmap-Fundament für Laser, kein akuter Bug) | 🔴 Hoch (4 verbleibende Teil-Issues: Kern→UI→Integration→Abnahme) | – (Epic) | In Bearbeitung – ADR #692 ist verabschiedet; als Nächstes den Kern #693 |
 | [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Qt-freier Kern: Histogramm/Graustufe/Levels/Gamma | 🟡 Mittel-Hoch | 🟡 Mittel (Erweiterung von `color_ops.py`, gut isoliert testbar) | Sonnet, hoch | Startbereit – ADR #692 (PR #947) liefert den Datenvertrag; Kern gegen dessen Formeln implementieren und testen |
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live-Vorschau + Bedienoberfläche Histogramm/Levels/Gamma | 🟡 Mittel | 🟡 Mittel-Hoch (Qt-UI, Debounce/Generation-Schutz analog Höhen-Vorschau) | Sonnet, hoch | Blocked – wartet auf Kern #693 |
@@ -85,20 +92,19 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Betrieb: Self-hosted-Runner (Heartbeat-Alarmkanal) | 🟡 Mittel (Betriebskanal, kein Produktcode) | 🟢 Niedrig (reine Beobachtung) | – (kein Agent; Repo-Owner) | Dauerhaft offen – nicht schließen (`RUNNER_HEARTBEAT_ISSUE`); der FAIL vom 2026-08-31 war der geplante Meldeweg-Test, der Aufräumschritt ist erledigt (planmäßiger Lauf 33496675995 grün, x86_64 übersprungen, Mac und Pi bestanden) |
 | [#949](https://github.com/NikolayDA/picture_helper/issues/949) | Test-Suite-Audit 2026-09-02 (RESOURCES-Drift, CropOverlay, Coverage-Lücken) | 🟡 Mittel (Testqualität und Drift-Schutz, kein Produktionsfehler) | 🟢 Niedrig-Mittel (vier klar umrissene Teständerungen, keine Produktionsänderung) | Sonnet, mittel | Startbereit – vier Tests ändern; Baseline liegt vor PRs #948–#954 und ist umgebungsabhängig, daher Testzahl/Coverage samt Plattform und Abhängigkeiten neu erfassen |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
+| [#958](https://github.com/NikolayDA/picture_helper/issues/958) | Heartbeat: gestufte Offline-Eskalation 7/14/21 Tage (Mail-Hinweise, Austragung) und Wächter für die Fristen | 🟡 Mittel (Runner-Betrieb und Benachrichtigungen, kein Produktfehler) | 🟠 Hoch (Historienauswertung, idempotente Stufen, Workflow-Rechte, Tests und Doku) | Opus, hoch + Owner-Entscheid | Entscheidung nötig – E1 tägliche Kommentare, E2 automatische/manuelle Austragung und E3 Stufentage festlegen; danach fail-safe umsetzen und per Test-Issue abnehmen |
 
 ### Als Nächstes empfohlen
 
-1. **#691** – vor jedem Release die falsche Evidenzreferenz des Profil-Snapshots
-   mit bewusster Profilversionsentscheidung korrigieren und per Golden-Test sichern.
-2. **#693** (Qt-freier Kern) – der ADR #692 ist verabschiedet; danach folgen
+1. **#693** (Qt-freier Kern) – der ADR #692 ist verabschiedet; danach folgen
    #694, #695 und #696 in dieser Reihenfolge.
-3. **#949** – vier kleine, klar umrissene Teständerungen; danach Baseline auf
+2. **#949** – vier kleine, klar umrissene Teständerungen; danach Baseline auf
    aktuellem `main` samt Plattform und optionalen Abhängigkeiten neu erfassen.
-4. **#883** – Qt-/Code-Lizenz entscheiden und die Rechte/Provenienz des konkreten
+3. **#883** – Qt-/Code-Lizenz entscheiden und die Rechte/Provenienz des konkreten
    `u2net.onnx` belegen oder ein eindeutig lizenzierbares Ersatzmodell wählen.
-5. Nach Geräte-/Materialfreigabe die offenen physischen Messungen aus **#689**
-   zusammen mit #687 (Rest), #688 und #690 durchführen; die Studio-Importteile
-   von #689 und #690 sind bereits dokumentiert. Danach #691
+4. Nach Geräte-/Materialfreigabe die offenen physischen Messungen aus **#689**
+   zusammen mit #687 (Rest), #688 und #690 durchführen; native HEIGHT-/Gloss-
+   Pfade und I-08 sind vorgeprüft. Danach #691
    abschließen: Profil v1 hochstufen oder bei Widerspruch v2 anlegen.
 
 ## Vorige Runden

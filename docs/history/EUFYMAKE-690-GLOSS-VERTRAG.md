@@ -1,7 +1,7 @@
 # EufyMake-Gloss-/Coverage-Vertrag – Ergebnisakte für Issue #690
 
-> **Status: reproduzierbarer Datei- und Studio-Importtestsatz vollständig;
-> physische Klarlackmessung ausstehend.** Dieses Dokument trennt Herstellerangabe,
+> **Status: reproduzierbarer Datei- und Studio-Importtestsatz sowie nativer
+> Gloss-Preflight vollständig; physische Klarlackmessung ausstehend.** Dieses Dokument trennt Herstellerangabe,
 > Repositoryprüfung, Studio-Importbeobachtung und Druckbefund. Ein sichtbares
 > Graustufenbild im Editor beweist weder die Gloss-Polarität noch einen
 > Klarlackauftrag.
@@ -14,7 +14,7 @@
 | Editor-Version | 1.20.0 |
 | E1/Firmware | E1 im Editor online; Firmware nicht protokolliert |
 | Betriebssystem | macOS 26.6.2 (Build 25G83) |
-| Material/Tinte/Klarlack/Ink-Mode | ausstehend; kein Druck gestartet |
+| Material/Tinte/Klarlack/Ink-Mode | nativer Studio-Modus `Gloss Varnish` auswählbar; Material/Geräteparameter ausstehend; kein Druck gestartet |
 | Beleuchtung/Messmittel | ausstehend |
 | Fixture-Katalog | Schema 4; 41 Einzel-Fixtures; 7 Exportpakete |
 | Manifest-Vertrauensanker | `8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758` |
@@ -85,7 +85,7 @@ nicht beiden Einflussgrößen zugleich zugeschrieben werden.
    Klarlackmenge bezeichnen. Die Herstellerpolarität Schwarz=Auftrag ist der
    sichere Prüfanker, aber noch kein bestätigter Vertrag für `gloss_mask.png`.
 
-## 5. Studio-Importprotokoll
+## 5. Studio-Import- und Rollenprotokoll
 
 Live-Sitzung am 2026-09-02 mit Studio 4.2.2 / Editor 1.20.0 und online
 angezeigtem E1. Die Dateien wurden nach erfolgreichem Inspectorlauf einzeln
@@ -112,6 +112,18 @@ ist ausschließlich ein Akzeptanz- und Geometriebefund. Die getrennten Ebenen
 belegen gerade **keine** native Gloss-Semantik; eine physische Polarität,
 Mengenkennlinie, Alpha-Maskierung oder HEIGHT-Wechselwirkung lässt sich daraus
 nicht ableiten.
+
+### Nativer Gloss-Preflight vom 2026-09-03
+
+Auf der separat importierten `gloss_registration.png` wurde im rechten
+Eigenschaftenbereich der Ink Mode geöffnet. Studio 4.2.2 bot unter anderem
+`Gloss Varnish`, `CMYK > Gloss Varnish` und
+`White > CMYK > Gloss Varnish` an. Nach Auswahl von `Gloss Varnish` zeigte das
+Objekt ausdrücklich Ink Mode `Gloss Varnish` und `Gloss Varnish × 1`; eine
+Warnung erschien nicht. Damit ist Pfad 1 aus Abschnitt 6.1 für diese
+Studio-Version grundsätzlich verfügbar. Der Preflight belegt weder
+Schwarz/Weiß-Polarität noch Intensitätskennlinie, Materialeignung oder
+physischen Klarlackauftrag. Weder `Preview` noch `Print` wurde ausgelöst.
 
 ## 6. Physisches Mess- und Fotoprotokoll
 
@@ -159,6 +171,13 @@ Materialfreigabe ersetzt keinen HEIGHT-/Gloss-Preflight; ohne eindeutigen
 nativen Pfad bzw. die für G-05 verlangte Dimensions-/Registrierungsregel
 bleibt der jeweilige physische Lauf blockiert.
 
+Der allgemeine Verfügbarkeits-Preflight des nativen Pfads ist seit 2026-09-03
+für Studio 4.2.2 erfüllt (`Ink Mode` → `Gloss Varnish`). Vor jedem Lauf bleiben
+die zellspezifischen Parameter und die Registrierung verbindlich festzulegen.
+Für G-05 fehlt weiterhin die geforderte Dimensionsregel; für G-07 sind native
+HEIGHT- und Gloss-Pfade zwar einzeln belegt, Reliefwerte und gemeinsamer
+registrierter Aufbau aber noch offen.
+
 **Abbruchkriterium:** Wenn weder eine native Gloss-Rolle noch der dokumentierte
 Spot-UV-Zweipass eindeutig auswählbar ist, bleibt der physische Teil blockiert.
 Dann wird weder **Preview** noch **Print** gestartet und insbesondere kein
@@ -191,7 +210,7 @@ Vergleichslayout.
 
 | Frage | Bestätigter Wert | Evidenz | Status |
 | --- | --- | --- | --- |
-| Wertebereich/Bittiefe/Modus | 0…255 / 8 Bit / `L` als Testträger | Repositoryprüfung + Studio-Import | als normale „Flat“-Bilder akzeptiert; Gloss-Semantik offen |
+| Wertebereich/Bittiefe/Modus | 0…255 / 8 Bit / `L` als Testträger; nativer Ink Mode `Gloss Varnish` auswählbar | Repositoryprüfung + Studio-Import/-Preflight | Träger akzeptiert und ausdrücklicher Gloss-Modus verfügbar; physische Gloss-Semantik offen |
 | Richtung | | G-02 + Hersteller A11 | offen |
 | kontinuierlich/quantisiert/binär/normalisiert | | G-03 | offen |
 | Maskierung durch COLOR-Alpha | | G-06 | offen |

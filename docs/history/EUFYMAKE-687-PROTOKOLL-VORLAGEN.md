@@ -47,7 +47,7 @@ Fixture-Erzeugung.
 | I-06 | `export_mm_dpi_conflict/manifest.json` allein und kompletter Vier-Dateien-Exportordner | Träger/Priorität | #687/#689 |
 | I-07 | Vollweiße Höhenkarte | Sättigung | #688 |
 | I-08 | `color_height_reference.png`, `height_registration_16bit.png` und `gloss_registration.png` vor/nach Crop in Studio | Crop/Registrierung | #689/#690 |
-| I-09 | Legacy-`.empf` vs. aktuell exportiertes `.empf` | Containergeneration | #687 |
+| I-09 | Legacy-`.empf` vs. aktuell exportiertes `.empf` | Containergeneration; optionaler Explorationslauf außerhalb des verpflichtenden BgRemover-PNG-Scopes | #687 |
 | I-10 | Gloss-Maske schwarz/weiß invertiert | Polarität | #690 |
 | I-11 | Höhenkarte mit Treppenkeil (bekannte, diskrete Stufen) | Graustufe→mm-Kennlinie (H-02) | #688 |
 | I-12 | Höhenkarte mit abweichendem Seitenverhältnis (256×128 statt 256×256) | Seitenverhältnis (H-03) | #688 |
@@ -186,8 +186,8 @@ Dateinamen prüfen, nicht nur den Hash.
 | I-08 (vor/nach Crop) | `color_height_reference.png` | `f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a` | `f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Asymmetrische X-/Y-Marker; pixelgleich zur HEIGHT-Registriermap |
 | I-08 (vor/nach Crop) | `height_registration_16bit.png` | `355c5f1626fe26d34c83eb22cade8da68acaa650fdde4a10638818c026a17e4f` | `355c5f1626fe26d34c83eb22cade8da68acaa650fdde4a10638818c026a17e4f` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Nicht-weiße COLOR-Pixel exakt als 65535-Landmarks, Hintergrund 0 |
 | I-08 (vor/nach Crop) | `gloss_registration.png` | `7e3c9734ab47bfbf5771b5c7ca28d6cf3899c44291aab4cc81b024710bab4a63` | `7e3c9734ab47bfbf5771b5c7ca28d6cf3899c44291aab4cc81b024710bab4a63` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Dieselben COLOR-Landmarks exakt als 0/255-GLOSS-Maske; gemeinsames 256×256-Tripel |
-| I-09 (Legacy) | externes `.empf` (nicht im Repo) | – | – | – | – | – | – | – | n. z. | Kein BgRemover-Fixture – aus Community-Quelle B1 (`empf-generator`) zu beschaffen |
-| I-09 (aktuell) | ein **aktuell von EufyMake Studio selbst** exportiertes `.empf` (nicht von BgRemover) | – | – | – | – | – | – | – | offen | Kein BgRemover-Fixture – erfordert ein reales Studio-Projekt, aus der aktuellen Studio-Version exportiert. Testzweck laut Annahmeninventar (V2, I-09): prüfen, ob das seit 2.7.0.6 verschlüsselt gekapselte aktuelle `.empf`-Format importierbar bleibt bzw. sich vom alten Legacy-ZIP unterscheidet – **nicht** ob BgRemover `.empf` erzeugen kann (das bleibt bewusst Nicht-Ziel, `OpenQuestion.NATIVE_EMPF_PROJECT`) |
+| I-09 (Legacy) | externes `.empf` (nicht im Repo) | – | – | – | – | – | – | – | n. z. | Optionaler Explorationslauf, nicht blockierend: kein BgRemover-Fixture und außerhalb des bestätigten PNG-Einzeldatei-Scopes |
+| I-09 (aktuell) | ein **aktuell von EufyMake Studio selbst** exportiertes `.empf` (nicht von BgRemover) | – | – | – | – | – | – | – | n. z. | Scope-Entscheid 2026-09-03: erst bei einer bewussten Produktentscheidung für native Projekte erforderlich; `OpenQuestion.NATIVE_EMPF_PROJECT` bleibt sichtbar |
 | I-10 (normal) | `gloss_wedge.png` | `1d6df1bfbb11c044d74110fb0ba5511b1813870c38ea9044e1be52c2159d5dd2` | `1d6df1bfbb11c044d74110fb0ba5511b1813870c38ea9044e1be52c2159d5dd2` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_wedge_8bit.png` |
 | I-10 (invertiert) | `gloss_wedge_inverted.png` | `885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c` | `885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_wedge_inverted_8bit.png` |
 | I-11 | `height_steps_8bit.png` | `41a5c094e5712e398ed6ba6b446fcae30f3187e1a5efd6df72733c8d7a435324` | `41a5c094e5712e398ed6ba6b446fcae30f3187e1a5efd6df72733c8d7a435324` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_steps.png` – siehe Hinweis oben; validiert, aber nicht die für den Druck vorgesehene Variante (siehe I-11 16 Bit) |
@@ -261,10 +261,10 @@ Dateivalidierungsprotokoll derselben Zeile.
 | I-06 (`manifest.json` allein) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine Studio-Warnung | JSON im Bilddialog ausgegraut; „Öffnen“ deaktiviert | keine | Ja | Live-Sitzung, kein Screenshot-Artefakt | dieser Importweg unterstützt das Manifest nicht |
 | I-06 (kompletter Ordner) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | nur die drei PNGs gemeinsam auswählbar; drei überlagerte „Flat“-Ebenen, je 43,35×43,35 mm | keine automatische Rollenzuordnung | Nein für PNGs; JSON nicht importierbar | Live-Sitzung, kein Screenshot-Artefakt | gleiche Werte bei Wiederholungsimport; kein Druck |
 | I-07 | | | | | | | Ja / Nein | | |
-| I-08 (vor Crop) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | drei Rollen einzeln sichtbar, jeweils 90,31×90,31 mm und gleich zentriert | alle als „Flat“, keine Rollenzuordnung | Nein | Live-Sitzung, kein Screenshot-Artefakt | gemeinsame Startausdehnung belegt; Produktionsregistrierung und Druck offen |
-| I-08 (nach Crop) | | | | | | | Ja / Nein | | |
-| I-09 (Legacy) | | | | | | | Ja / Nein | | |
-| I-09 (aktuell) | | | | | | | Ja / Nein | | |
+| I-08 (vor Crop) | 2026-09-02/03 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | drei Rollen einzeln sichtbar, jeweils 90,31×90,31 mm und gleich zentriert; am 2026-09-03 HEIGHT nativ über `Customize Texture` → `Upload Height Map Image` zugewiesen, Objekt mit `3D` und passender 3D-Vorschau | COLOR/HEIGHT nativ gekoppelt; Gloss bleibt separates Objekt | Nein | Live-Sitzung, kein Screenshot-Artefakt | gemeinsame Startausdehnung und nativer HEIGHT-Pfad belegt; physische Registrierung offen |
+| I-08 (nach Crop) | 2026-09-03 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | bestätigter Crop sichtbar; COLOR/HEIGHT-Objekt W/H 44,86/90,31 mm, X/Y 167,79/164,84 mm; `3D` und beschnittene 3D-Vorschau bleiben erhalten | separate Gloss-Ebene unverändert bei W/H 90,31/90,31 mm und X/Y 122,34/164,84 mm | Nein | Live-Sitzung, kein Screenshot-Artefakt | Crop innerhalb COLOR/HEIGHT gekoppelt; keine automatische Dreierkopplung; kein Druck |
+| I-09 (Legacy) | n. z. | n. z. | n. z. | n. z. | nicht ausgeführt | n. z. | n. z. | n. z. | Optionaler Explorationslauf außerhalb des verpflichtenden BgRemover-PNG-Scopes; Scope-Entscheid 2026-09-03 |
+| I-09 (aktuell) | n. z. | n. z. | n. z. | n. z. | nicht ausgeführt | n. z. | n. z. | n. z. | Erst bei bewusster Produktentscheidung für native `.empf`-Projekte erforderlich; nicht blockierend für #687/#691/Release |
 | I-10 (normal) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, 90,31×90,31 mm | „Flat“; keine Rollenzuordnung | Nein | Live-Sitzung, kein Screenshot-Artefakt | Bildimport belegt keine Gloss-Polarität; kein Druck |
 | I-10 (invertiert) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, 90,31×90,31 mm | „Flat“; keine Rollenzuordnung | Nein | Live-Sitzung, kein Screenshot-Artefakt | Bildimport belegt keine Gloss-Polarität; kein Druck |
 | I-11 | | | | | | | Ja / Nein | | |
@@ -289,7 +289,7 @@ sonst „nicht gesetzt". Vorher-/Nachher-Werte nicht in einer Zelle vermischen.
 | I-06 kompletter Exportordner | 256/256 je PNG | ca. 150/150 dpi je PNG | 21,674666… mm / 300 dpi | nicht gesetzt | je PNG 43,35/43,35 mm; 2 Dezimalstellen | unverändert | je 1:1; 0° | je X/Y 145,83/188,33; überlagert und zentriert | PNG-`pHYs`; Manifest nicht auswählbar; alle Ebenen „Flat“ |
 | I-06 kompletter Exportordner + manuelle Größe | 256/256 je PNG | ca. 150/150 dpi je PNG | 21,674666… mm / 300 dpi | auf ausgewähltem PNG 21,67/21,67 mm | 43,35/43,35 mm | 21,67/21,67 mm | gekoppelt 1:1; nach Nullwertversuch instabil | Extremversuch: 1000/1254,78 mm und X/Y −810,83/−1023,11 ohne Warnung | manuell überschreibt `pHYs`; Null-/Extremwertvalidierung erforderlich |
 | I-08 COLOR/HEIGHT/GLOSS vor Crop | 256/256 je Rolle | fehlt | keines | nicht gesetzt | je 90,31/90,31 mm; 2 Dezimalstellen | unverändert | je 1:1; 0° | je X/Y 122,34/164,84; identisch zentriert | 72-dpi-Fallback; gleiche Ausdehnung, aber keine automatische Rollenzuordnung |
-| I-08 COLOR/HEIGHT/GLOSS nach Crop | 256/256 je Rolle | fehlt | keines | unverändert | | | | | |
+| I-08 COLOR/HEIGHT/GLOSS nach Crop | 256/256 je Rolle | fehlt | keines | unverändert | je 90,31/90,31 mm vor Crop | natives COLOR/HEIGHT-Objekt 44,86/90,31 mm; separate Gloss-Ebene unverändert 90,31/90,31 mm | je 1:1; 0° | COLOR/HEIGHT X/Y 167,79/164,84; Gloss X/Y 122,34/164,84 | Crop propagiert innerhalb des nativen COLOR/HEIGHT-Objekts, nicht automatisch zum separaten Gloss-Objekt |
 | I-12 abweichende HEIGHT-Dimension | COLOR 256/256; HEIGHT 256/128 | fehlt | keines | hier exakt eintragen | | | | | |
 
 Rundung wird nach der Regel in
@@ -297,7 +297,7 @@ Rundung wird nach der Regel in
 bewertet. „Nichts passiert" bleibt auch hier ein Ergebnis und wird zusätzlich
 in der allgemeinen Importtabelle markiert.
 
-### 2.2 Gloss-Importdetailwerte für #690
+### 2.2 Gloss-Import- und Rollenwerte für #690
 
 Live-Sitzung am 2026-09-02 mit Studio 4.2.2 / Editor 1.20.0; E1 online,
 Firmware nicht angezeigt. Der unmittelbar vorher erzeugte Inspectorreport
@@ -319,6 +319,13 @@ Bei allen 256×256-Dateien ohne `pHYs` verwendete Studio den bereits in #689
 belegten 72-dpi-Fallback: 90,31×90,31 mm, X/Y 122,34/164,84 mm, 0°. Namen,
 PNG-Modus und gemeinsamer Exportordner erzeugten keine automatische
 COLOR-/HEIGHT-/GLOSS-Semantik.
+
+Am 2026-09-03 wurde zusätzlich `gloss_registration.png` ausgewählt und im
+rechten Eigenschaftenbereich der Ink Mode `Gloss Varnish` gesetzt. Studio
+zeigte anschließend ausdrücklich `Gloss Varnish × 1`; es erschien keine
+Warnung. Damit ist der native Gloss-Pfad in Studio 4.2.2 grundsätzlich belegt.
+Polarität, Intensität, Materialwirkung und physischer Auftrag bleiben ohne
+`Preview` oder `Print` offen.
 
 **„Nichts passiert"-Fall (EM-S03):** Laut Annahmeninventar wurde für Studio
 2.6.0.2 ein still geladener, aber unsichtbarer Import berichtet; spätere

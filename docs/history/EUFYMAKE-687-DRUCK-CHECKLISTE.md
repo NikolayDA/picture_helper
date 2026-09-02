@@ -102,10 +102,10 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 10 | I-06 (`export_mm_dpi_conflict/manifest.json` allein) | ☐ | ☐ |
 | 11 | I-06 (kompletter Vier-Dateien-Exportordner) | ☐ | ☐ |
 | 12 | I-07 | ☐ | ☐ |
-| 13 | I-08 (COLOR/HEIGHT/GLOSS vor Crop) | ☐ | ☐ |
-| 14 | I-08 (COLOR/HEIGHT/GLOSS nach Crop) | ☐ | ☐ |
-| 15 | I-09 (Legacy) | ☐ | ☐ |
-| 16 | I-09 (aktuell) | ☐ | ☐ |
+| 13 | I-08 (COLOR/HEIGHT/GLOSS vor Crop) | ☑ | ☑ |
+| 14 | I-08 (COLOR/HEIGHT/GLOSS nach Crop) | ☑ | ☑ |
+| 15 | I-09 (Legacy) | — (n. z.) | — (n. z.) |
+| 16 | I-09 (aktuell) | — (n. z.) | — (n. z.) |
 | 17 | I-10 (normal) | ☐ | ☐ |
 | 18 | I-10 (invertiert) | ☐ | ☐ |
 | 19 | I-11 | ☐ | ☐ |
@@ -129,10 +129,20 @@ den Bilddialog-Grenzbefund: getrennte „Flat“-Ebenen ohne native
 HEIGHT-/GLOSS-Zuordnung oder Maskenkopplung. Es wurde weder **Preview** noch
 **Print** ausgelöst; die physischen Aussagen bleiben offen.
 
+I-08 wurde am 2026-09-03 ergänzt: Die 16-Bit-HEIGHT-Datei wurde über den
+nativen `Customize Texture`-Pfad dem COLOR-Objekt zugewiesen. Der Crop blieb
+innerhalb dieses Objekts gekoppelt; die separate Gloss-Ebene blieb unverändert.
+I-09 wurde am selben Tag ausdrücklich als **nicht blockierend/nicht
+anwendbar** eingestuft: `.empf` ist ein separater nativer Projektpfad und kein
+Bestandteil des bestätigten BgRemover-PNG-Workflows. Die Zeilen bleiben zur
+Transparenz erhalten und werden nur bei einer späteren Produktentscheidung für
+native `.empf`-Projekte reaktiviert.
+
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 
-- [ ] Alle 29 Zeilen aus Phase 1 abgeschlossen; keine ungeklärten
-      Sicherheits-/Fehlerfälle offen.
+- [ ] Alle 27 verpflichtenden Zeilen aus Phase 1 abgeschlossen; I-09 Legacy/
+      aktuell sind gemäß Scope-Entscheid vom 2026-09-03 nicht anwendbar;
+      keine ungeklärten Sicherheits-/Fehlerfälle offen.
 - [ ] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
       protokolliert, nicht nur bei „Ja" übersprungen.
 - [ ] Budget-Startstand notiert (0 von 35 am allerersten Testtag, sonst der
@@ -162,14 +172,14 @@ Budgetplatz blockiert.
 
 | Zelle | Owner-Freigabe (Datum/Verweis) | Budgetplatz/ersetzte Variante | HEIGHT-/Gloss-Preflight | Status |
 | --- | --- | --- | --- | --- |
-| G-01 | NikolayDA, 2026-09-02; Governance §4 | 25 | nativer Gloss-/Spot-UV-Pfad | freigegeben; Preflight offen |
-| G-02 | NikolayDA, 2026-09-02; Governance §4 | 26–29 (normal 1/2, invertiert 1/2) | nativer Gloss-/Spot-UV-Pfad | freigegeben; Preflight offen |
-| G-03 | NikolayDA, 2026-09-02; Governance §4 | 30 | nativer Gloss-/Spot-UV-Pfad | freigegeben; Preflight offen |
-| G-04a/b/c | NikolayDA, 2026-09-02; Governance §4 | 31 | Produktionswriter-Assets importieren; nativer Gloss-/Spot-UV-Pfad | freigegeben; Preflight offen |
-| G-05 | NikolayDA, 2026-09-02; Governance §4 | 32 | feste Dimensions-/Registrierungsregel | freigegeben; Preflight offen |
-| G-06 | NikolayDA, 2026-09-02; Governance §4 | 33 | nativer Gloss-/Spot-UV-Pfad; Basispass fixiert | freigegeben; Preflight offen |
-| G-07 | NikolayDA, 2026-09-02; Governance §4 | 34 | native HEIGHT-/Texture- und Gloss-Zuweisung; Reliefwerte fixiert | freigegeben; Preflight offen |
-| G-08 | NikolayDA, 2026-09-02; Governance §4 | 35 | nativer Gloss-/Spot-UV-Pfad; Registrierung fixiert | freigegeben; Preflight offen |
+| G-01 | NikolayDA, 2026-09-02; Governance §4 | 25 | nativer Gloss-/Spot-UV-Pfad | freigegeben; `Gloss Varnish`-Pfad belegt, Laufparameter offen |
+| G-02 | NikolayDA, 2026-09-02; Governance §4 | 26–29 (normal 1/2, invertiert 1/2) | nativer Gloss-/Spot-UV-Pfad | freigegeben; `Gloss Varnish`-Pfad belegt, Polarität/Laufparameter offen |
+| G-03 | NikolayDA, 2026-09-02; Governance §4 | 30 | nativer Gloss-/Spot-UV-Pfad | freigegeben; `Gloss Varnish`-Pfad belegt, Laufparameter offen |
+| G-04a/b/c | NikolayDA, 2026-09-02; Governance §4 | 31 | Produktionswriter-Assets importieren; nativer Gloss-/Spot-UV-Pfad | freigegeben; nativer Pfad belegt, konkrete Paketassets/Laufparameter offen |
+| G-05 | NikolayDA, 2026-09-02; Governance §4 | 32 | feste Dimensions-/Registrierungsregel | freigegeben; Dimensions-/Registrierungsregel offen |
+| G-06 | NikolayDA, 2026-09-02; Governance §4 | 33 | nativer Gloss-/Spot-UV-Pfad; Basispass fixiert | freigegeben; nativer Pfad belegt, Basispass/Registrierung offen |
+| G-07 | NikolayDA, 2026-09-02; Governance §4 | 34 | native HEIGHT-/Texture- und Gloss-Zuweisung; Reliefwerte fixiert | freigegeben; beide nativen Pfade belegt, Reliefwerte/Registrierung offen |
+| G-08 | NikolayDA, 2026-09-02; Governance §4 | 35 | nativer Gloss-/Spot-UV-Pfad; Registrierung fixiert | freigegeben; nativer Pfad belegt, Registrierung offen |
 
 **Vor jedem Foto (Governance Abschnitt 3, verbindlich):**
 

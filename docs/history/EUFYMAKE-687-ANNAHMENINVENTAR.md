@@ -562,13 +562,21 @@ Ergänzungen/Korrekturen der Importzellen:
 | --- | --- | --- | --- | --- |
 | I-06 | `manifest.json` allein und kompletter BgRemover-Ordner | Träger | JSON abgelehnt; Ordnerverhalten **offen**, nicht vorab „bestätigt“ | sichtbare Meldung/kein Effekt protokollieren |
 | I-08 | Motiv samt Height Map vor/nach Crop in Studio | Crop | Farbmotiv und Depth Map bleiben registriert; Forumssnippet B11 meldet mögliches Auseinanderlaufen | identische Referenzmarker + Vorschau-Differenz |
-| I-09 | Legacy-`.empf` aus B1 und aktuell von Studio exportiertes `.empf` | Containergeneration | Legacy importierbar; aktuelle Datei nicht als schlichtes ZIP lesbar | Dateisignatur/Importmeldung, keine Umgehung der Verschlüsselung |
+| I-09 | Legacy-`.empf` aus B1 und aktuell von Studio exportiertes `.empf` | Containergeneration | **Optionaler Explorationslauf, nicht blockierend:** `.empf` ist ein separater nativer Projektpfad; BgRemovers bestätigter Scope liefert PNG-Einzeldateien und erzeugt kein `.empf` (`OpenQuestion.NATIVE_EMPF_PROJECT`). | Nur bei späterer Produktentscheidung für native Projekte: Dateisignatur/Importmeldung, keine Umgehung der Verschlüsselung |
 | I-10 | Gloss-Maske schwarz/weiß invertiert, sonst identisch | Polarität | A11: Schwarz erhält Gloss, Weiß nicht | Vorschau und kleiner Zweitdruck nach Sicherheitsfreigabe |
 
 Weiter offen bleiben volle 16-Bit-Nutzung (H-01), Graustufe→mm-Kennlinie (H-02),
 abweichende Kartenmaße (H-03), `pHYs`/Startgröße (G-01/G-02),
 Gloss-Intensitätsabstufung (GL-01) und die Registrierung des Zweitdrucks. Die bisher
 genannten Texturhöhen 3/1 mm werden als eigener UI-/Herstellerquellen-Check ergänzt.
+
+**Scope-Entscheid I-09 (2026-09-03):** Der Vergleich Legacy gegen aktuelles
+`.empf` validiert weder den BgRemover-Writer noch seinen manuellen PNG-Importpfad.
+I-06 und der native HEIGHT-Import belegen den aktuell unterstützten Träger.
+I-09 bleibt als optionaler, klar abgegrenzter Explorationslauf erhalten, ist
+aber kein Gate für #687, #691 oder einen Release. Erst eine bewusste
+Produktentscheidung, `OpenQuestion.NATIVE_EMPF_PROJECT` in den Scope zu nehmen,
+macht den Lauf und ein eigenes Migrationsarbeitspaket verpflichtend.
 
 **Nachtrag (2026-08-15):** H-02 und H-03 hatten in der obigen Tabelle zunächst
 keine eigene Testzelle – die Ergänzungsrunde deckte nur I-06/I-08/I-09/I-10 ab.

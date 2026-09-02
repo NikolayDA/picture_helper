@@ -11,7 +11,7 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-09-02, v2.9.0 publiée, inventaire ouvert entièrement audité)
+## État actuel (2026-09-03, v2.9.0 publiée, inventaire ouvert entièrement audité)
 
 **Audit quotidien 2026-09-02 (état `91b32b4`) :** les 42 tickets ouverts ont
 été confrontés au code, aux fusions, aux commentaires et, pour l'épopée Mac App
@@ -22,6 +22,12 @@ Apple peut demander des coordonnées de compte de paiement aux traders même pou
 une app gratuite (#884/#904), et #895/#899/#906 doivent décider et tester la
 validation du téléchargement. Aucun défaut produit ni constat 🔴 nouveau.
 
+**Réexamen du 2026-09-03 (état `e7c379d`) :** les nouvelles PR #955–#957 ont
+été comparées aux points ouverts. La PR #956 a corrigé la référence de preuve
+dans la v1 encore non publiée et ajouté des gardes snapshot/paquets ; l'ancien
+point critique de #691 est donc résolu. #955 ne touche que la documentation des
+tests et #957 les scripts de publication.
+
 **Évaluation de publication : aucun candidat lancé pour l'instant.** Depuis
 `v2.9.0` (2026-08-29), 31 commits sur la branche principale. Avec la PR #953
 (profil cible EufyMake versionné, HEIGHT par défaut en 16 bits, profil et DPI
@@ -29,11 +35,12 @@ X/Y dans le dialogue, provenance du manifeste), `[Unreleased]` contient pour la
 première fois une entrée visible pour les utilisateurs ; le reste relève de
 l'automatisation de publication, de la documentation et de la gouvernance. Que
 **v2.10.0** sorte avec #953 seul ou avec le moteur de tonalité COLOR (#693/#694
-de l'épopée #682, ADR #692) est une décision de l'owner ; la porte de gel est
-verte à `91b32b4`. Avant toute publication, #691 doit toutefois corriger la
-mauvaise référence de preuve du snapshot avec une décision explicite de version.
+de l'épopée #682, ADR #692) est une décision de l'owner. La PR #956 a corrigé la
+référence avec une décision explicite de conserver v1 et des gardes golden/de
+paquets. #691 n'ajoute donc plus de blocage de publication ; le gate normal reste
+déterminant.
 
-**EufyMake #681/#687–#691 :** les PR #948, #951 et #952 sont fusionnées ; le jeu reproductible comprend 41 fixtures individuels et sept vrais paquets d'export (schéma 4). Alpha/couverture, recalage du recadrage, DPI X/Y séparés, conflits manifeste/`pHYs`, Gloss 0/128/255, normalisation 64…192, dimensions divergentes, Alpha×Gloss et HEIGHT×Gloss sont couverts automatiquement. Studio 4.2.2 confirme pour #689 le repli à 72 dpi sans `pHYs`, la priorité `pHYs` par axe, le `manifest.json` inactif à l'import d'images, la priorité de la taille manuelle, la rotation et le recadrage d'une image seule ; pour #690, tous les PNG restent des calques « Flat » indépendants sans affectation de rôle GLOSS. La PR #953 a intégré le profil cible **provisoire** v1 (#691) ; les mesures physiques E1 de #688–#690 et, avec elles, la promotion du profil restent ouvertes. #687 est à 17/18 critères et attend la revue finale après les tests réels.
+**EufyMake #681/#687–#691 :** les PR #948, #951–#953 et #956 sont fusionnées. Studio 4.2.2 prouve désormais le chemin HEIGHT 16 bits natif (`Customize Texture`), le recadrage couplé dans l'objet COLOR/HEIGHT et le mode d'encre explicite `Gloss Varnish`. Le calque Gloss séparé ne suit pas automatiquement ce recadrage ; polarité, intensité et recalage physique restent ouverts. I-09 (`.empf`) devient une exploration optionnelle hors du périmètre PNG confirmé et ne bloque ni #687, ni #691, ni une publication. Restent les mesures physiques E1 de #688–#690 et la revue finale de #687.
 
 Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0 à v2.9.0, ainsi que l'épopée #741 avec ses onze tickets enfants, l'épopée #805 avec #806–#811, #817 et #821 ; nouvellement clôturés depuis la dernière synchronisation : #943 (PR #944) et #692 (PR #947) (détails : Tours précédents).
 
@@ -43,12 +50,12 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 
 | # | Titre | Pertinence | Complexité | Modèle recommandé (effort) | Prochaine étape |
 |---|-------|------------|------------|------------------------------|------------------|
-| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épopée] Profil cible EufyMake – valider Height/Gloss/mm-DPI | 🟠 Élevée (justesse de la principale cible d'export) | 🔴 Élevée (5 sous-tickets, matériel physique requis) | – (épopée) | #691 est intégrée provisoirement ; corriger la référence avant publication, puis terminer I-08/I-09, #688–#690 et la revue finale |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventaire des hypothèses, sources fabricant, matrice de tests | 🟠 Élevée (base contraignante pour #688–#691) | 🔴 Élevée (matériel du dépôt complet ; suite sur matériel réel) | – (aucun agent ; matériel EufyMake réel requis) | Bloquée (externe) – 17/18 critères ; restent I-08 (crop/recalage entre rôles), I-09 (`.empf`) et la revue après #688–#690 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Valider la profondeur de bits/sémantique HEIGHT sur matériel réel | 🟠 Élevée (affecte directement la hauteur du relief) | 🔴 Élevée (imprimante physique, fixtures, journal de mesures) | – (aucun agent ; matériel EufyMake réel requis) | Bloqué (externe) : la PR #948 est fusionnée et la préparation du dépôt est complète ; restent la matrice d'import et les mesures physiques sûres d'impression, de relief et en mm sur E1 |
-| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Valider le contrat mm/DPI, taille cible, positionnement | 🟠 Élevée (taille d'impression/registration) | 🔴 Élevée (mesures physiques, motifs de contrôle) | – (aucun agent ; matériel réel requis) | En cours : le jeu du dépôt et le sous-contrat Studio sont documentés — repli 72 DPI, `pHYs` X/Y, limite du manifeste, taille manuelle, rotation et recadrage d'une image. Restent le recadrage/enregistrement inter-rôles, les mesures physiques et les tolérances d'impression |
-| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Valider la sémantique gloss/vernis | 🟡 Moyenne (gloss déjà marqué « expérimental » dans le code) | 🔴 Élevée (impressions physiques, consommation de matériau) | – (aucun agent ; matériel réel requis) | Bloqué (externe) + partie numérique/import terminée : le schéma 4 et Studio 4.2.2 établissent fixtures, paquets, géométrie 72 dpi et calques « Flat » indépendants sans attribution GLOSS ; la preuve physique reste ouverte |
-| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Intégrer le profil cible versionné dans validator/writer/dialogue/documentation | 🟠 Élevée (renforce le chemin d'export de production) | 🟢 Faible pour le reliquat critique ; 🔴 matériel pour clore | Sonnet, moyen + matériel ensuite | Presque fini – PR #953 intègre v1 ; corriger la référence avec version explicite, puis promouvoir `validated` ou créer une version après #688–#690 |
+| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épopée] Profil cible EufyMake – valider Height/Gloss/mm-DPI | 🟠 Élevée (justesse de la principale cible d'export) | 🔴 Élevée (5 sous-tickets, matériel physique requis) | – (épopée) | Intégration et référence corrigées ; chemins HEIGHT/Gloss et I-08 prévalidés, I-09 non bloquant. Restent #688–#690 et la revue finale |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventaire des hypothèses, sources fabricant, matrice de tests | 🟠 Élevée (base contraignante pour #688–#691) | 🔴 Élevée (matériel du dépôt complet ; suite sur matériel réel) | – (aucun agent ; matériel EufyMake réel requis) | Bloquée (externe) – 17/18 critères ; I-08 réalisé et I-09 explicitement non bloquant. Seule la revue après #688–#690 reste |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Valider la profondeur de bits/sémantique HEIGHT sur matériel réel | 🟠 Élevée (affecte directement la hauteur du relief) | 🔴 Élevée (imprimante physique, fixtures, journal de mesures) | – (aucun agent ; matériel EufyMake réel requis) | Bloqué (externe) – import HEIGHT natif 16 bits et aperçu 3D prouvés ; restent l'usage réel de la précision et les mesures physiques |
+| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Valider le contrat mm/DPI, taille cible, positionnement | 🟠 Élevée (taille d'impression/registration) | 🔴 Élevée (mesures physiques, motifs de contrôle) | – (aucun agent ; matériel réel requis) | Bloqué (externe) – I-08 prouve le recadrage couplé dans COLOR/HEIGHT, pas dans le calque Gloss séparé. Restent recalage physique, mesures et tolérances |
+| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Valider la sémantique gloss/vernis | 🟡 Moyenne (gloss déjà marqué « expérimental » dans le code) | 🔴 Élevée (impressions physiques, consommation de matériau) | – (aucun agent ; matériel réel requis) | Bloqué (externe) – mode natif `Gloss Varnish` prévalidé ; restent recalage par cellule, polarité, intensité et effet physique |
+| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Intégrer le profil cible versionné dans validator/writer/dialogue/documentation | 🟠 Élevée (renforce le chemin d'export de production) | 🟢 Faible pour le reliquat critique ; 🔴 matériel pour clore | Sonnet, moyen + matériel ensuite | Implémentation prête pour release – #953 intègre v1 et #956 corrige la référence avec décision v1 et gardes ; seule la promotion après #688–#690 reste |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Épopée] Moteur de tonalité/niveaux de gris COLOR | 🟡 Moyen-élevé (fondation de la feuille de route laser, pas de bug actif) | 🔴 Élevé (4 tickets enfants restants : noyau→UI→intégration→recette) | – (épopée) | En cours : l'ADR #692 est approuvé ; vient ensuite le noyau #693 |
 | [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Noyau sans Qt : histogramme/niveaux de gris/niveaux/gamma | 🟡 Moyen-élevé | 🟡 Moyen (étend `color_ops.py`, bien isolé et testable) | Sonnet, élevé | Prêt à démarrer : l'ADR #692 (PR #947) fournit le contrat de données ; implémenter et tester le noyau selon ses formules |
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Aperçu en direct + interface pour histogramme/niveaux/gamma | 🟡 Moyenne | 🟡 Moyenne-élevée (UI Qt, garde debounce/génération comme l'aperçu de hauteur) | Sonnet, élevé | Bloqué – attend le noyau #693 |
@@ -85,17 +92,16 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Exploitation : runners auto-hébergés (canal d'alerte du heartbeat) | 🟡 Moyen (canal d'exploitation, pas de code produit) | 🟢 Faible (observation seule) | – (aucun agent ; owner du dépôt) | Ouvert en permanence : ne pas fermer (`RUNNER_HEARTBEAT_ISSUE`) ; le FAIL du 2026-08-31 était le test prévu du canal d'alerte et l'étape de nettoyage est faite (exécution planifiée 33496675995 verte, x86_64 ignoré, Mac et Pi réussis) |
 | [#949](https://github.com/NikolayDA/picture_helper/issues/949) | Audit de la suite de tests 2026-09-02 (dérive RESOURCES, CropOverlay, lacunes de couverture) | 🟡 Moyen (qualité des tests et protection contre la dérive, aucun défaut de production) | 🟢 Faible-moyen (quatre modifications de tests bien délimitées, sans changement de production) | Sonnet, moyen | Prêt – quatre changements ; baseline avant PR #948–#954 et dépendante de l'environnement, remesurer avec plateforme/dépendances |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
+| [#958](https://github.com/NikolayDA/picture_helper/issues/958) | Heartbeat : escalade hors ligne à 7/14/21 jours (e-mails, retrait) et garde des délais | 🟡 Moyenne (exploitation et notifications des runners, pas un défaut produit) | 🟠 Élevée (historique, étapes idempotentes, permissions workflow, tests et documentation) | Opus, élevé + décision owner | Décision requise – fixer E1 commentaires quotidiens, E2 retrait automatique/manuel et E3 jours des étapes ; puis implémenter fail-safe et valider via un ticket de test |
 
 ### Recommandé ensuite
 
-1. **#691** : avant tout release, corriger la référence du snapshot avec une décision de version
-   explicite et un golden test.
-2. **#693** : ADR #692 est approuvé ; viennent ensuite #694, #695 et #696.
-3. **#949** : faire les quatre changements puis remesurer avec plateforme et dépendances optionnelles.
-4. **#883** : décider la licence Qt/code et prouver droits/provenance de `u2net.onnx`, ou choisir
+1. **#693** : ADR #692 est approuvé ; viennent ensuite #694, #695 et #696.
+2. **#949** : faire les quatre changements puis remesurer avec plateforme et dépendances optionnelles.
+3. **#883** : décider la licence Qt/code et prouver droits/provenance de `u2net.onnx`, ou choisir
    un modèle de remplacement clairement licencié.
-5. Après validation du matériel et de l'appareil, effectuer les mesures physiques restantes de
-   **#689** avec le reste de #687, #688 et #690 ; les parties import Studio de #689 et #690 sont documentées. Ensuite clore #691 :
+4. Après validation du matériel et de l'appareil, effectuer les mesures physiques restantes de
+   **#689** avec le reste de #687, #688 et #690 ; les chemins natifs HEIGHT/Gloss et I-08 sont prévalidés. Ensuite clore #691 :
    promouvoir le profil v1 ou créer v2 si les résultats le contredisent.
 
 ## Tours précédents

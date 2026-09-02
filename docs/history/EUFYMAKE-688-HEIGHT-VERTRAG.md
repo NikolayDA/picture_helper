@@ -1,7 +1,7 @@
 # EufyMake-HEIGHT-Vertrag – Ergebnisakte für Issue #688
 
-> **Status: Druckmessung ausstehend; zwei kontrollierte Studio-Importe sind
-> protokolliert.** Dieses Dokument trennt Herstellerangaben,
+> **Status: Druckmessung ausstehend; drei kontrollierte Studio-Importe und die
+> native HEIGHT-Zuweisung sind protokolliert.** Dieses Dokument trennt Herstellerangaben,
 > repositoryseitige Dateiprüfungen, Studio-Importbeobachtungen und noch offene
 > Druckmessungen strikt voneinander. Leere Messfelder sind kein negatives
 > Ergebnis und dürfen nicht als Bestätigung interpretiert werden.
@@ -54,7 +54,7 @@ neu erzeugt werden.
 | Filterung/Glättung/Normalisierung | `height_impulse_edge_*`, Keile | | | offen |
 | Reproduzierbarkeit | zweiter unabhängiger Lauf der Kernaussagen | | | offen |
 
-### Importbeobachtungen vom 2. September 2026
+### Importbeobachtungen vom 2. und 3. September 2026
 
 Die folgenden Beobachtungen entstanden nach erfolgreichem Pre-Import-Check in
 einem neuen, ungespeicherten Studio-Projekt. Sie belegen ausschließlich das
@@ -67,7 +67,7 @@ Abnahmekriterien bis zur reproduzierbaren Ablage und Druckmessung offen.
 | --- | --- | --- | --- |
 | I-02 | `color_height_reference.png` + `height_wedge_16bit.png` | Beide Dateien wurden ohne sichtbare Importwarnung akzeptiert. COLOR und HEIGHT besitzen 256×256 Pixel; Studio zeigte für COLOR 90,31×90,31 mm. `Customize Texture` erzeugte eine sichtbare 3D-Vorschau. | Importbeobachtung; akzeptierter 16-Bit-Träger und dimensionsgleiche Kopplung, aber keine belastbare Aussage zu Monotonie, Bittiefennutzung oder mm-Höhe. Dieses Paar wird nicht mehr für I-08 verwendet. |
 | I-13 | `color_alpha_coverage.png` + `height_mean_16bit.png` (konstant 32768) | Das nach dem Review korrigierte COLOR-Fixture wurde erneut ohne sichtbare Importwarnung akzeptiert. Alle drei Felder tragen RGB `(40, 80, 220)`; auf der Leinwand ließ Alpha 0 den Untergrund vollständig sichtbar, Alpha 128 mischte das mittlere Feld, Alpha 255 deckte das rechte Feld. Die unveränderte nicht-null 16-Bit-HEIGHT-Datei war im selben Prüfpfad bereits akzeptiert worden und hatte eine 3D-Vorschau erzeugt. | Importbeobachtung; die COLOR-Seite variiert nur Alpha und vermeidet den früheren RGB-Störfaktor. Unterbase, Deckung und physische Reliefhöhe bleiben ohne Druck offen. |
-| I-08 | `color_height_reference.png` + `height_registration_16bit.png` | Die neue HEIGHT-Datei bildet die nicht-weißen COLOR-Landmarken pixelgenau mit 65535 und den weißen Hintergrund mit 0 ab; Generator- und Regressionstest vergleichen jedes Pixel. Ein neuer Studio-Crop wurde noch nicht ausgeführt. | Repositoryseitige Paarprüfung, keine Studio- oder Hardwareaussage; Crop-/Registrierungskriterium bleibt offen. |
+| I-08 | `color_height_reference.png` + `height_registration_16bit.png` | Am 2026-09-03 wurde COLOR importiert und über `Customize Texture` → `Upload Height Map Image` die 16-Bit-HEIGHT-Datei nativ zugewiesen. Studio akzeptierte sie ohne Warnung, kennzeichnete das Objekt mit `3D` und zeigte die asymmetrischen Landmarken in der 3D-Vorschau. Ein anschließend bestätigter Crop reduzierte W von 90,31 auf 44,86 mm und verschob X von 122,34 auf 167,79 mm; H 90,31 mm und Y 164,84 mm blieben erhalten. Die `3D`-Zuordnung und die passend beschnittene 3D-Vorschau blieben bestehen. Die separat importierte `gloss_registration.png` blieb dagegen unverändert bei 90,31×90,31 mm und X/Y 122,34/164,84 mm. | Importbeobachtung: nativer 16-Bit-HEIGHT-Träger und Crop-Kopplung innerhalb des COLOR/HEIGHT-Objekts belegt. Keine Aussage zur Nutzung aller 65.536 Werte, mm-Höhe oder physischen Registrierung; ein separater Gloss-Layer folgt dem Crop nicht automatisch. Weder `Preview` noch `Print` wurde ausgelöst. |
 
 ## 4. Messschema für HEIGHT → mm
 
