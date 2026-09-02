@@ -1210,6 +1210,8 @@ def test_a_successful_creation_leaves_no_stray_copy(
     assert (tmp_path / "gh-body.md").is_file()
     fallback = Path(saved.group(1))
     assert not fallback.exists() and not fallback.parent.exists()
+    # Der Widerruf steht sichtbar im Log, nicht nur der Pfad ganz oben (#957-Review).
+    assert f"Ablage entfernt: {fallback}" in out
 
 
 def test_the_fallback_never_lands_inside_the_worktree(fixture_repo: Path, monkeypatch) -> None:

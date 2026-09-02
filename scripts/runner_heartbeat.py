@@ -195,7 +195,11 @@ def expected_jobs(*, x86_enabled: bool) -> tuple[str, ...]:
 # setzt es erst nach Laufabschluss für nie zugewiesene Jobs – während der
 # Beobachtung des eigenen, laufenden Runs erscheint derselbe Zustand als
 # ``queued`` und trägt dort bereits das fristgebundene Offline-Verdikt.
-FAILED_CONCLUSIONS: Final = ("failure", "timed_out", "startup_failure")
+#: „Angenommen, konnte nicht starten" – einzige Quelle des Literals, damit
+#: ``evaluate`` und ``render_summary`` nicht still auf den generischen
+#: Gerätebefund zurückfallen (#957-Review).
+STARTUP_FAILURE_CONCLUSION: Final = "startup_failure"
+FAILED_CONCLUSIONS: Final = ("failure", "timed_out", STARTUP_FAILURE_CONCLUSION)
 SUCCESS_CONCLUSION: Final = "success"
 
 
@@ -248,8 +252,9 @@ def queue_state(jobs: list[dict[str, Any]], names: tuple[str, ...]) -> QueueStat
         if present[name][0] == "completed" and present[name][1] in FAILED_CONCLUSIONS
     )
     # Alles Abgeschlossene, das weder Erfolg noch Gerätescheitern ist –
-    # ``cancelled``/``skipped``/``stale``/``startup_failure``/… dürfen nie
-    # still als bestanden gelten (#943 Befund 1).
+    # ``cancelled``/``skipped``/``stale``/… dürfen nie still als bestanden
+    # gelten (#943 Befund 1). ``startup_failure`` gehört seit #944 zu
+    # ``FAILED_CONCLUSIONS`` und landet in ``failed``, nie hier.
     inconclusive = tuple(
         (name, present[name][1])
         for name in known
@@ -396,7 +401,8 @@ def evaluate(
         # Joblog behaupten (#954-Review).
         conclusions = dict(state.failed_conclusions)
         not_started = tuple(
-            name for name in state.failed if conclusions.get(name) == "startup_failure"
+            name for name in state.failed
+            if conclusions.get(name) == STARTUP_FAILURE_CONCLUSION
         )
         not_ready = tuple(name for name in state.failed if name not in not_started)
         if not_ready:
@@ -410,7 +416,7 @@ def evaluate(
         if not_started:
             reasons.append(
                 f"{', '.join(not_started)} konnte den angenommenen Job nicht starten "
-                "(startup_failure) – Gerät angenommen, aber nicht einsatzbereit; es "
+                f"({STARTUP_FAILURE_CONCLUSION}) – Gerät angenommen, aber nicht einsatzbereit; es "
                 "lief keine Prüfung und es gibt kein Joblog"
             )
     if reasons:
@@ -517,8 +523,8 @@ def render_summary(report: dict[str, Any]) -> str:
         for name in expected:
             if name in queued:
                 status = "❌ wartet auf einen Runner"
-            elif name in failed and failed_conclusions.get(name) == "startup_failure":
-                status = "❌ angenommen, aber nicht gestartet (startup_failure)"
+            elif name in failed and failed_conclusions.get(name) == STARTUP_FAILURE_CONCLUSION:
+                status = f"❌ angenommen, aber nicht gestartet ({STARTUP_FAILURE_CONCLUSION})"
             elif name in failed:
                 conclusion = failed_conclusions.get(name) or "unbekannt"
                 status = f"❌ angenommen, aber nicht einsatzbereit ({conclusion})"
@@ -542,12 +548,12 @@ def render_summary(report: dict[str, Any]) -> str:
             "wiederholen."
         )
         if any(
-            entry.get("conclusion") == "startup_failure"
+            entry.get("conclusion") == STARTUP_FAILURE_CONCLUSION
             for entry in report.get("failed_job_conclusions", [])
             if isinstance(entry, dict)
         ):
             lines.append(
-                "Bei `startup_failure` lief keine Prüfung und es gibt kein Joblog: "
+                f"Bei `{STARTUP_FAILURE_CONCLUSION}` lief keine Prüfung und es gibt kein Joblog: "
                 "Runner-Workspace (`_work`) bereinigen bzw. Dienst neu starten "
                 "(`docs/RELEASE_AUTOMATION.md` §6) und den Heartbeat erneut anstoßen."
             )

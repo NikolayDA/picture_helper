@@ -1088,6 +1088,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Issue angelegt: {url}")
         if fallback is not None:
             discard_fallback(fallback)
+            # Der Ablagepfad steht seit dem Sichern ganz oben im Log – der
+            # Widerruf muss genauso sichtbar sein (#957-Review).
+            print(f"  Ablage entfernt: {fallback}")
 
     # Der Policy-Hinweis steht bewusst am Ende: Er ist die einzige Stelle, an
     # der dieses Skript etwas ueber den *Inhalt* des Fensters sagen kann.
