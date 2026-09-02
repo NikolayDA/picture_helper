@@ -25,10 +25,20 @@ Drei Fixture-Rollen, alle unter ``tests/fixtures/eufymake_hardware/``:
   ein achsenspezifischer Skalierungsfehler sichtbar wird) in drei
   Pixelmaß/DPI-Kombinationen (klein/typisch/groß), je ohne ``pHYs``-Chunk,
   mit konsistentem ``pHYs`` und mit einem bewusst widersprüchlichen
-  ``pHYs`` bei gleichem Pixelmaß.
+  ``pHYs`` bei gleichem Pixelmaß. Eine weitere Variante kodiert getrennte
+  X-/Y-DPI, damit Studio beide Achsen unabhängig offenlegen muss.
 - **Gloss** (#690-Testdesign): Volltonauszüge min/max, monotoner Keil,
   invertierter Keil, diskrete Stufen, Schachbrettmuster (Registrierung/
-  Bleeding).
+  Bleeding) sowie dieselben Registriermarker wie COLOR und HEIGHT.
+
+Zusätzlich entsteht unter ``export_mm_dpi_conflict/`` ein echtes, über den
+Produktionspfad :func:`bgremover.eufymake_writer.write_export` erzeugtes
+BgRemover-Paket mit den kanonischen Assets ``color_motif.png``,
+``height_map.png``, ``gloss_mask.png`` und ``manifest.json``. Das Manifest
+fordert 300×300 DPI, während die PNGs absichtlich 150×150 DPI im ``pHYs``
+tragen. Damit prüft I-06 genau die Priorität zwischen Paketmanifest und
+Bildmetadaten, statt das Fixture-Katalogmanifest fälschlich als Exportpaket
+zu behandeln.
 
 Jede erzeugte Datei wird zusammen mit Rolle, Bittiefe, PNG-Modus, Maßen,
 Erzeugungsparametern und SHA-256 in ``fixtures_manifest.json`` im selben
@@ -68,19 +78,35 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from bgremover.eufymake_export import (  # noqa: E402
+    EXPORT_PROFILE,
+    EXPORT_PROFILE_VERSION,
+)
+from bgremover.eufymake_writer import (  # noqa: E402
+    MANIFEST_FILENAME as EXPORT_MANIFEST_FILENAME,
+)
+from bgremover.eufymake_writer import (  # noqa: E402
+    write_export,
+)
 from bgremover.height_map import (  # noqa: E402  (Pfad muss vor dem Import stehen)
     HEIGHT_MAX_16BIT,
     HeightField,
     resize_height_field,
+)
+from bgremover.project_model import (  # noqa: E402
+    LayerKind,
+    LayerRole,
+    Project,
 )
 
 DEFAULT_OUT_DIR = ROOT / "tests" / "fixtures" / "eufymake_hardware"
 MANIFEST_FILENAME = "fixtures_manifest.json"
 # Schema 1: erste Fassung (Rolle, Muster, Bittiefe, PNG-Modus, Maße, Parameter,
 # SHA-256, Bytegröße je Fixture). Schema 2 bindet den für #688 erweiterten
-# Satz inklusive Alpha- und Registrierkontrollen; ein alter 31er-Satz kann so
-# am Zielrechner nicht mehr still als aktuell gelten.
-SCHEMA_VERSION = 2
+# Satz inklusive Alpha- und Registrierkontrollen. Schema 3 ergänzt getrennte
+# X-/Y-DPI, die dreifache COLOR/HEIGHT/GLOSS-Registrierung und echte
+# BgRemover-Exportpakete unter ``bundles``.
+SCHEMA_VERSION = 3
 
 HEIGHT_SIZE = (256, 256)  # (Breite, Höhe) px – klein genug fürs Repo, groß
 # genug für eine sichtbare Stufen-/Keilauflösung.
@@ -92,6 +118,10 @@ GLOSS_SIZE = (256, 256)
 CHECKER_SQUARE = 16  # px je Schachbrettfeld bei 256 px Kantenlänge → 16×16 Felder.
 STEP_LEVELS = 8  # diskrete Stufen für Höhen-/Gloss-„Treppenkeil"-Fixtures.
 MM_PER_INCH = 25.4
+NON_SQUARE_DPI = (300, 150)
+EXPORT_BUNDLE_DIRNAME = "export_mm_dpi_conflict"
+EXPORT_TARGET_DPI = (300.0, 300.0)
+EXPORT_PHYS_DPI = (150, 150)
 # I-04 (#688/#689): halbe Kantenlänge von HEIGHT_SIZE, gleiches Seitenverhältnis.
 PIXEL_SIZE_VARIANT_SIZE = (HEIGHT_SIZE[0] // 2, HEIGHT_SIZE[1] // 2)
 PIXEL_SIZE_VARIANT_PATTERN = "wedge_pixelsize_half"
@@ -105,6 +135,17 @@ ASPECT_RATIO_VARIANT_PATTERN = "wedge_aspect_ratio"
 def px_to_mm(px: int, dpi: float) -> float:
     """Sollbeziehung ``mm = Pixel / DPI × 25,4``, gerundet auf 3 Nachkommastellen."""
     return round(px / dpi * MM_PER_INCH, 3)
+
+
+def px_to_mm_from_png_dpi(px: int, dpi: float) -> float:
+    """Physische Größe aus dem ganzzahligen PNG-``pHYs``-Wert.
+
+    Pillow kodiert DPI als gerundete Pixel pro Meter. Der Manifestwert muss
+    deshalb aus genau diesem gespeicherten Integer zurückgerechnet werden und
+    darf nicht nochmals die angeforderte Fließkomma-DPI verwenden.
+    """
+    pixels_per_meter = int(dpi / (MM_PER_INCH / 1000.0) + 0.5)
+    return round(px / pixels_per_meter * 1000.0, 3)
 
 
 # ── Normalisierte Muster (0..1, Formel-/Rastermuster, keine Zufallszahlen) ──
@@ -365,6 +406,13 @@ def _height_registration_from_color(reference: Image.Image) -> Image.Image:
     return Image.frombytes("I;16", reference.size, raw)
 
 
+def _gloss_registration_from_color(reference: Image.Image) -> Image.Image:
+    """Nicht-weiße COLOR-Marker pixelgenau als 8-Bit-Gloss-Landmarks abbilden."""
+    rgb = np.array(reference.convert("RGB"), dtype=np.uint8)
+    landmarks = np.any(rgb != 255, axis=2)
+    return Image.fromarray(np.where(landmarks, 255, 0).astype(np.uint8), mode="L")
+
+
 def generate_color_height_control_fixtures() -> list[FixtureSpec]:
     """Dimensionsgleiche COLOR-Referenz und Alpha/Coverage-Kontrolle für #688."""
     width, height = COLOR_HEIGHT_PAIR_SIZE
@@ -458,8 +506,8 @@ def generate_mm_dpi_fixtures() -> list[FixtureSpec]:
             params={**base_params, "phys_dpi": combo.nominal_dpi, "phys_mm": expected_mm},
         ))
         conflict_mm = [
-            px_to_mm(combo.width, combo.conflict_dpi),
-            px_to_mm(combo.height, combo.conflict_dpi),
+            px_to_mm_from_png_dpi(combo.width, combo.conflict_dpi),
+            px_to_mm_from_png_dpi(combo.height, combo.conflict_dpi),
         ]
         specs.append(FixtureSpec(
             filename=f"mm_{combo.label}_phys_conflict.png", role="color_motif",
@@ -475,6 +523,38 @@ def generate_mm_dpi_fixtures() -> list[FixtureSpec]:
                 ),
             },
         ))
+
+    combo = next(item for item in MM_DPI_COMBOS if item.label == "typisch")
+    x_dpi, y_dpi = NON_SQUARE_DPI
+    image = _draw_control_motif(combo.width, combo.height)
+    specs.append(FixtureSpec(
+        filename="mm_typisch_phys_xy.png",
+        role="color_motif",
+        pattern="control_motif_xy_dpi",
+        bit_depth=8,
+        png_mode="RGBA",
+        image=image,
+        save_kwargs={"dpi": (x_dpi, y_dpi)},
+        params={
+            "size_label": combo.label,
+            "width_px": combo.width,
+            "height_px": combo.height,
+            "nominal_dpi": combo.nominal_dpi,
+            "expected_mm_at_nominal_dpi": [
+                px_to_mm(combo.width, combo.nominal_dpi),
+                px_to_mm(combo.height, combo.nominal_dpi),
+            ],
+            "phys_dpi": [x_dpi, y_dpi],
+            "mm_implied_by_phys_chunk": [
+                px_to_mm_from_png_dpi(combo.width, x_dpi),
+                px_to_mm_from_png_dpi(combo.height, y_dpi),
+            ],
+            "note": (
+                "pHYs kodiert absichtlich getrennte X-/Y-DPI. Studio muss "
+                "anzeigen, koppeln, normalisieren oder ablehnen (I-05)."
+            ),
+        },
+    ))
     return specs
 
 
@@ -502,6 +582,25 @@ def generate_gloss_fixtures() -> list[FixtureSpec]:
             filename=f"gloss_{name}.png", role="gloss_mask", pattern=name,
             bit_depth=8, png_mode="L", image=_to_8bit_l(pattern), params=params,
         ))
+    reference = _draw_control_motif(width, height)
+    specs.append(FixtureSpec(
+        filename="gloss_registration.png",
+        role="gloss_mask",
+        pattern=REGISTRATION_PATTERN,
+        bit_depth=8,
+        png_mode="L",
+        image=_gloss_registration_from_color(reference),
+        params={
+            "width_px": width,
+            "height_px": height,
+            "paired_color_file": "color_height_reference.png",
+            "paired_height_file": "height_registration_16bit.png",
+            "background_value": 0,
+            "landmark_value": 255,
+            "source_rule": "COLOR-Pixel ungleich RGB(255,255,255) ist Landmark",
+            "purpose": "I-08: COLOR/HEIGHT/GLOSS-Registrierung auf beiden Achsen",
+        },
+    ))
     return specs
 
 
@@ -518,6 +617,111 @@ def generate_all_fixtures() -> list[FixtureSpec]:
 
 
 # ── Schreiben + Manifest ─────────────────────────────────────────────────────
+
+def _write_export_bundle(out_dir: Path) -> dict[str, Any]:
+    """Erzeugt I-06 über den echten Writer und versieht PNGs mit Konflikt-pHYs."""
+    width, height = COLOR_HEIGHT_PAIR_SIZE
+    reference = _draw_control_motif(width, height)
+    height_image = _height_registration_from_color(reference)
+    gloss_image = _gloss_registration_from_color(reference)
+
+    project = Project(width, height)
+    color_layer = project.create_layer(reference, name="I-06 COLOR")
+    project.assign_role(color_layer.id, LayerRole.COLOR_MOTIF)
+    height_values = np.array(height_image, dtype=np.uint16)
+    height_layer = project.create_layer(
+        name="I-06 HEIGHT",
+        kind=LayerKind.HEIGHT,
+        height_data=HeightField(
+            height_values,
+            np.full(height_values.shape, 255, dtype=np.uint8),
+            HEIGHT_MAX_16BIT,
+        ),
+    )
+    project.assign_role(height_layer.id, LayerRole.HEIGHT_MAP)
+    gloss_layer = project.create_layer(
+        gloss_image.convert("RGBA"), name="I-06 GLOSS", kind=LayerKind.GLOSS,
+    )
+    project.assign_role(gloss_layer.id, LayerRole.GLOSS_MASK)
+    project.set_dpi(*EXPORT_TARGET_DPI)
+
+    bundle_dir = out_dir / EXPORT_BUNDLE_DIRNAME
+    write_export(
+        project,
+        bundle_dir,
+        bit_depth=16,
+        overwrite=True,
+        confirm_warnings=True,
+    )
+
+    # Der Produktionswriter erzeugt absichtlich metadatenneutrale PNGs. Nur für
+    # dieses empirische Konfliktfixture wird anschließend ein pHYs-Chunk gesetzt;
+    # manifest.json bleibt unverändert und fordert weiterhin 300×300 DPI.
+    png_contracts = {
+        "color_motif.png": ("color_motif", "RGBA", 8),
+        "height_map.png": ("height_map", "I;16", 16),
+        "gloss_mask.png": ("gloss_mask", "L", 8),
+    }
+    files: list[dict[str, Any]] = []
+    for filename, (role, png_mode, bit_depth) in png_contracts.items():
+        path = bundle_dir / filename
+        with Image.open(path) as source:
+            image = source.copy()
+        # Erst nach dem Schließen des Quell-Handles überschreiben, damit die
+        # Fixture-Erzeugung auch auf Windows funktioniert.
+        image.save(path, "PNG", dpi=EXPORT_PHYS_DPI)
+        data = path.read_bytes()
+        files.append({
+            "filename": filename,
+            "media_type": "image/png",
+            "role": role,
+            "pattern": REGISTRATION_PATTERN,
+            "bit_depth": bit_depth,
+            "png_mode": png_mode,
+            "width": width,
+            "height": height,
+            "params": {"phys_dpi": list(EXPORT_PHYS_DPI)},
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "bytes": len(data),
+        })
+
+    export_manifest_path = bundle_dir / EXPORT_MANIFEST_FILENAME
+    export_manifest_data = export_manifest_path.read_bytes()
+    files.append({
+        "filename": EXPORT_MANIFEST_FILENAME,
+        "media_type": "application/json",
+        "sha256": hashlib.sha256(export_manifest_data).hexdigest(),
+        "bytes": len(export_manifest_data),
+    })
+    return {
+        "id": "i06_manifest_vs_phys",
+        "directory": EXPORT_BUNDLE_DIRNAME,
+        "purpose": (
+            "I-06: Priorität des BgRemover-Manifests (300×300 DPI) gegenüber "
+            "widersprüchlichem PNG-pHYs (150×150 DPI) messen."
+        ),
+        "generated_via": "bgremover.eufymake_writer.write_export",
+        "manifest_contract": {
+            "profile": EXPORT_PROFILE,
+            "profile_version": EXPORT_PROFILE_VERSION,
+            "kind": "eufymake_import_assets",
+            "pixel_size": [width, height],
+            "bit_depth": 16,
+            "physical_size_mm": [
+                width / EXPORT_TARGET_DPI[0] * MM_PER_INCH,
+                height / EXPORT_TARGET_DPI[1] * MM_PER_INCH,
+            ],
+            "dpi": list(EXPORT_TARGET_DPI),
+            "assets": [
+                "color_motif.png",
+                "height_map.png",
+                "gloss_mask.png",
+            ],
+        },
+        "file_count": len(files),
+        "files": sorted(files, key=lambda item: item["filename"]),
+    }
+
 
 def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any]:
     """Schreibt alle ``specs`` als PNG nach ``out_dir`` und das SHA-256-Manifest.
@@ -543,11 +747,14 @@ def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any
             "sha256": hashlib.sha256(data).hexdigest(),
             "bytes": len(data),
         })
+    bundles = [_write_export_bundle(out_dir)]
     manifest = {
         "schema": SCHEMA_VERSION,
         "generated_by": "scripts/eufymake_fixture_generator.py",
         "fixture_count": len(entries),
         "fixtures": entries,
+        "bundle_count": len(bundles),
+        "bundles": bundles,
     }
     manifest_path = out_dir / MANIFEST_FILENAME
     manifest_path.write_text(
@@ -581,8 +788,15 @@ def main(argv: list[str] | None = None) -> int:
 
     manifest = write_fixtures(generate_all_fixtures(), args.out_dir)
     total_bytes = sum(entry["bytes"] for entry in manifest["fixtures"])
+    total_bytes += sum(
+        entry["bytes"]
+        for bundle in manifest["bundles"]
+        for entry in bundle["files"]
+    )
+    bundle_label = "Exportpaket" if manifest["bundle_count"] == 1 else "Exportpakete"
     print(
-        f"{manifest['fixture_count']} Fixtures geschrieben nach "
+        f"{manifest['fixture_count']} Fixtures und {manifest['bundle_count']} "
+        f"{bundle_label} geschrieben nach "
         f"{_rel(args.out_dir)} ({total_bytes / 1024:.1f} KiB), "
         f"Manifest: {_rel(args.out_dir / MANIFEST_FILENAME)}"
     )

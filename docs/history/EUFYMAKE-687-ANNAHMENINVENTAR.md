@@ -622,7 +622,41 @@ Der neue unabhängige Pre-Import-Inspector
 `scripts/eufymake_fixture_inspector.py` liest am Zielrechner SHA-256,
 Bytegröße, Pillow-Lesbarkeit/-Version, IHDR, vollständige Chunkfolge, `pHYs`
 und CRCs aus und schreibt einen JSON-Nachweis. Der Pillow-Modus bleibt
-diagnostisch; die Formatprüfung verwendet die rohen IHDR-Felder. Schema 2 und
+diagnostisch; die Formatprüfung verwendet die rohen IHDR-Felder. Schema 3 und
 der extern vorgegebene Manifest-SHA binden den Report an den aktuellen Satz.
 Dieser Nachtrag ändert keine Hardwareaussage:
 Import- und Druckresultate bleiben bis zum realen Test als **offen** markiert.
+
+---
+
+## Nachtrag zur #689-Testvorbereitung (2026-09-02)
+
+Die Checkout-Prüfung aus #689 fand drei noch nicht ausführbare Zellen: I-06
+verwies auf das Fixture-Provenienzmanifest statt auf ein echtes
+BgRemover-Exportmanifest; nicht quadratische DPI fehlten; und I-08 hatte noch
+keine gemeinsame COLOR/HEIGHT/GLOSS-Registriermap.
+
+Schema 3 des Fixture-Katalogs schließt diese Lücken, ohne eine
+Hardwarebeobachtung vorwegzunehmen:
+
+- `mm_typisch_phys_xy.png` kodiert bei konstanten 1200×1200 px getrennte
+  300 dpi auf X und 150 dpi auf Y. Der ganzzahlige `pHYs`-Chunk
+  (11811×5906 px/m) impliziert 101,600×203,183 mm; 101,6×203,2 mm sind nur
+  die Werte der Sollformel vor PNG-Quantisierung.
+- `export_mm_dpi_conflict/` ist ein über den produktiven
+  `bgremover.eufymake_writer.write_export` erzeugtes Paket mit
+  `color_motif.png`, `height_map.png`, `gloss_mask.png` und `manifest.json`.
+  Das Manifest nennt 300×300 dpi bzw. 21,674666… mm; die PNGs tragen
+  absichtlich 150×150 dpi im `pHYs`. I-06 kann damit Manifest- gegen
+  PNG-Priorität messen.
+- `gloss_registration.png` bildet dieselben asymmetrischen Landmarks wie
+  `color_height_reference.png` und `height_registration_16bit.png` ab. Alle
+  drei Dateien haben 256×256 px; die Tests vergleichen ihre Landmarkmasken
+  pixelgenau.
+
+Der unabhängige Inspector prüft nun neben den 36 Einzel-Fixtures auch
+Dateiliste, Hashes, PNG-Metadaten und Manifestsemantik des Exportpakets.
+Importanzeige, tatsächliche Druckmaße, Crop/Offset und die daraus folgende
+Produktentscheidung bleiben bis zur kontrollierten Studio-/E1-Ausführung
+**offen**; ihre Ergebnisakte ist
+[`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md).

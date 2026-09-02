@@ -1,7 +1,7 @@
 {
-  "schema": 2,
+  "schema": 3,
   "generated_by": "scripts/eufymake_fixture_generator.py",
-  "fixture_count": 34,
+  "fixture_count": 36,
   "fixtures": [
     {
       "filename": "color_alpha_coverage.png",
@@ -111,6 +111,27 @@
       },
       "sha256": "39962cd5bc9f4f0446341d3e6e0c6c37336ddeb2e026a17a3d06bb6cb3266daf",
       "bytes": 141
+    },
+    {
+      "filename": "gloss_registration.png",
+      "role": "gloss_mask",
+      "pattern": "registration_landmarks",
+      "bit_depth": 8,
+      "png_mode": "L",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "paired_color_file": "color_height_reference.png",
+        "paired_height_file": "height_registration_16bit.png",
+        "background_value": 0,
+        "landmark_value": 255,
+        "source_rule": "COLOR-Pixel ungleich RGB(255,255,255) ist Landmark",
+        "purpose": "I-08: COLOR/HEIGHT/GLOSS-Registrierung auf beiden Achsen"
+      },
+      "sha256": "50bdc5019f79819b9f019259b4710840e21a3d51d77b06367af5c455ece78a04",
+      "bytes": 835
     },
     {
       "filename": "gloss_steps.png",
@@ -646,13 +667,138 @@
         ],
         "phys_dpi": 150,
         "mm_implied_by_phys_chunk": [
-          203.2,
-          203.2
+          203.183,
+          203.183
         ],
         "note": "pHYs widerspricht bewusst der nominalen DPI-Annahme bei gleichem Pixelmaß (I-05)."
       },
       "sha256": "c9b0e26c8cf86c0a766b3e37a19bbe53a49da86cb392277c955d3bdaffb7f83d",
       "bytes": 12277
+    },
+    {
+      "filename": "mm_typisch_phys_xy.png",
+      "role": "color_motif",
+      "pattern": "control_motif_xy_dpi",
+      "bit_depth": 8,
+      "png_mode": "RGBA",
+      "width": 1200,
+      "height": 1200,
+      "params": {
+        "size_label": "typisch",
+        "width_px": 1200,
+        "height_px": 1200,
+        "nominal_dpi": 300,
+        "expected_mm_at_nominal_dpi": [
+          101.6,
+          101.6
+        ],
+        "phys_dpi": [
+          300,
+          150
+        ],
+        "mm_implied_by_phys_chunk": [
+          101.6,
+          203.183
+        ],
+        "note": "pHYs kodiert absichtlich getrennte X-/Y-DPI. Studio muss anzeigen, koppeln, normalisieren oder ablehnen (I-05)."
+      },
+      "sha256": "525fc2c88875c5c7bb53e73f169964173fabd66470d2d1ee74b29fcdfae6382f",
+      "bytes": 12201
+    }
+  ],
+  "bundle_count": 1,
+  "bundles": [
+    {
+      "id": "i06_manifest_vs_phys",
+      "directory": "export_mm_dpi_conflict",
+      "purpose": "I-06: Priorität des BgRemover-Manifests (300×300 DPI) gegenüber widersprüchlichem PNG-pHYs (150×150 DPI) messen.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": [
+          21.674666666666667,
+          21.674666666666667
+        ],
+        "dpi": [
+          300.0,
+          300.0
+        ],
+        "assets": [
+          "color_motif.png",
+          "height_map.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 4,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "registration_landmarks",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": [
+              150,
+              150
+            ]
+          },
+          "sha256": "d8acbd345f441c54d79c50db9f3a54c7e8848009d1f8dbef20be77722a501154",
+          "bytes": 1794
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "registration_landmarks",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": [
+              150,
+              150
+            ]
+          },
+          "sha256": "71b575aacd8e1982a0de60da267e41d8764273f2c38584d62e1020e9e97ca78e",
+          "bytes": 856
+        },
+        {
+          "filename": "height_map.png",
+          "media_type": "image/png",
+          "role": "height_map",
+          "pattern": "registration_landmarks",
+          "bit_depth": 16,
+          "png_mode": "I;16",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": [
+              150,
+              150
+            ]
+          },
+          "sha256": "b709622bb7eac4c3a49a1ea86d721dc890d76b69386c41c295a49d2068846cfb",
+          "bytes": 1272
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "23dc74b2ea547ed8708cff59f5abcb08658457d71b1756f9abdc2e40fa3ffb7b",
+          "bytes": 1165
+        }
+      ]
     }
   ]
 }

@@ -12,7 +12,7 @@ Aufruf am Zielrechner, nachdem die Fixtures dorthin kopiert wurden::
 
     python scripts/eufymake_fixture_inspector.py \
       --fixture-dir tests/fixtures/eufymake_hardware \
-      --expected-manifest-sha256 794e7890d169516900534b7a0166b5cd477589bef05d952c045db2a45d172308 \
+      --expected-manifest-sha256 <SHA-256-aus-der-Testdokumentation> \
       --output eufymake-pre-import-report.json
 
 Exitcode 0 bedeutet, dass Dateiliste und alle geprüften Eigenschaften mit dem
@@ -37,7 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIXTURE_DIR = ROOT / "tests" / "fixtures" / "eufymake_hardware"
 MANIFEST_FILENAME = "fixtures_manifest.json"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-EXPECTED_MANIFEST_SCHEMA = 2
+EXPECTED_MANIFEST_SCHEMA = 3
 
 _PNG_COLOR_TYPE_BY_MODE = {
     "L": 0,
@@ -181,16 +181,31 @@ def _inspect_entry(path: Path, expected: dict[str, Any]) -> dict[str, Any]:
     if expected_dpi is None and png["phys"] is not None:
         errors.append("pHYs vorhanden, obwohl das Manifest keine physische DPI erwartet")
     elif expected_dpi is not None:
+        if isinstance(expected_dpi, (int, float)):
+            expected_x_dpi = expected_y_dpi = float(expected_dpi)
+        elif (
+            isinstance(expected_dpi, list)
+            and len(expected_dpi) == 2
+            and all(isinstance(value, (int, float)) for value in expected_dpi)
+        ):
+            expected_x_dpi, expected_y_dpi = map(float, expected_dpi)
+        else:
+            raise ValueError(
+                "params.phys_dpi muss eine Zahl, ein Zahlenpaar oder null sein"
+            )
         if png["phys"] is None:
             errors.append(f"pHYs fehlt; erwartet werden ungefähr {expected_dpi} dpi")
         else:
             phys = png["phys"]
             if phys["unit"] != 1:
                 errors.append("pHYs verwendet keine Meter-Einheit")
-            for axis in ("x_dpi", "y_dpi"):
-                if abs(float(phys[axis]) - float(expected_dpi)) > 0.02:
+            for axis, wanted in (
+                ("x_dpi", expected_x_dpi),
+                ("y_dpi", expected_y_dpi),
+            ):
+                if abs(float(phys[axis]) - wanted) > 0.02:
                     errors.append(
-                        f"pHYs {axis}: erwartet ungefähr {expected_dpi}, "
+                        f"pHYs {axis}: erwartet ungefähr {wanted}, "
                         f"tatsächlich {phys[axis]}"
                     )
 
@@ -213,6 +228,218 @@ def _inspect_entry(path: Path, expected: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _inspect_export_manifest(
+    path: Path,
+    expected: dict[str, Any],
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    """Prüft das echte BgRemover-Manifest unabhängig vom Generator semantisch."""
+    errors: list[str] = []
+    data = path.read_bytes()
+    actual_manifest = json.loads(data.decode("utf-8"))
+    if not isinstance(actual_manifest, dict):
+        raise ValueError("Exportmanifest muss ein JSON-Objekt sein")
+    target = actual_manifest.get("target")
+    if not isinstance(target, dict):
+        errors.append("Exportmanifest enthält kein gültiges target-Objekt")
+        target = {}
+    assets = actual_manifest.get("assets")
+    if not isinstance(assets, list):
+        errors.append("Exportmanifest enthält keine gültige assets-Liste")
+        actual_asset_names = None
+    elif not all(isinstance(asset, dict) for asset in assets):
+        errors.append("Exportmanifest assets enthält einen ungültigen Eintrag")
+        actual_asset_names = None
+    else:
+        actual_asset_names = [asset.get("filename") for asset in assets]
+    actual_contract = {
+        "profile": actual_manifest.get("profile"),
+        "profile_version": actual_manifest.get("profile_version"),
+        "kind": actual_manifest.get("kind"),
+        "pixel_size": target.get("pixel_size"),
+        "bit_depth": target.get("bit_depth"),
+        "physical_size_mm": target.get("physical_size_mm"),
+        "dpi": target.get("dpi"),
+        "assets": actual_asset_names,
+    }
+    for key, wanted in contract.items():
+        got = actual_contract.get(key)
+        if got != wanted:
+            errors.append(
+                f"Exportmanifest {key}: erwartet {wanted!r}, tatsächlich {got!r}"
+            )
+    actual = {
+        "sha256": _sha256(data),
+        "bytes": len(data),
+        "contract": actual_contract,
+    }
+    if actual["sha256"] != expected["sha256"]:
+        errors.append(
+            f"SHA-256: erwartet {expected['sha256']!r}, "
+            f"tatsächlich {actual['sha256']!r}"
+        )
+    if actual["bytes"] != expected["bytes"]:
+        errors.append(
+            f"Bytegröße: erwartet {expected['bytes']!r}, "
+            f"tatsächlich {actual['bytes']!r}"
+        )
+    return {
+        "filename": expected["filename"],
+        "media_type": expected["media_type"],
+        "expected": {
+            "sha256": expected["sha256"],
+            "bytes": expected["bytes"],
+            "contract": contract,
+        },
+        "actual": actual,
+        "ok": not errors,
+        "errors": errors,
+    }
+
+
+def _validate_bundles(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    bundles = manifest.get("bundles")
+    if not isinstance(bundles, list):
+        raise ValueError("Manifestfeld 'bundles' muss eine Liste sein")
+    required_bundle_fields = {
+        "id", "directory", "generated_via", "manifest_contract", "file_count", "files",
+    }
+    seen_directories: set[str] = set()
+    for bundle_index, bundle in enumerate(bundles):
+        if not isinstance(bundle, dict):
+            raise ValueError(f"Bundle {bundle_index} muss ein Objekt sein")
+        missing = sorted(required_bundle_fields - bundle.keys())
+        if missing:
+            raise ValueError(f"Bundle {bundle_index} enthält nicht alle Pflichtfelder: {missing}")
+        if not isinstance(bundle["manifest_contract"], dict):
+            raise ValueError(f"Bundle {bundle_index}: manifest_contract muss ein Objekt sein")
+        directory = bundle["directory"]
+        if (
+            not isinstance(directory, str)
+            or not directory
+            or Path(directory).name != directory
+            or directory in {".", ".."}
+        ):
+            raise ValueError(f"Bundle {bundle_index} enthält keinen gültigen Verzeichnisnamen")
+        if directory in seen_directories:
+            raise ValueError(f"Manifest enthält doppeltes Bundle-Verzeichnis {directory!r}")
+        seen_directories.add(directory)
+        files = bundle["files"]
+        if not isinstance(files, list):
+            raise ValueError(f"Bundle {bundle_index}: 'files' muss eine Liste sein")
+        if bundle["file_count"] != len(files):
+            raise ValueError(f"Bundle {bundle_index}: file_count stimmt nicht")
+        seen_files: set[str] = set()
+        for file_index, entry in enumerate(files):
+            if not isinstance(entry, dict):
+                raise ValueError(
+                    f"Bundle {bundle_index}, Datei {file_index} muss ein Objekt sein"
+                )
+            basic_fields = {"filename", "media_type", "sha256", "bytes"}
+            missing = sorted(basic_fields - entry.keys())
+            if missing:
+                raise ValueError(
+                    f"Bundle {bundle_index}, Datei {file_index} enthält nicht alle "
+                    f"Pflichtfelder: {missing}"
+                )
+            filename = entry["filename"]
+            if (
+                not isinstance(filename, str)
+                or not filename
+                or Path(filename).name != filename
+            ):
+                raise ValueError(
+                    f"Bundle {bundle_index}, Datei {file_index} enthält einen Pfad"
+                )
+            if filename in seen_files:
+                raise ValueError(
+                    f"Bundle {bundle_index} enthält doppelten Dateinamen {filename!r}"
+                )
+            seen_files.add(filename)
+            if entry["media_type"] == "image/png":
+                png_fields = {
+                    "role", "pattern", "png_mode", "bit_depth", "width", "height",
+                }
+                missing = sorted(png_fields - entry.keys())
+                if missing:
+                    raise ValueError(
+                        f"Bundle {bundle_index}, PNG {file_index} enthält nicht alle "
+                        f"Pflichtfelder: {missing}"
+                    )
+            elif entry["media_type"] != "application/json":
+                raise ValueError(
+                    f"Bundle {bundle_index}, Datei {file_index}: unbekannter Medientyp"
+                )
+    return bundles
+
+
+def _inspect_bundle(fixture_dir: Path, bundle: dict[str, Any]) -> dict[str, Any]:
+    bundle_dir = fixture_dir / bundle["directory"]
+    errors: list[str] = []
+    expected_names = {entry["filename"] for entry in bundle["files"]}
+    actual_entries = list(bundle_dir.iterdir()) if bundle_dir.is_dir() else []
+    actual_file_names = {path.name for path in actual_entries if path.is_file()}
+    non_file_names = {path.name for path in actual_entries if not path.is_file()}
+    missing = sorted(expected_names - actual_file_names)
+    unexpected = sorted((actual_file_names - expected_names) | non_file_names)
+    if not bundle_dir.is_dir():
+        errors.append("Bundle-Verzeichnis fehlt")
+    if missing:
+        errors.append(f"fehlende Bundle-Dateien: {missing}")
+    if unexpected:
+        errors.append(f"unerwartete Bundle-Dateien: {unexpected}")
+
+    results: list[dict[str, Any]] = []
+    for entry in sorted(bundle["files"], key=lambda item: item["filename"]):
+        path = bundle_dir / entry["filename"]
+        if not path.is_file():
+            results.append({
+                "filename": entry["filename"],
+                "media_type": entry["media_type"],
+                "ok": False,
+                "errors": ["Datei fehlt"],
+            })
+            continue
+        try:
+            if entry["media_type"] == "image/png":
+                result = _inspect_entry(path, entry)
+                result["media_type"] = entry["media_type"]
+            else:
+                result = _inspect_export_manifest(
+                    path, entry, bundle["manifest_contract"],
+                )
+            results.append(result)
+        except (
+            OSError,
+            ValueError,
+            json.JSONDecodeError,
+            struct.error,
+            Image.DecompressionBombError,
+        ) as exc:
+            results.append({
+                "filename": entry["filename"],
+                "media_type": entry["media_type"],
+                "ok": False,
+                "errors": [str(exc)],
+            })
+    failed = sum(not result["ok"] for result in results)
+    return {
+        "id": bundle["id"],
+        "directory": bundle["directory"],
+        "generated_via": bundle["generated_via"],
+        "ok": not errors and failed == 0,
+        "errors": errors,
+        "summary": {
+            "expected": len(bundle["files"]),
+            "passed": len(results) - failed,
+            "failed": failed,
+            "missing": missing,
+            "unexpected": unexpected,
+        },
+        "files": results,
+    }
+
+
 def inspect_fixture_dir(
     fixture_dir: Path,
     *,
@@ -227,6 +454,7 @@ def inspect_fixture_dir(
     entries = manifest.get("fixtures")
     if not isinstance(entries, list):
         raise ValueError("Manifestfeld 'fixtures' muss eine Liste sein")
+    bundles = _validate_bundles(manifest)
 
     required_fields = {
         "filename",
@@ -278,6 +506,10 @@ def inspect_fixture_dir(
         global_errors.append(
             "fixture_count stimmt nicht mit der Anzahl der Manifestzeilen überein"
         )
+    if manifest.get("bundle_count") != len(bundles):
+        global_errors.append(
+            "bundle_count stimmt nicht mit der Anzahl der Bundles überein"
+        )
 
     expected_names = {entry["filename"] for entry in entries}
     actual_names = {path.name for path in fixture_dir.iterdir() if path.is_file()}
@@ -288,6 +520,14 @@ def inspect_fixture_dir(
         global_errors.append(f"fehlende Fixture-Dateien: {missing}")
     if unexpected:
         global_errors.append(f"unerwartete Dateien im Fixture-Verzeichnis: {unexpected}")
+    expected_directories = {bundle["directory"] for bundle in bundles}
+    actual_directories = {path.name for path in fixture_dir.iterdir() if path.is_dir()}
+    missing_directories = sorted(expected_directories - actual_directories)
+    unexpected_directories = sorted(actual_directories - expected_directories)
+    if missing_directories:
+        global_errors.append(f"fehlende Bundle-Verzeichnisse: {missing_directories}")
+    if unexpected_directories:
+        global_errors.append(f"unerwartete Verzeichnisse: {unexpected_directories}")
 
     results: list[dict[str, Any]] = []
     for entry in sorted(entries, key=lambda item: item["filename"]):
@@ -313,6 +553,8 @@ def inspect_fixture_dir(
             })
 
     failed = sum(not result["ok"] for result in results)
+    bundle_results = [_inspect_bundle(fixture_dir, bundle) for bundle in bundles]
+    failed_bundles = sum(not bundle["ok"] for bundle in bundle_results)
     return {
         "schema": 1,
         "inspector": {"pillow_version": PILLOW_VERSION},
@@ -323,6 +565,7 @@ def inspect_fixture_dir(
             "expected_sha256": expected_manifest_sha256,
             "schema": manifest.get("schema"),
             "declared_fixture_count": manifest.get("fixture_count"),
+            "declared_bundle_count": manifest.get("bundle_count"),
         },
         "summary": {
             "expected": len(entries),
@@ -331,9 +574,17 @@ def inspect_fixture_dir(
             "missing": missing,
             "unexpected": unexpected,
         },
-        "ok": not global_errors and failed == 0,
+        "bundle_summary": {
+            "expected": len(bundle_results),
+            "passed": len(bundle_results) - failed_bundles,
+            "failed": failed_bundles,
+            "missing": missing_directories,
+            "unexpected": unexpected_directories,
+        },
+        "ok": not global_errors and failed == 0 and failed_bundles == 0,
         "errors": global_errors,
         "fixtures": results,
+        "bundles": bundle_results,
     }
 
 
@@ -351,6 +602,16 @@ def _print_failure_summary(report: dict[str, Any]) -> None:
         if not fixture["ok"]:
             details = "; ".join(fixture["errors"])
             print(f"FEHLER: {fixture['filename']}: {details}", file=sys.stderr)
+    for bundle in report["bundles"]:
+        for error in bundle["errors"]:
+            print(f"FEHLER: {bundle['directory']}: {error}", file=sys.stderr)
+        for entry in bundle["files"]:
+            if not entry["ok"]:
+                details = "; ".join(entry["errors"])
+                print(
+                    f"FEHLER: {bundle['directory']}/{entry['filename']}: {details}",
+                    file=sys.stderr,
+                )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -386,6 +647,8 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"Status: {status}; "
             f"{report['summary']['passed']}/{report['summary']['expected']} Fixtures geprüft; "
+            f"{report['bundle_summary']['passed']}/"
+            f"{report['bundle_summary']['expected']} Exportpakete geprüft; "
             f"Report: {args.output}",
         )
         if not report["ok"]:

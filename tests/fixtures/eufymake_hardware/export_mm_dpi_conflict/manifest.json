@@ -1,0 +1,53 @@
+{
+  "profile": "bgremover-eufymake-import",
+  "profile_version": 1,
+  "kind": "eufymake_import_assets",
+  "note": "BgRemover-Importpaket für EufyMake Studio – keine offizielle EufyMake-Spezifikation, kein natives .empf.",
+  "height_semantics": "light_is_high",
+  "open_questions": [
+    "native_empf_project",
+    "height_map_bit_depth",
+    "gloss_mask_semantics"
+  ],
+  "target": {
+    "pixel_size": [
+      256,
+      256
+    ],
+    "bit_depth": 16,
+    "physical_size_mm": [
+      21.674666666666667,
+      21.674666666666667
+    ],
+    "dpi": [
+      300.0,
+      300.0
+    ]
+  },
+  "assets": [
+    {
+      "filename": "color_motif.png",
+      "role": "color_motif",
+      "pixel_format": "rgba",
+      "bit_depth": 8,
+      "required": true,
+      "experimental": false
+    },
+    {
+      "filename": "height_map.png",
+      "role": "height_map",
+      "pixel_format": "grayscale",
+      "bit_depth": 16,
+      "required": false,
+      "experimental": false
+    },
+    {
+      "filename": "gloss_mask.png",
+      "role": "gloss_mask",
+      "pixel_format": "grayscale",
+      "bit_depth": 8,
+      "required": false,
+      "experimental": true
+    }
+  ]
+}

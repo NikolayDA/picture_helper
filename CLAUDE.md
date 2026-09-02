@@ -323,6 +323,10 @@ Ein Paket, `bgremover/`:
   Zielrechner *beobachteten* Werte: „Tatsächlicher SHA-256", Studio-Meldungen
   und Messwerte; die *erwarteten* SHA-256 bleiben kanonisch im unten genannten
   `fixtures_manifest.json`, das Protokoll stellt beide Spalten gegenüber) und
+  die getrennten Ergebnisakten
+  [`EUFYMAKE-688-HEIGHT-VERTRAG.md`](docs/history/EUFYMAKE-688-HEIGHT-VERTRAG.md)/
+  [`EUFYMAKE-689-MM-DPI-VERTRAG.md`](docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md)
+  (Datei-, Studio- und Druckevidenz nie vermischen) sowie
   die daraus abgeleitete Ablauf-Checkliste
   für den Testtag [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](docs/history/EUFYMAKE-687-DRUCK-CHECKLISTE.md)
   (#803; bündelt nur Reihenfolge/Budget/Sicherheitsregeln, ist bewusst *keine*
@@ -330,8 +334,13 @@ Ein Paket, `bgremover/`:
   Fixtures erzeugt `scripts/eufymake_fixture_generator.py` (`generate`)
   deterministisch (reine Formel-/Rastermuster, keine Zufallszahlen) nach
   `tests/fixtures/eufymake_hardware/` inkl. `fixtures_manifest.json` mit SHA-256
-  je Datei – erst das macht „war das wirklich die getestete Datei?" vor dem
-  Studio-Import beantwortbar.
+  je Datei. Schema 3 umfasst 36 Einzel-Fixtures (u. a. getrennte X-/Y-DPI und
+  pixelgleiche COLOR/HEIGHT/GLOSS-Landmarks) sowie unter
+  `export_mm_dpi_conflict/` ein über den produktiven Writer erzeugtes
+  Vier-Dateien-Paket mit absichtlich widersprüchlichen Manifest-/`pHYs`-Werten.
+  `scripts/eufymake_fixture_inspector.py` prüft auch dessen Dateiliste und
+  Manifestsemantik – erst das macht „war das wirklich die getestete Datei?"
+  vor dem Studio-Import beantwortbar.
 - **Allgemeine Pre-Export-Prüfung:** `export_checks.py` — Qt-freie, strikt getypte,
   geteilte Basis (#379): generischer `Finding`/`CheckCode`/`Severity`-Vertrag mit
   deterministischer Sortierung und `format_finding` (literale `tr`-Keys

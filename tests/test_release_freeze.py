@@ -175,6 +175,13 @@ def test_docs_history_is_not_a_broad_neutral_class() -> None:
         rpp.RELEASE_NEUTRAL,
         True,
     )
+    mm_dpi_contract = rpp.classify_path(
+        "docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md", policy
+    )
+    assert (mm_dpi_contract.classification, mm_dpi_contract.explicit) == (
+        rpp.CANDIDATE_RELEVANT,
+        True,
+    )
     unknown = rpp.classify_path("docs/history/NEW_RELEASE_CONTRACT.md", policy)
     assert (unknown.classification, unknown.explicit) == (rpp.CANDIDATE_RELEVANT, False)
 
