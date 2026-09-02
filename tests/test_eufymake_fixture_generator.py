@@ -1,10 +1,12 @@
 """Tests für ``scripts/eufymake_fixture_generator.py`` (#687, Epic #681).
 
-Prüft Determinismus (zweimal erzeugen → bitidentische Dateien inkl. Manifest),
-dass jede Manifest-Zeile die tatsächlichen Dateieigenschaften (Bittiefe,
-PNG-Modus, Maße, SHA-256) korrekt beschreibt, sowie dass die eingecheckten
-Fixtures unter ``tests/fixtures/eufymake_hardware/`` nicht vom aktuellen
-Generator abweichen (keine stille Drift zwischen Skript und Artefakt).
+Prüft Determinismus innerhalb derselben Laufzeit, dass jede Manifest-Zeile die
+tatsächlichen Dateieigenschaften (Bittiefe, PNG-Modus, Maße, SHA-256) korrekt
+beschreibt, sowie dass die eingecheckten Fixtures unter
+``tests/fixtures/eufymake_hardware/`` semantisch nicht vom aktuellen Generator
+abweichen. Rohe Deflate-Bytes sind ohne gepinnte zlib-Laufzeit ausdrücklich
+kein plattformübergreifender Vertrag; der versionierte Manifest-Hash bindet den
+committeten Transportstand.
 """
 from __future__ import annotations
 
@@ -40,6 +42,7 @@ TRUST_HASH_DOCS = {
     ROOT / "docs" / "history" / "EUFYMAKE-687-PROTOKOLL-VORLAGEN.md": 1,
     ROOT / "docs" / "history" / "EUFYMAKE-687-DRUCK-CHECKLISTE.md": 1,
     ROOT / "docs" / "history" / "EUFYMAKE-689-MM-DPI-VERTRAG.md": 2,
+    ROOT / "docs" / "history" / "EUFYMAKE-690-GLOSS-VERTRAG.md": 2,
 }
 
 
@@ -47,6 +50,19 @@ def _write(tmp_path: Path, name: str) -> Path:
     out_dir = tmp_path / name
     gen.write_fixtures(gen.generate_all_fixtures(), out_dir)
     return out_dir
+
+
+def _without_transport_fields(value: object) -> object:
+    """SHA/Byte-Längen aus einem Manifest entfernen, Semantik aber behalten."""
+    if isinstance(value, dict):
+        return {
+            key: _without_transport_fields(item)
+            for key, item in value.items()
+            if key not in {"sha256", "bytes"}
+        }
+    if isinstance(value, list):
+        return [_without_transport_fields(item) for item in value]
+    return value
 
 
 # ── Determinismus ────────────────────────────────────────────────────────
@@ -76,6 +92,52 @@ def test_manifest_written_twice_is_byte_identical(tmp_path: Path) -> None:
     assert manifest_a == manifest_b
 
 
+def test_generation_overwrites_corrupt_existing_bytes_deterministically(
+    tmp_path: Path,
+) -> None:
+    dirty = _write(tmp_path, "dirty")
+    clean = _write(tmp_path, "clean")
+    (dirty / "gloss_min.png").write_bytes(b"not a png")
+
+    gen.write_fixtures(gen.generate_all_fixtures(), dirty)
+
+    for clean_path in sorted(path for path in clean.rglob("*") if path.is_file()):
+        relative = clean_path.relative_to(clean)
+        assert (dirty / relative).read_bytes() == clean_path.read_bytes(), relative
+
+
+def test_gloss_writer_packages_preserve_writer_png_bytes(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """#690-Pakete dürfen Writer-Serialisierung nicht nachträglich glätten."""
+    snapshots: dict[str, dict[str, bytes]] = {}
+    original_write_export = gen.write_export
+
+    def recording_write_export(project, output_dir, **kwargs):
+        result = original_write_export(project, output_dir, **kwargs)
+        snapshots[Path(output_dir).name] = {
+            path.name: path.read_bytes()
+            for path in Path(output_dir).glob("*.png")
+        }
+        return result
+
+    monkeypatch.setattr(gen, "write_export", recording_write_export)
+    bundles = gen._write_gloss_scenario_bundles(tmp_path)
+
+    for bundle in bundles:
+        directory = bundle["directory"]
+        current = {
+            path.name: path.read_bytes()
+            for path in (tmp_path / directory).glob("*.png")
+        }
+        if directory == "export_gloss_dimension_mismatch":
+            assert current["color_motif.png"] == snapshots[directory]["color_motif.png"]
+            assert current["gloss_mask.png"] != snapshots[directory]["gloss_mask.png"]
+        else:
+            assert current == snapshots[directory]
+
+
 # ── Manifest ↔ tatsächliche Dateieigenschaften ──────────────────────────
 
 def test_manifest_entries_match_actual_file_properties(tmp_path: Path) -> None:
@@ -86,7 +148,8 @@ def test_manifest_entries_match_actual_file_properties(tmp_path: Path) -> None:
     assert manifest["fixture_count"] == len(manifest["fixtures"])
     on_disk = {p.name for p in out_dir.iterdir() if p.is_file()} - {gen.MANIFEST_FILENAME}
     assert on_disk == {entry["filename"] for entry in manifest["fixtures"]}
-    assert manifest["bundle_count"] == len(manifest["bundles"]) == 1
+    assert manifest["bundle_count"] == len(manifest["bundles"])
+    assert manifest["bundle_count"] == 1 + len(gen.GLOSS_BUNDLE_DIRNAMES)
 
     for entry in manifest["fixtures"]:
         path = out_dir / entry["filename"]
@@ -111,11 +174,11 @@ def test_fixture_roles_and_counts() -> None:
     # 8-Bit + 16-Bit je Muster, plus die I-04-Pixelmaß- und I-12-Seitenverhältnis-
     # Variante (kein eigenes Muster in _HEIGHT_PATTERNS, siehe die dedizierten
     # Tests unten).
-    assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2 + 3
+    assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2 + 4
     # mm/DPI no_phys/phys/conflict plus X/Y-DPI, dimensionsgleiche Referenz
     # und Alpha/Coverage-Kontrolle.
-    assert by_role["color_motif"] == len(gen.MM_DPI_COMBOS) * 3 + 3
-    assert by_role["gloss_mask"] == len(gen._GLOSS_PATTERNS) + 1
+    assert by_role["color_motif"] == len(gen.MM_DPI_COMBOS) * 3 + 4
+    assert by_role["gloss_mask"] == len(gen._GLOSS_PATTERNS) + 2
 
     filenames = [spec.filename for spec in specs]
     assert len(filenames) == len(set(filenames)), "Dateinamen müssen eindeutig sein"
@@ -128,6 +191,7 @@ def test_height_fixtures_cover_8_and_16_bit(tmp_path: Path) -> None:
         gen.PIXEL_SIZE_VARIANT_PATTERN,
         gen.ASPECT_RATIO_VARIANT_PATTERN,
         gen.REGISTRATION_PATTERN,
+        "gloss_height_cross_fields",
     }
     height_entries = [
         e for e in manifest["fixtures"]
@@ -411,7 +475,7 @@ def test_gloss_fixtures_are_8bit_grayscale(tmp_path: Path) -> None:
     out_dir = _write(tmp_path, "run")
     manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
     gloss_entries = [e for e in manifest["fixtures"] if e["role"] == "gloss_mask"]
-    assert len(gloss_entries) == len(gen._GLOSS_PATTERNS) + 1
+    assert len(gloss_entries) == len(gen._GLOSS_PATTERNS) + 2
     for entry in gloss_entries:
         assert entry["bit_depth"] == 8
         assert entry["png_mode"] == "L"
@@ -425,12 +489,111 @@ def test_gloss_min_max_are_solid_extremes(tmp_path: Path) -> None:
         assert set(np.array(img).flatten().tolist()) == {255}
 
 
+def test_gloss_mean_limited_wedge_and_dimension_mismatch_are_isolated(
+    tmp_path: Path,
+) -> None:
+    """#690 trennt Mittelwert, Normalisierung und Dimensionsregel voneinander."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    by_name = {entry["filename"]: entry for entry in manifest["fixtures"]}
+
+    with Image.open(out_dir / "gloss_mean.png") as image:
+        assert set(np.array(image, dtype=np.uint8).flatten().tolist()) == {128}
+
+    limited = by_name["gloss_wedge_limited.png"]
+    assert limited["params"]["value_range"] == list(gen.GLOSS_LIMITED_RANGE)
+    with Image.open(out_dir / limited["filename"]) as image:
+        values = np.array(image, dtype=np.uint8)
+    assert int(values.min()) == gen.GLOSS_LIMITED_RANGE[0]
+    assert int(values.max()) == gen.GLOSS_LIMITED_RANGE[1]
+    assert np.all(np.diff(values[0].astype(np.int16)) >= 0)
+
+    mismatch = by_name["gloss_dimensions_half_width.png"]
+    assert (mismatch["width"], mismatch["height"]) == gen.GLOSS_DIMENSION_MISMATCH_SIZE
+    assert mismatch["params"]["reference_size_px"] == list(gen.GLOSS_SIZE)
+    assert mismatch["width"] != mismatch["params"]["reference_size_px"][0]
+    assert mismatch["height"] == mismatch["params"]["reference_size_px"][1]
+
+
+def test_gloss_interaction_fixtures_vary_only_height_at_constant_color(
+    tmp_path: Path,
+) -> None:
+    """HEIGHT×Gloss nutzt konstantes opakes COLOR und exakt drei HEIGHT-Werte."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    by_name = {entry["filename"]: entry for entry in manifest["fixtures"]}
+    color = by_name["color_gloss_height_cross.png"]
+    height = by_name["height_gloss_cross_16bit.png"]
+    assert color["params"]["paired_height_file"] == height["filename"]
+    assert color["params"]["paired_gloss_file"] == "gloss_mean.png"
+    assert height["params"]["paired_gloss_file"] == "gloss_mean.png"
+
+    with Image.open(out_dir / color["filename"]) as image:
+        color_values = np.array(image, dtype=np.uint8)
+    assert np.all(color_values == np.array(gen.GLOSS_CROSS_COLOR, dtype=np.uint8))
+
+    with Image.open(out_dir / height["filename"]) as image:
+        height_values = np.array(image, dtype=np.uint16)
+    assert set(np.unique(height_values).tolist()) == set(gen.GLOSS_CROSS_LEVELS_16BIT)
+    for field in height["params"]["fields"]:
+        values = height_values[:, field["x_start"] : field["x_end_exclusive"]]
+        assert set(np.unique(values).tolist()) == {field["value_16bit"]}
+
+
+def test_gloss_scenario_bundles_cover_all_orthogonal_cases(tmp_path: Path) -> None:
+    """Fehlend/Null/Voll/Alpha/HEIGHT/Dimension sind eigene Writer-Pakete."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    by_id = {bundle["id"]: bundle for bundle in manifest["bundles"]}
+    assert set(by_id) == {
+        "i06_manifest_vs_phys",
+        "gloss_absent",
+        "gloss_zero",
+        "gloss_full",
+        "gloss_alpha_coverage",
+        "gloss_height_cross",
+        "gloss_dimension_mismatch",
+    }
+
+    absent = by_id["gloss_absent"]
+    assert absent["manifest_contract"]["assets"] == ["color_motif.png"]
+    assert {entry["filename"] for entry in absent["files"]} == {
+        "color_motif.png", "manifest.json",
+    }
+
+    for scenario_id, expected in (("gloss_zero", 0), ("gloss_full", 255)):
+        bundle = by_id[scenario_id]
+        with Image.open(out_dir / bundle["directory"] / "gloss_mask.png") as image:
+            assert set(np.array(image, dtype=np.uint8).flatten().tolist()) == {expected}
+
+    alpha = by_id["gloss_alpha_coverage"]
+    alpha_dir = out_dir / alpha["directory"]
+    with (
+        Image.open(alpha_dir / "color_motif.png") as color_image,
+        Image.open(alpha_dir / "height_map.png") as height_image,
+        Image.open(alpha_dir / "gloss_mask.png") as gloss_image,
+    ):
+        assert set(np.unique(np.array(color_image.getchannel("A"))).tolist()) == {0, 128, 255}
+        assert set(np.unique(np.array(height_image, dtype=np.uint16)).tolist()) == {32768}
+        assert set(np.unique(np.array(gloss_image, dtype=np.uint8)).tolist()) == {128}
+
+    height_cross = by_id["gloss_height_cross"]
+    with Image.open(out_dir / height_cross["directory"] / "height_map.png") as image:
+        assert set(np.unique(np.array(image, dtype=np.uint16)).tolist()) == set(
+            gen.GLOSS_CROSS_LEVELS_16BIT
+        )
+
+    mismatch = by_id["gloss_dimension_mismatch"]
+    mismatch_files = {entry["filename"]: entry for entry in mismatch["files"]}
+    assert mismatch["manifest_contract"]["pixel_size"] == list(gen.GLOSS_SIZE)
+    assert (
+        mismatch_files["gloss_mask.png"]["width"],
+        mismatch_files["gloss_mask.png"]["height"],
+    ) == gen.GLOSS_DIMENSION_MISMATCH_SIZE
+    assert mismatch_files["gloss_mask.png"]["params"]["intentional_dimension_mismatch"]
+
+
 # ── Checked-in Fixtures dürfen nicht vom Generator abweichen ────────────
-
-_MANIFEST_CONTENT_KEYS = (
-    "role", "pattern", "bit_depth", "png_mode", "width", "height", "params",
-)
-
 
 def test_checked_in_fixtures_are_self_consistent() -> None:
     """Der versionierte Manifest-Vertrauensanker muss zu den Repo-Bytes passen."""
@@ -452,17 +615,32 @@ def test_documented_trust_hash_matches_checked_in_manifest() -> None:
         )
 
 
-def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
-    """Eingecheckte Fixtures dürfen inhaltlich nicht vom aktuellen Generator abweichen.
+def test_protocol_lists_every_fixture_with_current_hash() -> None:
+    """Die manuelle Prüftabelle darf weder Dateien noch neue Hashes auslassen."""
+    manifest = json.loads(
+        (CHECKED_IN_DIR / gen.MANIFEST_FILENAME).read_text(encoding="utf-8")
+    )
+    protocol = (
+        ROOT / "docs" / "history" / "EUFYMAKE-687-PROTOKOLL-VORLAGEN.md"
+    ).read_text(encoding="utf-8")
+    for entry in manifest["fixtures"]:
+        expected_cells = (
+            f"`{entry['filename']}` | `{entry['sha256']}` | `{entry['sha256']}`"
+        )
+        assert expected_cells in protocol, entry["filename"]
 
-    Verglichen werden Pixelinhalt und Bildmetadaten (Modus, Maße, ``dpi``) statt
-    PNG-Rohbytes: der zlib-Kompressionsstream unterscheidet sich je nach
-    Plattform/Pillow-Build – auf dem macOS-Kandidatenbau von 2.8.0 (Run
-    31968057273) erzeugte derselbe Generator für dieselben Pixel andere Bytes
-    *und* eine andere Dateigröße als das unter Linux eingecheckte Fixture, obwohl
-    Breite/Höhe/Modus/Parameter bitgenau gleich blieben. Ein reiner Byte-Vergleich
-    wäre daher plattformabhängig und kein echter Drift-Nachweis.
-    """
+    mm_contract = (
+        ROOT / "docs" / "history" / "EUFYMAKE-689-MM-DPI-VERTRAG.md"
+    ).read_text(encoding="utf-8")
+    expected_summary = (
+        f"Schema {manifest['schema']} · {manifest['fixture_count']} Einzel-Fixtures · "
+        f"{manifest['bundle_count']} Exportpakete"
+    )
+    assert expected_summary in mm_contract
+
+
+def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
+    """Repo-Fixtures müssen dem Generator plattformübergreifend semantisch entsprechen."""
     assert CHECKED_IN_DIR.is_dir(), (
         "tests/fixtures/eufymake_hardware/ fehlt – "
         "python scripts/eufymake_fixture_generator.py generate ausführen"
@@ -480,27 +658,15 @@ def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
         "Generators ab – neu generieren und committen."
     )
 
-    checked_in_manifest = json.loads(
+    checked_manifest = json.loads(
         (CHECKED_IN_DIR / gen.MANIFEST_FILENAME).read_text(encoding="utf-8")
     )
-    fresh_manifest = json.loads((fresh_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
-    checked_in_by_name = {e["filename"]: e for e in checked_in_manifest["fixtures"]}
-    fresh_by_name = {e["filename"]: e for e in fresh_manifest["fixtures"]}
-    assert checked_in_by_name.keys() == fresh_by_name.keys()
-    for filename, fresh_entry in fresh_by_name.items():
-        checked_in_entry = checked_in_by_name[filename]
-        for key in _MANIFEST_CONTENT_KEYS:
-            assert checked_in_entry[key] == fresh_entry[key], f"{filename}: {key} weicht ab"
-
-    assert checked_in_manifest["bundle_count"] == fresh_manifest["bundle_count"]
-    checked_in_bundles = json.loads(json.dumps(checked_in_manifest["bundles"]))
-    fresh_bundles = json.loads(json.dumps(fresh_manifest["bundles"]))
-    for bundles in (checked_in_bundles, fresh_bundles):
-        for bundle in bundles:
-            for entry in bundle["files"]:
-                entry.pop("sha256")
-                entry.pop("bytes")
-    assert checked_in_bundles == fresh_bundles
+    fresh_manifest = json.loads(
+        (fresh_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8")
+    )
+    assert _without_transport_fields(checked_manifest) == _without_transport_fields(
+        fresh_manifest
+    )
 
     for name in checked_in_files:
         if name.name == gen.MANIFEST_FILENAME:

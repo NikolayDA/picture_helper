@@ -27,9 +27,11 @@ Drei Fixture-Rollen, alle unter ``tests/fixtures/eufymake_hardware/``:
   mit konsistentem ``pHYs`` und mit einem bewusst widersprüchlichen
   ``pHYs`` bei gleichem Pixelmaß. Eine weitere Variante kodiert getrennte
   X-/Y-DPI, damit Studio beide Achsen unabhängig offenlegen muss.
-- **Gloss** (#690-Testdesign): Volltonauszüge min/max, monotoner Keil,
-  invertierter Keil, diskrete Stufen, Schachbrettmuster (Registrierung/
-  Bleeding) sowie dieselben Registriermarker wie COLOR und HEIGHT.
+- **Gloss** (#690-Testdesign): Volltonauszüge min/mittel/max, monotoner und
+  invertierter Keil, ein auf 64…192 begrenzter Normalisierungskeil, diskrete
+  Stufen, Schachbrettmuster, eine dimensionsfremde Maske sowie dieselben
+  Registriermarker wie COLOR und HEIGHT. Eigene COLOR-/HEIGHT-Kontrollen
+  isolieren Alpha×Gloss und HEIGHT×Gloss.
 
 Zusätzlich entsteht unter ``export_mm_dpi_conflict/`` ein echtes, über den
 Produktionspfad :func:`bgremover.eufymake_writer.write_export` erzeugtes
@@ -40,11 +42,26 @@ tragen. Damit prüft I-06 genau die Priorität zwischen Paketmanifest und
 Bildmetadaten, statt das Fixture-Katalogmanifest fälschlich als Exportpaket
 zu behandeln.
 
+Sechs weitere, ebenfalls über den Produktionswriter erzeugte Pakete trennen
+für #690 fehlendes, Null- und voll gesetztes Gloss, Alpha×Gloss, HEIGHT×Gloss
+und eine kontrolliert nach dem Writerlauf dimensionsfremd ersetzte Gloss-Datei.
+So bleiben Dateivertrag und Studio-/Druckbeobachtung orthogonal.
+
 Jede erzeugte Datei wird zusammen mit Rolle, Bittiefe, PNG-Modus, Maßen,
 Erzeugungsparametern und SHA-256 in ``fixtures_manifest.json`` im selben
 Verzeichnis dokumentiert (Schema :data:`SCHEMA_VERSION`). Die Sollbeziehung
 zwischen Pixelmaß und physischer Größe ist ``mm = Pixel / DPI × 25,4``
 (:func:`px_to_mm`), gerundet auf drei Nachkommastellen.
+
+Die eigenständigen PNG-Fixtures werden nach der Bilderzeugung mit einer lokalen
+Serialisierung geschrieben: fester Filtertyp, feste zlib-Parameter und genau
+die vertraglich vorgesehenen Chunks. Bereits vorhandene Dateien werden nie als
+Quelle wiederverwendet. Die Deflate-Bytes selbst sind jedoch bewusst **kein**
+plattformübergreifender Vertrag, weil die LZ77-Match-Auswahl von der jeweiligen
+zlib-Laufzeit abhängen kann. Das Manifest bindet die eingecheckten
+Transportbytes; Generator-Drift wird plattformübergreifend über Pixel, Modus,
+Maße und Metadaten geprüft. PNGs der Produktionswriter-Pakete bleiben bis auf
+die ausdrücklich dokumentierten Konfliktmodifikationen unverändert.
 
 Zwei weitere, kein eigenständiges Muster im obigen Sinn: die
 **Pixelmaß-Variante** (I-04, #688/#689-Testdesign) ist eine
@@ -65,7 +82,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import struct
 import sys
+import zlib
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -105,8 +124,10 @@ MANIFEST_FILENAME = "fixtures_manifest.json"
 # SHA-256, Bytegröße je Fixture). Schema 2 bindet den für #688 erweiterten
 # Satz inklusive Alpha- und Registrierkontrollen. Schema 3 ergänzt getrennte
 # X-/Y-DPI, die dreifache COLOR/HEIGHT/GLOSS-Registrierung und echte
-# BgRemover-Exportpakete unter ``bundles``.
-SCHEMA_VERSION = 3
+# BgRemover-Exportpakete unter ``bundles``. Schema 4 ergänzt die isolierten
+# Gloss-Szenarien aus #690: fehlend/Null/Voll, Alpha×Gloss, HEIGHT×Gloss und
+# eine kontrolliert dimensionsfremde Gloss-Datei.
+SCHEMA_VERSION = 4
 
 HEIGHT_SIZE = (256, 256)  # (Breite, Höhe) px – klein genug fürs Repo, groß
 # genug für eine sichtbare Stufen-/Keilauflösung.
@@ -117,11 +138,23 @@ REGISTRATION_PATTERN = "registration_landmarks"
 GLOSS_SIZE = (256, 256)
 CHECKER_SQUARE = 16  # px je Schachbrettfeld bei 256 px Kantenlänge → 16×16 Felder.
 STEP_LEVELS = 8  # diskrete Stufen für Höhen-/Gloss-„Treppenkeil"-Fixtures.
+GLOSS_LIMITED_RANGE = (64, 192)
+GLOSS_DIMENSION_MISMATCH_SIZE = (GLOSS_SIZE[0] // 2, GLOSS_SIZE[1])
+GLOSS_CROSS_LEVELS_16BIT = (0, 32768, HEIGHT_MAX_16BIT)
+GLOSS_CROSS_COLOR = (80, 120, 160, 255)
 MM_PER_INCH = 25.4
 NON_SQUARE_DPI = (300, 150)
 EXPORT_BUNDLE_DIRNAME = "export_mm_dpi_conflict"
 EXPORT_TARGET_DPI = (300.0, 300.0)
 EXPORT_PHYS_DPI = (150, 150)
+GLOSS_BUNDLE_DIRNAMES = (
+    "export_gloss_absent",
+    "export_gloss_zero",
+    "export_gloss_full",
+    "export_gloss_alpha_coverage",
+    "export_gloss_height_cross",
+    "export_gloss_dimension_mismatch",
+)
 # I-04 (#688/#689): halbe Kantenlänge von HEIGHT_SIZE, gleiches Seitenverhältnis.
 PIXEL_SIZE_VARIANT_SIZE = (HEIGHT_SIZE[0] // 2, HEIGHT_SIZE[1] // 2)
 PIXEL_SIZE_VARIANT_PATTERN = "wedge_pixelsize_half"
@@ -171,6 +204,12 @@ def _pattern_wedge_inverted(width: int, height: int) -> np.ndarray:
     return 1.0 - _pattern_wedge(width, height)
 
 
+def _pattern_wedge_limited(width: int, height: int) -> np.ndarray:
+    """Keil 64…192 statt 0…255, um automatische Normalisierung zu erkennen."""
+    low, high = GLOSS_LIMITED_RANGE
+    return low / 255.0 + _pattern_wedge(width, height) * ((high - low) / 255.0)
+
+
 def _pattern_steps(width: int, height: int, levels: int = STEP_LEVELS) -> np.ndarray:
     """``levels`` gleich breite, diskrete Stufen von 0 bis 1 (Quantisierungstest)."""
     idx = (np.arange(width) * levels) // width
@@ -196,6 +235,26 @@ def _pattern_impulse_edge(width: int, height: int) -> np.ndarray:
 def _pattern_checkerboard(width: int, height: int, square: int = CHECKER_SQUARE) -> np.ndarray:
     xx, yy = np.meshgrid(np.arange(width) // square, np.arange(height) // square)
     return ((xx + yy) % 2).astype(np.float64)
+
+
+def _pattern_vertical_fields(
+    width: int,
+    height: int,
+    levels: tuple[float, ...],
+) -> tuple[np.ndarray, list[dict[str, float | int]]]:
+    """Gleich breite vertikale Felder und ihre exakten Pixelgrenzen erzeugen."""
+    boundaries = [round(index * width / len(levels)) for index in range(len(levels) + 1)]
+    field = np.empty((height, width), dtype=np.float64)
+    fields: list[dict[str, float | int]] = []
+    for index, level in enumerate(levels):
+        start, end = boundaries[index], boundaries[index + 1]
+        field[:, start:end] = level
+        fields.append({
+            "x_start": start,
+            "x_end_exclusive": end,
+            "normalized_value": level,
+        })
+    return field, fields
 
 
 def _to_8bit_l(pattern: np.ndarray) -> Image.Image:
@@ -562,9 +621,11 @@ def generate_mm_dpi_fixtures() -> list[FixtureSpec]:
 
 _GLOSS_PATTERNS: tuple[tuple[str, Callable[[int, int], np.ndarray]], ...] = (
     ("min", _pattern_zero),
+    ("mean", _pattern_mean),
     ("max", _pattern_max),
     ("wedge", _pattern_wedge),
     ("wedge_inverted", _pattern_wedge_inverted),
+    ("wedge_limited", _pattern_wedge_limited),
     ("steps", _pattern_steps),
     ("checkerboard", _pattern_checkerboard),
 )
@@ -575,9 +636,30 @@ def generate_gloss_fixtures() -> list[FixtureSpec]:
     specs: list[FixtureSpec] = []
     for name, builder in _GLOSS_PATTERNS:
         pattern = builder(width, height)
-        params = {"width_px": width, "height_px": height}
+        params: dict[str, Any] = {"width_px": width, "height_px": height}
         if name == "checkerboard":
             params["square_px"] = CHECKER_SQUARE
+        elif name == "mean":
+            params.update({
+                "value": 128,
+                "paired_color_files": [
+                    "color_alpha_coverage.png",
+                    "color_gloss_height_cross.png",
+                ],
+                "paired_height_files": [
+                    "height_mean_16bit.png",
+                    "height_gloss_cross_16bit.png",
+                ],
+                "purpose": "konstantes nicht-null Gloss für isolierte Kreuztests",
+            })
+        elif name == "wedge_limited":
+            params.update({
+                "value_range": list(GLOSS_LIMITED_RANGE),
+                "purpose": (
+                    "GL-01: automatische Min/Max-Normalisierung von echter "
+                    "Intensitätsabbildung unterscheiden"
+                ),
+            })
         specs.append(FixtureSpec(
             filename=f"gloss_{name}.png", role="gloss_mask", pattern=name,
             bit_depth=8, png_mode="L", image=_to_8bit_l(pattern), params=params,
@@ -601,7 +683,77 @@ def generate_gloss_fixtures() -> list[FixtureSpec]:
             "purpose": "I-08: COLOR/HEIGHT/GLOSS-Registrierung auf beiden Achsen",
         },
     ))
+    mismatch_width, mismatch_height = GLOSS_DIMENSION_MISMATCH_SIZE
+    mismatch = _pattern_checkerboard(
+        mismatch_width,
+        mismatch_height,
+        square=CHECKER_SQUARE,
+    )
+    specs.append(FixtureSpec(
+        filename="gloss_dimensions_half_width.png",
+        role="gloss_mask",
+        pattern="checkerboard_dimension_mismatch",
+        bit_depth=8,
+        png_mode="L",
+        image=_to_8bit_l(mismatch),
+        params={
+            "width_px": mismatch_width,
+            "height_px": mismatch_height,
+            "reference_size_px": list(GLOSS_SIZE),
+            "square_px": CHECKER_SQUARE,
+            "purpose": (
+                "#690: Scaling, Zentrierung, Beschnitt oder Ablehnung einer "
+                "dimensionsfremden Gloss-Datei unterscheiden"
+            ),
+        },
+    ))
     return specs
+
+
+def generate_gloss_interaction_fixtures() -> list[FixtureSpec]:
+    """Isolierte COLOR/HEIGHT-Kontrollen für Alpha×Gloss und HEIGHT×Gloss."""
+    width, height = GLOSS_SIZE
+    color = Image.new("RGBA", (width, height), GLOSS_CROSS_COLOR)
+    normalized_levels = tuple(value / HEIGHT_MAX_16BIT for value in GLOSS_CROSS_LEVELS_16BIT)
+    height_pattern, fields = _pattern_vertical_fields(width, height, normalized_levels)
+    for field_metadata, value in zip(fields, GLOSS_CROSS_LEVELS_16BIT, strict=True):
+        field_metadata["value_16bit"] = value
+    return [
+        FixtureSpec(
+            filename="color_gloss_height_cross.png",
+            role="color_motif",
+            pattern="constant_opaque_gloss_height_cross",
+            bit_depth=8,
+            png_mode="RGBA",
+            image=color,
+            params={
+                "width_px": width,
+                "height_px": height,
+                "rgba": list(GLOSS_CROSS_COLOR),
+                "paired_height_file": "height_gloss_cross_16bit.png",
+                "paired_gloss_file": "gloss_mean.png",
+                "purpose": "#690: konstante COLOR-Kontrolle für HEIGHT×Gloss",
+            },
+        ),
+        FixtureSpec(
+            filename="height_gloss_cross_16bit.png",
+            role="height_map",
+            pattern="gloss_height_cross_fields",
+            bit_depth=16,
+            png_mode="I;16",
+            image=_to_16bit_i16(height_pattern),
+            params={
+                "width_px": width,
+                "height_px": height,
+                "fields": fields,
+                "paired_color_file": "color_gloss_height_cross.png",
+                "paired_gloss_file": "gloss_mean.png",
+                "purpose": (
+                    "#690: HEIGHT 0/32768/65535 bei konstantem nicht-null Gloss"
+                ),
+            },
+        ),
+    ]
 
 
 def generate_all_fixtures() -> list[FixtureSpec]:
@@ -612,13 +764,90 @@ def generate_all_fixtures() -> list[FixtureSpec]:
         *generate_aspect_ratio_variant_fixture(),
         *generate_color_height_control_fixtures(),
         *generate_mm_dpi_fixtures(),
+        *generate_gloss_interaction_fixtures(),
         *generate_gloss_fixtures(),
     ]
 
 
 # ── Schreiben + Manifest ─────────────────────────────────────────────────────
 
-def _write_export_bundle(out_dir: Path) -> dict[str, Any]:
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_PNG_MODE_CONTRACT: dict[str, tuple[int, int]] = {
+    "L": (8, 0),
+    "RGBA": (8, 6),
+    "I;16": (16, 0),
+}
+
+
+def _png_chunk(chunk_type: bytes, payload: bytes) -> bytes:
+    """Einen PNG-Chunk mit deterministischer Länge und CRC serialisieren."""
+    crc = zlib.crc32(chunk_type + payload) & 0xFFFFFFFF
+    return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", crc)
+
+
+def _fixture_png_bytes(
+    image: Image.Image,
+    *,
+    dpi: tuple[float, float] | None = None,
+) -> bytes:
+    """Einzel-Fixture mit kontrollierter PNG-Struktur kodieren.
+
+    Pillow bleibt für die Pixelmodelle zuständig; die PNG-Serialisierung ist
+    absichtlich lokal festgelegt. Damit hängen Fixture-Hashes weder von
+    vorhandenen Zieldateien noch von Pillows PNG-Encoderheuristiken ab. Die
+    komprimierten Bytes sind trotzdem kein plattformübergreifender Vertrag:
+    zlib kann zwischen Laufzeitversionen andere gültige LZ77-Matches wählen.
+    Deshalb vergleichen die Repo-Tests diese Fixtures plattformübergreifend
+    semantisch; der SHA-256 im Manifest bindet ausschließlich den committeten
+    Transportstand.
+    """
+    if image.mode not in _PNG_MODE_CONTRACT:
+        raise ValueError(f"Nicht unterstützter kanonischer PNG-Modus: {image.mode}")
+    bit_depth, color_type = _PNG_MODE_CONTRACT[image.mode]
+    width, height = image.size
+    if image.mode == "L":
+        pixels = np.asarray(image, dtype=np.uint8).tobytes(order="C")
+        row_size = width
+    elif image.mode == "RGBA":
+        pixels = np.asarray(image, dtype=np.uint8).tobytes(order="C")
+        row_size = width * 4
+    else:
+        pixels = np.asarray(image, dtype=np.uint16).astype(">u2", copy=False).tobytes()
+        row_size = width * 2
+
+    # Filtertyp 0 pro Zeile verhindert plattformabhängige Encoderheuristiken.
+    raw = b"".join(
+        b"\x00" + pixels[offset : offset + row_size]
+        for offset in range(0, len(pixels), row_size)
+    )
+    compressor = zlib.compressobj(
+        level=9,
+        method=zlib.DEFLATED,
+        wbits=zlib.MAX_WBITS,
+        memLevel=9,
+        strategy=zlib.Z_FIXED,
+    )
+    compressed = compressor.compress(raw) + compressor.flush()
+    ihdr = struct.pack(">IIBBBBB", width, height, bit_depth, color_type, 0, 0, 0)
+    chunks = [_png_chunk(b"IHDR", ihdr)]
+    if dpi is not None:
+        x_ppm = int(float(dpi[0]) / 0.0254 + 0.5)
+        y_ppm = int(float(dpi[1]) / 0.0254 + 0.5)
+        chunks.append(_png_chunk(b"pHYs", struct.pack(">IIB", x_ppm, y_ppm, 1)))
+    chunks.extend((_png_chunk(b"IDAT", compressed), _png_chunk(b"IEND", b"")))
+    return _PNG_SIGNATURE + b"".join(chunks)
+
+
+def _write_fixture_png(
+    image: Image.Image,
+    path: Path,
+    *,
+    dpi: tuple[float, float] | None = None,
+) -> None:
+    """Ein eigenständiges Fixture-PNG kontrolliert und zustandsfrei schreiben."""
+    path.write_bytes(_fixture_png_bytes(image, dpi=dpi))
+
+def _write_mm_dpi_export_bundle(out_dir: Path) -> dict[str, Any]:
     """Erzeugt I-06 über den echten Writer und versieht PNGs mit Konflikt-pHYs."""
     width, height = COLOR_HEIGHT_PAIR_SIZE
     reference = _draw_control_motif(width, height)
@@ -662,14 +891,17 @@ def _write_export_bundle(out_dir: Path) -> dict[str, Any]:
         "height_map.png": ("height_map", "I;16", 16),
         "gloss_mask.png": ("gloss_mask", "L", 8),
     }
-    files: list[dict[str, Any]] = []
-    for filename, (role, png_mode, bit_depth) in png_contracts.items():
+    for filename in png_contracts:
         path = bundle_dir / filename
         with Image.open(path) as source:
             image = source.copy()
         # Erst nach dem Schließen des Quell-Handles überschreiben, damit die
         # Fixture-Erzeugung auch auf Windows funktioniert.
-        image.save(path, "PNG", dpi=EXPORT_PHYS_DPI)
+        _write_fixture_png(image, path, dpi=EXPORT_PHYS_DPI)
+
+    files: list[dict[str, Any]] = []
+    for filename, (role, png_mode, bit_depth) in png_contracts.items():
+        path = bundle_dir / filename
         data = path.read_bytes()
         files.append({
             "filename": filename,
@@ -723,6 +955,276 @@ def _write_export_bundle(out_dir: Path) -> dict[str, Any]:
     }
 
 
+def _create_export_project(
+    color_image: Image.Image,
+    *,
+    height_image: Image.Image | None = None,
+    gloss_image: Image.Image | None = None,
+) -> Project:
+    """Produktionsnahes Projekt für ein isoliertes #690-Szenario aufbauen."""
+    width, height = color_image.size
+    project = Project(width, height)
+    color_layer = project.create_layer(color_image.convert("RGBA"), name="#690 COLOR")
+    project.assign_role(color_layer.id, LayerRole.COLOR_MOTIF)
+    if height_image is not None:
+        height_values = np.array(height_image, dtype=np.uint16)
+        height_layer = project.create_layer(
+            name="#690 HEIGHT",
+            kind=LayerKind.HEIGHT,
+            height_data=HeightField(
+                height_values,
+                np.full(height_values.shape, 255, dtype=np.uint8),
+                HEIGHT_MAX_16BIT,
+            ),
+        )
+        project.assign_role(height_layer.id, LayerRole.HEIGHT_MAP)
+    if gloss_image is not None:
+        gloss_layer = project.create_layer(
+            gloss_image.convert("RGBA"),
+            name="#690 GLOSS",
+            kind=LayerKind.GLOSS,
+        )
+        project.assign_role(gloss_layer.id, LayerRole.GLOSS_MASK)
+    return project
+
+
+def _bundle_png_entry(
+    path: Path,
+    *,
+    role: str,
+    pattern: str,
+    params: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Katalogzeile aus den tatsächlich geschriebenen PNG-Eigenschaften bilden."""
+    data = path.read_bytes()
+    with Image.open(path) as image:
+        png_mode = image.mode
+        width, height = image.size
+    return {
+        "filename": path.name,
+        "media_type": "image/png",
+        "role": role,
+        "pattern": pattern,
+        "bit_depth": 16 if png_mode == "I;16" else 8,
+        "png_mode": png_mode,
+        "width": width,
+        "height": height,
+        "params": {"phys_dpi": None, **(params or {})},
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "bytes": len(data),
+    }
+
+
+def _write_gloss_scenario_bundle(
+    out_dir: Path,
+    *,
+    scenario_id: str,
+    directory: str,
+    purpose: str,
+    color_image: Image.Image,
+    color_pattern: str,
+    height_image: Image.Image | None = None,
+    height_pattern: str | None = None,
+    gloss_image: Image.Image | None = None,
+    gloss_pattern: str | None = None,
+    replacement_gloss: Image.Image | None = None,
+    scenario_params: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Ein echtes Writer-Paket erzeugen und optional Gloss gezielt dimensionsbrechen."""
+    project = _create_export_project(
+        color_image,
+        height_image=height_image,
+        gloss_image=gloss_image,
+    )
+    bundle_dir = out_dir / directory
+    write_export(
+        project,
+        bundle_dir,
+        bit_depth=16,
+        overwrite=True,
+        confirm_warnings=True,
+    )
+    if replacement_gloss is not None:
+        # G-05 ist der einzige gezielte Post-Writer-Eingriff: Nur seine
+        # Gloss-Datei wird dimensionsfremd ersetzt. Alle übrigen Writer-PNGs
+        # bleiben bytegenau so erhalten, wie der Produktionspfad sie ausgibt.
+        _write_fixture_png(replacement_gloss, bundle_dir / "gloss_mask.png")
+
+    png_contracts: list[tuple[str, str, str, dict[str, Any]]] = [
+        ("color_motif.png", "color_motif", color_pattern, {}),
+    ]
+    if height_image is not None:
+        assert height_pattern is not None
+        png_contracts.append(("height_map.png", "height_map", height_pattern, {}))
+    if gloss_image is not None:
+        assert gloss_pattern is not None
+        gloss_params: dict[str, Any] = {}
+        if replacement_gloss is not None:
+            gloss_params = {
+                "intentional_dimension_mismatch": True,
+                "reference_size_px": list(color_image.size),
+            }
+        png_contracts.append(("gloss_mask.png", "gloss_mask", gloss_pattern, gloss_params))
+
+    files = [
+        _bundle_png_entry(
+            bundle_dir / filename,
+            role=role,
+            pattern=pattern,
+            params=params,
+        )
+        for filename, role, pattern, params in png_contracts
+    ]
+    export_manifest_path = bundle_dir / EXPORT_MANIFEST_FILENAME
+    export_manifest_data = export_manifest_path.read_bytes()
+    files.append({
+        "filename": EXPORT_MANIFEST_FILENAME,
+        "media_type": "application/json",
+        "sha256": hashlib.sha256(export_manifest_data).hexdigest(),
+        "bytes": len(export_manifest_data),
+    })
+    asset_names = [filename for filename, _, _, _ in png_contracts]
+    return {
+        "id": scenario_id,
+        "directory": directory,
+        "purpose": purpose,
+        "generated_via": (
+            "bgremover.eufymake_writer.write_export"
+            if replacement_gloss is None
+            else (
+                "bgremover.eufymake_writer.write_export + kontrollierter "
+                "Dimensionsersatz von gloss_mask.png"
+            )
+        ),
+        "scenario_params": scenario_params or {},
+        "manifest_contract": {
+            "profile": EXPORT_PROFILE,
+            "profile_version": EXPORT_PROFILE_VERSION,
+            "kind": "eufymake_import_assets",
+            "pixel_size": list(color_image.size),
+            "bit_depth": 16,
+            "physical_size_mm": None,
+            "dpi": None,
+            "assets": asset_names,
+        },
+        "file_count": len(files),
+        "files": sorted(files, key=lambda item: item["filename"]),
+    }
+
+
+def _write_gloss_scenario_bundles(out_dir: Path) -> list[dict[str, Any]]:
+    """Sechs orthogonale #690-Pakete über den Produktionswriter erzeugen."""
+    width, height = GLOSS_SIZE
+    opaque_color = Image.new("RGBA", GLOSS_SIZE, GLOSS_CROSS_COLOR)
+    alpha_color, alpha_fields = _draw_alpha_coverage_motif(width, height)
+    gloss_zero = _to_8bit_l(_pattern_zero(width, height))
+    gloss_mean = _to_8bit_l(_pattern_mean(width, height))
+    gloss_full = _to_8bit_l(_pattern_max(width, height))
+    height_mean = _to_16bit_i16(_pattern_mean(width, height))
+    normalized_levels = tuple(value / HEIGHT_MAX_16BIT for value in GLOSS_CROSS_LEVELS_16BIT)
+    height_cross_pattern, _ = _pattern_vertical_fields(width, height, normalized_levels)
+    height_cross = _to_16bit_i16(height_cross_pattern)
+    mismatch_width, mismatch_height = GLOSS_DIMENSION_MISMATCH_SIZE
+    gloss_mismatch = _to_8bit_l(
+        _pattern_checkerboard(mismatch_width, mismatch_height, square=CHECKER_SQUARE)
+    )
+
+    bundles = [
+        _write_gloss_scenario_bundle(
+            out_dir,
+            scenario_id="gloss_absent",
+            directory=GLOSS_BUNDLE_DIRNAMES[0],
+            purpose=(
+                "#690: sicherer Default ohne explizite Gloss-Rolle; Paket darf "
+                "keine gloss_mask.png referenzieren oder schreiben."
+            ),
+            color_image=opaque_color,
+            color_pattern="constant_opaque",
+        ),
+        _write_gloss_scenario_bundle(
+            out_dir,
+            scenario_id="gloss_zero",
+            directory=GLOSS_BUNDLE_DIRNAMES[1],
+            purpose="#690: vorhandene gültige 0-GLOSS-Datei getrennt von fehlendem Gloss.",
+            color_image=opaque_color,
+            color_pattern="constant_opaque",
+            gloss_image=gloss_zero,
+            gloss_pattern="zero",
+            scenario_params={"gloss_value_range": [0, 0]},
+        ),
+        _write_gloss_scenario_bundle(
+            out_dir,
+            scenario_id="gloss_full",
+            directory=GLOSS_BUNDLE_DIRNAMES[2],
+            purpose="#690: voll gesetzte 255-GLOSS-Datei als Gegenprobe zur 0-Datei.",
+            color_image=opaque_color,
+            color_pattern="constant_opaque",
+            gloss_image=gloss_full,
+            gloss_pattern="max",
+            scenario_params={"gloss_value_range": [255, 255]},
+        ),
+        _write_gloss_scenario_bundle(
+            out_dir,
+            scenario_id="gloss_alpha_coverage",
+            directory=GLOSS_BUNDLE_DIRNAMES[3],
+            purpose=(
+                "#690: COLOR-Alpha 0/128/255 bei konstantem RGB, konstanter "
+                "nicht-null HEIGHT und konstantem nicht-null Gloss."
+            ),
+            color_image=alpha_color,
+            color_pattern="alpha_coverage_fields",
+            height_image=height_mean,
+            height_pattern="mean",
+            gloss_image=gloss_mean,
+            gloss_pattern="mean",
+            scenario_params={
+                "alpha_fields": alpha_fields,
+                "height_value": 32768,
+                "gloss_value": 128,
+            },
+        ),
+        _write_gloss_scenario_bundle(
+            out_dir,
+            scenario_id="gloss_height_cross",
+            directory=GLOSS_BUNDLE_DIRNAMES[4],
+            purpose=(
+                "#690: HEIGHT 0/32768/65535 bei konstant opakem COLOR und "
+                "konstantem nicht-null Gloss."
+            ),
+            color_image=opaque_color,
+            color_pattern="constant_opaque_gloss_height_cross",
+            height_image=height_cross,
+            height_pattern="gloss_height_cross_fields",
+            gloss_image=gloss_mean,
+            gloss_pattern="mean",
+            scenario_params={
+                "height_values": list(GLOSS_CROSS_LEVELS_16BIT),
+                "gloss_value": 128,
+            },
+        ),
+        _write_gloss_scenario_bundle(
+            out_dir,
+            scenario_id="gloss_dimension_mismatch",
+            directory=GLOSS_BUNDLE_DIRNAMES[5],
+            purpose=(
+                "#690: Manifest/COLOR 256×256 gegen Gloss 128×256; Scaling, "
+                "Beschnitt, Zentrierung oder Ablehnung getrennt beobachten."
+            ),
+            color_image=opaque_color,
+            color_pattern="constant_opaque",
+            gloss_image=gloss_mean,
+            gloss_pattern="checkerboard_dimension_mismatch",
+            replacement_gloss=gloss_mismatch,
+            scenario_params={
+                "reference_size_px": list(GLOSS_SIZE),
+                "gloss_size_px": list(GLOSS_DIMENSION_MISMATCH_SIZE),
+            },
+        ),
+    ]
+    assert tuple(bundle["directory"] for bundle in bundles) == GLOSS_BUNDLE_DIRNAMES
+    return bundles
+
+
 def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any]:
     """Schreibt alle ``specs`` als PNG nach ``out_dir`` und das SHA-256-Manifest.
 
@@ -733,7 +1235,14 @@ def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any
     entries: list[dict[str, Any]] = []
     for spec in sorted(specs, key=lambda s: s.filename):
         path = out_dir / spec.filename
-        spec.image.save(path, "PNG", **spec.save_kwargs)
+        unsupported_kwargs = set(spec.save_kwargs) - {"dpi"}
+        if unsupported_kwargs:
+            raise ValueError(
+                f"Nicht unterstützte PNG-Optionen für {spec.filename}: "
+                f"{sorted(unsupported_kwargs)}"
+            )
+        dpi = spec.save_kwargs.get("dpi")
+        _write_fixture_png(spec.image, path, dpi=dpi)
         data = path.read_bytes()
         entries.append({
             "filename": spec.filename,
@@ -747,7 +1256,10 @@ def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any
             "sha256": hashlib.sha256(data).hexdigest(),
             "bytes": len(data),
         })
-    bundles = [_write_export_bundle(out_dir)]
+    bundles = [
+        _write_mm_dpi_export_bundle(out_dir),
+        *_write_gloss_scenario_bundles(out_dir),
+    ]
     manifest = {
         "schema": SCHEMA_VERSION,
         "generated_by": "scripts/eufymake_fixture_generator.py",

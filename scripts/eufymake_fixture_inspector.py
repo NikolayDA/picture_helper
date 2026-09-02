@@ -37,7 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIXTURE_DIR = ROOT / "tests" / "fixtures" / "eufymake_hardware"
 MANIFEST_FILENAME = "fixtures_manifest.json"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-EXPECTED_MANIFEST_SCHEMA = 3
+EXPECTED_MANIFEST_SCHEMA = 4
 
 _PNG_COLOR_TYPE_BY_MODE = {
     "L": 0,

@@ -64,7 +64,7 @@ Der reproduzierbare Standardaufruf am Zielrechner ist:
 ```bash
 python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
-  --expected-manifest-sha256 69186faaf7b06c0b0a74dcdc70a1d2d214214d988c912f15d68433f88f0bc026 \
+  --expected-manifest-sha256 8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758 \
   --output eufymake-pre-import-report.json
 ```
 
@@ -73,16 +73,16 @@ IHDR-Bittiefe/-Farbtyp, vollständige Chunkfolge, `pHYs` und Chunk-CRCs direkt
 aus den übertragenen Dateien. Der Pillow-Modus ist nur ein Diagnosefeld; die
 Formatentscheidung beruht auf IHDR. Der im Befehl fest vorgegebene
 Manifest-SHA bindet das kopierte Verzeichnis an den versionierten Sollsatz.
-Nur Exitcode 0, `"ok": true`, Manifest-Schema 3 und derselbe Soll-Hash erlauben
+Nur Exitcode 0, `"ok": true`, Manifest-Schema 4 und derselbe Soll-Hash erlauben
 den anschließenden Import; der Report wird mit den Nachweisen abgelegt.
 
 **Repository-Gesamtprüfung (2026-09-02, automatisiert, kein Studio-Zugriff):**
-Alle 36 im Repository committeten Einzel-Fixtures und das Vier-Dateien-
-Exportpaket wurden direkt gegen `fixtures_manifest.json` geprüft – SHA-256
+Alle 41 im Repository committeten Einzel-Fixtures und alle sieben
+Exportpakete wurden direkt gegen `fixtures_manifest.json` geprüft – SHA-256
 der Datei, Bytegröße, PNG-Modus/
 IHDR-Bittiefe/-Farbtyp, Maße sowie eine vollständige Chunk-Liste (per
-struct-Parsing der PNG-Bytes, nicht nur über PIL). Ergebnis: **36/36
-Einzel-Fixtures und 1/1 Exportpakete stimmen mit dem Manifest überein**;
+struct-Parsing der PNG-Bytes, nicht nur über PIL). Ergebnis: **41/41
+Einzel-Fixtures und 7/7 Exportpakete stimmen mit dem Manifest überein**;
 keine PNG-Datei enthält
 Chunks außer `IHDR`/`IDAT`/`IEND` und – wo im Manifest dokumentiert –
 `pHYs`. Das ersetzt **nicht** die Prüfung unmittelbar vor dem Import bei dir
@@ -135,6 +135,14 @@ nicht-quadratische `pHYs` achsweise und das Exportmanifest zusätzlich
 semantisch. Das Katalogmanifest `fixtures_manifest.json` ist weiterhin nur
 der Vertrauensanker und **kein** Studio-Eingabemanifest.
 
+**Ergänzung (#690-Vorbereitung, G-01…G-08):** Fünf neue Einzel-Fixtures
+ergänzen Mittelwert, begrenzten 64…192-Keil, dimensionsfremdes Gloss sowie
+die isolierte HEIGHT×Gloss-Kontrolle. Sechs zusätzliche Writer-Pakete trennen
+fehlendes, Null- und voll gesetztes Gloss, Alpha×Gloss, HEIGHT×Gloss und den
+kontrollierten Dimensionsfehler. Die vollständige Zuordnung und die
+Import-/Druckgrenzen stehen in
+[`EUFYMAKE-690-GLOSS-VERTRAG.md`](EUFYMAKE-690-GLOSS-VERTRAG.md).
+
 **Wichtiger Befund dabei:** Mehrere Fixtures mit unterschiedlicher **Rolle**
 sind **bytegleich**, weil sie denselben normalisierten Muster-Generator bei
 gleicher Größe/Bittiefe/PNG-Modus verwenden: `gloss_min.png` ↔
@@ -148,33 +156,33 @@ Dateinamen prüfen, nicht nur den Hash.
 
 | Testzelle | Fixture-Datei | Erwarteter SHA-256 (aus Manifest) | Tatsächlicher SHA-256 | Rolle | PNG-Modus | Bittiefe | `pHYs` vorhanden/Wert | Sonstige relevante Chunks | Ergebnis (OK/Abweichung) | Anmerkung |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| I-01 | `mm_typisch_phys.png` | `e6db39fc9e98bef6df6783214a2e19cdca051f0ed42ef0dfb7ef029d206e2740` | `e6db39fc9e98bef6df6783214a2e19cdca051f0ed42ef0dfb7ef029d206e2740` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | |
-| I-02 | `color_height_reference.png` | `8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493` | `8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 256×256, voll opak; dimensionsgleich zur HEIGHT-Referenz |
-| I-02 | `height_wedge_16bit.png` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| I-03 (8 Bit) | `height_wedge_8bit.png` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_wedge.png` – siehe Hinweis oben |
-| I-03 (16 Bit) | `height_wedge_16bit.png` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| I-04 (Referenz) | `height_wedge_16bit.png` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| I-04 (halbierte Kopie) | `height_wedge_16bit_half.png` | `61f4bea48ec290021db7110d55d49281c0ee9dacca54d424a444e95c8709120b` | `61f4bea48ec290021db7110d55d49281c0ee9dacca54d424a444e95c8709120b` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 128×128, präzisionserhaltend aus `height_wedge_16bit.png` resized (siehe Ergänzung oben); gleiches Seitenverhältnis wie die 256×256-Referenz |
-| I-05 (ohne `pHYs`) | `mm_klein_no_phys.png` | `6eabe8ece8b79a3836e44a710263ad64c1c119432c755e89cbf3252d1dce25e0` | `6eabe8ece8b79a3836e44a710263ad64c1c119432c755e89cbf3252d1dce25e0` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| I-05 (konsistent) | `mm_klein_phys.png` | `37a78c832895222f3ee659f64589fc9096f9e8925c6058f65394db6e1cfb37c8` | `37a78c832895222f3ee659f64589fc9096f9e8925c6058f65394db6e1cfb37c8` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 150 dpi → 150,012 ist Rundungsartefakt des `pHYs`-Ganzzahlformats, kein Fehler |
-| I-05 (widersprüchlich) | `mm_klein_phys_conflict.png` | `1e02f7004559030c7aa859a2c34ecbd7bfce9c4f786a4406eb0b5b5b69fba983` | `1e02f7004559030c7aa859a2c34ecbd7bfce9c4f786a4406eb0b5b5b69fba983` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_klein_*`, `pHYs` bewusst auf 300 statt 150 dpi gesetzt |
-| I-05 (X/Y getrennt) | `mm_typisch_phys_xy.png` | `525fc2c88875c5c7bb53e73f169964173fabd66470d2d1ee74b29fcdfae6382f` | `525fc2c88875c5c7bb53e73f169964173fabd66470d2d1ee74b29fcdfae6382f` | color_motif | RGBA | 8 Bit | vorhanden (11811×5906 px/m ≈ 299.999×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 1200×1200 px; `pHYs` impliziert 101,600×203,183 mm und prüft beide Achsen getrennt |
-| I-06 (`manifest.json` allein) | `export_mm_dpi_conflict/manifest.json` | `23dc74b2ea547ed8708cff59f5abcb08658457d71b1756f9abdc2e40fa3ffb7b` | `23dc74b2ea547ed8708cff59f5abcb08658457d71b1756f9abdc2e40fa3ffb7b` | – | JSON | – | Manifest: 300×300 dpi, 21,674666… mm | – | ✅ OK (Hash + Semantik) | Echtes BgRemover-Exportmanifest; **nicht** `fixtures_manifest.json` |
+| I-01 | `mm_typisch_phys.png` | `c0525c34ab4b689c59031551ecb2e5ea869724f74ef4a6f5870b619c5dd0f2a3` | `c0525c34ab4b689c59031551ecb2e5ea869724f74ef4a6f5870b619c5dd0f2a3` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | |
+| I-02 | `color_height_reference.png` | `f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a` | `f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 256×256, voll opak; dimensionsgleich zur HEIGHT-Referenz |
+| I-02 | `height_wedge_16bit.png` | `45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41` | `45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| I-03 (8 Bit) | `height_wedge_8bit.png` | `1d6df1bfbb11c044d74110fb0ba5511b1813870c38ea9044e1be52c2159d5dd2` | `1d6df1bfbb11c044d74110fb0ba5511b1813870c38ea9044e1be52c2159d5dd2` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_wedge.png` – siehe Hinweis oben |
+| I-03 (16 Bit) | `height_wedge_16bit.png` | `45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41` | `45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| I-04 (Referenz) | `height_wedge_16bit.png` | `45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41` | `45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| I-04 (halbierte Kopie) | `height_wedge_16bit_half.png` | `17ab1efde6ee96be20cf4fa1de935d52f8dcf1d06d8516adf08e7a72f48a59cf` | `17ab1efde6ee96be20cf4fa1de935d52f8dcf1d06d8516adf08e7a72f48a59cf` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 128×128, präzisionserhaltend aus `height_wedge_16bit.png` resized (siehe Ergänzung oben); gleiches Seitenverhältnis wie die 256×256-Referenz |
+| I-05 (ohne `pHYs`) | `mm_klein_no_phys.png` | `24e7b0ded8a855673cc0188d6e6eb9aea2e75af1b977d3379f0d4d4a9a7914e6` | `24e7b0ded8a855673cc0188d6e6eb9aea2e75af1b977d3379f0d4d4a9a7914e6` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| I-05 (konsistent) | `mm_klein_phys.png` | `2c9231761c55a9f6c4ee2141960a761155614f3ea4a5f44f4590a1861b88b697` | `2c9231761c55a9f6c4ee2141960a761155614f3ea4a5f44f4590a1861b88b697` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 150 dpi → 150,012 ist Rundungsartefakt des `pHYs`-Ganzzahlformats, kein Fehler |
+| I-05 (widersprüchlich) | `mm_klein_phys_conflict.png` | `a3362711dd6c5165a88cf206175c2cddfcea3dfe13255d8c844addef1900abf0` | `a3362711dd6c5165a88cf206175c2cddfcea3dfe13255d8c844addef1900abf0` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_klein_*`, `pHYs` bewusst auf 300 statt 150 dpi gesetzt |
+| I-05 (X/Y getrennt) | `mm_typisch_phys_xy.png` | `2eb364226343cc0ba8c58b3df8d2962d34793922f401bb4182ce660b573f2660` | `2eb364226343cc0ba8c58b3df8d2962d34793922f401bb4182ce660b573f2660` | color_motif | RGBA | 8 Bit | vorhanden (11811×5906 px/m ≈ 299.999×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 1200×1200 px; `pHYs` impliziert 101,600×203,183 mm und prüft beide Achsen getrennt |
+| I-06 (`manifest.json` allein) | `export_mm_dpi_conflict/manifest.json` | `67c6310f49a5f6ce93f38dcccce60383d03829143bea6b5372305a1d0aa95128` | `67c6310f49a5f6ce93f38dcccce60383d03829143bea6b5372305a1d0aa95128` | – | JSON | – | Manifest: 300×300 dpi, 21,674666… mm | – | ✅ OK (Hash + Semantik) | Echtes BgRemover-Exportmanifest; **nicht** `fixtures_manifest.json` |
 | I-06 (kompletter Ordner) | exakt vier Dateien in `export_mm_dpi_conflict/` | siehe Bundle-Einträge in `fixtures_manifest.json` | siehe Bundle-Einträge in `fixtures_manifest.json` | COLOR/HEIGHT/GLOSS + Manifest | RGBA/I;16/L/JSON | 8/16/8 Bit | PNGs: ca. 150×150 dpi; Manifest: 300×300 dpi | keine zusätzlichen PNG-Chunks | ✅ OK (4/4 Dateien, Manifestsemantik, Hashes) | Kontrollierter Prioritätstest: 256×256 px und identische Landmarkmasken, aber Manifest- und PNG-Größe widersprechen sich |
-| I-07 | `height_max_8bit.png` | `f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44` | `f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_max.png` |
-| I-07 | `height_max_16bit.png` | `f9e865c79a144fc5f90144136aafae9391e4a8f2efd1e388b8593019a6bdc0ad` | `f9e865c79a144fc5f90144136aafae9391e4a8f2efd1e388b8593019a6bdc0ad` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| I-08 (vor/nach Crop) | `color_height_reference.png` | `8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493` | `8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Asymmetrische X-/Y-Marker; pixelgleich zur HEIGHT-Registriermap |
-| I-08 (vor/nach Crop) | `height_registration_16bit.png` | `aad17d01503fb53e55d50ffb306c8bf05f2842dc53b0eb4c0ce07ad65e18f8d7` | `aad17d01503fb53e55d50ffb306c8bf05f2842dc53b0eb4c0ce07ad65e18f8d7` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Nicht-weiße COLOR-Pixel exakt als 65535-Landmarks, Hintergrund 0 |
-| I-08 (vor/nach Crop) | `gloss_registration.png` | `50bdc5019f79819b9f019259b4710840e21a3d51d77b06367af5c455ece78a04` | `50bdc5019f79819b9f019259b4710840e21a3d51d77b06367af5c455ece78a04` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Dieselben COLOR-Landmarks exakt als 0/255-GLOSS-Maske; gemeinsames 256×256-Tripel |
+| I-07 | `height_max_8bit.png` | `d695fc28e6e329415214cc1f3529299024f999f881289b73d49b9418c900f463` | `d695fc28e6e329415214cc1f3529299024f999f881289b73d49b9418c900f463` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_max.png` |
+| I-07 | `height_max_16bit.png` | `1c56a015e60acb327528a3da4c654dd6a33b49d9b85d44c3929ba77717a4cb0a` | `1c56a015e60acb327528a3da4c654dd6a33b49d9b85d44c3929ba77717a4cb0a` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| I-08 (vor/nach Crop) | `color_height_reference.png` | `f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a` | `f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Asymmetrische X-/Y-Marker; pixelgleich zur HEIGHT-Registriermap |
+| I-08 (vor/nach Crop) | `height_registration_16bit.png` | `355c5f1626fe26d34c83eb22cade8da68acaa650fdde4a10638818c026a17e4f` | `355c5f1626fe26d34c83eb22cade8da68acaa650fdde4a10638818c026a17e4f` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Nicht-weiße COLOR-Pixel exakt als 65535-Landmarks, Hintergrund 0 |
+| I-08 (vor/nach Crop) | `gloss_registration.png` | `7e3c9734ab47bfbf5771b5c7ca28d6cf3899c44291aab4cc81b024710bab4a63` | `7e3c9734ab47bfbf5771b5c7ca28d6cf3899c44291aab4cc81b024710bab4a63` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Dieselben COLOR-Landmarks exakt als 0/255-GLOSS-Maske; gemeinsames 256×256-Tripel |
 | I-09 (Legacy) | externes `.empf` (nicht im Repo) | – | – | – | – | – | – | – | n. z. | Kein BgRemover-Fixture – aus Community-Quelle B1 (`empf-generator`) zu beschaffen |
 | I-09 (aktuell) | ein **aktuell von EufyMake Studio selbst** exportiertes `.empf` (nicht von BgRemover) | – | – | – | – | – | – | – | offen | Kein BgRemover-Fixture – erfordert ein reales Studio-Projekt, aus der aktuellen Studio-Version exportiert. Testzweck laut Annahmeninventar (V2, I-09): prüfen, ob das seit 2.7.0.6 verschlüsselt gekapselte aktuelle `.empf`-Format importierbar bleibt bzw. sich vom alten Legacy-ZIP unterscheidet – **nicht** ob BgRemover `.empf` erzeugen kann (das bleibt bewusst Nicht-Ziel, `OpenQuestion.NATIVE_EMPF_PROJECT`) |
-| I-10 (normal) | `gloss_wedge.png` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_wedge_8bit.png` |
-| I-10 (invertiert) | `gloss_wedge_inverted.png` | `ae9f9c1c4d33b7edea15acb9843b0ddda139134383fd9f33f443edafe43c63d6` | `ae9f9c1c4d33b7edea15acb9843b0ddda139134383fd9f33f443edafe43c63d6` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_wedge_inverted_8bit.png` |
-| I-11 | `height_steps_8bit.png` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_steps.png` – siehe Hinweis oben; validiert, aber nicht die für den Druck vorgesehene Variante (siehe I-11 16 Bit) |
-| I-11 | `height_steps_16bit.png` | `ec6de68fca3a77c895f44f90a1550574501ed533202bad9531f1fcaa390344fc` | `ec6de68fca3a77c895f44f90a1550574501ed533202bad9531f1fcaa390344fc` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Für I-11 gedruckte Variante (16-Bit-kanonisch) |
-| I-12 | `height_wedge_16bit_aspect.png` | `9067d1ecabfc0067ba64c7036e28004e210945637b2c2ba53886596c90f45053` | `9067d1ecabfc0067ba64c7036e28004e210945637b2c2ba53886596c90f45053` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 256×128 (2:1), direkt neu erzeugt statt aus der 256×256-Referenz resized (siehe Ergänzung oben) |
-| I-13 | `color_alpha_coverage.png` | `1d2b8c9a0824ccc7bf669c8c1d89ea448440adde88af55f333242d9d1001f3b3` | `1d2b8c9a0824ccc7bf669c8c1d89ea448440adde88af55f333242d9d1001f3b3` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Drei Felder Alpha 0/128/255; RGB-Payload in allen Feldern konstant 40/80/220 |
-| I-13 | `height_mean_16bit.png` | `37390f6ab68310bd3f5a2f43615d5c7d6784b414cba6ca48a52a6fe1310ec475` | `37390f6ab68310bd3f5a2f43615d5c7d6784b414cba6ca48a52a6fe1310ec475` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 256×256, konstanter digitaler Wert 32768 (> 0) unter allen drei Alpha-Feldern |
+| I-10 (normal) | `gloss_wedge.png` | `1d6df1bfbb11c044d74110fb0ba5511b1813870c38ea9044e1be52c2159d5dd2` | `1d6df1bfbb11c044d74110fb0ba5511b1813870c38ea9044e1be52c2159d5dd2` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_wedge_8bit.png` |
+| I-10 (invertiert) | `gloss_wedge_inverted.png` | `885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c` | `885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_wedge_inverted_8bit.png` |
+| I-11 | `height_steps_8bit.png` | `41a5c094e5712e398ed6ba6b446fcae30f3187e1a5efd6df72733c8d7a435324` | `41a5c094e5712e398ed6ba6b446fcae30f3187e1a5efd6df72733c8d7a435324` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_steps.png` – siehe Hinweis oben; validiert, aber nicht die für den Druck vorgesehene Variante (siehe I-11 16 Bit) |
+| I-11 | `height_steps_16bit.png` | `484ec7250b1d65bc05c72c4f689acf0041253dc1ed531245b309782c4e4e1545` | `484ec7250b1d65bc05c72c4f689acf0041253dc1ed531245b309782c4e4e1545` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Für I-11 gedruckte Variante (16-Bit-kanonisch) |
+| I-12 | `height_wedge_16bit_aspect.png` | `b2ff2d49707123230b73ec193bce2becde174465c723d2f07285cf27a6a0f9a3` | `b2ff2d49707123230b73ec193bce2becde174465c723d2f07285cf27a6a0f9a3` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 256×128 (2:1), direkt neu erzeugt statt aus der 256×256-Referenz resized (siehe Ergänzung oben) |
+| I-13 | `color_alpha_coverage.png` | `a9fb75773d24ab2df21fd27591d32f7717cba79be4e12a6bf5731094fe6efb34` | `a9fb75773d24ab2df21fd27591d32f7717cba79be4e12a6bf5731094fe6efb34` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Drei Felder Alpha 0/128/255; RGB-Payload in allen Feldern konstant 40/80/220 |
+| I-13 | `height_mean_16bit.png` | `5d32c766fc13ec624b4ad78c5628ceeea3669b0650649cda82de9400d5ee0706` | `5d32c766fc13ec624b4ad78c5628ceeea3669b0650649cda82de9400d5ee0706` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 256×256, konstanter digitaler Wert 32768 (> 0) unter allen drei Alpha-Feldern |
 
 **Zusätzliche Fixtures** (nicht in einer I-01…I-13-Zelle referenziert, aber
 Teil des Testdesigns aus #688/#689/#690 und hiermit vollständig
@@ -182,32 +190,33 @@ mitverifiziert – bei Bedarf einer eigenen Testzelle zuordnen):
 
 | Testzelle | Fixture-Datei | Erwarteter SHA-256 (aus Manifest) | Tatsächlicher SHA-256 | Rolle | PNG-Modus | Bittiefe | `pHYs` vorhanden/Wert | Sonstige relevante Chunks | Ergebnis (OK/Abweichung) | Anmerkung |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| zusätzlich | `height_zero_8bit.png` | `39962cd5bc9f4f0446341d3e6e0c6c37336ddeb2e026a17a3d06bb6cb3266daf` | `39962cd5bc9f4f0446341d3e6e0c6c37336ddeb2e026a17a3d06bb6cb3266daf` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_min.png` |
-| zusätzlich | `height_zero_16bit.png` | `2d81bac9f13468076f96a4173ea21535bbf2de69d917dfe5b3ee08934b963e89` | `2d81bac9f13468076f96a4173ea21535bbf2de69d917dfe5b3ee08934b963e89` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| zusätzlich | `height_mean_8bit.png` | `b5d195a24d1de3dd3f3939292a7adb9447aa93ec0680b5bf25e998d70f6c2e73` | `b5d195a24d1de3dd3f3939292a7adb9447aa93ec0680b5bf25e998d70f6c2e73` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| zusätzlich | `height_impulse_edge_8bit.png` | `596a89aa72df7fda9984491b7a7f52d33ca8bf8cf2e705b21f51db2363df5161` | `596a89aa72df7fda9984491b7a7f52d33ca8bf8cf2e705b21f51db2363df5161` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| zusätzlich | `height_impulse_edge_16bit.png` | `7f61d3329d263a2da6cd3635feb22c7bc9f6ffd71c9cf9a8be7762d496e1b1ba` | `7f61d3329d263a2da6cd3635feb22c7bc9f6ffd71c9cf9a8be7762d496e1b1ba` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| zusätzlich | `height_wedge_inverted_8bit.png` | `ae9f9c1c4d33b7edea15acb9843b0ddda139134383fd9f33f443edafe43c63d6` | `ae9f9c1c4d33b7edea15acb9843b0ddda139134383fd9f33f443edafe43c63d6` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_wedge_inverted.png` |
-| zusätzlich | `height_wedge_inverted_16bit.png` | `ca42428dbd0617bf239eb4e1048ed4d05c4b0a9498fd857177cac8139252a198` | `ca42428dbd0617bf239eb4e1048ed4d05c4b0a9498fd857177cac8139252a198` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| zusätzlich | `mm_gross_no_phys.png` | `e1a6a4f82300079b6071c3541db613f0d082000df5f9fb66d661c0c5187e3e26` | `e1a6a4f82300079b6071c3541db613f0d082000df5f9fb66d661c0c5187e3e26` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| zusätzlich | `mm_gross_phys_conflict.png` | `9cf2866558041a29c4abca636d62cf4e8c196a45d750633014e45517698dac27` | `9cf2866558041a29c4abca636d62cf4e8c196a45d750633014e45517698dac27` | color_motif | RGBA | 8 Bit | vorhanden (23622×23622 px/m ≈ 599.999×599.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_gross_*`, `pHYs` bewusst auf 600 statt 300 dpi gesetzt |
-| zusätzlich | `mm_gross_phys.png` | `7aec7e7e67549481f1c97a4069696e00ed51b98ffbeef121037ca2c389b0b318` | `7aec7e7e67549481f1c97a4069696e00ed51b98ffbeef121037ca2c389b0b318` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Nach Entkonfundierung von I-08 weiterhin als zusätzliche mm/DPI-Fixture verifiziert |
-| zusätzlich | `mm_typisch_no_phys.png` | `2f20942d06bfa4c6b2065cbda72353ac4cf07f015a925cf3466e90a5405ccd8a` | `2f20942d06bfa4c6b2065cbda72353ac4cf07f015a925cf3466e90a5405ccd8a` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| zusätzlich | `mm_typisch_phys_conflict.png` | `c9b0e26c8cf86c0a766b3e37a19bbe53a49da86cb392277c955d3bdaffb7f83d` | `c9b0e26c8cf86c0a766b3e37a19bbe53a49da86cb392277c955d3bdaffb7f83d` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_typisch_*`, `pHYs` bewusst auf 150 statt 300 dpi gesetzt |
-| zusätzlich | `gloss_min.png` | `39962cd5bc9f4f0446341d3e6e0c6c37336ddeb2e026a17a3d06bb6cb3266daf` | `39962cd5bc9f4f0446341d3e6e0c6c37336ddeb2e026a17a3d06bb6cb3266daf` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_zero_8bit.png` |
-| zusätzlich | `gloss_max.png` | `f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44` | `f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_max_8bit.png` |
-| zusätzlich | `gloss_steps.png` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | `2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_steps_8bit.png` |
-| zusätzlich | `gloss_checkerboard.png` | `b6f2791be91d19ade1de1f05c858d321201c3b231060b9633ef1dd8323fc161d` | `b6f2791be91d19ade1de1f05c858d321201c3b231060b9633ef1dd8323fc161d` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| zusätzlich | `height_zero_8bit.png` | `94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03` | `94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_min.png` |
+| zusätzlich | `height_zero_16bit.png` | `0632d82f3e9c363f50885749e58a3ff680c4f1bec2a744c4ad06b6ecebbef008` | `0632d82f3e9c363f50885749e58a3ff680c4f1bec2a744c4ad06b6ecebbef008` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| zusätzlich | `height_mean_8bit.png` | `0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9` | `0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| zusätzlich | `height_impulse_edge_8bit.png` | `461a9742e19d84f7e99c776297ad42f8c3858fa2147e5b6bba0ce1f5587d7418` | `461a9742e19d84f7e99c776297ad42f8c3858fa2147e5b6bba0ce1f5587d7418` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| zusätzlich | `height_impulse_edge_16bit.png` | `a89993f4da39b3a70865cc982657faa2407f29747d02fadcd1eb959b19c34125` | `a89993f4da39b3a70865cc982657faa2407f29747d02fadcd1eb959b19c34125` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| zusätzlich | `height_wedge_inverted_8bit.png` | `885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c` | `885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_wedge_inverted.png` |
+| zusätzlich | `height_wedge_inverted_16bit.png` | `7a1a9989196f74464f48d2496a65240d616d9c6c32662505b685435038142f9b` | `7a1a9989196f74464f48d2496a65240d616d9c6c32662505b685435038142f9b` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| zusätzlich | `mm_gross_no_phys.png` | `5e43da317812d3fca68ded78a6576237f10622a724449485429afeb6da6f8a92` | `5e43da317812d3fca68ded78a6576237f10622a724449485429afeb6da6f8a92` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| zusätzlich | `mm_gross_phys_conflict.png` | `a83a8e3f3df2ea3d752a228006f61a3f6edbd57d125597d8f3415333fbf6c00a` | `a83a8e3f3df2ea3d752a228006f61a3f6edbd57d125597d8f3415333fbf6c00a` | color_motif | RGBA | 8 Bit | vorhanden (23622×23622 px/m ≈ 599.999×599.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_gross_*`, `pHYs` bewusst auf 600 statt 300 dpi gesetzt |
+| zusätzlich | `mm_gross_phys.png` | `145bf93d8e1bbc6bc0967bcaccd4fdf6d845d9dc7b1fc3fc446ad3d17e1c6863` | `145bf93d8e1bbc6bc0967bcaccd4fdf6d845d9dc7b1fc3fc446ad3d17e1c6863` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Nach Entkonfundierung von I-08 weiterhin als zusätzliche mm/DPI-Fixture verifiziert |
+| zusätzlich | `mm_typisch_no_phys.png` | `248b71c11e35a3e255035fcfb92de3ce4514d1b2c7c1a46a0948a323453e945f` | `248b71c11e35a3e255035fcfb92de3ce4514d1b2c7c1a46a0948a323453e945f` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| zusätzlich | `mm_typisch_phys_conflict.png` | `ec30dfac21d1ca4695b4c811f3764cb4fd874e2b096811e813c940b5423af8d8` | `ec30dfac21d1ca4695b4c811f3764cb4fd874e2b096811e813c940b5423af8d8` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_typisch_*`, `pHYs` bewusst auf 150 statt 300 dpi gesetzt |
+| zusätzlich | `color_gloss_height_cross.png` | `aef6004a6efe91876df31a2cd934f5440489fa5fb30517e92faac72f039b67aa` | `aef6004a6efe91876df31a2cd934f5440489fa5fb30517e92faac72f039b67aa` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Konstantes opakes COLOR für die isolierte HEIGHT×Gloss-Zelle G-07 |
+| zusätzlich | `height_gloss_cross_16bit.png` | `b655327cf42f8dd29a0c6c969ac1e67c61f45f3f7ec56c5ed761b6350e0a983b` | `b655327cf42f8dd29a0c6c969ac1e67c61f45f3f7ec56c5ed761b6350e0a983b` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Drei Felder 0/32768/65535 für G-07 |
+| zusätzlich | `gloss_min.png` | `94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03` | `94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_zero_8bit.png` |
+| zusätzlich | `gloss_mean.png` | `0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9` | `0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Konstanter Wert 128 für G-01/G-06/G-07 |
+| zusätzlich | `gloss_max.png` | `d695fc28e6e329415214cc1f3529299024f999f881289b73d49b9418c900f463` | `d695fc28e6e329415214cc1f3529299024f999f881289b73d49b9418c900f463` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_max_8bit.png` |
+| zusätzlich | `gloss_steps.png` | `41a5c094e5712e398ed6ba6b446fcae30f3187e1a5efd6df72733c8d7a435324` | `41a5c094e5712e398ed6ba6b446fcae30f3187e1a5efd6df72733c8d7a435324` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_steps_8bit.png` |
+| zusätzlich | `gloss_wedge_limited.png` | `540d8f08e573944cbd7cb7dc5640f5fca92c3227207f88759c45e8b67a28a4a5` | `540d8f08e573944cbd7cb7dc5640f5fca92c3227207f88759c45e8b67a28a4a5` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Monotoner 64…192-Keil zur Normalisierungsprobe G-03 |
+| zusätzlich | `gloss_dimensions_half_width.png` | `9553e045df957630098ad7e12bdfacef5dbd39a38fe74691de68d93b9c33f6b7` | `9553e045df957630098ad7e12bdfacef5dbd39a38fe74691de68d93b9c33f6b7` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 128×256 gegen 256×256-Referenz für G-05 |
+| zusätzlich | `gloss_checkerboard.png` | `b15cd8d2c922053b35d117f3d68d12ad4df828853a3ddc34abb44061a1d70f65` | `b15cd8d2c922053b35d117f3d68d12ad4df828853a3ddc34abb44061a1d70f65` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 
-**Ergebnis der Basisprüfung: 36/36 Einzel-Fixtures und 1/1 Exportpakete OK,
-0 Abweichungen** (29
-ursprüngliche Fixtures zzgl. der
-später ergänzten I-04-Variante `height_wedge_16bit_half.png` und der
-I-12-Variante `height_wedge_16bit_aspect.png`, der beiden COLOR-Kontrollen und
-der HEIGHT-Registriermap sowie der X/Y-DPI- und GLOSS-Registrier-Fixture,
-siehe „Ergänzung" oben; `height_steps_8bit.png`/
-`height_steps_16bit.png` waren
-bereits Teil der ursprünglichen 29, nur ihre Zuordnung zu I-11 ist neu).
+**Ergebnis der Basisprüfung: 41/41 Einzel-Fixtures und 7/7 Exportpakete OK,
+0 Abweichungen** (36 Fixtures aus Schema 3 plus fünf isolierte #690-Fixtures;
+das frühere mm/DPI-Paket plus sechs Gloss-Szenariopakete). Die Zuordnung der
+älteren I-01…I-13-Zellen bleibt unverändert; G-01…G-08 verwenden die neuen
+Dateien und Pakete aus der #690-Ergebnisakte.
 Damit ist die im Repository committete Fixture-Menge nachweislich konsistent
 mit `fixtures_manifest.json`. Das ersetzt **nicht** die Prüfung am Zielrechner:
 die vorausgefüllten „Erwarteter SHA-256"-Werte dienen dort als Referenz, aber
@@ -244,11 +253,11 @@ Dateivalidierungsprotokoll derselben Zeile.
 | I-08 (nach Crop) | | | | | | | Ja / Nein | | |
 | I-09 (Legacy) | | | | | | | Ja / Nein | | |
 | I-09 (aktuell) | | | | | | | Ja / Nein | | |
-| I-10 (normal) | | | | | | | Ja / Nein | | |
-| I-10 (invertiert) | | | | | | | Ja / Nein | | |
+| I-10 (normal) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, 90,31×90,31 mm | „Flat“; keine Rollenzuordnung | Nein | Live-Sitzung, kein Screenshot-Artefakt | Bildimport belegt keine Gloss-Polarität; kein Druck |
+| I-10 (invertiert) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, 90,31×90,31 mm | „Flat“; keine Rollenzuordnung | Nein | Live-Sitzung, kein Screenshot-Artefakt | Bildimport belegt keine Gloss-Polarität; kein Druck |
 | I-11 | | | | | | | Ja / Nein | | |
 | I-12 | | | | | | | Ja / Nein | | |
-| I-13 (Alpha/Coverage) | | | | | | | Ja / Nein | | |
+| I-13 (Alpha/Coverage) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | drei PNGs sichtbar, je 90,31×90,31 mm | drei getrennte „Flat“-Ebenen; keine Rollenzuordnung | Nein | Live-Sitzung, kein Screenshot-Artefakt | Alpha-Felder im COLOR sichtbar; Wirkung auf Gloss/HEIGHT ohne Druck offen |
 
 ### 2.1 mm/DPI-Detailwerte für #689
 
@@ -275,6 +284,29 @@ Rundung wird nach der Regel in
 [`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md)
 bewertet. „Nichts passiert" bleibt auch hier ein Ergebnis und wird zusätzlich
 in der allgemeinen Importtabelle markiert.
+
+### 2.2 Gloss-Importdetailwerte für #690
+
+Live-Sitzung am 2026-09-02 mit Studio 4.2.2 / Editor 1.20.0; E1 online,
+Firmware nicht angezeigt. Der unmittelbar vorher erzeugte Inspectorreport
+bestätigte 41/41 Einzel-Fixtures und 7/7 Pakete. Es wurde weder **Preview**
+noch **Print** ausgelöst.
+
+| Zelle | Importierte Dateien | Studio-Ergebnis | Warnung/Änderung | Belegte Grenze |
+| --- | --- | --- | --- | --- |
+| G-01 | `gloss_min.png`, `gloss_mean.png`, `gloss_max.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | 0/128/255 werden als Bilder akzeptiert, nicht als Glossmenge bestätigt |
+| G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | je 90,31×90,31 mm; sichtbar und getrennt | keine | keine Polaritätsaussage ohne Druck |
+| G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | je 90,31×90,31 mm; Stufen bzw. begrenzter Keil sichtbar | keine | keine Aussage über kontinuierlichen, quantisierten, binären oder normalisierten Auftrag |
+| G-04a/b/c | `export_gloss_absent/` digital; Null/voll über bytegleiche `gloss_min.png`/`gloss_max.png` | fehlend im Paketvertrag; Null/voll als normale Einzelbilder | keine PNG-Warnung; JSON im Bilddialog nicht auswählbar | Bilddialog hat keinen beobachtbaren Paket-/Optionalitätsvertrag |
+| G-05 | `gloss_dimensions_half_width.png` | 128×256 px → 45,16×90,31 mm; X/Y 144,91/164,84 mm; 0° | kein Scaling, Beschnitt oder Fehler | Studio verknüpft die Datei nicht mit COLOR/Manifest und erkennt deshalb keinen Konflikt |
+| G-06 | drei PNGs aus `export_gloss_alpha_coverage/` | je 90,31×90,31 mm; drei unabhängige „Flat“-Ebenen; Alpha-Felder im COLOR sichtbar | keine Rollenzuordnung oder Maskenkopplung | physische Alpha×Gloss-Wirkung offen |
+| G-07 | drei PNGs aus `export_gloss_height_cross/` | je 90,31×90,31 mm; 16-Bit-HEIGHT 0/32768/65535 sichtbar; drei unabhängige „Flat“-Ebenen | keine Rollenzuordnung oder Maskenkopplung | physische HEIGHT×Gloss-Wirkung offen |
+| G-08 | `gloss_registration.png`, `gloss_checkerboard.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Druckregistrierung, Filterung und Bleeding offen |
+
+Bei allen 256×256-Dateien ohne `pHYs` verwendete Studio den bereits in #689
+belegten 72-dpi-Fallback: 90,31×90,31 mm, X/Y 122,34/164,84 mm, 0°. Namen,
+PNG-Modus und gemeinsamer Exportordner erzeugten keine automatische
+COLOR-/HEIGHT-/GLOSS-Semantik.
 
 **„Nichts passiert"-Fall (EM-S03):** Laut Annahmeninventar wurde für Studio
 2.6.0.2 ein still geladener, aber unsichtbarer Import berichtet; spätere

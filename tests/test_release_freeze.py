@@ -182,6 +182,13 @@ def test_docs_history_is_not_a_broad_neutral_class() -> None:
         rpp.CANDIDATE_RELEVANT,
         True,
     )
+    gloss_contract = rpp.classify_path(
+        "docs/history/EUFYMAKE-690-GLOSS-VERTRAG.md", policy
+    )
+    assert (gloss_contract.classification, gloss_contract.explicit) == (
+        rpp.CANDIDATE_RELEVANT,
+        True,
+    )
     unknown = rpp.classify_path("docs/history/NEW_RELEASE_CONTRACT.md", policy)
     assert (unknown.classification, unknown.explicit) == (rpp.CANDIDATE_RELEVANT, False)
 

@@ -1,7 +1,7 @@
 {
-  "schema": 3,
+  "schema": 4,
   "generated_by": "scripts/eufymake_fixture_generator.py",
-  "fixture_count": 36,
+  "fixture_count": 41,
   "fixtures": [
     {
       "filename": "color_alpha_coverage.png",
@@ -40,8 +40,32 @@
         ],
         "purpose": "I-13: Alpha/Coverage bei konstanter nicht-null HEIGHT"
       },
-      "sha256": "1d2b8c9a0824ccc7bf669c8c1d89ea448440adde88af55f333242d9d1001f3b3",
-      "bytes": 870
+      "sha256": "a9fb75773d24ab2df21fd27591d32f7717cba79be4e12a6bf5731094fe6efb34",
+      "bytes": 2593
+    },
+    {
+      "filename": "color_gloss_height_cross.png",
+      "role": "color_motif",
+      "pattern": "constant_opaque_gloss_height_cross",
+      "bit_depth": 8,
+      "png_mode": "RGBA",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "rgba": [
+          80,
+          120,
+          160,
+          255
+        ],
+        "paired_height_file": "height_gloss_cross_16bit.png",
+        "paired_gloss_file": "gloss_mean.png",
+        "purpose": "#690: konstante COLOR-Kontrolle für HEIGHT×Gloss"
+      },
+      "sha256": "aef6004a6efe91876df31a2cd934f5440489fa5fb30517e92faac72f039b67aa",
+      "bytes": 2015
     },
     {
       "filename": "color_height_reference.png",
@@ -63,8 +87,8 @@
         ],
         "purpose": "I-02: dimensionsgleich mit HEIGHT-Keil; I-08: pixelgleiche Registriermarker"
       },
-      "sha256": "8f8cdc241d084ee84ce91cda584cdd826356076a0b831876996345bd59b19493",
-      "bytes": 1773
+      "sha256": "f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a",
+      "bytes": 2565
     },
     {
       "filename": "gloss_checkerboard.png",
@@ -79,8 +103,29 @@
         "height_px": 256,
         "square_px": 16
       },
-      "sha256": "b6f2791be91d19ade1de1f05c858d321201c3b231060b9633ef1dd8323fc161d",
-      "bytes": 605
+      "sha256": "b15cd8d2c922053b35d117f3d68d12ad4df828853a3ddc34abb44061a1d70f65",
+      "bytes": 721
+    },
+    {
+      "filename": "gloss_dimensions_half_width.png",
+      "role": "gloss_mask",
+      "pattern": "checkerboard_dimension_mismatch",
+      "bit_depth": 8,
+      "png_mode": "L",
+      "width": 128,
+      "height": 256,
+      "params": {
+        "width_px": 128,
+        "height_px": 256,
+        "reference_size_px": [
+          256,
+          256
+        ],
+        "square_px": 16,
+        "purpose": "#690: Scaling, Zentrierung, Beschnitt oder Ablehnung einer dimensionsfremden Gloss-Datei unterscheiden"
+      },
+      "sha256": "9553e045df957630098ad7e12bdfacef5dbd39a38fe74691de68d93b9c33f6b7",
+      "bytes": 380
     },
     {
       "filename": "gloss_max.png",
@@ -94,8 +139,33 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44",
-      "bytes": 565
+      "sha256": "d695fc28e6e329415214cc1f3529299024f999f881289b73d49b9418c900f463",
+      "bytes": 707
+    },
+    {
+      "filename": "gloss_mean.png",
+      "role": "gloss_mask",
+      "pattern": "mean",
+      "bit_depth": 8,
+      "png_mode": "L",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "value": 128,
+        "paired_color_files": [
+          "color_alpha_coverage.png",
+          "color_gloss_height_cross.png"
+        ],
+        "paired_height_files": [
+          "height_mean_16bit.png",
+          "height_gloss_cross_16bit.png"
+        ],
+        "purpose": "konstantes nicht-null Gloss für isolierte Kreuztests"
+      },
+      "sha256": "0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9",
+      "bytes": 707
     },
     {
       "filename": "gloss_min.png",
@@ -109,8 +179,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "39962cd5bc9f4f0446341d3e6e0c6c37336ddeb2e026a17a3d06bb6cb3266daf",
-      "bytes": 141
+      "sha256": "94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03",
+      "bytes": 481
     },
     {
       "filename": "gloss_registration.png",
@@ -130,8 +200,8 @@
         "source_rule": "COLOR-Pixel ungleich RGB(255,255,255) ist Landmark",
         "purpose": "I-08: COLOR/HEIGHT/GLOSS-Registrierung auf beiden Achsen"
       },
-      "sha256": "50bdc5019f79819b9f019259b4710840e21a3d51d77b06367af5c455ece78a04",
-      "bytes": 835
+      "sha256": "7e3c9734ab47bfbf5771b5c7ca28d6cf3899c44291aab4cc81b024710bab4a63",
+      "bytes": 1535
     },
     {
       "filename": "gloss_steps.png",
@@ -145,8 +215,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a",
-      "bytes": 591
+      "sha256": "41a5c094e5712e398ed6ba6b446fcae30f3187e1a5efd6df72733c8d7a435324",
+      "bytes": 726
     },
     {
       "filename": "gloss_wedge.png",
@@ -160,8 +230,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8",
-      "bytes": 564
+      "sha256": "1d6df1bfbb11c044d74110fb0ba5511b1813870c38ea9044e1be52c2159d5dd2",
+      "bytes": 974
     },
     {
       "filename": "gloss_wedge_inverted.png",
@@ -175,8 +245,66 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "ae9f9c1c4d33b7edea15acb9843b0ddda139134383fd9f33f443edafe43c63d6",
-      "bytes": 564
+      "sha256": "885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c",
+      "bytes": 974
+    },
+    {
+      "filename": "gloss_wedge_limited.png",
+      "role": "gloss_mask",
+      "pattern": "wedge_limited",
+      "bit_depth": 8,
+      "png_mode": "L",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "value_range": [
+          64,
+          192
+        ],
+        "purpose": "GL-01: automatische Min/Max-Normalisierung von echter Intensitätsabbildung unterscheiden"
+      },
+      "sha256": "540d8f08e573944cbd7cb7dc5640f5fca92c3227207f88759c45e8b67a28a4a5",
+      "bytes": 972
+    },
+    {
+      "filename": "height_gloss_cross_16bit.png",
+      "role": "height_map",
+      "pattern": "gloss_height_cross_fields",
+      "bit_depth": 16,
+      "png_mode": "I;16",
+      "width": 256,
+      "height": 256,
+      "params": {
+        "width_px": 256,
+        "height_px": 256,
+        "fields": [
+          {
+            "x_start": 0,
+            "x_end_exclusive": 85,
+            "normalized_value": 0.0,
+            "value_16bit": 0
+          },
+          {
+            "x_start": 85,
+            "x_end_exclusive": 171,
+            "normalized_value": 0.5000076295109483,
+            "value_16bit": 32768
+          },
+          {
+            "x_start": 171,
+            "x_end_exclusive": 256,
+            "normalized_value": 1.0,
+            "value_16bit": 65535
+          }
+        ],
+        "paired_color_file": "color_gloss_height_cross.png",
+        "paired_gloss_file": "gloss_mean.png",
+        "purpose": "#690: HEIGHT 0/32768/65535 bei konstantem nicht-null Gloss"
+      },
+      "sha256": "b655327cf42f8dd29a0c6c969ac1e67c61f45f3f7ec56c5ed761b6350e0a983b",
+      "bytes": 1409
     },
     {
       "filename": "height_impulse_edge_16bit.png",
@@ -190,8 +318,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "7f61d3329d263a2da6cd3635feb22c7bc9f6ffd71c9cf9a8be7762d496e1b1ba",
-      "bytes": 702
+      "sha256": "a89993f4da39b3a70865cc982657faa2407f29747d02fadcd1eb959b19c34125",
+      "bytes": 1410
     },
     {
       "filename": "height_impulse_edge_8bit.png",
@@ -205,8 +333,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "596a89aa72df7fda9984491b7a7f52d33ca8bf8cf2e705b21f51db2363df5161",
-      "bytes": 587
+      "sha256": "461a9742e19d84f7e99c776297ad42f8c3858fa2147e5b6bba0ce1f5587d7418",
+      "bytes": 714
     },
     {
       "filename": "height_max_16bit.png",
@@ -220,8 +348,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "f9e865c79a144fc5f90144136aafae9391e4a8f2efd1e388b8593019a6bdc0ad",
-      "bytes": 693
+      "sha256": "1c56a015e60acb327528a3da4c654dd6a33b49d9b85d44c3929ba77717a4cb0a",
+      "bytes": 1154
     },
     {
       "filename": "height_max_8bit.png",
@@ -235,8 +363,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44",
-      "bytes": 565
+      "sha256": "d695fc28e6e329415214cc1f3529299024f999f881289b73d49b9418c900f463",
+      "bytes": 707
     },
     {
       "filename": "height_mean_16bit.png",
@@ -250,8 +378,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "37390f6ab68310bd3f5a2f43615d5c7d6784b414cba6ca48a52a6fe1310ec475",
-      "bytes": 693
+      "sha256": "5d32c766fc13ec624b4ad78c5628ceeea3669b0650649cda82de9400d5ee0706",
+      "bytes": 1152
     },
     {
       "filename": "height_mean_8bit.png",
@@ -265,8 +393,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "b5d195a24d1de3dd3f3939292a7adb9447aa93ec0680b5bf25e998d70f6c2e73",
-      "bytes": 565
+      "sha256": "0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9",
+      "bytes": 707
     },
     {
       "filename": "height_registration_16bit.png",
@@ -285,8 +413,8 @@
         "source_rule": "COLOR-Pixel ungleich RGB(255,255,255) ist Landmark",
         "purpose": "I-08: horizontale und vertikale Crop-Registrierung"
       },
-      "sha256": "aad17d01503fb53e55d50ffb306c8bf05f2842dc53b0eb4c0ce07ad65e18f8d7",
-      "bytes": 1251
+      "sha256": "355c5f1626fe26d34c83eb22cade8da68acaa650fdde4a10638818c026a17e4f",
+      "bytes": 1552
     },
     {
       "filename": "height_steps_16bit.png",
@@ -300,8 +428,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "ec6de68fca3a77c895f44f90a1550574501ed533202bad9531f1fcaa390344fc",
-      "bytes": 711
+      "sha256": "484ec7250b1d65bc05c72c4f689acf0041253dc1ed531245b309782c4e4e1545",
+      "bytes": 1429
     },
     {
       "filename": "height_steps_8bit.png",
@@ -315,8 +443,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "2d940cfad6c57f9678a82b7b19641ecf41f9100f816ca84981bc51535bb6e13a",
-      "bytes": 591
+      "sha256": "41a5c094e5712e398ed6ba6b446fcae30f3187e1a5efd6df72733c8d7a435324",
+      "bytes": 726
     },
     {
       "filename": "height_wedge_16bit.png",
@@ -330,8 +458,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f",
-      "bytes": 657
+      "sha256": "45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41",
+      "bytes": 1940
     },
     {
       "filename": "height_wedge_16bit_aspect.png",
@@ -350,8 +478,8 @@
         ],
         "note": "Seitenverhältnis 2:1 statt 1:1 wie die übrigen Höhen-Fixtures (H-03)."
       },
-      "sha256": "9067d1ecabfc0067ba64c7036e28004e210945637b2c2ba53886596c90f45053",
-      "bytes": 369
+      "sha256": "b2ff2d49707123230b73ec193bce2becde174465c723d2f07285cf27a6a0f9a3",
+      "bytes": 1271
     },
     {
       "filename": "height_wedge_16bit_half.png",
@@ -372,8 +500,8 @@
         ],
         "resize_method": "bgremover.height_map.resize_height_field (LANCZOS)"
       },
-      "sha256": "61f4bea48ec290021db7110d55d49281c0ee9dacca54d424a444e95c8709120b",
-      "bytes": 348
+      "sha256": "17ab1efde6ee96be20cf4fa1de935d52f8dcf1d06d8516adf08e7a72f48a59cf",
+      "bytes": 655
     },
     {
       "filename": "height_wedge_8bit.png",
@@ -387,8 +515,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8",
-      "bytes": 564
+      "sha256": "1d6df1bfbb11c044d74110fb0ba5511b1813870c38ea9044e1be52c2159d5dd2",
+      "bytes": 974
     },
     {
       "filename": "height_wedge_inverted_16bit.png",
@@ -402,8 +530,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "ca42428dbd0617bf239eb4e1048ed4d05c4b0a9498fd857177cac8139252a198",
-      "bytes": 656
+      "sha256": "7a1a9989196f74464f48d2496a65240d616d9c6c32662505b685435038142f9b",
+      "bytes": 1940
     },
     {
       "filename": "height_wedge_inverted_8bit.png",
@@ -417,8 +545,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "ae9f9c1c4d33b7edea15acb9843b0ddda139134383fd9f33f443edafe43c63d6",
-      "bytes": 564
+      "sha256": "885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c",
+      "bytes": 974
     },
     {
       "filename": "height_zero_16bit.png",
@@ -432,8 +560,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "2d81bac9f13468076f96a4173ea21535bbf2de69d917dfe5b3ee08934b963e89",
-      "bytes": 206
+      "sha256": "0632d82f3e9c363f50885749e58a3ff680c4f1bec2a744c4ad06b6ecebbef008",
+      "bytes": 895
     },
     {
       "filename": "height_zero_8bit.png",
@@ -447,8 +575,8 @@
         "width_px": 256,
         "height_px": 256
       },
-      "sha256": "39962cd5bc9f4f0446341d3e6e0c6c37336ddeb2e026a17a3d06bb6cb3266daf",
-      "bytes": 141
+      "sha256": "94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03",
+      "bytes": 481
     },
     {
       "filename": "mm_gross_no_phys.png",
@@ -469,8 +597,8 @@
         ],
         "phys_dpi": null
       },
-      "sha256": "e1a6a4f82300079b6071c3541db613f0d082000df5f9fb66d661c0c5187e3e26",
-      "bytes": 34561
+      "sha256": "5e43da317812d3fca68ded78a6576237f10622a724449485429afeb6da6f8a92",
+      "bytes": 127004
     },
     {
       "filename": "mm_gross_phys.png",
@@ -495,8 +623,8 @@
           152.4
         ]
       },
-      "sha256": "7aec7e7e67549481f1c97a4069696e00ed51b98ffbeef121037ca2c389b0b318",
-      "bytes": 34582
+      "sha256": "145bf93d8e1bbc6bc0967bcaccd4fdf6d845d9dc7b1fc3fc446ad3d17e1c6863",
+      "bytes": 127025
     },
     {
       "filename": "mm_gross_phys_conflict.png",
@@ -522,8 +650,8 @@
         ],
         "note": "pHYs widerspricht bewusst der nominalen DPI-Annahme bei gleichem Pixelmaß (I-05)."
       },
-      "sha256": "9cf2866558041a29c4abca636d62cf4e8c196a45d750633014e45517698dac27",
-      "bytes": 34582
+      "sha256": "a83a8e3f3df2ea3d752a228006f61a3f6edbd57d125597d8f3415333fbf6c00a",
+      "bytes": 127025
     },
     {
       "filename": "mm_klein_no_phys.png",
@@ -544,8 +672,8 @@
         ],
         "phys_dpi": null
       },
-      "sha256": "6eabe8ece8b79a3836e44a710263ad64c1c119432c755e89cbf3252d1dce25e0",
-      "bytes": 2190
+      "sha256": "24e7b0ded8a855673cc0188d6e6eb9aea2e75af1b977d3379f0d4d4a9a7914e6",
+      "bytes": 3388
     },
     {
       "filename": "mm_klein_phys.png",
@@ -570,8 +698,8 @@
           50.8
         ]
       },
-      "sha256": "37a78c832895222f3ee659f64589fc9096f9e8925c6058f65394db6e1cfb37c8",
-      "bytes": 2211
+      "sha256": "2c9231761c55a9f6c4ee2141960a761155614f3ea4a5f44f4590a1861b88b697",
+      "bytes": 3409
     },
     {
       "filename": "mm_klein_phys_conflict.png",
@@ -597,8 +725,8 @@
         ],
         "note": "pHYs widerspricht bewusst der nominalen DPI-Annahme bei gleichem Pixelmaß (I-05)."
       },
-      "sha256": "1e02f7004559030c7aa859a2c34ecbd7bfce9c4f786a4406eb0b5b5b69fba983",
-      "bytes": 2211
+      "sha256": "a3362711dd6c5165a88cf206175c2cddfcea3dfe13255d8c844addef1900abf0",
+      "bytes": 3409
     },
     {
       "filename": "mm_typisch_no_phys.png",
@@ -619,8 +747,8 @@
         ],
         "phys_dpi": null
       },
-      "sha256": "2f20942d06bfa4c6b2065cbda72353ac4cf07f015a925cf3466e90a5405ccd8a",
-      "bytes": 12256
+      "sha256": "248b71c11e35a3e255035fcfb92de3ce4514d1b2c7c1a46a0948a323453e945f",
+      "bytes": 49712
     },
     {
       "filename": "mm_typisch_phys.png",
@@ -645,8 +773,8 @@
           101.6
         ]
       },
-      "sha256": "e6db39fc9e98bef6df6783214a2e19cdca051f0ed42ef0dfb7ef029d206e2740",
-      "bytes": 12277
+      "sha256": "c0525c34ab4b689c59031551ecb2e5ea869724f74ef4a6f5870b619c5dd0f2a3",
+      "bytes": 49733
     },
     {
       "filename": "mm_typisch_phys_conflict.png",
@@ -672,8 +800,8 @@
         ],
         "note": "pHYs widerspricht bewusst der nominalen DPI-Annahme bei gleichem Pixelmaß (I-05)."
       },
-      "sha256": "c9b0e26c8cf86c0a766b3e37a19bbe53a49da86cb392277c955d3bdaffb7f83d",
-      "bytes": 12277
+      "sha256": "ec30dfac21d1ca4695b4c811f3764cb4fd874e2b096811e813c940b5423af8d8",
+      "bytes": 49733
     },
     {
       "filename": "mm_typisch_phys_xy.png",
@@ -702,11 +830,11 @@
         ],
         "note": "pHYs kodiert absichtlich getrennte X-/Y-DPI. Studio muss anzeigen, koppeln, normalisieren oder ablehnen (I-05)."
       },
-      "sha256": "525fc2c88875c5c7bb53e73f169964173fabd66470d2d1ee74b29fcdfae6382f",
-      "bytes": 12201
+      "sha256": "2eb364226343cc0ba8c58b3df8d2962d34793922f401bb4182ce660b573f2660",
+      "bytes": 49733
     }
   ],
-  "bundle_count": 1,
+  "bundle_count": 7,
   "bundles": [
     {
       "id": "i06_manifest_vs_phys",
@@ -753,8 +881,8 @@
               150
             ]
           },
-          "sha256": "d8acbd345f441c54d79c50db9f3a54c7e8848009d1f8dbef20be77722a501154",
-          "bytes": 1794
+          "sha256": "07dc86049fddc78998b58c9b7cf9fc9f5249d07d9285b74cc9a5f60d2d32d010",
+          "bytes": 2586
         },
         {
           "filename": "gloss_mask.png",
@@ -771,8 +899,8 @@
               150
             ]
           },
-          "sha256": "71b575aacd8e1982a0de60da267e41d8764273f2c38584d62e1020e9e97ca78e",
-          "bytes": 856
+          "sha256": "1992e519766f7c5cb1b23727f5c13de1ee3a659766ecdd61e544c4d75dcd6442",
+          "bytes": 1556
         },
         {
           "filename": "height_map.png",
@@ -789,14 +917,453 @@
               150
             ]
           },
-          "sha256": "b709622bb7eac4c3a49a1ea86d721dc890d76b69386c41c295a49d2068846cfb",
-          "bytes": 1272
+          "sha256": "042cdfcce83c289537671cc0b5fc664af7c738ebea4bea0b1713ca121b2cc46e",
+          "bytes": 1573
         },
         {
           "filename": "manifest.json",
           "media_type": "application/json",
-          "sha256": "23dc74b2ea547ed8708cff59f5abcb08658457d71b1756f9abdc2e40fa3ffb7b",
-          "bytes": 1165
+          "sha256": "67c6310f49a5f6ce93f38dcccce60383d03829143bea6b5372305a1d0aa95128",
+          "bytes": 1164
+        }
+      ]
+    },
+    {
+      "id": "gloss_absent",
+      "directory": "export_gloss_absent",
+      "purpose": "#690: sicherer Default ohne explizite Gloss-Rolle; Paket darf keine gloss_mask.png referenzieren oder schreiben.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "scenario_params": {},
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png"
+        ]
+      },
+      "file_count": 2,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "constant_opaque",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "7e7b152fc41132a8092cae045c7cd994ab0dc2008aef5c464ace9622e5c80376",
+          "bytes": 652
+        }
+      ]
+    },
+    {
+      "id": "gloss_zero",
+      "directory": "export_gloss_zero",
+      "purpose": "#690: vorhandene gültige 0-GLOSS-Datei getrennt von fehlendem Gloss.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "scenario_params": {
+        "gloss_value_range": [
+          0,
+          0
+        ]
+      },
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 3,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "constant_opaque",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "zero",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "5933d4c44ed2bc2f431e2698b41923a18d056b24b450540bb109e7592a547060",
+          "bytes": 143
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "fb35d488fe5320c4251b9e5563e4a173d9eb973af4be58945ece20779cc71a87",
+          "bytes": 866
+        }
+      ]
+    },
+    {
+      "id": "gloss_full",
+      "directory": "export_gloss_full",
+      "purpose": "#690: voll gesetzte 255-GLOSS-Datei als Gegenprobe zur 0-Datei.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "scenario_params": {
+        "gloss_value_range": [
+          255,
+          255
+        ]
+      },
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 3,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "constant_opaque",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "max",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "f06e89dc7f39be266a34ab9d56c628694bcc6f491e27b9fad873cfa459731143",
+          "bytes": 464
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "fb35d488fe5320c4251b9e5563e4a173d9eb973af4be58945ece20779cc71a87",
+          "bytes": 866
+        }
+      ]
+    },
+    {
+      "id": "gloss_alpha_coverage",
+      "directory": "export_gloss_alpha_coverage",
+      "purpose": "#690: COLOR-Alpha 0/128/255 bei konstantem RGB, konstanter nicht-null HEIGHT und konstantem nicht-null Gloss.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "scenario_params": {
+        "alpha_fields": [
+          {
+            "x_start": 0,
+            "x_end_exclusive": 85,
+            "alpha": 0
+          },
+          {
+            "x_start": 85,
+            "x_end_exclusive": 171,
+            "alpha": 128
+          },
+          {
+            "x_start": 171,
+            "x_end_exclusive": 256,
+            "alpha": 255
+          }
+        ],
+        "height_value": 32768,
+        "gloss_value": 128
+      },
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png",
+          "height_map.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 4,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "alpha_coverage_fields",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "1d2b8c9a0824ccc7bf669c8c1d89ea448440adde88af55f333242d9d1001f3b3",
+          "bytes": 870
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "mean",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "fa3ef870d4b45a0e3b3d1fa2ed2c01afc90d72d8f67659d0fd3258764b737b27",
+          "bytes": 464
+        },
+        {
+          "filename": "height_map.png",
+          "media_type": "image/png",
+          "role": "height_map",
+          "pattern": "mean",
+          "bit_depth": 16,
+          "png_mode": "I;16",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "16482787786a1142075cd9f66f22a7b061f9c0907524ddac82b7a30e6b08ee54",
+          "bytes": 693
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "43dfe1ecca8be7182ce636edce0e9ccd00821f56b8c8257f1de8072bd2224d15",
+          "bytes": 1082
+        }
+      ]
+    },
+    {
+      "id": "gloss_height_cross",
+      "directory": "export_gloss_height_cross",
+      "purpose": "#690: HEIGHT 0/32768/65535 bei konstant opakem COLOR und konstantem nicht-null Gloss.",
+      "generated_via": "bgremover.eufymake_writer.write_export",
+      "scenario_params": {
+        "height_values": [
+          0,
+          32768,
+          65535
+        ],
+        "gloss_value": 128
+      },
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png",
+          "height_map.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 4,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "constant_opaque_gloss_height_cross",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "mean",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "fa3ef870d4b45a0e3b3d1fa2ed2c01afc90d72d8f67659d0fd3258764b737b27",
+          "bytes": 464
+        },
+        {
+          "filename": "height_map.png",
+          "media_type": "image/png",
+          "role": "height_map",
+          "pattern": "gloss_height_cross_fields",
+          "bit_depth": 16,
+          "png_mode": "I;16",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "7ddca45053998069ed5711e8696fdc6d85312505f3bb3ee3420828674476ba49",
+          "bytes": 701
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "43dfe1ecca8be7182ce636edce0e9ccd00821f56b8c8257f1de8072bd2224d15",
+          "bytes": 1082
+        }
+      ]
+    },
+    {
+      "id": "gloss_dimension_mismatch",
+      "directory": "export_gloss_dimension_mismatch",
+      "purpose": "#690: Manifest/COLOR 256×256 gegen Gloss 128×256; Scaling, Beschnitt, Zentrierung oder Ablehnung getrennt beobachten.",
+      "generated_via": "bgremover.eufymake_writer.write_export + kontrollierter Dimensionsersatz von gloss_mask.png",
+      "scenario_params": {
+        "reference_size_px": [
+          256,
+          256
+        ],
+        "gloss_size_px": [
+          128,
+          256
+        ]
+      },
+      "manifest_contract": {
+        "profile": "bgremover-eufymake-import",
+        "profile_version": 1,
+        "kind": "eufymake_import_assets",
+        "pixel_size": [
+          256,
+          256
+        ],
+        "bit_depth": 16,
+        "physical_size_mm": null,
+        "dpi": null,
+        "assets": [
+          "color_motif.png",
+          "gloss_mask.png"
+        ]
+      },
+      "file_count": 3,
+      "files": [
+        {
+          "filename": "color_motif.png",
+          "media_type": "image/png",
+          "role": "color_motif",
+          "pattern": "constant_opaque",
+          "bit_depth": 8,
+          "png_mode": "RGBA",
+          "width": 256,
+          "height": 256,
+          "params": {
+            "phys_dpi": null
+          },
+          "sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+          "bytes": 859
+        },
+        {
+          "filename": "gloss_mask.png",
+          "media_type": "image/png",
+          "role": "gloss_mask",
+          "pattern": "checkerboard_dimension_mismatch",
+          "bit_depth": 8,
+          "png_mode": "L",
+          "width": 128,
+          "height": 256,
+          "params": {
+            "phys_dpi": null,
+            "intentional_dimension_mismatch": true,
+            "reference_size_px": [
+              256,
+              256
+            ]
+          },
+          "sha256": "9553e045df957630098ad7e12bdfacef5dbd39a38fe74691de68d93b9c33f6b7",
+          "bytes": 380
+        },
+        {
+          "filename": "manifest.json",
+          "media_type": "application/json",
+          "sha256": "fb35d488fe5320c4251b9e5563e4a173d9eb973af4be58945ece20779cc71a87",
+          "bytes": 866
         }
       ]
     }
