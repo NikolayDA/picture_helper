@@ -106,7 +106,7 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 18 | I-10 (invertiert) | ☐ | ☐ |
 | 19 | I-11 | ☐ | ☐ |
 | 20 | I-12 | ☐ | ☐ |
-| 21 | I-13 (Alpha/Coverage) | ☐ | ☐ |
+| 21 | I-13 (Alpha/Coverage) | ☑ | ☑ |
 | 22 | G-01 (Gloss min/mittel/max) | ☑ | ☑ |
 | 23 | G-02 (normal/invertiert) | ☑ | ☑ |
 | 24 | G-03 (Stufen + 64…192-Keil) | ☑ | ☑ |
@@ -116,11 +116,14 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 28 | G-07 (HEIGHT 0/32768/65535 × Gloss 128) | ☑ | ☑ |
 | 29 | G-08 (Registrierung/Schachbrett) | ☑ | ☑ |
 
-Die #690-Zeilen 22–29 wurden am 2026-09-02 mit Studio 4.2.2 / Editor 1.20.0
-abgeschlossen und in der #690-Ergebnisakte protokolliert. „Import“ bedeutet
-hier ausdrücklich den Bilddialog-Grenzbefund: getrennte „Flat“-Ebenen ohne
-native GLOSS-Zuordnung. Es wurde weder **Preview** noch **Print** ausgelöst;
-die physischen Aussagen bleiben offen.
+Die #688-Zeile 21 (I-13) wurde am 2026-09-02 mit Studio 4.2.2 /
+Editor 1.20.0 dateivalidiert und importiert; der Befund ist in der
+Importprotokoll-Tabelle der Protokollvorlagen festgehalten. Die #690-Zeilen
+22–29 wurden am selben Tag mit derselben Studio-/Editor-Version abgeschlossen
+und in der #690-Ergebnisakte protokolliert. „Import“ bedeutet hier ausdrücklich
+den Bilddialog-Grenzbefund: getrennte „Flat“-Ebenen ohne native
+HEIGHT-/GLOSS-Zuordnung oder Maskenkopplung. Es wurde weder **Preview** noch
+**Print** ausgelöst; die physischen Aussagen bleiben offen.
 
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 
