@@ -11,51 +11,30 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-08-31, v2.9.0 published, open inventory fully audited)
+## Current Status (2026-09-02, v2.9.0 published, open inventory fully audited)
 
-**Daily audit 2026-08-31 (state `551d055`):** The twelve PRs merged today
-(#927–#932, #935–#938, #940, and #941) and the issues they closed (#918–#923,
-#933, and #934) were reviewed: the complete merge diffs, review follow-ups,
-and, where present, their regression tests. The release ref and retry paths,
-security report, runner heartbeat/dry run, preparation scaffold, and Qt/GL
-preflight are implemented consistently. The adversarial re-check in the
-review of PR #942, however, surfaced five concrete residual findings in the
-process scripts – verified, bundled as follow-up issue #943, and fixed
-with this state.
+**Daily audit 2026-09-02 (state `1ec9d96`):** 42 open issues checked against
+the GitHub live state. The triage table had been wrong in all six versions
+since 2026-08-30 – `recommendations-live-check` has been red ever since:
+**#914**, **#918**, **#939**, and **#949** were missing, and **#692** was
+still listed as open (closed on 2026-09-01 via PR #947). The daily audit of
+2026-08-31 also listed #918 as closed; it had been reopened the same day after
+its completion check and now only awaits the next real release run. This round
+corrects both. Newly assessed: #949 (test-suite audit, four actionable test
+changes, no production defect), #939 (permanent heartbeat alert channel, do
+not close), and the epic bracket #914. No new 🔴 finding.
 
-**Routine check 2026-08-30 (delta after the full audit):** The 39 open issues
-fully and adversarially checked against `main` (product state `411d47c`) on
-2026-08-29 are unchanged; HEAD `1d31f2a` only adds documentation afterward.
-The updated descriptions #681/#882/#905/#906 and the fixture/test-cell gaps in
-the EufyMake real-world tests #688–#690 therefore remain correctly visible.
-New #912 was checked separately against the Qt advisory and the pinned
-artifact: CVSS 4.0 is 6.3, not 6.8, and vulnerable `QtCore5Compat` is not
-shipped. #912 was corrected and closed as “not affected”; no false accepted-
-risk entry and no new 🔴 finding.
+**Release assessment: no new release is due.** Since `v2.9.0` (2026-08-29)
+there are 25 mainline commits – exclusively release automation, documentation,
+and governance; `[Unreleased]` is empty, and inside the `bgremover/` package
+only the evidence hook `update_check_probe.py` (#917) changed. A candidate
+build would carry no user-visible content. Intended scope for a later
+**v2.10.0**: the COLOR tone/grayscale engine (#693/#694 from epic #682) on top
+of the now-approved ADR #692, optionally plus #949.
 
-**Addendum 2026-08-29:** v2.9.0 is published. Hardware acceptance passed on
-macOS arm64 and Linux arm64 with real GPU renderers, tag and publication are
-verified byte for byte against the approval manifest, and `PUBLIC-DOWNLOAD-01`
-and `UPDATE-01` are satisfied. #881 is therefore closed; the deliberately
-paused Linux x86_64 criteria remain visibly `PENDING`. #878 was implemented by
-PR #908; this closeout sync closes the issue and removes it from all six
-current triage tables.
+**EufyMake #681/#687–#691:** fixtures, protocol templates, and approved test governance are reflected in the issues; the open PR #948 raises the set to 33 fixtures, adds an alpha/coverage cell, a dimension-matched COLOR/HEIGHT pair, and a pre-import inspector, and documents two Studio imports (4.2.2) without printing. #687 is at 16/18 criteria; only I-06 (folder/manifest) and the closeout review after the real tests remain. For the separate Spot UV path, the manufacturer-backed hypothesis is black = gloss and white = no gloss. Full 16-bit use, `pHYs` priority, grayscale-to-mm mapping, and gloss intensity remain hardware questions in #688–#690.
 
-**Routine check 2026-08-28:** The GitHub live comparison adds the previously
-missing open issues **#878**, **#881**, **#882**, and the newly created MAS
-sub-issues **#883–#907**. At that point, #878 was intended to close the gap
-between the standard/expert UI and the user guide, including current
-screenshots and PDF; implementation has since been completed by PR #908.
-#881 is the binding acceptance and publication record
-for 2.9.0; candidate build and pre-check are green, while hardware acceptance
-and human approvals remain open. #882 collects the Mac App Store path as a
-blocked epic; #883–#907 make its licensing, account, sandbox, packaging, store, and operations
-phases concrete. The licensing strategy must be decided before technical
-work. No new 🔴 finding is open.
-
-**EufyMake #681/#687–#691:** the 31 fixtures, protocol templates, and approved test governance are now reflected in the issues. #687 is at 16/18 criteria; only I-06 (folder/manifest) and the closeout review after the real tests remain. For the separate Spot UV path, the manufacturer-backed hypothesis is black = gloss and white = no gloss. Full 16-bit use, `pHYs` priority, grayscale-to-mm mapping, and gloss intensity remain hardware questions in #688–#690.
-
-Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (closed by the owner), #847 (PR #852), #866 (PR #870/#871), #869 (PR #873), #881 (closed by the owner), and #878 (PR #908/#910) (details: Previous Rounds).
+Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.9.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #943 (PR #944) and #692 (PR #947) (details: Previous Rounds).
 
 Open items: one row per issue in the triage table below. Neither the count nor the rows are maintained by hand as of #821 – `scripts/recommendations_live_check.py --write` updates all six versions from the GitHub live state, while the rating columns stay editorial work.
 
@@ -65,13 +44,12 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 |---|-------|-----------|------------|------------------------------|-----------|
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake target profile – validate Height/Gloss/mm-DPI | 🟠 High (correctness of the main export target) | 🔴 High (5 sub-issues, needs physical hardware) | – (epic) | #687 preparation is at 16/18 AC; I-06 and closeout review remain, while profile integration #691 waits on real tests #688–#690 |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Assumption inventory, manufacturer sources, test matrix | 🟠 High (binding foundation for #688–#691) | 🔴 High (own deliverables done; fixture/test-cell gaps from #688–#690 open, remainder needs real hardware) | – (no agent; needs real EufyMake hardware) | Blocked (external) – 16/18 acceptance criteria done; open: I-06 for folder/manifest and the closeout review after real tests #688–#690 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Validate HEIGHT bit depth/semantics on real hardware | 🟠 High (directly affects relief height) | 🔴 High (physical printer, fixtures, measurement log) | – (no agent; needs real EufyMake hardware) | Blocked (external) + groundwork open – fixtures/protocol templates from #687 are in place, but alpha/coverage has neither a fixture nor a test cell (all COLOR fixtures are opaque) and a COLOR/HEIGHT pair with the same pixel dimensions is missing (I-02/I-08 confounded); add both before the test day |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Validate HEIGHT bit depth/semantics on real hardware | 🟠 High (directly affects relief height) | 🔴 High (physical printer, fixtures, measurement log) | – (no agent; needs real EufyMake hardware) | In review + blocked (external) – PR #948 closes the groundwork (33 fixtures incl. alpha/coverage, a dimension-matched COLOR/HEIGHT pair, a pre-import inspector) and documents two Studio imports; the physical print, relief, and mm measurements remain open |
 | [#689](https://github.com/NikolayDA/picture_helper/issues/689) | Validate mm/DPI, target size, positioning contract | 🟠 High (print size/registration) | 🔴 High (physical measurements, control motifs) | – (no agent; needs real hardware) | Blocked (external) + groundwork open – whether the Studio import dialog derives the start size from `pHYs`/DPI is unproven (N10, EM-F04); on top of that, cell I-06 references the fixture manifest instead of a real export manifest, and non-square DPI are neither tested nor excluded with a stated reason |
 | [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Validate gloss/clear-coat semantics | 🟡 Medium (gloss is already flagged "experimental" in code) | 🔴 High (physical prints, material consumption) | – (no agent; needs real hardware) | Blocked (external) + groundwork open – the groundwork from #687 is only partial: exactly one gloss cell (I-10), no alpha/coverage fixtures, no differing gloss dimensions, gloss × HEIGHT not crossed |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Integrate versioned target profile into validator/writer/dialog/docs | 🟠 High (hardens the production export path) | 🟠 High (cross-cutting across eufymake_export/_validate/_writer + UI) | Opus, high | Blocked – waits on #688–#690 |
-| [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR tonal/grayscale engine | 🟡 Medium-high (roadmap foundation for laser, not an active bug) | 🔴 High (5 sub-issues, ADR→core→UI→integration→acceptance) | – (epic) | In progress – start #692 first |
-| [#692](https://github.com/NikolayDA/picture_helper/issues/692) | ADR + data contract for tone/histogram/grayscale ops | 🟠 High (sets the contract for the whole epic) | 🟡 Medium (architecture decision, no implementation) | Opus, high | Ready to start |
-| [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Qt-free core: histogram/grayscale/levels/gamma | 🟡 Medium-high | 🟡 Medium (extends `color_ops.py`, well isolated and testable) | Sonnet, high | Blocked – waits on ADR #692 |
+| [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR tonal/grayscale engine | 🟡 Medium-high (roadmap foundation for laser, not an active bug) | 🔴 High (4 remaining sub-issues: core→UI→integration→acceptance) | – (epic) | In progress – ADR #692 is approved; the core #693 comes next |
+| [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Qt-free core: histogram/grayscale/levels/gamma | 🟡 Medium-high | 🟡 Medium (extends `color_ops.py`, well isolated and testable) | Sonnet, high | Ready to start – ADR #692 (PR #947) supplies the data contract; implement and test the core against its formulas |
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live preview + UI for histogram/levels/gamma | 🟡 Medium | 🟡 Medium-high (Qt UI, debounce/generation guard like the height preview) | Sonnet, high | Blocked – waits on core #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Layer/selection/history/project integration | 🟡 Medium | 🟠 High (many state transitions: undo/redo, selection, dirty state) | Opus, high | Blocked – waits on #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
@@ -101,15 +79,22 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] Extend release governance for the store channel | 🟠 High (prevents a channel outside the fail-closed contract) | 🟠 High (runbook, checklist, contract, path policy, six changelogs) | Opus, high | Blocked – accompanies #898/#899; raise all governance contracts/tests to six artifacts before submission |
 | [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] Initial submission and review round | 🟠 High (manual publication gate) | 🔴 High (many dependencies, residual risks, Apple communication) | – (no agent; release owner) | Blocked (external) – after #896/#897/#899/#901–#905 run pre-submission, submit, record result/follow-ups |
 | [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] Operations plan for renewal, updates, and channels | 🟡 Medium-high (long-term availability and channel separation) | 🟡 Medium (runbook, ownership, reminders, channel matrix) | Opus, high + owner | Blocked – draft early, finalize after #906; bind renewal/update/web routines into operations |
+| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] Release process: runners, automated evidence, main freeze | 🟠 High (release operations; 8 of 9 work packages done) | 🟡 Medium (only the #918 remainder) | – (epic) | Almost done – all that is left is the success criterion "`main` stays mergeable", which the next real release run proves via #918 |
+| [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Release ref instead of a main freeze (ADR + fail-closed safeguards) | 🟠 High (`main` stays mergeable during a release) | 🟢 Low (code, docs, and ruleset are in place) | – (no agent; next release run) | Blocked (external) – reopened on 2026-08-31 after its completion check; PR #936 and the active ruleset 21941216 are documented, only a run whose post-release acceptance demonstrably started on `release/vX.Y.Z` is missing |
+| [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Operations: self-hosted runners (heartbeat alert channel) | 🟡 Medium (operations channel, no product code) | 🟢 Low (observation only) | – (no agent; repo owner) | Permanently open – do not close (`RUNNER_HEARTBEAT_ISSUE`); the FAIL of 2026-08-31 was the planned alert-path test, and the cleanup step is done (scheduled run 33496675995 green, x86_64 skipped, Mac and Pi passed) |
+| [#949](https://github.com/NikolayDA/picture_helper/issues/949) | Test-suite audit 2026-09-02 (RESOURCES drift, CropOverlay, coverage gaps) | 🟡 Medium (test quality and drift protection, no production defect) | 🟢 Low-medium (four clearly scoped test changes, no production change) | Sonnet, medium | Ready to start – derive the `RESOURCES.md` expectations from the real `uses:` lines, move `test_crop_overlay.py` to `set_position()`/`crop_rect()`, and cover the rectangle branch of `crop_image()` and the non-RGBA branch of `adjust_color()` |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
 
 ### Recommended Next
 
-1. **#692** (ADR) opens the COLOR epic #682.
-2. Before the next Studio/printer session, first close the fixture/test-cell gaps documented in
-   #688–#690 (alpha/coverage, a COLOR/HEIGHT pair of equal size, gloss cells, a real export
-   manifest for I-06); then run #687 (remainder), #688, #689, and #690 in one bundled session.
-3. **#883** (MAS licensing strategy) decides the Mac App Store path #882 –
+1. **#693** (Qt-free core) – ADR #692 is approved, so the COLOR epic #682 is ready to start;
+   #694, #695, and #696 follow in that order.
+2. **#949** – four small, clearly scoped test changes with no production risk; a good parallel
+   PR alongside the epic.
+3. Review and merge **#948**; then, before the next Studio/printer session, close the remaining
+   gaps from #689/#690 (gloss cells, a real export manifest for I-06) and run #687 (remainder),
+   #688, #689, and #690 in one bundled session.
+4. **#883** (MAS licensing strategy) decides the Mac App Store path #882 –
    without that owner decision the whole chain #884–#907 stays blocked.
 
 ## Previous Rounds
