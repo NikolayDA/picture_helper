@@ -267,6 +267,10 @@ def test_a_timed_out_runner_job_counts_as_not_ready() -> None:
     """Angenommen, aber haengengeblieben – auch das ist keine Bereitschaft."""
     state = hb.queue_state(_jobs("ok", "timeout"), EXPECTED)
     assert state.failed == ("Heartbeat Linux aarch64",)
+    verdict, detail = hb.evaluate(state, EXPECTED, acceptance_s=1500, deadline_s=1500)
+    assert verdict == hb.VERDICT_FAIL
+    # #954-Review: Die Konklusion steht im Text – wie bei ``inconclusive``.
+    assert "Heartbeat Linux aarch64 (timed_out) hat die Bereitschaftsprüfung" in detail
 
 
 def test_a_cancelled_job_is_not_a_device_verdict() -> None:
@@ -537,4 +541,5 @@ def test_the_report_separates_offline_from_not_ready(tmp_path: Path) -> None:
     assert payload["failed_jobs"] == ["Heartbeat Linux aarch64"]
     summary = (tmp_path / "s.md").read_text(encoding="utf-8")
     assert "❌ wartet auf einen Runner" in summary
-    assert "❌ angenommen, aber nicht einsatzbereit" in summary
+    # #954-Review: Die Konklusion steht auch in der Zusammenfassung.
+    assert "❌ angenommen, aber nicht einsatzbereit (failure)" in summary

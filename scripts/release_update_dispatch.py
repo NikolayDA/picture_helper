@@ -64,18 +64,19 @@ POLL_INTERVAL_S: Final = 6.0
 
 _TAG_RE: Final = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+(?:[.-][0-9A-Za-z.]+)?$")
 _RUN_ID_RE: Final = re.compile(r"^[1-9][0-9]*$")
-#: Zeichenvorrat, aus dem ein Marker besteht (Praefix/Tag-Schema/Run-ID samt
-#: Trennern). Links darf kein solches Zeichen stehen (``xupdate-check:…`` ist
-#: ein anderer Token); rechts zaehlt nur eine **weitere Ziffer** als
-#: Fortsetzung, weil der Marker auf die rein numerische Run-ID endet – ein
-#: reiner Substring-Test hielte beim Suchen nach ``…:4242`` auch einen Lauf mit
-#: ``…:42420`` fuer den vorhandenen Nachweislauf und uebersprange den echten
-#: Dispatch, waehrend die Update-Kriterien des Releases ``PENDING`` blieben
-#: (#943 Befund 2). Umgekehrt durfte ein handformulierter Titel mit
-#: Interpunktion direkt hinter dem Marker (``…:4242.``, ``…:4242: ok``,
-#: ``…:4242-retry``) den vorhandenen Lauf nicht verfehlen – das loeste den
-#: zweiten Dispatch aus, den der Marker verhindern soll (#954-Review).
-_MARKER_CHARS: Final = r"[0-9A-Za-z.:\-]"
+#: Abgrenzung des Markers im Titel. Links darf kein Buchstabe und keine Ziffer
+#: stehen (``xupdate-check:…`` ist ein anderer Token); rechts zaehlt nur eine
+#: **weitere Ziffer** als Fortsetzung, weil der Marker auf die rein numerische
+#: Run-ID endet – ein reiner Substring-Test hielte beim Suchen nach ``…:4242``
+#: auch einen Lauf mit ``…:42420`` fuer den vorhandenen Nachweislauf und
+#: uebersprange den echten Dispatch, waehrend die Update-Kriterien des Releases
+#: ``PENDING`` blieben (#943 Befund 2). Interpunktion direkt am Marker
+#: (``[…]`` im ``run-name``, handformuliert ``…:4242.``, ``…:4242: ok``,
+#: ``…:4242-retry``) ist dagegen keine Abgrenzungsverletzung: Eine erste
+#: Fassung schloss ``.``/``:``/``-`` beidseitig aus und verfehlte damit den
+#: vorhandenen Lauf – das loeste genau den zweiten Dispatch aus, den der
+#: Marker verhindern soll (#954-Review).
+_MARKER_START: Final = r"(?<![0-9A-Za-z])"
 _MARKER_END: Final = r"(?![0-9])"
 
 #: Ergebniszustaende. ``dispatched`` ist der Regelfall, die anderen beiden sind
@@ -120,8 +121,8 @@ def select_marked_run(runs: object, *, marker: str) -> RunRef | None:
     Der Marker muss im Titel als **abgegrenztes** Vorkommen stehen (im
     ``run-name`` von ``release-abnahme.yml`` steht er in ``[…]``, ein Treffer
     darf aber generell nicht mitten in einem laengeren Marker liegen) – siehe
-    ``_MARKER_CHARS``/``_MARKER_END``: links kein Marker-Zeichen, rechts keine
-    weitere Ziffer; Satzzeichen oder Text hinter der Run-ID sind erlaubt.
+    ``_MARKER_START``/``_MARKER_END``: links kein Buchstabe/keine Ziffer, rechts
+    keine weitere Ziffer; Satzzeichen vor oder hinter dem Marker sind erlaubt.
     Mehrere Treffer werden nicht als Fehler behandelt, sondern der
     **juengste** gewaehlt (die Liste kommt absteigend nach Startzeit): Ein
     manuell nachgezogener Lauf mit demselben Marker ist ein legitimer
@@ -129,7 +130,7 @@ def select_marked_run(runs: object, *, marker: str) -> RunRef | None:
     """
     if not isinstance(runs, list):
         raise DispatchError("Laufliste ist keine Liste")
-    pattern = re.compile(rf"(?<!{_MARKER_CHARS}){re.escape(marker)}{_MARKER_END}")
+    pattern = re.compile(rf"{_MARKER_START}{re.escape(marker)}{_MARKER_END}")
     for item in runs:
         if not isinstance(item, dict):
             continue

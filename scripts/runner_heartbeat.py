@@ -400,9 +400,12 @@ def evaluate(
         )
         not_ready = tuple(name for name in state.failed if name not in not_started)
         if not_ready:
+            named = ", ".join(
+                f"{name} ({conclusions.get(name) or 'unbekannt'})" for name in not_ready
+            )
             reasons.append(
-                f"{', '.join(not_ready)} hat die Bereitschaftsprüfung nicht "
-                "bestanden – Gerät angenommen, aber nicht einsatzbereit"
+                f"{named} hat die Bereitschaftsprüfung nicht bestanden – Gerät "
+                "angenommen, aber nicht einsatzbereit"
             )
         if not_started:
             reasons.append(
@@ -517,7 +520,8 @@ def render_summary(report: dict[str, Any]) -> str:
             elif name in failed and failed_conclusions.get(name) == "startup_failure":
                 status = "❌ angenommen, aber nicht gestartet (startup_failure)"
             elif name in failed:
-                status = "❌ angenommen, aber nicht einsatzbereit"
+                conclusion = failed_conclusions.get(name) or "unbekannt"
+                status = f"❌ angenommen, aber nicht einsatzbereit ({conclusion})"
             elif name in inconclusive:
                 status = f"⚠️ endete ohne success ({inconclusive[name]})"
             elif name in pending:
