@@ -26,7 +26,21 @@ gen = importlib.util.module_from_spec(_SPEC)
 sys.modules["eufymake_fixture_generator"] = gen
 _SPEC.loader.exec_module(gen)
 
+_INSPECTOR_SPEC = importlib.util.spec_from_file_location(
+    "eufymake_fixture_inspector_for_generator_tests",
+    ROOT / "scripts" / "eufymake_fixture_inspector.py",
+)
+assert _INSPECTOR_SPEC is not None and _INSPECTOR_SPEC.loader is not None
+inspector = importlib.util.module_from_spec(_INSPECTOR_SPEC)
+sys.modules["eufymake_fixture_inspector_for_generator_tests"] = inspector
+_INSPECTOR_SPEC.loader.exec_module(inspector)
+
 CHECKED_IN_DIR = ROOT / "tests" / "fixtures" / "eufymake_hardware"
+TRUST_HASH_DOCS = {
+    ROOT / "docs" / "history" / "EUFYMAKE-687-PROTOKOLL-VORLAGEN.md": 1,
+    ROOT / "docs" / "history" / "EUFYMAKE-687-DRUCK-CHECKLISTE.md": 1,
+    ROOT / "docs" / "history" / "EUFYMAKE-689-MM-DPI-VERTRAG.md": 2,
+}
 
 
 def _write(tmp_path: Path, name: str) -> Path:
@@ -408,6 +422,26 @@ def test_gloss_min_max_are_solid_extremes(tmp_path: Path) -> None:
 _MANIFEST_CONTENT_KEYS = (
     "role", "pattern", "bit_depth", "png_mode", "width", "height", "params",
 )
+
+
+def test_checked_in_fixtures_are_self_consistent() -> None:
+    """Der versionierte Manifest-Vertrauensanker muss zu den Repo-Bytes passen."""
+    report = inspector.inspect_fixture_dir(CHECKED_IN_DIR)
+    assert report["ok"], report["errors"]
+
+
+def test_documented_trust_hash_matches_checked_in_manifest() -> None:
+    """Pre-Import-Anleitungen dürfen nicht auf einen alten Sollsatz zeigen."""
+    manifest_sha256 = hashlib.sha256(
+        (CHECKED_IN_DIR / gen.MANIFEST_FILENAME).read_bytes()
+    ).hexdigest()
+
+    for path, expected_occurrences in TRUST_HASH_DOCS.items():
+        text = path.read_text(encoding="utf-8")
+        assert text.count(manifest_sha256) == expected_occurrences, (
+            f"{path.relative_to(ROOT)} muss den aktuellen Manifest-SHA-256 "
+            f"genau {expected_occurrences}-mal enthalten"
+        )
 
 
 def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:

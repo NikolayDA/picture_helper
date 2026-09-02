@@ -711,6 +711,7 @@ def _write_export_bundle(out_dir: Path) -> dict[str, Any]:
         "files": sorted(files, key=lambda item: item["filename"]),
     }
 
+
 def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any]:
     """Schreibt alle ``specs`` als PNG nach ``out_dir`` und das SHA-256-Manifest.
 
@@ -735,14 +736,14 @@ def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any
             "sha256": hashlib.sha256(data).hexdigest(),
             "bytes": len(data),
         })
-    bundle = _write_export_bundle(out_dir)
+    bundles = [_write_export_bundle(out_dir)]
     manifest = {
         "schema": SCHEMA_VERSION,
         "generated_by": "scripts/eufymake_fixture_generator.py",
         "fixture_count": len(entries),
         "fixtures": entries,
-        "bundle_count": 1,
-        "bundles": [bundle],
+        "bundle_count": len(bundles),
+        "bundles": bundles,
     }
     manifest_path = out_dir / MANIFEST_FILENAME
     manifest_path.write_text(
@@ -781,9 +782,10 @@ def main(argv: list[str] | None = None) -> int:
         for bundle in manifest["bundles"]
         for entry in bundle["files"]
     )
+    bundle_label = "Exportpaket" if manifest["bundle_count"] == 1 else "Exportpakete"
     print(
         f"{manifest['fixture_count']} Fixtures und {manifest['bundle_count']} "
-        f"Exportpaket geschrieben nach "
+        f"{bundle_label} geschrieben nach "
         f"{_rel(args.out_dir)} ({total_bytes / 1024:.1f} KiB), "
         f"Manifest: {_rel(args.out_dir / MANIFEST_FILENAME)}"
     )
