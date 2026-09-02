@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from bgremover.eufymake_profile import resolve_manifest_profile
@@ -54,6 +55,16 @@ def _write(tmp_path: Path, name: str) -> Path:
     return out_dir
 
 
+@pytest.fixture(scope="module")
+def fresh_fixture_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Ein frischer Generatorlauf je Modul (41 Fixtures + 7 Pakete).
+
+    Die Vergleichstests gegen den eingecheckten Stand lesen ihn nur – ein
+    Lauf statt einem je Test (#956-Review).
+    """
+    return _write(tmp_path_factory.mktemp("generator"), "fresh")
+
+
 def _without_transport_fields(value: object) -> object:
     """SHA/Byte-Längen aus einem Manifest entfernen, Semantik aber behalten."""
     if isinstance(value, dict):
@@ -67,18 +78,37 @@ def _without_transport_fields(value: object) -> object:
     return value
 
 
-def _legacy_export_view(manifest: dict[str, object]) -> dict[str, object]:
-    """Projiziert ein neues Manifest auf den unveränderlichen Hardwarestand.
+#: Writer-Stand der sieben eingecheckten Exportpakete: Commit c814945 (PR #952),
+#: also **vor** #953. Ihre ``manifest.json`` sind bewusst die am 2026-09-02 in
+#: Studio 4.2.2 geprüften Bytes (Legacy-Referenz ohne Snapshot) und werden nicht
+#: mit jedem Writer-Schritt neu erzeugt: Eine Regeneration änderte 12 per Pillow
+#: geschriebene PNGs plattformabhängig und damit den Manifest-Vertrauensanker in
+#: vier Dokumenten, ohne dass Studio das Manifest überhaupt liest. Der aktuelle
+#: Writer ergänzt seit #953 genau diese Felder; ``_legacy_export_view`` blendet sie
+#: auf **beiden** Seiten aus, und ``test_checked_in_bundle_manifests_are_the_frozen_pre_953_writer_state``
+#: hält den eingefrorenen Stand fest. Beleg für den Commit (netzfrei, braucht
+#: Historie): ``git log -1 --format=%h -- tests/fixtures/eufymake_hardware/export_*/``
+#: nennt für alle sieben Pakete c814945 (Squash-Merge von PR #952, 2026-09-02).
+#: Im Repo hält ``test_the_frozen_writer_commit_is_named_consistently`` den Anker
+#: gegen Protokoll, CLAUDE.md und Generator-Docstring – ein Tippfehler bliebe
+#: sonst still, weil die Konstante nur in Meldungen interpoliert wird
+#: (#956-Review).
+FROZEN_BUNDLE_WRITER_COMMIT = "c814945"
+POST_953_MANIFEST_FIELDS = frozenset({"profile_contract", "producer"})
+POST_953_ASSET_FIELDS = frozenset({"channel_interpretation"})
 
-    Die am 2026-09-02 geprüften Paketmanifeste bleiben absichtlich bytegenaue
-    Legacy-Evidenz. Der aktuelle Writer ergänzt Profilsnapshot, Producer und
-    Kanalinterpretation; diese additiven Felder dürfen den alten Nachweis nicht
-    nachträglich umschreiben.
+
+def _legacy_export_view(manifest: dict[str, object]) -> dict[str, object]:
+    """Projiziert ein Paketmanifest auf den eingefrorenen Writer-Stand.
+
+    Symmetrisch auf eingecheckte und frisch erzeugte Manifeste angewandt: Die
+    seit #953 additiven Felder (``POST_953_MANIFEST_FIELDS``/``POST_953_ASSET_FIELDS``)
+    dürfen den alten Nachweis weder umschreiben noch den Vergleich brechen.
     """
     projected = {
         key: value
         for key, value in manifest.items()
-        if key not in {"profile_contract", "producer"}
+        if key not in POST_953_MANIFEST_FIELDS
     }
     assets = projected.get("assets")
     if isinstance(assets, list):
@@ -86,7 +116,7 @@ def _legacy_export_view(manifest: dict[str, object]) -> dict[str, object]:
             {
                 key: value
                 for key, value in asset.items()
-                if key != "channel_interpretation"
+                if key not in POST_953_ASSET_FIELDS
             }
             if isinstance(asset, dict)
             else asset
@@ -645,8 +675,29 @@ def test_documented_trust_hash_matches_checked_in_manifest() -> None:
         )
 
 
+#: Zulässige Kennzeichnungen einer beobachteten Abweichung in der Ist-Spalte.
+DEVIATION_MARKERS = ("⚠️", "abweichend", "Abweichung")
+
+
+def _observed_cell_is_bound(cell: str, expected_sha256: str) -> bool:
+    """Ist-Zelle gleich dem Soll, noch leer („–") oder als Abweichung markiert."""
+    if cell in {"", "–", "-", f"`{expected_sha256}`"}:
+        return True
+    return any(marker in cell for marker in DEVIATION_MARKERS)
+
+
 def test_protocol_lists_every_fixture_with_current_hash() -> None:
-    """Die manuelle Prüftabelle darf weder Dateien noch neue Hashes auslassen."""
+    """Die manuelle Prüftabelle darf weder Dateien noch neue Hashes auslassen.
+
+    Gebunden ist die Soll-Spalte „Erwarteter SHA-256". Die Spalte
+    „Tatsächlicher SHA-256" ist laut CLAUDE.md die einzige Ablage der am
+    Zielrechner *beobachteten* Werte – ein echter Befund muss dort ohne roten
+    ``make check`` eintragbar sein (#954-Review). Deshalb kein Gleichheitszwang,
+    aber ein erlaubter Ausweg statt eines stillen Driftkanals (#956-Review):
+    Die Ist-Zelle ist entweder gleich dem Soll, noch leer („–") oder trägt
+    einen Abweichungsmarker (``DEVIATION_MARKERS``). Ein alter Hash neben einem
+    neuen Soll mit „✅ OK" am Zeilenende fällt damit auf.
+    """
     manifest = json.loads(
         (CHECKED_IN_DIR / gen.MANIFEST_FILENAME).read_text(encoding="utf-8")
     )
@@ -654,10 +705,15 @@ def test_protocol_lists_every_fixture_with_current_hash() -> None:
         ROOT / "docs" / "history" / "EUFYMAKE-687-PROTOKOLL-VORLAGEN.md"
     ).read_text(encoding="utf-8")
     for entry in manifest["fixtures"]:
-        expected_cells = (
-            f"`{entry['filename']}` | `{entry['sha256']}` | `{entry['sha256']}`"
-        )
-        assert expected_cells in protocol, entry["filename"]
+        expected_cells = f"`{entry['filename']}` | `{entry['sha256']}` |"
+        rows = [line for line in protocol.splitlines() if expected_cells in line]
+        assert rows, entry["filename"]
+        for row in rows:
+            observed = row.split(expected_cells, 1)[1].split("|", 1)[0].strip()
+            assert _observed_cell_is_bound(observed, entry["sha256"]), (
+                f"{entry['filename']}: Ist-Zelle {observed!r} ist weder Soll, leer "
+                "noch als Abweichung markiert"
+            )
 
     mm_contract = (
         ROOT / "docs" / "history" / "EUFYMAKE-689-MM-DPI-VERTRAG.md"
@@ -669,13 +725,69 @@ def test_protocol_lists_every_fixture_with_current_hash() -> None:
     assert expected_summary in mm_contract
 
 
-def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
+def test_the_frozen_writer_commit_is_named_consistently() -> None:
+    """Test, Protokoll, CLAUDE.md und Generator-Docstring nennen denselben Anker."""
+    protocol = (
+        ROOT / "docs" / "history" / "EUFYMAKE-687-PROTOKOLL-VORLAGEN.md"
+    ).read_text(encoding="utf-8")
+    claude_md = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    generator_source = (ROOT / "scripts" / "eufymake_fixture_generator.py").read_text(
+        encoding="utf-8"
+    )
+    assert f"Writer-Stand `{FROZEN_BUNDLE_WRITER_COMMIT}` (PR #952)" in protocol
+    assert f"Writer-Stand `{FROZEN_BUNDLE_WRITER_COMMIT}` (PR #952" in claude_md
+    assert f"Writer-Stand {FROZEN_BUNDLE_WRITER_COMMIT} (PR #952" in generator_source
+
+
+def test_checked_in_bundle_manifests_are_the_frozen_pre_953_writer_state(
+    fresh_fixture_dir: Path,
+) -> None:
+    """Der eingefrorene Paketstand ist eine Entscheidung, keine Vergesslichkeit.
+
+    Die eingecheckten Manifeste tragen keines der seit #953 additiven Felder und
+    bleiben Legacy-Referenzen; der aktuelle Writer schreibt die Felder sehr wohl –
+    nur deshalb ist die Projektion in ``_legacy_export_view`` überhaupt nötig.
+    Schlägt die erste Hälfte fehl, wurden die Pakete neu erzeugt: Dann sind
+    Vertrauensanker (vier Dokumente), Protokolltabelle und diese Projektion
+    bewusst nachzuziehen, nicht dieser Test.
+    """
+    checked_in = sorted(CHECKED_IN_DIR.glob("export_*/manifest.json"))
+    assert len(checked_in) == 7, (
+        f"unerwartete Paketliste: {[p.parent.name for p in checked_in]}"
+    )
+    for path in checked_in:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        assert not POST_953_MANIFEST_FIELDS & manifest.keys(), (
+            f"{path.name} in {path.parent.name} trägt Felder des Writers nach #953 – "
+            f"eingefrorener Stand ist {FROZEN_BUNDLE_WRITER_COMMIT}; Anker nachziehen"
+        )
+        for asset in manifest["assets"]:
+            assert not POST_953_ASSET_FIELDS & asset.keys(), path.parent.name
+        assert resolve_manifest_profile(manifest).legacy_reference is True, path.parent.name
+
+    # Symmetrisch über alle sieben frischen Pakete, nicht nur eines (#956-Review):
+    # Schriebe ein Gloss-Paket die Felder nicht mehr, wäre die Projektion dort
+    # unbemerkt wirkungslos.
+    fresh = sorted(fresh_fixture_dir.glob("export_*/manifest.json"))
+    assert [p.parent.name for p in fresh] == [p.parent.name for p in checked_in]
+    for path in fresh:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        assert manifest.keys() >= POST_953_MANIFEST_FIELDS, (
+            f"{path.parent.name}: Projektion wäre überflüssig"
+        )
+        assert all(
+            asset.keys() >= POST_953_ASSET_FIELDS for asset in manifest["assets"]
+        ), path.parent.name
+        assert resolve_manifest_profile(manifest).legacy_reference is False, path.parent.name
+
+
+def test_checked_in_fixtures_match_current_generator(fresh_fixture_dir: Path) -> None:
     """Repo-Fixtures müssen dem Generator plattformübergreifend semantisch entsprechen."""
     assert CHECKED_IN_DIR.is_dir(), (
         "tests/fixtures/eufymake_hardware/ fehlt – "
         "python scripts/eufymake_fixture_generator.py generate ausführen"
     )
-    fresh_dir = _write(tmp_path, "fresh")
+    fresh_dir = fresh_fixture_dir
 
     checked_in_files = sorted(
         p.relative_to(CHECKED_IN_DIR) for p in CHECKED_IN_DIR.rglob("*") if p.is_file()

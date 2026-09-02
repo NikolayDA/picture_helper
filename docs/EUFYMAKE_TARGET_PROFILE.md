@@ -123,11 +123,13 @@ Manifeste derselben Version unlesbar (`ProfileContractMismatchError`). Deshalb
 erhält jede inhaltliche Änderung eine neue Profilversion; der Golden-Test
 erzwingt diese bewusste Entscheidung.
 
-Bekannter offener Punkt (Review 2026-09-02): Die Evidenzreferenz
-`manufacturer-height-direction` zeigt auf
-`docs/history/EUFYMAKE-687-QUELLENREGISTER.md`; das Quellenverzeichnis liegt
-tatsächlich in
-[`EUFYMAKE-687-ANNAHMENINVENTAR.md`](history/EUFYMAKE-687-ANNAHMENINVENTAR.md)
-(Abschnitt „2. Quellen-/Evidenzverzeichnis"). Die Korrektur ist eine
-Snapshot-Änderung und erfolgt in einem eigenen PR, bevor ein Release Profil v1
-ausliefert.
+Einmalige Korrektur innerhalb von v1 (2026-09-02): Die Evidenzreferenz
+`manufacturer-height-direction` zeigte auf eine nie angelegte Datei
+(`EUFYMAKE-687-QUELLENREGISTER.md`) und verweist jetzt auf das
+[Annahmeninventar](history/EUFYMAKE-687-ANNAHMENINVENTAR.md) (Abschnitt
+„2. Quellen-/Evidenzverzeichnis"). Das blieb ohne neue Profilversion vertretbar,
+weil noch kein Release Profil v1 ausgeliefert hatte und kein eingechecktes
+Manifest einen Snapshot trug (die sieben Hardware-Pakete sind Legacy-Referenzen
+ohne `profile_contract`); der Golden-Digest wurde bewusst neu gesetzt, und ein
+Test hält seither fest, dass jeder `docs/`-Pfad im Evidenzvertrag existiert.
+Ab jetzt gilt ohne Ausnahme: Jede Snapshot-Änderung ist eine neue Profilversion.

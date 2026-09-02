@@ -349,10 +349,14 @@ Ein Paket, `bgremover/`:
   über den produktiven Writer erzeugte Exportpakete: `export_mm_dpi_conflict/`
   (Vier-Dateien-Paket mit absichtlich widersprüchlichen Manifest-/`pHYs`-Werten,
   I-06) und die sechs `export_gloss_*`-Pakete aus #690 (fehlende/Null-/Voll-Gloss,
-  Alpha×Gloss, HEIGHT×Gloss, Dimensionsabweichung). Die Paket-Manifeste stammen
-  von vor #953 (ohne `profile_contract`/`producer`); der Generatorvergleich in
-  `tests/test_eufymake_fixture_generator.py` projiziert diese Felder deshalb auf
-  beiden Seiten weg. `scripts/eufymake_fixture_inspector.py` prüft auch
+  Alpha×Gloss, HEIGHT×Gloss, Dimensionsabweichung). Die Paket-Manifeste sind der
+  eingefrorene Writer-Stand `c814945` (PR #952, vor #953, ohne
+  `profile_contract`/`producer`/`channel_interpretation`): Sie bleiben die in
+  Studio geprüften Bytes, der Generatorvergleich in
+  `tests/test_eufymake_fixture_generator.py` projiziert die #953-Felder auf
+  beiden Seiten weg, und ein Wächtertest hält den Stand fest – Neuerzeugung
+  nur bewusst mit Nachzug der Vertrauensanker (vier Dokumente) und der
+  Protokolltabelle. `scripts/eufymake_fixture_inspector.py` prüft auch
   Dateilisten und Manifestsemantik aller sieben Pakete – erst das macht „war
   das wirklich die getestete Datei?" vor dem Studio-Import beantwortbar. Er ist
   fail-closed gegen Fremddateien (ein `.DS_Store` im Fixture-Ordner macht den
