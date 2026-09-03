@@ -89,7 +89,7 @@ Das Fenster ist in fünf Bereiche aufgeteilt:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Menüleiste                                                   │
+│ Menüleiste                                                  │
 ├──────────┬───────────────────────────────┬──────────────────┤
 │          │      Schrittleiste (6 Schritte)                  │
 │ Werkzeug-├───────────────────────────────┼──────────────────┤
@@ -98,8 +98,8 @@ Das Fenster ist in fünf Bereiche aufgeteilt:
 │          │      (Bild + Auswahl)         │  (rechts)        │
 │          │                               │                  │
 ├──────────┴───────────────────────────────┴──────────────────┤
-│ Statusleiste (Hinweise & Meldungen)                          │
-└──────────────────────────────────────────────────────────────┘
+│ Statusleiste (Hinweise & Meldungen)                         │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 | Bereich | Zweck |

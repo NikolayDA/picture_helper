@@ -95,17 +95,17 @@ La fenêtre est divisée en cinq zones :
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Barre de menus                                                │
+│ Barre de menus                                              │
 ├──────────┬───────────────────────────────┬──────────────────┤
-│          │      Barre d'étapes (6 étapes)                    │
+│          │      Barre d'étapes (6 étapes)                   │
 │ Barre    ├───────────────────────────────┼──────────────────┤
 │ d'outils │                               │  Inspecteur      │
 │ (gauche) │        Zone de travail        │  de cartes       │
 │          │      (image + sélection)      │  (droite)        │
 │          │                               │                  │
 ├──────────┴───────────────────────────────┴──────────────────┤
-│ Barre d'état (conseils et messages)                          │
-└──────────────────────────────────────────────────────────────┘
+│ Barre d'état (conseils et messages)                         │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 | Zone | Rôle |
