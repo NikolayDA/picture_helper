@@ -580,10 +580,12 @@ Realtest tatsächlich durchgeführt wurde – die Ergänzung schafft nur die
 fehlende Testzelle, kein Ergebnis.
 
 **Planpräzisierung (2026-09-03):** Studio hat I-12 inzwischen fail-closed
-abgelehnt. Der Negativtest ist damit auf Importebene abgeschlossen und nicht
-physisch druckbar. Der ausführbare physische Rest von H-03 vergleicht I-02
-(256×256-Referenz) mit I-04 (128×128 bei gleicher Seitenrelation); I-12
-besitzt keinen Drucklauf und keinen Materialplatz.
+abgelehnt. Der H-03-Negativtest ist damit auf Importebene abgeschlossen und
+nicht physisch druckbar; für den abgelehnten 2:1-Fall ist eine physische
+Messung nicht anwendbar. I-02 (256×256-Referenz) und I-04 (128×128 bei
+gleicher Seitenrelation) bleiben als getrennte Pixelgrößen-/Filterprüfung
+erhalten, nicht als Seitenverhältnis-Nachweis. I-12 besitzt keinen Drucklauf
+und keinen Materialplatz.
 
 ### 4. Konsequenzen aus Version 2
 
@@ -818,11 +820,13 @@ oder Registrierung auf Material.
 | I-11 | abgeschlossen | diskrete Sollstufen in der Editorvorschau sichtbar |
 | I-12 | abgeschlossen (import-only) | abweichende Seitenrelation wird ausdrücklich und ohne stillen Ersatz abgelehnt; kein druckbares Objekt erzeugt |
 | I-13 | abgeschlossen | konstantes nicht-null HEIGHT nativ im selben COLOR-Objekt; Alpha-/Farbfelder bleiben in der 3D-Vorschau erkennbar, physische Wirkung offen |
-| G-01 bis G-08 | abgeschlossen auf Importebene | native Gloss-Verfügbarkeit allgemein belegt; EM-S03 ist je Zelle ausdrücklich mit „Nein" protokolliert; zellspezifische Druckparameter und physische Aussagen offen |
+| G-01 bis G-03, G-05 bis G-08 | abgeschlossen auf Importebene | native Gloss-Verfügbarkeit allgemein belegt; EM-S03 ist je Zelle ausdrücklich mit „Nein" protokolliert; zellspezifische Druckparameter und physische Aussagen offen |
+| G-04a/b/c | teilweise abgeschlossen | G-04a besitzt vertragsgemäß keine Gloss-Datei; für G-04b/c sind bisher nur pixeläquivalente Ersatz-Fixtures sichtbar importiert. EM-S03 bleibt bis zum Import der tatsächlichen Writer-Assets offen. |
 
-Damit sind alle 27 verpflichtenden Phase-1-Zeilen abgeschlossen und die
-„Nichts passiert“-Ausgänge explizit protokolliert. Die beiden I-09-Zeilen
-zählen gemäß Scope-Entscheid nicht dazu.
+Damit sind 26 der 27 verpflichtenden Phase-1-Zeilen abgeschlossen und ihre
+„Nichts passiert“-Ausgänge explizit protokolliert. G-04 bleibt bis zum Import
+der tatsächlichen Writer-Assets offen. Die beiden I-09-Zeilen zählen gemäß
+Scope-Entscheid nicht dazu.
 
 ### 3. Aktualisierte Annahmen
 
@@ -831,18 +835,21 @@ zählen gemäß Scope-Entscheid nicht dazu.
 | EM-F03 | **widerlegt; Profil umgesetzt** | Die ursprüngliche 8-Bit-Default-Annahme bleibt widerlegt und Profil v1 verwendet 16 Bit. Studio akzeptiert 8- und 16-Bit-PNG nativ; ob 16 Bit im Druck mehr als 8 Bit auflöst, bleibt als getrennte Präzisionsfrage unbewiesen. |
 | EM-H04 | **offen** | Vollweiß erscheint im Editor als gleichmäßiges Plateau; diese konstante Vorschau unterscheidet jedoch weder Clipping noch Sättigung oder Normalisierung. Physisches Clipping und die tatsächliche Maximalhöhe bleiben unbewiesen. |
 | EM-G04 | **bestätigt** | Abweichende absolute HEIGHT-Pixelmaße sind bei gleicher Seitenrelation akzeptiert; eine abweichende Seitenrelation wird mit expliziter Warnung fail-closed abgelehnt. |
-| EM-S03 | **für Studio 4.2.2 und die Pflichtmatrix bestätigt; historischer Gegenbeleg bleibt** | Keine verpflichtende Zelle endete mit stillem, unsichtbarem Import; die Gloss-Zellen G-01 bis G-08 sind einzeln mit „Nein" protokolliert. I-06-JSON und I-12 lieferten stattdessen eindeutige Nichtauswahl beziehungsweise Warnung. Der B2-Befund aus Studio 2.6.0.2 wird dadurch nicht umgedeutet. |
+| EM-S03 | **für 26 von 27 Pflichtzellen in Studio 4.2.2 protokolliert; G-04 offen, historischer Gegenbeleg bleibt** | G-01 bis G-03 und G-05 bis G-08 endeten nicht mit stillem, unsichtbarem Import. Für G-04b/c fehlen die tatsächlichen Writer-Asset-Importe; pixeläquivalente Ersatz-Fixtures reichen für ein „Nein" nicht aus. I-06-JSON und I-12 lieferten eindeutige Nichtauswahl beziehungsweise Warnung. Der B2-Befund aus Studio 2.6.0.2 wird dadurch nicht umgedeutet. |
 
 ### 4. Konsequenzen und offene Gates
 
-1. Phase 1 und der Phase-2-Startstand sind abgeschlossen; das physische Budget
-   steht weiterhin unverbraucht bei 0/35.
-2. I-12 ist import-only und wird nicht in Phase 3 übernommen. Der physische
-   H-03-Restvergleich nutzt das akzeptierte Paar I-02/I-04 bei identischen
-   Layout- und Druckparametern. Dadurch umfasst Phase 3 12 physische
+1. Phase 1 und das EM-S03-Gate bleiben ausschließlich wegen der noch nicht
+   importierten G-04b/c-Writer-Assets offen; das physische Budget steht
+   weiterhin unverbraucht bei 0/35.
+2. I-12 ist import-only und wird nicht in Phase 3 übernommen. Für den
+   abgelehnten 2:1-Fall ist keine physische Messung anwendbar. I-02/I-04 werden
+   bei identischen Layout- und Druckparametern ausschließlich als
+   Pixelgrößen-/Filterpaar geführt. Phase 3 umfasst 12 physische
    Stammvarianten statt 13.
-3. Die nächsten zulässigen Schritte sind Geräte-/Material-/Messmittelfreigabe,
-   die zellspezifische Fixierung der Druckparameter und anschließend Phase 3.
+3. Nach Abschluss des G-04-Imports sind die nächsten zulässigen Schritte
+   Geräte-/Material-/Messmittelfreigabe, die zellspezifische Fixierung der
+   Druckparameter und anschließend Phase 3.
 4. Die physischen HEIGHT-, mm/DPI- und Gloss-Nachweise aus #688–#690 bleiben
    offen. Erst danach folgen die Abschluss-Review von #687 und die Entscheidung,
    Profil v1 zu bestätigen oder bei Widerspruch Profil v2 anzulegen.

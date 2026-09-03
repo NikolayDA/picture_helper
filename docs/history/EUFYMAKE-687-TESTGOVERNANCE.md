@@ -21,11 +21,12 @@ gesetzten Policy, jetzt mit expliziter Freigabe (Abschnitt 4).
   je eine physisch zu druckende Variante: I-02, I-03 8-Bit, I-03 16-Bit,
   I-04, I-05 konsistent, I-07, I-08 vor Crop, I-08 nach Crop, I-10 normal,
   I-10 invertiert, I-11 (Treppenkeil, H-02) und I-13 (Alpha/Coverage bei
-  nicht-null HEIGHT) – **12 Varianten**. I-02 ist dabei zugleich die
-  druckbare 256×256-Referenz für den H-03-Vergleich mit I-04
-  (128×128 bei gleicher Seitenrelation). I-12 bleibt als abgeschlossener
+  nicht-null HEIGHT) – **12 Varianten**. I-02 (256×256) und I-04
+  (128×128 bei gleicher Seitenrelation) bilden dabei das druckbare
+  Pixelgrößen-/Filterpaar. I-12 bleibt als abgeschlossener H-03-
   Import-Negativtest erhalten, ist nach der ausdrücklichen Ablehnung durch
-  Studio aber **import-only** und besitzt keine druckbare Variante. I-08
+  Studio aber **import-only** und besitzt keine druckbare Variante. Das
+  I-02/I-04-Paar liefert keine Evidenz für den abgelehnten 2:1-Fall. I-08
   und I-10 vergleichen dabei inhaltlich je zwei
   Ausprägungen (vor/nach Crop bzw. normal/invertiert), stehen aber bereits
   als zwei getrennte Tabellenzeilen mit je eigener Wiederholungsmessung im
@@ -37,8 +38,9 @@ gesetzten Policy, jetzt mit expliziter Freigabe (Abschnitt 4).
   Nach je einem Erstlauf der 12 Stammvarianten und den elf fest eingeplanten
   Gloss-Läufen bleiben die zuvor freigegebenen höchstens elf Wiederholungen
   für die Stammvarianten; die Kernaussagen aus dem Druckprotokoll haben
-  Vorrang. Der aktuelle Plan umfasst damit höchstens 34 Drucke. Der durch den
-  Wegfall von I-12 rechnerisch freie 35. Platz bleibt unzugeordnet und ist
+  Vorrang. Der aktuelle Plan umfasst damit höchstens 34 Drucke. Im für die
+  Stammvarianten vorgesehenen Bereich 1–24 bleibt **Budgetplatz 24**
+  unzugeordnet; die Gloss-Plätze 25–35 bleiben unverändert belegt. Platz 24 ist
   weder für eine neue Variante noch für eine zwölfte Wiederholung automatisch
   freigegeben. Ein zweiter Lauf jeder einzelnen Variante ist auch mit dem
   erhöhten harten Limit nicht automatisch freigegeben.
@@ -167,11 +169,14 @@ Aktualisiert: 2026-09-02 – Owner-Entscheidung von NikolayDA: Gesamtbudget von
 Aktualisiert: 2026-09-03 – I-12 nach der expliziten Studio-Ablehnung als
   abgeschlossener Import-Negativtest und nicht druckbare Zelle eingestuft.
   Die physische Stammvariantenmatrix enthält dadurch 12 statt 13 Zeilen;
-  I-02 (256×256) und I-04 (128×128 bei gleicher Seitenrelation) bilden das
-  ausführbare physische H-03-Vergleichspaar. Das harte Limit von 35 bleibt
+  I-12 besitzt keine physische Messzeile. I-02 (256×256) und I-04
+  (128×128 bei gleicher Seitenrelation) bleiben als getrenntes druckbares
+  Pixelgrößen-/Filterpaar erhalten und dürfen nicht als physische Evidenz für
+  den abgelehnten 2:1-Fall gewertet werden. Das harte Limit von 35 bleibt
   bestehen, der ausführbare und freigegebene Plan umfasst jedoch höchstens
-  12 Erstläufe + 11 Wiederholungen + 11 Gloss-Läufe = 34 Drucke. Der freie
-  Platz darf ohne neue Owner-Freigabe nicht umgewidmet werden.
+  12 Erstläufe + 11 Wiederholungen + 11 Gloss-Läufe = 34 Drucke. Budgetplatz
+  24 bleibt frei und darf ohne neue Owner-Freigabe nicht umgewidmet werden;
+  Platz 35 bleibt G-08 zugeordnet.
 ```
 
 Damit gelten die Regeln aus den Abschnitten 1–3 für die Realtests aus

@@ -76,11 +76,12 @@ Abnahmekriterien bis zur reproduzierbaren Ablage und Druckmessung offen.
 
 I-12 ist damit ein abgeschlossener **Import-Negativtest**: Weil Studio die
 HEIGHT-Datei nicht übernimmt, existiert kein I-12-Objekt für Vorschau oder
-Druck. Die Zelle hat deshalb keine physische Messzeile. Der ausführbare
-physische Teil von H-03 vergleicht stattdessen die akzeptierten I-02- und
-I-04-Objekte bei identischer Layoutgröße, Texturhöhe und Druckeinstellung;
-damit bleibt die Filter-/Interpolationswirkung der halbierten Pixelkante
-messbar, ohne die fail-closed-Seitenverhältnisgrenze zu umgehen.
+Druck. Die Zelle hat deshalb keine physische Messzeile; für den abgelehnten
+2:1-Seitenverhältnis-Fall ist eine Druckmessung nicht anwendbar. Die
+akzeptierten I-02- und I-04-Objekte bleiben bei identischer Layoutgröße,
+Texturhöhe und Druckeinstellung als separate Pixelgrößen-/Filterprüfung
+erhalten. Ihre Filter-/Interpolationsmessung bei gleicher 1:1-Seitenrelation
+darf nicht als physische Evidenz für I-12 gewertet werden.
 
 ## 4. Messschema für HEIGHT → mm
 

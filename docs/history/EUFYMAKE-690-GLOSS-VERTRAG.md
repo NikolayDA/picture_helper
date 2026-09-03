@@ -101,7 +101,7 @@ und keine Beziehung zwischen den Ebenen ab.
 | G-01 | 2026-09-02; 4.2.2/1.20.0 | keine | 0/128/255 sichtbar; je 90,31×90,31 mm; drei getrennte „Flat“-Ebenen | keine | Nein; alle drei sichtbar | Keine Aussage über Klarlack ohne Druck |
 | G-02 | 2026-09-02; 4.2.2/1.20.0 | keine | normaler und invertierter Keil je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Nein; beide sichtbar | Invertierte Bilddarstellung ist noch keine Polaritätsbestätigung |
 | G-03 | 2026-09-02; 4.2.2/1.20.0 | keine | Stufen und 64…192-Keil je 90,31×90,31 mm; Tonwerte sichtbar | keine | Nein; beide sichtbar | Tonwertanzeige ist noch keine Intensitätskennlinie |
-| G-04a/b/c | 2026-09-02; 4.2.2/1.20.0 | keine PNG-Warnung | fehlend nur als Paketvertrag prüfbar; Null/voll über pixeläquivalente, aber nicht byteidentische min/max-PNGs sichtbar | keine; JSON im bereits geprüften Bilddialog nicht auswählbar | Nein; G-04a hat vertragsgemäß keine importierbare Gloss-Datei, G-04b/c sind sichtbar | Studio-Bildimport besitzt keinen beobachtbaren Paket-/Optionalitätsvertrag; Writer-Paketassets bleiben separat zu importieren |
+| G-04a/b/c | 2026-09-02; 4.2.2/1.20.0 | keine PNG-Warnung | fehlend nur als Paketvertrag prüfbar; Null/voll über pixeläquivalente, aber nicht byteidentische min/max-PNGs sichtbar | keine; JSON im bereits geprüften Bilddialog nicht auswählbar | G-04a: n. z. (keine Gloss-Datei); G-04b/c: offen, tatsächliche Writer-Assets noch nicht importiert | Studio-Bildimport besitzt keinen beobachtbaren Paket-/Optionalitätsvertrag; aus den Ersatz-Fixtures folgt kein EM-S03-Ergebnis für die Writer-Paketassets |
 | G-05 | 2026-09-02; 4.2.2/1.20.0 | keine | 128×256 px separat als 45,16×90,31 mm, X/Y 144,91/164,84 mm, 0° | kein Scaling, kein Beschnitt, keine Ablehnung | Nein; sichtbar | Studio erkennt keinen Dimensionskonflikt, weil es keine Rollen verknüpft |
 | G-06 | 2026-09-02; 4.2.2/1.20.0 | keine | COLOR, HEIGHT und konstantes Gloss je separat 90,31×90,31 mm; Alpha-Felder im COLOR sichtbar | alle „Flat“; keine Rollenzuordnung oder Maskenkopplung | Nein; alle drei sichtbar | COLOR-Alpha-Wirkung auf physischen Gloss-Auftrag bleibt offen |
 | G-07 | 2026-09-02; 4.2.2/1.20.0 | keine | COLOR, 16-Bit-HEIGHT 0/32768/65535 und Gloss je separat 90,31×90,31 mm | alle „Flat“; keine Rollenzuordnung oder Maskenkopplung | Nein; alle drei sichtbar | HEIGHT-Wirkung auf physischen Gloss-Auftrag bleibt offen |
@@ -113,6 +113,11 @@ ist ausschließlich ein Akzeptanz- und Geometriebefund. Die getrennten Ebenen
 belegen gerade **keine** native Gloss-Semantik; eine physische Polarität,
 Mengenkennlinie, Alpha-Maskierung oder HEIGHT-Wechselwirkung lässt sich daraus
 nicht ableiten.
+
+Für G-04b/c bleibt auch EM-S03 offen, bis die tatsächlichen
+`export_gloss_zero/full/gloss_mask.png`-Dateien sichtbar importiert wurden.
+Die pixeläquivalenten Einzel-Fixtures belegen nur ihren eigenen Import und
+dürfen nicht als Ergebnis der Writer-Paketassets fortgeschrieben werden.
 
 ### Nativer Gloss-Preflight vom 2026-09-03
 

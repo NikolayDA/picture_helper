@@ -12,13 +12,15 @@ mit SHA-256 je Datei in `fixtures_manifest.json`. Die Testzellen I-01 bis I-10
 und ihre ursprüngliche Bedeutung stehen im
 [Annahmeninventar](EUFYMAKE-687-ANNAHMENINVENTAR.md), Abschnitt „Testmatrix"
 (V1) bzw. „Aktualisierte Testmatrix" (V2). **I-11 bis I-13 sind dort erst in
-Nachträgen gelistet**: I-11 und I-12 wurden ergänzt, um die im
-Annahmeninventar (Abschnitt 3)
-ausdrücklich als offen markierten Fragen H-02 (Graustufe→mm-Kennlinie,
-Treppenkeil) und H-03 (Verhalten bei abweichendem Höhenkarten-Seitenverhältnis)
-mit einer konkreten, druckbaren Testzelle zu versehen; beide hatten bis dahin
-weder Fixture-Zuordnung noch Protokollzeile. I-13 schließt die in #688
-geforderte Alpha/Coverage-Kreuzung mit einer konstanten, nicht-null HEIGHT-Map.
+Nachträgen gelistet**: I-11 ergänzt die druckbare Treppenkeil-Zelle für H-02
+(Graustufe→mm-Kennlinie). I-12 wurde für H-03 (abweichendes
+Höhenkarten-Seitenverhältnis) ergänzt, ist nach der ausdrücklichen
+Studio-Ablehnung aber ein abgeschlossener Import-Negativtest ohne druckbares
+Objekt. Die getrennte physische Pixelgrößen-/Filterprüfung verwendet das
+akzeptierte Paar I-02 (256×256) und I-04 (128×128 bei gleicher
+Seitenrelation); sie liefert keine Evidenz für den abgelehnten 2:1-Fall.
+I-13 schließt die in #688 geforderte Alpha/Coverage-Kreuzung mit einer
+konstanten, nicht-null HEIGHT-Map.
 
 Für den eigentlichen Testtag bündelt
 [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](EUFYMAKE-687-DRUCK-CHECKLISTE.md) die
@@ -309,7 +311,7 @@ noch **Print** ausgelöst.
 | G-01 | `gloss_min.png`, `gloss_mean.png`, `gloss_max.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Nein; alle drei sichtbar | 0/128/255 werden als Bilder akzeptiert, nicht als Glossmenge bestätigt |
 | G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | je 90,31×90,31 mm; sichtbar und getrennt | keine | Nein; beide sichtbar | keine Polaritätsaussage ohne Druck |
 | G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | je 90,31×90,31 mm; Stufen bzw. begrenzter Keil sichtbar | keine | Nein; beide sichtbar | keine Aussage über kontinuierlichen, quantisierten, binären oder normalisierten Auftrag |
-| G-04a/b/c | `export_gloss_absent/` digital; Null/voll über bytegleiche `gloss_min.png`/`gloss_max.png` | fehlend im Paketvertrag; Null/voll als normale Einzelbilder | keine PNG-Warnung; JSON im Bilddialog nicht auswählbar | Nein; G-04a hat vertragsgemäß keine importierbare Gloss-Datei, G-04b/c sind sichtbar | Bilddialog hat keinen beobachtbaren Paket-/Optionalitätsvertrag |
+| G-04a/b/c | `export_gloss_absent/` digital; Null/voll bisher nur über pixeläquivalente `gloss_min.png`/`gloss_max.png` | fehlend im Paketvertrag; Ersatz-Fixtures für Null/voll als normale Einzelbilder | keine PNG-Warnung; JSON im Bilddialog nicht auswählbar | G-04a: n. z. (keine Gloss-Datei); G-04b/c: offen, tatsächliche Writer-Assets noch nicht importiert | Bilddialog hat keinen beobachtbaren Paket-/Optionalitätsvertrag; aus Ersatz-Fixtures folgt kein EM-S03-Ergebnis für die Writer-Assets |
 | G-05 | `gloss_dimensions_half_width.png` | 128×256 px → 45,16×90,31 mm; X/Y 144,91/164,84 mm; 0° | kein Scaling, Beschnitt oder Fehler | Nein; sichtbar | Studio verknüpft die Datei nicht mit COLOR/Manifest und erkennt deshalb keinen Konflikt |
 | G-06 | drei PNGs aus `export_gloss_alpha_coverage/` | je 90,31×90,31 mm; drei unabhängige „Flat“-Ebenen; Alpha-Felder im COLOR sichtbar | keine Rollenzuordnung oder Maskenkopplung | Nein; alle drei sichtbar | physische Alpha×Gloss-Wirkung offen |
 | G-07 | drei PNGs aus `export_gloss_height_cross/` | je 90,31×90,31 mm; 16-Bit-HEIGHT 0/32768/65535 sichtbar; drei unabhängige „Flat“-Ebenen | keine Rollenzuordnung oder Maskenkopplung | Nein; alle drei sichtbar | physische HEIGHT×Gloss-Wirkung offen |
@@ -326,6 +328,11 @@ zeigte anschließend ausdrücklich `Gloss Varnish × 1`; es erschien keine
 Warnung. Damit ist der native Gloss-Pfad in Studio 4.2.2 grundsätzlich belegt.
 Polarität, Intensität, Materialwirkung und physischer Auftrag bleiben ohne
 `Preview` oder `Print` offen.
+
+G-04b/c passieren das EM-S03-Gate erst, wenn die tatsächlichen
+`export_gloss_zero/full/gloss_mask.png`-Dateien importiert und ihr sichtbares
+Ergebnis protokolliert wurden. Die bereits sichtbaren pixeläquivalenten
+Einzel-Fixtures dürfen dieses Ergebnis nicht ersetzen.
 
 **„Nichts passiert"-Fall (EM-S03):** Laut Annahmeninventar wurde für Studio
 2.6.0.2 ein still geladener, aber unsichtbarer Import berichtet; spätere
@@ -372,11 +379,12 @@ Materialbudget in
 **I-12 ist import-only:** Studio lehnt die 256×128-HEIGHT-Datei am
 256×256-COLOR-Objekt fail-closed ab und erzeugt deshalb kein druckbares
 I-12-Objekt. Die Zelle bleibt als Import-Negativtest in §2 erhalten, hat aber
-keine Zeile und keinen Materialplatz in diesem Druckprotokoll. Für den
-ausführbaren physischen H-03-Vergleich liefert I-02 die 256×256-Referenz und
-I-04 die akzeptierte 128×128-HEIGHT-Variante bei gleicher Seitenrelation;
-Layoutgröße, Texturmodus, Höhe und alle übrigen Druckparameter sind zwischen
-beiden Läufen identisch zu halten.
+keine Zeile und keinen Materialplatz in diesem Druckprotokoll. H-03 endet für
+den abgelehnten 2:1-Fall daher mit „physische Messung nicht anwendbar". Der
+separate druckbare I-02/I-04-Vergleich untersucht ausschließlich die
+Pixelgrößen-/Filterwirkung bei gleicher Seitenrelation; Layoutgröße,
+Texturmodus, Höhe und alle übrigen Druckparameter sind zwischen beiden Läufen
+identisch zu halten.
 
 **Wiederholungsmessung:** Mindestens die in #688/#689/#690 als Kernaussage
 markierten Zeilen (Nullpunkt/Grundfläche, monotoner Keil, mm/DPI-Referenz,

@@ -114,7 +114,7 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 22 | G-01 (Gloss min/mittel/max) | ☑ | ☑ |
 | 23 | G-02 (normal/invertiert) | ☑ | ☑ |
 | 24 | G-03 (Stufen + 64…192-Keil) | ☑ | ☑ |
-| 25 | G-04a/b/c (fehlend/Null/voll) | ☑ | ☑ |
+| 25 | G-04a/b/c (fehlend/Null/voll) | ☑ | ☐ |
 | 26 | G-05 (Gloss 128×256 gegen COLOR 256×256) | ☑ | ☑ |
 | 27 | G-06 (Alpha 0/128/255 × Gloss 128) | ☑ | ☑ |
 | 28 | G-07 (HEIGHT 0/32768/65535 × Gloss 128) | ☑ | ☑ |
@@ -152,11 +152,11 @@ ausgelöst; der Budgetstand bleibt **0/35**.
 
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 
-- [x] Alle 27 verpflichtenden Zeilen aus Phase 1 abgeschlossen; I-09 Legacy/
+- [ ] Alle 27 verpflichtenden Zeilen aus Phase 1 abgeschlossen; I-09 Legacy/
       aktuell sind gemäß Scope-Entscheid vom 2026-09-03 nicht anwendbar;
-      keine ungeklärten Sicherheits-/Fehlerfälle offen.
-- [x] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
-      protokolliert, nicht nur bei „Ja" übersprungen.
+      G-04b/c bleiben bis zum Import der tatsächlichen Writer-Assets offen.
+- [ ] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
+      protokolliert, nicht nur bei „Ja" übersprungen; G-04b/c fehlen noch.
 - [x] Budget-Startstand notiert (**0 von 35**, 2026-09-03; sonst der
       aus Abschnitt 1 übertragene Vortagesstand).
 
@@ -169,12 +169,11 @@ anwenden, **nicht** automatisch wiederholen.
 
 **I-12 nicht drucken:** Die abweichende Seitenrelation wurde von Studio
 fail-closed abgelehnt; I-12 ist damit ein abgeschlossener Import-Negativtest
-ohne druckbares Objekt und ohne Materialplatz. Für den noch offenen physischen
-Teil von H-03 werden I-02 (256×256-HEIGHT-Referenz) und I-04
-(128×128-HEIGHT bei gleicher Seitenrelation) bei identischen Layout- und
-Druckparametern verglichen. So prüft Phase 3 nur die tatsächlich akzeptierte
-Filterung/Interpolation; die Ablehnung einer anderen Seitenrelation wird nicht
-durch einen unmöglichen Drucklauf dupliziert.
+ohne druckbares Objekt und ohne Materialplatz. Der abgelehnte 2:1-Fall besitzt
+daher keine physische H-03-Messung. I-02 (256×256-HEIGHT-Referenz) und I-04
+(128×128-HEIGHT bei gleicher Seitenrelation) werden bei identischen Layout-
+und Druckparametern als getrennte Pixelgrößen-/Filterprüfung verglichen; ihr
+Ergebnis darf nicht dem abweichenden Seitenverhältnis zugerechnet werden.
 
 **Zusätzlicher #690-Gloss-Preflight:** Ein importiertes „Flat“-Graustufenbild
 ist keine Gloss-Zuweisung. Vor jeder Gloss-Zelle muss der in
@@ -218,9 +217,10 @@ sind, ist am Testtag anhand der Kategorien zuzuordnen – nicht vorab
 festgelegt. Nach je einem Erstlauf der 12 Stammvarianten und den elf fest
 eingeplanten Gloss-Läufen bleiben höchstens elf bereits freigegebene
 Wiederholungen der Stammvarianten. Der ausführbare Plan umfasst daher maximal
-34 Drucke; der rechnerisch freie 35. Platz bleibt unzugeordnet. Deshalb zuerst
-die Kernaussagen wiederholen, nicht automatisch jede Variante zweimal drucken
-und den freien Platz nicht ohne neue Owner-Freigabe verwenden.
+34 Drucke. Im für Stammvarianten vorgesehenen Bereich 1–24 bleibt dadurch
+**Budgetplatz 24** unzugeordnet; die Gloss-Plätze 25–35 bleiben unverändert
+belegt. Deshalb zuerst die Kernaussagen wiederholen, nicht automatisch jede
+Variante zweimal drucken und Platz 24 nicht ohne neue Owner-Freigabe verwenden.
 
 | # | Variante | Lauf 1 | Lauf 2 (max. elf; Kernaussagen zuerst) | Lauf 3+ (nur mit Owner-Freigabe, Vermerk wo/warum) | Fotoreferenz eingetragen | Druckprotokoll-Zeile ausgefüllt |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -261,8 +261,9 @@ Summe über alle drei Spalten der Stammvariantentabelle sowie die elf Zeilen der
 Gloss-Tabelle **34 nicht überschreiten**; das unveränderte harte Limit bleibt
 35. Bei 31/35 oder mehr die Budget-Eskalation aus Abschnitt 2 dieser
 Checkliste prüfen, bevor weitergedruckt wird. Sobald elf Kästchen in „Lauf 2"
-belegt sind, alle übrigen Kästchen dieser Spalte sichtbar streichen. Der 35.
-Platz wird durch den Wegfall von I-12 nicht automatisch zu einem Zusatzlauf.
+belegt sind, alle übrigen Kästchen dieser Spalte sichtbar streichen.
+**Budgetplatz 24** wird durch den Wegfall von I-12 nicht automatisch zu einem
+Zusatzlauf; Platz 35 bleibt fest G-08 zugeordnet.
 Ein wegen fehlendem Preflight ungenutzter Gloss-Platz wird nicht automatisch
 zu einem Zusatz- oder Wiederholungslauf; jede Umwidmung braucht einen
 Owner-Vermerk und erhöht das Gesamtlimit nicht.
