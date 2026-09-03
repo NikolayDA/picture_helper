@@ -110,9 +110,11 @@ nach Crop" bleibt die Gloss-Ebene unverändert, weder beschnitten noch
 verschoben. Der Crop hielt die rechte Objektkante fest
 (122,34 + 90,31 − 44,86 = 167,79), die Landmarken der Gloss-Ebene liegen über
 der verbliebenen COLOR/HEIGHT-Fläche also an derselben physischen Stelle.
-Gemessen wird die Registrierung nur in dieser Überlappung; der übrige Teil
-der Gloss-Ebene druckt Gloss ohne Farbe und wird als solcher protokolliert.
-Manuelles Nachbeschneiden der Gloss-Ebene ist nicht zulässig, weil es
+Gemessen wird die Registrierung nur in dieser Überlappung. Der übrige Teil
+der Gloss-Ebene ist reine Maskenfläche ohne COLOR/HEIGHT (Hintergrundwert 0,
+Landmarken 255); ob und wo dort Klarlack liegt, folgt erst aus der in G-02
+bestimmten Polarität und wird beobachtet und protokolliert, nicht
+vorausgesetzt. Manuelles Nachbeschneiden der Gloss-Ebene ist nicht zulässig, weil es
 Bedienfehler mit Studio-Verhalten vermischen würde. Das Kriterium „dieselbe
 physische Ausdehnung" ist für diese Variante bewusst auf die Überlappung
 beschränkt und wird im Ergebnis so ausgewiesen.

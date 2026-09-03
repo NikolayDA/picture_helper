@@ -52,8 +52,9 @@ Quelldokumente.
       notierten E1-Hinweise (abgelaufener Scraper, Luftfilter, gelbe Tinte)
       sind behoben oder mit Begründung als unkritisch protokolliert;
       Tintenstände aller Kanäle in §3.0 notiert.
-- [ ] **Messmittel je Messgröße festgelegt** (Gerät, Auflösung, geschätzte
-      Unsicherheit) nach `EUFYMAKE-688-HEIGHT-VERTRAG.md` §4.0 und in §3.0
+- [ ] **Messmittel je Messgröße festgelegt** (Gerät, Anzeigeauflösung,
+      Messunsicherheit einschließlich Wiederholpräzision) nach
+      `EUFYMAKE-688-HEIGHT-VERTRAG.md` §4.0 und in §3.0
       eingetragen. Ohne Profilmessmethode bleibt I-14 gesperrt, ohne die
       vorab festgelegte Auswertungsregel bleibt der I-03-Vergleich gesperrt.
 - [ ] **Substrat festgelegt** (Material, Farbe, Dicke, Charge) und in §3.0
@@ -218,9 +219,11 @@ Budget; er wird trotzdem nur nach ausdrücklicher Owner-Freigabe ausgelöst,
 weil bisher bewusst weder `Preview` noch `Print` gestartet wurde.
 
 - [ ] Feste Laufparameter in `PROTOKOLL-VORLAGEN.md` §3.0 eingetragen:
+      Tagesparameter einmal, Reihenparameter je Vergleichsreihe (HEIGHT mit
+      `Color Raised`, Gloss mit `Gloss Varnish`, I-08 als Kombination) mit
       Layoutgröße und Position, Texturmodus/Ink Mode/Texturhöhe,
-      Qualitätsprofil, Substrat, Gloss-Pfad samt Ursprung, Skalierung,
-      Rotation und Registrierung. Vorgabe für die HEIGHT-Vergleiche:
+      Qualitätsprofil, Gloss-Pfad samt Ursprung, Skalierung, Rotation und
+      Registrierung. Vorgabe für die HEIGHT-Vergleiche:
       90,31 × 90,31 mm aus dem 72-dpi-Import und 2,50 mm `Color Raised`,
       solange Zeit- und Tintenschätzung das zulassen; innerhalb eines
       Vergleichs (I-02/I-04, I-03/I-14, G-01…G-08) identisch.
@@ -270,8 +273,11 @@ Layout W/H und Position, `Customize Texture`,
 `Color Raised`, 2,50 mm, Material und Qualitätsprofil müssen identisch sein.
 Kantenbreite (10–90 %) und Impulsbreite (FWHM) auf der Scanlinie y=1/2,
 Peak-, Plateau- und Basishöhe sowie die Trennbarkeit der feinen Kalibrierstufen
-mit Messunsicherheit erfassen. Eine Verschiebung von 1/4…3/4 auf den vollen
-Höhenbereich als Normalisierung protokollieren. Die Studio-Vorschau getrennt vom physischen
+mit Messunsicherheit erfassen. Basis und Plateau gegen die aus I-11 und I-07
+interpolierten Sollhöhen für die Digitalwerte 16384 und 49152 prüfen
+(HEIGHT-Akte §4.0); erst eine Verschiebung auf die gemessene Null- bzw.
+Maximalhöhe gilt als Normalisierung, eine bildunabhängig nichtlineare
+Kennlinie nicht. Die Studio-Vorschau getrennt vom physischen
 Druck bewerten. Ohne zugängliches Studio-Ausgaberaster ist ein physischer
 Unterschied dem kombinierten Studio-/Druckpfad zuzurechnen, nicht Studio allein.
 
@@ -281,9 +287,11 @@ separate Gloss-Ebene blieb bei 90,31 × 90,31 mm und X/Y 122,34/164,84 mm.
 Für den Druck „nach Crop" bleibt die Gloss-Ebene **unverändert** – weder
 beschnitten noch verschoben. Weil der Crop die rechte Kante des Objekts
 festhielt, liegen ihre Landmarken über der verbliebenen COLOR/HEIGHT-Fläche
-weiterhin an derselben physischen Stelle und prüfen die Registrierung; der
-Rest der Gloss-Ebene druckt Gloss ohne Farbe und wird als solcher
-protokolliert. Ein manuelles Nachbeschneiden der Gloss-Ebene ist nicht
+weiterhin an derselben physischen Stelle und prüfen die Registrierung. Der
+Rest der Gloss-Ebene ist reine Maskenfläche ohne COLOR/HEIGHT (Hintergrund
+0, Landmarken 255); ob und wo dort Klarlack liegt, folgt erst aus der in
+G-02 bestimmten Polarität und wird beobachtet und protokolliert, nicht
+vorausgesetzt. Ein manuelles Nachbeschneiden der Gloss-Ebene ist nicht
 zulässig, weil es Bedienfehler mit Studio-Verhalten vermischen würde. Die
 Regel steht in `PROTOKOLL-VORLAGEN.md` §3 und
 `EUFYMAKE-689-MM-DPI-VERTRAG.md`.
@@ -297,9 +305,16 @@ Vorbereitete Optionen: **(A, empfohlen)** I-10 physisch streichen – die
 Polarität liefert G-02 mit je zwei unabhängigen Läufen je Richtung, die
 Plätze 9–10 bleiben unzugeordnet und werden ohne neue Owner-Freigabe nicht
 umgewidmet; **(B)** I-10 dem in `EUFYMAKE-690-GLOSS-VERTRAG.md` §6.1
-dokumentierten Spot-UV-Zweipass zuordnen, um den Zweipass gegen den nativen
-`Gloss Varnish`-Pfad zu vergleichen (GL-02). Beide Optionen verändern das
-harte Limit von 35 nicht.
+dokumentierten Spot-UV-Zweipass (Pfad 2) zuordnen und G-02 **fest** dem
+nativen `Gloss Varnish`-Pfad (Pfad 1), um Zweipass und nativen Pfad zu
+vergleichen (GL-02); die Pfadwahl je Reihe wird in `PROTOKOLL-VORLAGEN.md`
+§3.0 festgeschrieben, sonst wären beide Zellen erneut redundant. Beide
+Optionen verändern das harte Limit von 35 nicht. Die Sperre ist eine
+Voraussetzung aus Abschnitt 0 dieser Checkliste, die vor Phase 3 erledigt
+sein muss; sie ändert die Governance nicht. Deren Abschnitt 1 führt I-10
+formal weiterhin in der 13-Varianten-Matrix, bis der Freigabe-Vermerk zu
+Option A oder B in Governance §4 vorliegt – erst damit wird die Entscheidung
+Teil der verbindlichen Regeln.
 
 **Zusätzlicher #690-Gloss-Preflight:** Ein importiertes „Flat“-Graustufenbild
 ist keine Gloss-Zuweisung. Vor jeder Gloss-Zelle muss der in

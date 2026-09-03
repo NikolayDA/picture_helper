@@ -264,12 +264,20 @@ ist zu entscheiden:
   Stammvarianten bleiben unzugeordnet und werden ohne neue Owner-Freigabe
   nicht umgewidmet; die physische Matrix umfasst dann 11 Stammvarianten.
 - **Option B:** I-10 dem in `EUFYMAKE-690-GLOSS-VERTRAG.md` §6.1
-  dokumentierten Spot-UV-Zweipass zuordnen, um den Zweipass gegen den
-  nativen `Gloss Varnish`-Pfad zu vergleichen (GL-02); die Registrierung
-  zwischen den Durchgängen wird über die G-08-Marken protokolliert.
+  dokumentierten Spot-UV-Zweipass (Pfad 2) zuordnen und G-02 **fest** dem
+  nativen `Gloss Varnish`-Pfad (Pfad 1), um Zweipass und nativen Pfad zu
+  vergleichen (GL-02). Die Pfadwahl je Reihe wird in Protokoll §3.0
+  festgeschrieben; ohne diese Bindung wären beide Zellen erneut redundant.
+  Die Registrierung zwischen den Durchgängen wird über die G-08-Marken
+  protokolliert.
 
 Beide Optionen lassen das harte Limit von 35 Drucken unverändert. Bis zur
-Entscheidung bleiben die Zeilen 9–10 gesperrt.
+Entscheidung bleiben die Zeilen 9–10 gesperrt. Diese Sperre wirkt bis zur
+Freigabe ausschließlich als Voraussetzung in §0 der Druck-Checkliste, die vor
+Phase 3 erledigt sein muss; Abschnitt 1 dieser Governance bleibt bis dahin
+unverändert und führt I-10 formal in der 13-Varianten-Matrix. Erst der
+Freigabe-Vermerk in Abschnitt 4 macht die Entscheidung Teil der verbindlichen
+Regeln.
 
 ### 5.4 Gloss-Ebene bei I-08 nach Crop
 
@@ -285,6 +293,7 @@ Vorbereiteter Freigabe-Vermerk für Abschnitt 4 (erst nach Entscheidung
 ```
 Aktualisiert: (Datum) – Owner-Entscheidung von NikolayDA: Nachtrag 5.1–5.2
   übernommen (Voraussetzungen vor Phase 3, Screenshots/Studio-Projekte als
-  Rohartefakte); I-10/G-02 nach Option (A|B); Gloss-Ebene bei I-08 nach Crop
-  bleibt unverändert. Hartes Limit weiterhin 35 Drucke.
+  Rohartefakte); I-10/G-02 nach Option (A|B) – bei B: I-10 Zweipass, G-02
+  fest nativ; Gloss-Ebene bei I-08 nach Crop bleibt unverändert. Hartes Limit
+  weiterhin 35 Drucke.
 ```

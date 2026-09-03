@@ -390,14 +390,21 @@ Nur nach abgeschlossenem Import- und Vorschauprotokoll derselben Zelle.
 Materialverbrauch beachten – siehe
 [`EUFYMAKE-687-TESTGOVERNANCE.md`](EUFYMAKE-687-TESTGOVERNANCE.md) (freigegeben).
 
-### 3.0 Feste Laufparameter (einmal je Testtag, vor dem ersten Druck)
+### 3.0 Feste Laufparameter (vor dem ersten Druck)
 
-Alle Vergleiche einer Testreihe teilen diese Werte; ändert sich einer davon,
-beginnt eine neue, getrennt protokollierte Reihe. Die Reihenfolge der
-Festlegung steht in
+Die **Tagesparameter** gelten für alle Zellen eines Testtags. Die
+**Reihenparameter** gelten je Vergleichsreihe – etwa die HEIGHT-Stammvarianten
+mit `Color Raised` oder die Gloss-Zellen mit `Gloss Varnish` – und stehen je
+Reihe in einer eigenen Zeile; jede Zeile in §3.1 und jede Druckeinstellung in
+§3.2 nennt die Reihenkennung, zu der sie gehört. Ändert sich ein
+Reihenparameter, entsteht eine neue Reihe mit neuer Kennung; ändert sich ein
+Tagesparameter, beginnt ein neuer Tagesblock. Die Reihenfolge der Festlegung
+steht in
 [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](EUFYMAKE-687-DRUCK-CHECKLISTE.md)
 (§0 und Phase 2b), die Messmittelanforderungen in
 [`EUFYMAKE-688-HEIGHT-VERTRAG.md`](EUFYMAKE-688-HEIGHT-VERTRAG.md) §4.0.
+
+**Tagesparameter (einmal je Testtag):**
 
 | Parameter | Wert (am Testtag eintragen) | Vorgabe/Quelle |
 | --- | --- | --- |
@@ -406,16 +413,23 @@ Festlegung steht in
 | E1-Firmware | | am Gerät bzw. in den Geräteinformationen ablesen; „nicht angezeigt" ist hier unzulässig |
 | Gerätewarnungen (Scraper, Luftfilter, Tinte) | | behoben oder mit Begründung als unkritisch protokolliert |
 | Tintenstände je Kanal (Start / Ende des Testtags) | | |
-| Substrat (Material, Farbe, Dicke, Charge) | | nicht-weiß für I-13 und G-06; innerhalb eines Vergleichs identisch |
-| Layoutgröße und Position der HEIGHT-Vergleiche | | Vorgabe 90,31 × 90,31 mm, X/Y 122,34/164,84 mm (72-dpi-Import) |
-| Texturmodus / Ink Mode / Texturhöhe | | Vorgabe `Customize Texture`, `Color Raised`, 2,50 mm |
-| Qualitätsprofil und weitere Druckoptionen | | |
-| Gloss-Pfad (Gloss-Akte §6.1) mit Ursprung, Skalierung, Rotation, Registrierung | | je Zelle vor dem Lauf |
-| Messmittel Reliefhöhe (Gerät, Auflösung, Unsicherheit) | | HEIGHT-Akte §4.0: ≤ 0,05 mm |
-| Messmittel Höhenprofil I-14 (Methode, laterale und vertikale Auflösung) | | HEIGHT-Akte §4.0: lateral ≤ 0,1 mm, vertikal ≤ 0,05 mm |
-| Messmittel Länge/Breite (mm/DPI) | | Messbereich ≥ 150 mm, Auflösung ≤ 0,1 mm |
+| Substrat (Material, Farbe, Dicke, Charge) | | nicht-weiß für I-13 und G-06; weicht eine Reihe ab, steht das in ihrer Zeile |
+| Messmittel Reliefhöhe (Gerät, Anzeigeauflösung, Messunsicherheit einschließlich Wiederholpräzision) | | HEIGHT-Akte §4.0: Unsicherheit ≤ 0,05 mm |
+| Messmittel Höhenprofil I-14 (Methode, laterale und vertikale Unsicherheit) | | HEIGHT-Akte §4.0: lateral ≤ 0,1 mm, vertikal ≤ 0,05 mm |
+| Messmittel Länge/Breite (mm/DPI) | | Messbereich ≥ 150 mm, Unsicherheit ≤ 0,1 mm |
 | Beleuchtung/Kamera für Gloss (Position, Winkel, Weißabgleich) | | Gloss-Akte §6.2 |
 | Evidenzablage (iCloud-Pfad für Screenshots und Studio-Projekte) | | Governance §3 |
+
+**Reihenparameter (eine Zeile je Vergleichsreihe; Vorgaben sind Vorschläge,
+bis sie in der Spalte „bestätigt am" datiert sind):**
+
+| Reihe | Zellen | Layoutgröße und Position (mm) | Texturmodus / Ink Mode / Texturhöhe | Qualitätsprofil, weitere Optionen | Gloss-Pfad (Gloss-Akte §6.1) mit Ursprung, Skalierung, Rotation, Registrierung | Substrat (falls abweichend) | bestätigt am |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| H1 | I-02, I-03 (8/16 Bit), I-04, I-07, I-11, I-13, I-14 | Vorgabe 90,31 × 90,31, X/Y 122,34/164,84 | Vorgabe `Customize Texture`, `Color Raised`, 2,50 mm | | – | | |
+| H2 | I-08 (vor/nach Crop): COLOR/HEIGHT-Objekt wie H1, Gloss-Objekt wie G1 im selben Auftrag | wie H1; nach Crop W/H 44,86/90,31, X/Y 167,79/164,84 | wie H1 | | wie G1; Gloss-Ebene nach der festen Regel in §3.2 unverändert | | |
+| M1 | I-05 (konsistent) | 101,60 × 101,60 aus `pHYs` | flach, kein Relief | | – | | |
+| G1 | G-01 … G-08 | 90,31 × 90,31, X/Y 122,34/164,84 | nativer Ink Mode `Gloss Varnish` (Pfad 1) | | Pfad 1; je Zelle Ursprung/Skalierung/Rotation/Registrierung eintragen | | |
+| G2 (nur bei Option B) | I-10 normal/invertiert | wie G1 | Spot-UV-Zweipass (Pfad 2) | | Pfad 2; Registrierung zwischen den Durchgängen über G-08-Marken | | |
 
 ### 3.1 Vorschau-Protokoll (ohne Druck)
 
@@ -423,32 +437,38 @@ Je Druckvariante einmal vor dem ersten Druck: Vorschau (`Preview`) nur bis zur
 Druckvorbereitungsseite öffnen, `Print` nie auslösen. Eine Warnung in der
 Vorschau sperrt die Variante bis zur Klärung. Zeit- und Tintenschätzung nur
 eintragen, wenn Studio sie tatsächlich anzeigt; sonst „nicht angezeigt".
+Jede Zeile nennt die Reihe aus §3.0, deren Parameter für sie gelten.
 
-| Variante | Datum | Warnungen | Objekt W/H und X/Y (mm) | Ink Mode / Texturhöhe | Zeit-/Tintenschätzung | Screenshot-/Projekt-Referenz | Freigabe für Druck |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| I-02 | | | | | | | |
-| I-03 (8 Bit) | | | | | | | |
-| I-03 (16 Bit; I-14-Referenz) | | | | | | | |
-| I-04 | | | | | | | |
-| I-05 (konsistent) | | | | | | | |
-| I-07 | | | | | | | |
-| I-08 (vor Crop) | | | | | | | |
-| I-08 (nach Crop) | | | | | | | |
-| I-10 (normal) – gesperrt bis Owner-Entscheidung I-10/G-02 | | | | | | | |
-| I-10 (invertiert) – gesperrt bis Owner-Entscheidung I-10/G-02 | | | | | | | |
-| I-11 | | | | | | | |
-| I-13 (Alpha/Coverage) | | | | | | | |
-| I-14 (direkte 128×128-Kontrolle) | | | | | | | |
-| G-01 | | | | | | | |
-| G-02 (normal/invertiert) | | | | | | | |
-| G-03 | | | | | | | |
-| G-04a/b/c | | | | | | | |
-| G-05 | | | | | | | |
-| G-06 | | | | | | | |
-| G-07 | | | | | | | |
-| G-08 | | | | | | | |
+| Variante | Reihe | Datum | Warnungen | Objekt W/H und X/Y (mm) | Ink Mode / Texturhöhe | Zeit-/Tintenschätzung | Screenshot-/Projekt-Referenz | Freigabe für Druck |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| I-02 | H1 | | | | | | | |
+| I-03 (8 Bit) | H1 | | | | | | | |
+| I-03 (16 Bit; I-14-Referenz) | H1 | | | | | | | |
+| I-04 | H1 | | | | | | | |
+| I-05 (konsistent) | M1 | | | | | | | |
+| I-07 | H1 | | | | | | | |
+| I-08 (vor Crop) | H2 | | | | | | | |
+| I-08 (nach Crop) | H2 | | | | | | | |
+| I-10 (normal) – gesperrt bis Owner-Entscheidung I-10/G-02 | G2 | | | | | | | |
+| I-10 (invertiert) – gesperrt bis Owner-Entscheidung I-10/G-02 | G2 | | | | | | | |
+| I-11 | H1 | | | | | | | |
+| I-13 (Alpha/Coverage) | H1 | | | | | | | |
+| I-14 (direkte 128×128-Kontrolle) | H1 | | | | | | | |
+| G-01 | G1 | | | | | | | |
+| G-02 (normal) | G1 | | | | | | | |
+| G-02 (invertiert) | G1 | | | | | | | |
+| G-03 | G1 | | | | | | | |
+| G-04a/b/c | G1 | | | | | | | |
+| G-05 | G1 | | | | | | | |
+| G-06 | G1 | | | | | | | |
+| G-07 | G1 | | | | | | | |
+| G-08 | G1 | | | | | | | |
 
 ### 3.2 Druckprotokoll je Variante
+
+In der Spalte „Druckeinstellung" zusätzlich die Reihenkennung aus §3.0
+eintragen (z. B. `H1`), damit jeder Messwert eindeutig seiner Konfiguration
+zugeordnet bleibt.
 
 | Testzelle | Datum | Druckeinstellung (Texturmodus/Ink-Mode/Bittiefe) | Position/Skalierung im Layout | Physischer Messwert (Breite × Höhe, ggf. Reliefhöhe, mm) | Messmittel | Geschätzte Messunsicherheit | Fotoreferenz | Wiederholungsmessung (2. Lauf) | Abweichung 1. vs. 2. Lauf | Anmerkung |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -482,9 +502,12 @@ Gloss-Ebene blieb bei 90,31 × 90,31 mm und X/Y 122,34/164,84 mm. Für die
 Druckvariante „nach Crop" bleibt die Gloss-Ebene unverändert, weder
 beschnitten noch verschoben. Weil der Crop die rechte Objektkante festhielt,
 liegen ihre Landmarken über der verbliebenen COLOR/HEIGHT-Fläche an derselben
-physischen Stelle; die Registrierung wird nur in dieser Überlappung gemessen,
-der übrige Teil druckt Gloss ohne Farbe und wird als solcher protokolliert.
-Manuelles Nachbeschneiden der Gloss-Ebene ist nicht zulässig. Begründung und
+physischen Stelle; die Registrierung wird nur in dieser Überlappung gemessen.
+Der übrige Teil der Gloss-Ebene ist reine Maskenfläche ohne COLOR/HEIGHT
+(Hintergrundwert 0, Landmarken 255); ob und wo dort Klarlack liegt, folgt aus
+der in G-02 bestimmten Polarität und wird beobachtet und protokolliert, nicht
+vorausgesetzt. Manuelles Nachbeschneiden der Gloss-Ebene ist nicht zulässig.
+Begründung und
 Rechnung stehen in
 [`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md).
 
@@ -513,8 +536,11 @@ Qualitätseinstellung drucken. Für beide Varianten Kantenbreite 10–90 %,
 Impulsbreite als FWHM auf der Scanlinie y=1/2 sowie Peak-, Plateau- und
 Basishöhe mit Messunsicherheit protokollieren. Im unteren Viertel zusätzlich
 die Trennbarkeit der 4096 16-Bit-Sollstufen gegenüber der 8-Bit-Variante
-bewerten; eine Streckung des 1/4…3/4-Bereichs auf Minimum/Maximum ist als
-Normalisierung zu protokollieren. Die Studio-Vorschau getrennt von den physischen Messwerten
+bewerten; Basis und Plateau werden gegen die aus I-11 und I-07 interpolierten
+Sollhöhen für die Digitalwerte 16384 und 49152 geprüft, nicht gegen eine
+angenommene lineare Kennlinie; erst eine Verschiebung auf die gemessene
+Null- bzw. Maximalhöhe gilt als Normalisierung (Regel in
+`EUFYMAKE-688-HEIGHT-VERTRAG.md` §4.0). Die Studio-Vorschau getrennt von den physischen Messwerten
 bewerten. Eine Abweichung belegt ohne zugängliches Studio-Ausgaberaster nur den
 kombinierten Studio-/Druckpfad, nicht eine isolierte Studio-Filterfunktion;
 der I-12-Seitenverhältnisfall darf daraus ebenfalls nicht abgeleitet werden.
