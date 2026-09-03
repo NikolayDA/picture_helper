@@ -149,9 +149,17 @@ def heading_anchors(text: str) -> dict[str, int]:
         base = anchor_slug(_CLOSING_HASHES_RE.sub("", match.group(2)).rstrip())
         if not base:
             continue
+        # Wie github-slugger: Der Zähler läuft je Basis-Slug, die Kollision
+        # wird aber gegen die bereits *vergebenen* Anker geprüft. Sonst
+        # verlöre eine Überschrift, deren Titel selbst auf ``-1`` endet,
+        # ihren Anker an eine gleichnamige Dublette.
         index = seen[base]
-        seen[base] += 1
-        anchors.setdefault(base if index == 0 else f"{base}-{index}", number)
+        candidate = base if index == 0 else f"{base}-{index}"
+        while candidate in anchors:
+            index += 1
+            candidate = f"{base}-{index}"
+        seen[base] = index + 1
+        anchors[candidate] = number
 
     return anchors
 

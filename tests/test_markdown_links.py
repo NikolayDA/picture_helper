@@ -159,3 +159,21 @@ def test_anchor_guard_checks_fragments_behind_a_file_path(tmp_path: Path) -> Non
             unresolved.append((line, fragment))
 
     assert unresolved == [(1, "zweiter-abschnitt")]
+
+
+def test_heading_anchors_resolve_collisions_against_assigned_anchors() -> None:
+    """Eine Überschrift, deren Titel selbst auf ``-1`` endet, behält ihren Anker.
+
+    github-slugger zählt je Basis-Slug hoch, prüft die Kollision aber gegen die
+    bereits **vergebenen** Anker. Wer nur den Basiszähler führt, vergibt hier
+    zweimal ``abschnitt-1``, verliert ``abschnitt-1-1`` und meldet einen auf
+    GitHub gültigen Verweis als kaputt (Review-Befund zu PR #972).
+    """
+
+    anchors = heading_anchors("## Abschnitt\n## Abschnitt\n## Abschnitt-1\n")
+    assert anchors == {"abschnitt": 1, "abschnitt-1": 2, "abschnitt-1-1": 3}
+
+    # Auch andersherum: Die "-1"-Überschrift steht zuerst und belegt den Anker,
+    # den die spätere Dublette sonst bekommen hätte.
+    anchors = heading_anchors("## A-1\n## A\n## A\n## A\n")
+    assert anchors == {"a-1": 1, "a": 2, "a-2": 3, "a-3": 4}
