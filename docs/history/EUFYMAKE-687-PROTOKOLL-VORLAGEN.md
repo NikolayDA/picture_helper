@@ -12,13 +12,19 @@ mit SHA-256 je Datei in `fixtures_manifest.json`. Die Testzellen I-01 bis I-10
 und ihre ursprüngliche Bedeutung stehen im
 [Annahmeninventar](EUFYMAKE-687-ANNAHMENINVENTAR.md), Abschnitt „Testmatrix"
 (V1) bzw. „Aktualisierte Testmatrix" (V2). **I-11 bis I-13 sind dort erst in
-Nachträgen gelistet**: I-11 und I-12 wurden ergänzt, um die im
-Annahmeninventar (Abschnitt 3)
-ausdrücklich als offen markierten Fragen H-02 (Graustufe→mm-Kennlinie,
-Treppenkeil) und H-03 (Verhalten bei abweichendem Höhenkarten-Seitenverhältnis)
-mit einer konkreten, druckbaren Testzelle zu versehen; beide hatten bis dahin
-weder Fixture-Zuordnung noch Protokollzeile. I-13 schließt die in #688
-geforderte Alpha/Coverage-Kreuzung mit einer konstanten, nicht-null HEIGHT-Map.
+Nachträgen gelistet**: I-11 ergänzt die druckbare Treppenkeil-Zelle für H-02
+(Graustufe→mm-Kennlinie). I-12 wurde für H-03 (abweichendes
+Höhenkarten-Seitenverhältnis) ergänzt, ist nach der ausdrücklichen
+Studio-Ablehnung aber ein abgeschlossener Import-Negativtest ohne druckbares
+Objekt. Der getrennte physische Pixelgrößen-/Resampling-End-to-End-Vergleich
+verwendet das akzeptierte Paar I-02 (256×256) und I-04 (128×128 bei gleicher
+Seitenrelation). Weil I-04 bereits im Fixture-Generator über float32,
+LANCZOS, `rint` und Clamp verkleinert wurde, isoliert dieses Paar keine
+Studio-Filterwirkung und liefert auch keine Evidenz für den abgelehnten
+2:1-Fall. Eine isolierte Filterprüfung bleibt kontrollierten Kanten-/Impuls-
+Fixtures vorbehalten.
+I-13 schließt die in #688 geforderte Alpha/Coverage-Kreuzung mit einer
+konstanten, nicht-null HEIGHT-Map.
 
 Für den eigentlichen Testtag bündelt
 [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](EUFYMAKE-687-DRUCK-CHECKLISTE.md) die
@@ -253,7 +259,7 @@ Dateivalidierungsprotokoll derselben Zeile.
 | I-02 | 2026-09-03 (Sitzung bis 01:06 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `color_height_reference.png` 90,31×90,31 mm; `height_wedge_16bit.png` nativ über `Customize Texture` zugewiesen; `3D` und Keilvorschau sichtbar | Craft Mode `Customize Texture`; Ink Mode `Color Raised`; Stärke 2,50 mm, nicht verändert | Nein | Live-Sitzung, kein Screenshot-Artefakt | E1 online; dimensionsgleiche 16-Bit-Zuweisung akzeptiert; kein Druck |
 | I-03 (8 Bit) | 2026-09-03 (Sitzung bis 01:06 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `height_wedge_8bit.png` nativ akzeptiert; `3D` und Keilvorschau sichtbar | wie I-02; 2,50 mm, nicht verändert | Nein | Live-Sitzung, kein Screenshot-Artefakt | bei identischem COLOR-Aufbau kein belastbarer visueller Unterschied zur 16-Bit-Vorschau; Präzisionsnutzung bleibt Druckfrage |
 | I-03 (16 Bit) | 2026-09-03 (Sitzung bis 01:27 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `height_wedge_16bit.png` und die Gegenprobe `height_wedge_inverted_16bit.png` nativ akzeptiert; der Normalkeil 0→65535 von links nach rechts und der invertierte Keil 65535→0 kehrten die Neigungsrichtung in der 3D-Vorschau sichtbar um | wie I-02; 2,50 mm, nicht verändert | Nein | Live-Sitzung, kein Screenshot-Artefakt | Studio akzeptiert beide Bittiefen und bildet die Fixture-Polarität editorseitig richtungstreu ab; physische Monotonie und Nutzung aller 65.536 Werte bleiben ohne Druck offen |
-| I-04 | 2026-09-03 (Sitzung bis 01:06 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `height_wedge_16bit_half.png` (128×128) auf COLOR 256×256 nativ akzeptiert; Vorschau belegt die volle 90,31×90,31-mm-Objektfläche | HEIGHT-Inhalt an die unveränderte COLOR-Objektfläche angepasst; keine separate 45,16-mm-Ausdehnung angezeigt | Nein | Live-Sitzung, kein Screenshot-Artefakt | gleiche Seitenrelation bei halbierter Pixelkante wird nicht abgelehnt; physische Filterung/Interpolation offen |
+| I-04 | 2026-09-03 (Sitzung bis 01:06 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `height_wedge_16bit_half.png` (128×128) auf COLOR 256×256 nativ akzeptiert; Vorschau belegt die volle 90,31×90,31-mm-Objektfläche | HEIGHT-Inhalt an die unveränderte COLOR-Objektfläche angepasst; keine separate 45,16-mm-Ausdehnung angezeigt | Nein | Live-Sitzung, kein Screenshot-Artefakt | gleiche Seitenrelation bei halbierter Pixelkante wird nicht abgelehnt; kombinierte Pixelgrößen-/Resampling-Druckwirkung offen. I-04 wurde bereits im Fixture-Generator per LANCZOS verkleinert und gerundet, daher keine isolierte Studio-Filteraussage |
 | I-05 (konsistent) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, zentriert, 101,60×101,60 mm | keine | Nein | Live-Sitzung, kein Screenshot-Artefakt | E1 online; Standard Flatbed 335×420 mm; kein Druck |
 | I-05 (ohne `pHYs`) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | Motiv überschreitet Arbeitsfläche; automatische Verkleinerung angeboten | nach bestätigtem Beibehalten der Originalgröße sichtbar, 423,33×423,33 mm | keine; angebotene Verkleinerung abgelehnt | Nein | Live-Sitzung, kein Screenshot-Artefakt | 72-dpi-Fallback; kein Druck |
 | I-05 (widersprüchlich) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, zentriert, 203,18×203,18 mm | keine | Nein | Live-Sitzung, kein Screenshot-Artefakt | `pHYs`-Quantisierung wird sichtbar; kein Druck |
@@ -304,16 +310,16 @@ Firmware nicht angezeigt. Der unmittelbar vorher erzeugte Inspectorreport
 bestätigte 41/41 Einzel-Fixtures und 7/7 Pakete. Es wurde weder **Preview**
 noch **Print** ausgelöst.
 
-| Zelle | Importierte Dateien | Studio-Ergebnis | Warnung/Änderung | Belegte Grenze |
-| --- | --- | --- | --- | --- |
-| G-01 | `gloss_min.png`, `gloss_mean.png`, `gloss_max.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | 0/128/255 werden als Bilder akzeptiert, nicht als Glossmenge bestätigt |
-| G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | je 90,31×90,31 mm; sichtbar und getrennt | keine | keine Polaritätsaussage ohne Druck |
-| G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | je 90,31×90,31 mm; Stufen bzw. begrenzter Keil sichtbar | keine | keine Aussage über kontinuierlichen, quantisierten, binären oder normalisierten Auftrag |
-| G-04a/b/c | `export_gloss_absent/` digital; Null/voll über bytegleiche `gloss_min.png`/`gloss_max.png` | fehlend im Paketvertrag; Null/voll als normale Einzelbilder | keine PNG-Warnung; JSON im Bilddialog nicht auswählbar | Bilddialog hat keinen beobachtbaren Paket-/Optionalitätsvertrag |
-| G-05 | `gloss_dimensions_half_width.png` | 128×256 px → 45,16×90,31 mm; X/Y 144,91/164,84 mm; 0° | kein Scaling, Beschnitt oder Fehler | Studio verknüpft die Datei nicht mit COLOR/Manifest und erkennt deshalb keinen Konflikt |
-| G-06 | drei PNGs aus `export_gloss_alpha_coverage/` | je 90,31×90,31 mm; drei unabhängige „Flat“-Ebenen; Alpha-Felder im COLOR sichtbar | keine Rollenzuordnung oder Maskenkopplung | physische Alpha×Gloss-Wirkung offen |
-| G-07 | drei PNGs aus `export_gloss_height_cross/` | je 90,31×90,31 mm; 16-Bit-HEIGHT 0/32768/65535 sichtbar; drei unabhängige „Flat“-Ebenen | keine Rollenzuordnung oder Maskenkopplung | physische HEIGHT×Gloss-Wirkung offen |
-| G-08 | `gloss_registration.png`, `gloss_checkerboard.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Druckregistrierung, Filterung und Bleeding offen |
+| Zelle | Importierte Dateien | Studio-Ergebnis | Warnung/Änderung | „Nichts passiert"? (EM-S03) | Belegte Grenze |
+| --- | --- | --- | --- | --- | --- |
+| G-01 | `gloss_min.png`, `gloss_mean.png`, `gloss_max.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Nein; alle drei sichtbar | 0/128/255 werden als Bilder akzeptiert, nicht als Glossmenge bestätigt |
+| G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | je 90,31×90,31 mm; sichtbar und getrennt | keine | Nein; beide sichtbar | keine Polaritätsaussage ohne Druck |
+| G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | je 90,31×90,31 mm; Stufen bzw. begrenzter Keil sichtbar | keine | Nein; beide sichtbar | keine Aussage über kontinuierlichen, quantisierten, binären oder normalisierten Auftrag |
+| G-04a/b/c | `export_gloss_absent/` digital; `export_gloss_zero/full/gloss_mask.png` tatsächlich importiert | fehlend im Paketvertrag; Null als schwarze und voll als weiße `gloss_mask`-Ebene, jeweils „Flat“ und 90,31×90,31 mm | keine PNG-Warnung; JSON im Bilddialog nicht auswählbar | G-04a: n. z. (keine Gloss-Datei); G-04b/c: Nein, beide Writer-Assets sichtbar | Bilddialog hat keinen beobachtbaren Paket-/Optionalitätsvertrag; der Import der tatsächlichen Writer-Assets ist belegt, ihre Gloss-Semantik bleibt ohne nativen Pfad/Druck offen |
+| G-05 | `gloss_dimensions_half_width.png` | 128×256 px → 45,16×90,31 mm; X/Y 144,91/164,84 mm; 0° | kein Scaling, Beschnitt oder Fehler | Nein; sichtbar | Studio verknüpft die Datei nicht mit COLOR/Manifest und erkennt deshalb keinen Konflikt |
+| G-06 | drei PNGs aus `export_gloss_alpha_coverage/` | je 90,31×90,31 mm; drei unabhängige „Flat“-Ebenen; Alpha-Felder im COLOR sichtbar | keine Rollenzuordnung oder Maskenkopplung | Nein; alle drei sichtbar | physische Alpha×Gloss-Wirkung offen |
+| G-07 | drei PNGs aus `export_gloss_height_cross/` | je 90,31×90,31 mm; 16-Bit-HEIGHT 0/32768/65535 sichtbar; drei unabhängige „Flat“-Ebenen | keine Rollenzuordnung oder Maskenkopplung | Nein; alle drei sichtbar | physische HEIGHT×Gloss-Wirkung offen |
+| G-08 | `gloss_registration.png`, `gloss_checkerboard.png` | je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Nein; beide sichtbar | Druckregistrierung, Filterung und Bleeding offen |
 
 Bei allen 256×256-Dateien ohne `pHYs` verwendete Studio den bereits in #689
 belegten 72-dpi-Fallback: 90,31×90,31 mm, X/Y 122,34/164,84 mm, 0°. Namen,
@@ -326,6 +332,13 @@ zeigte anschließend ausdrücklich `Gloss Varnish × 1`; es erschien keine
 Warnung. Damit ist der native Gloss-Pfad in Studio 4.2.2 grundsätzlich belegt.
 Polarität, Intensität, Materialwirkung und physischer Auftrag bleiben ohne
 `Preview` oder `Print` offen.
+
+Am 2026-09-03 wurden für G-04b/c zusätzlich die tatsächlichen
+`export_gloss_zero/full/gloss_mask.png`-Dateien importiert. Beide erschienen
+ohne Warnung als sichtbare `gloss_mask`-Ebenen, Null schwarz und Voll weiß,
+jeweils „Flat“, 90,31×90,31 mm und X/Y 122,34/164,84 mm. Damit lautet
+EM-S03 für beide Writer-Assets „Nein". Es wurde weder **Preview** noch
+**Print** ausgelöst; der Befund belegt keine native Gloss-Rollenzuordnung.
 
 **„Nichts passiert"-Fall (EM-S03):** Laut Annahmeninventar wurde für Studio
 2.6.0.2 ein still geladener, aber unsichtbarer Import berichtet; spätere
@@ -349,7 +362,7 @@ Materialverbrauch beachten – siehe
 | I-02 | | | | | | | | | | |
 | I-03 (8 Bit) | | | | | | | | | | |
 | I-03 (16 Bit) | | | | | | | | | | |
-| I-04 | | | | | | | | | | |
+| I-04 (halbierte Pixelkante; Referenz I-02) | | | | | | | | | | |
 | I-05 (konsistent) | | | | | | | | | | |
 | I-07 | | | | | | | | | | |
 | I-08 (vor Crop) | | | | | | | | | | |
@@ -357,7 +370,6 @@ Materialverbrauch beachten – siehe
 | I-10 (normal) | | | | | | | | | | |
 | I-10 (invertiert) | | | | | | | | | | |
 | I-11 | | | | | | | | | | |
-| I-12 | | | | | | | | | | |
 | I-13 (Alpha/Coverage) | | | | | | | | | | |
 
 **Je Zeile eine eigene physische Variante:** I-08 und I-10 vergleichen selbst
@@ -366,9 +378,22 @@ eigenständig zu druckende und zu protokollierende Varianten, nicht zwei
 Aspekte eines einzigen Drucks. Die Spalte „Wiederholungsmessung (2. Lauf)"
 bezieht sich je Zeile ausschließlich auf einen zweiten, unabhängigen Druck
 **derselben** Variante – nicht auf die jeweils andere Variante. Zusammen mit
-den 13 Zeilen dieser Tabelle ergibt das die 13 druckbaren Varianten aus dem
+den 12 Zeilen dieser Tabelle ergibt das die 12 druckbaren Varianten aus dem
 Materialbudget in
 [`EUFYMAKE-687-TESTGOVERNANCE.md`](EUFYMAKE-687-TESTGOVERNANCE.md).
+
+**I-12 ist import-only:** Studio lehnt die 256×128-HEIGHT-Datei am
+256×256-COLOR-Objekt fail-closed ab und erzeugt deshalb kein druckbares
+I-12-Objekt. Die Zelle bleibt als Import-Negativtest in §2 erhalten, hat aber
+keine Zeile und keinen Materialplatz in diesem Druckprotokoll. H-03 endet für
+den abgelehnten 2:1-Fall daher mit „physische Messung nicht anwendbar". Der
+separate druckbare I-02/I-04-Vergleich untersucht den kombinierten
+Pixelgrößen-/Resampling-End-to-End-Effekt bei gleicher Seitenrelation;
+Layoutgröße, Texturmodus, Höhe und alle übrigen Druckparameter sind zwischen
+beiden Läufen identisch zu halten. Da I-04 schon im Fixture-Generator per
+LANCZOS verkleinert und gerundet wird, darf das Ergebnis nicht als isolierte
+Studio-Filterwirkung ausgewiesen werden. Dafür bleiben kontrollierte Kanten-/
+Impuls-Fixtures erforderlich.
 
 **Wiederholungsmessung:** Mindestens die in #688/#689/#690 als Kernaussage
 markierten Zeilen (Nullpunkt/Grundfläche, monotoner Keil, mm/DPI-Referenz,

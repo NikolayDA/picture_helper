@@ -57,8 +57,8 @@ Dimensionsfehlerpaket ersetzt anschließend kontrolliert die Gloss-Datei.
 | G-02 | `gloss_wedge.png`, `gloss_wedge_inverted.png` | Polarität | 0→255 / 255→0 | beide getrennt und ohne Warnung importiert | ausstehend |
 | G-03 | `gloss_steps.png`, `gloss_wedge_limited.png` | kontinuierlich, quantisiert, binär oder normalisiert | 8 Stufen 0…255 / Keil 64…192 | beide getrennt und ohne Warnung importiert | ausstehend |
 | G-04a | `export_gloss_absent/` | keine Gloss-Rolle | keine Datei/Referenz | Paket semantisch geprüft; Studio-Bilddialog importiert kein Manifest | ausstehend |
-| G-04b | `export_gloss_zero/` | vorhandene Nullfläche | 0 | pixeläquivalentes `gloss_min.png` als normale Ebene importiert; Produktionswriter-Datei selbst noch nicht importiert | ausstehend |
-| G-04c | `export_gloss_full/` | voll gesetzte Fläche | 255 | pixeläquivalentes `gloss_max.png` als normale Ebene importiert; Produktionswriter-Datei selbst noch nicht importiert | ausstehend |
+| G-04b | `export_gloss_zero/` | vorhandene Nullfläche | 0 | tatsächliche `gloss_mask.png` am 2026-09-03 ohne Warnung als sichtbare schwarze „Flat“-Ebene importiert; 90,31×90,31 mm | ausstehend |
+| G-04c | `export_gloss_full/` | voll gesetzte Fläche | 255 | tatsächliche `gloss_mask.png` am 2026-09-03 ohne Warnung als sichtbare weiße „Flat“-Ebene importiert; 90,31×90,31 mm | ausstehend |
 | G-05 | `export_gloss_dimension_mismatch/` | Dimensionsregel | COLOR/Manifest 256×256; Gloss 128×256 | Gloss separat als 45,16×90,31 mm importiert; kein Scaling/Fehler | nur falls Import sicher interpretierbar |
 | G-06 | `export_gloss_alpha_coverage/` | COLOR-Alpha bei konstantem Gloss/HEIGHT | Alpha 0/128/255; RGB konstant; Gloss 128; HEIGHT 32768 | drei PNGs als unabhängige „Flat“-Ebenen importiert | ausstehend |
 | G-07 | `export_gloss_height_cross/` | HEIGHT bei konstantem Gloss/COLOR | HEIGHT 0/32768/65535; Gloss 128; COLOR opak | drei PNGs als unabhängige „Flat“-Ebenen importiert | ausstehend |
@@ -96,16 +96,16 @@ ausgelöst. Alle 256×256-PNGs ohne `pHYs` erschienen bei 72-dpi-Fallback mit
 Graustufenmodus oder gemeinsamem Exportordner keine COLOR-/HEIGHT-/GLOSS-Rolle
 und keine Beziehung zwischen den Ebenen ab.
 
-| Zelle | Datum/Version | Warnung | Darstellung/Größe | automatische Änderung | Aussagegrenze |
-| --- | --- | --- | --- | --- | --- |
-| G-01 | 2026-09-02; 4.2.2/1.20.0 | keine | 0/128/255 sichtbar; je 90,31×90,31 mm; drei getrennte „Flat“-Ebenen | keine | Keine Aussage über Klarlack ohne Druck |
-| G-02 | 2026-09-02; 4.2.2/1.20.0 | keine | normaler und invertierter Keil je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Invertierte Bilddarstellung ist noch keine Polaritätsbestätigung |
-| G-03 | 2026-09-02; 4.2.2/1.20.0 | keine | Stufen und 64…192-Keil je 90,31×90,31 mm; Tonwerte sichtbar | keine | Tonwertanzeige ist noch keine Intensitätskennlinie |
-| G-04a/b/c | 2026-09-02; 4.2.2/1.20.0 | keine PNG-Warnung | fehlend nur als Paketvertrag prüfbar; Null/voll über pixeläquivalente, aber nicht byteidentische min/max-PNGs sichtbar | keine; JSON im bereits geprüften Bilddialog nicht auswählbar | Studio-Bildimport besitzt keinen beobachtbaren Paket-/Optionalitätsvertrag; Writer-Paketassets bleiben separat zu importieren |
-| G-05 | 2026-09-02; 4.2.2/1.20.0 | keine | 128×256 px separat als 45,16×90,31 mm, X/Y 144,91/164,84 mm, 0° | kein Scaling, kein Beschnitt, keine Ablehnung | Studio erkennt keinen Dimensionskonflikt, weil es keine Rollen verknüpft |
-| G-06 | 2026-09-02; 4.2.2/1.20.0 | keine | COLOR, HEIGHT und konstantes Gloss je separat 90,31×90,31 mm; Alpha-Felder im COLOR sichtbar | alle „Flat“; keine Rollenzuordnung oder Maskenkopplung | COLOR-Alpha-Wirkung auf physischen Gloss-Auftrag bleibt offen |
-| G-07 | 2026-09-02; 4.2.2/1.20.0 | keine | COLOR, 16-Bit-HEIGHT 0/32768/65535 und Gloss je separat 90,31×90,31 mm | alle „Flat“; keine Rollenzuordnung oder Maskenkopplung | HEIGHT-Wirkung auf physischen Gloss-Auftrag bleibt offen |
-| G-08 | 2026-09-02; 4.2.2/1.20.0 | keine | Registrierung und Schachbrett je separat 90,31×90,31 mm | beide „Flat“; keine gemeinsame Registrierung erzeugt | Registrierung, Filterung und Bleeding im Druck separat messen |
+| Zelle | Datum/Version | Warnung | Darstellung/Größe | automatische Änderung | „Nichts passiert"? (EM-S03) | Aussagegrenze |
+| --- | --- | --- | --- | --- | --- | --- |
+| G-01 | 2026-09-02; 4.2.2/1.20.0 | keine | 0/128/255 sichtbar; je 90,31×90,31 mm; drei getrennte „Flat“-Ebenen | keine | Nein; alle drei sichtbar | Keine Aussage über Klarlack ohne Druck |
+| G-02 | 2026-09-02; 4.2.2/1.20.0 | keine | normaler und invertierter Keil je 90,31×90,31 mm; getrennte „Flat“-Ebenen | keine | Nein; beide sichtbar | Invertierte Bilddarstellung ist noch keine Polaritätsbestätigung |
+| G-03 | 2026-09-02; 4.2.2/1.20.0 | keine | Stufen und 64…192-Keil je 90,31×90,31 mm; Tonwerte sichtbar | keine | Nein; beide sichtbar | Tonwertanzeige ist noch keine Intensitätskennlinie |
+| G-04a/b/c | 2026-09-02/03; 4.2.2/1.20.0 | keine PNG-Warnung | fehlend nur als Paketvertrag prüfbar; tatsächliche Null-/Voll-Writer-Assets schwarz/weiß sichtbar, je 90,31×90,31 mm und „Flat“ | keine; JSON im bereits geprüften Bilddialog nicht auswählbar | G-04a: n. z. (keine Gloss-Datei); G-04b/c: Nein, beide Writer-Assets sichtbar | Studio-Bildimport besitzt keinen beobachtbaren Paket-/Optionalitätsvertrag; Writer-Asset-Import belegt, Gloss-Semantik und physische Optionalität bleiben offen |
+| G-05 | 2026-09-02; 4.2.2/1.20.0 | keine | 128×256 px separat als 45,16×90,31 mm, X/Y 144,91/164,84 mm, 0° | kein Scaling, kein Beschnitt, keine Ablehnung | Nein; sichtbar | Studio erkennt keinen Dimensionskonflikt, weil es keine Rollen verknüpft |
+| G-06 | 2026-09-02; 4.2.2/1.20.0 | keine | COLOR, HEIGHT und konstantes Gloss je separat 90,31×90,31 mm; Alpha-Felder im COLOR sichtbar | alle „Flat“; keine Rollenzuordnung oder Maskenkopplung | Nein; alle drei sichtbar | COLOR-Alpha-Wirkung auf physischen Gloss-Auftrag bleibt offen |
+| G-07 | 2026-09-02; 4.2.2/1.20.0 | keine | COLOR, 16-Bit-HEIGHT 0/32768/65535 und Gloss je separat 90,31×90,31 mm | alle „Flat“; keine Rollenzuordnung oder Maskenkopplung | Nein; alle drei sichtbar | HEIGHT-Wirkung auf physischen Gloss-Auftrag bleibt offen |
+| G-08 | 2026-09-02; 4.2.2/1.20.0 | keine | Registrierung und Schachbrett je separat 90,31×90,31 mm | beide „Flat“; keine gemeinsame Registrierung erzeugt | Nein; beide sichtbar | Registrierung, Filterung und Bleeding im Druck separat messen |
 
 **Importbefund:** Der Studio-Bilddialog akzeptiert die kontrollierten 8-Bit-
 Gloss-Träger und den 16-Bit-HEIGHT-Kreuzträger als sichtbare Bildobjekte. Das
@@ -113,6 +113,13 @@ ist ausschließlich ein Akzeptanz- und Geometriebefund. Die getrennten Ebenen
 belegen gerade **keine** native Gloss-Semantik; eine physische Polarität,
 Mengenkennlinie, Alpha-Maskierung oder HEIGHT-Wechselwirkung lässt sich daraus
 nicht ableiten.
+
+Für G-04b/c wurden am 2026-09-03 die tatsächlichen
+`export_gloss_zero/full/gloss_mask.png`-Dateien sichtbar importiert. Beide
+erschienen ohne Warnung als getrennte „Flat“-Ebenen (Null schwarz, Voll weiß),
+je 90,31×90,31 mm und X/Y 122,34/164,84 mm. EM-S03 ist damit für beide
+Writer-Assets mit „Nein" protokolliert. Weder **Preview** noch **Print** wurde
+ausgelöst; Gloss-Rollenzuordnung und physische Wirkung bleiben offen.
 
 ### Nativer Gloss-Preflight vom 2026-09-03
 

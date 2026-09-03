@@ -579,6 +579,17 @@ bleiben im Sinne dieses Abschnitts weiterhin „offen“, bis der jeweilige
 Realtest tatsächlich durchgeführt wurde – die Ergänzung schafft nur die
 fehlende Testzelle, kein Ergebnis.
 
+**Planpräzisierung (2026-09-03):** Studio hat I-12 inzwischen fail-closed
+abgelehnt. Der H-03-Negativtest ist damit auf Importebene abgeschlossen und
+nicht physisch druckbar; für den abgelehnten 2:1-Fall ist eine physische
+Messung nicht anwendbar. I-02 (256×256-Referenz) und I-04 (128×128 bei
+gleicher Seitenrelation) bleiben als kombinierter Pixelgrößen-/Resampling-
+End-to-End-Vergleich erhalten, nicht als Seitenverhältnis-Nachweis. Weil I-04
+bereits im Fixture-Generator über float32, LANCZOS, `rint` und Clamp
+verkleinert wurde, isoliert das Paar keine Studio-Filterwirkung; diese bleibt
+kontrollierten Kanten-/Impuls-Fixtures vorbehalten. I-12 besitzt keinen
+Drucklauf und keinen Materialplatz.
+
 ### 4. Konsequenzen aus Version 2
 
 1. Die Codeänderung aus PR #795 zur 330×420-mm-Warnschwelle ist direkt bestätigt.
@@ -794,6 +805,7 @@ oder Registrierung auf Material.
 | V4-T5 | I-03-Gegenprobe: Normalkeil 0→65535 links→rechts und invertierter 16-Bit-Keil 65535→0 nativ angenommen; sichtbare Umkehr der 3D-Neigungsrichtung | T |
 | V4-T6 | I-07-Null-Gegenprobe: `height_zero_16bit.png` nativ ohne Warnung angenommen und als ebene Grundfläche dargestellt | T |
 | V4-T7 | I-13: `height_mean_16bit.png` nativ im selben `color_alpha_coverage.png`-Objekt zugewiesen; `3D` und drei weiterhin erkennbare Alpha-/Farbfelder | T |
+| V4-T8 | G-04b/c: tatsächliche `export_gloss_zero/full/gloss_mask.png`-Writer-Assets ohne Warnung als sichtbare schwarze/weiße „Flat“-Ebenen importiert; je 90,31×90,31 mm, kein Preview/Print | T |
 | V4-P1 | Pre-Import-Report: 41/41 Fixtures und 7/7 Pakete erfolgreich; Report-SHA-256 `8c7264f842395a21a55b93006f2f598b08eb71cc95c528a53b21b5531daf885f` | P |
 
 ### 2. Aktualisierte Testmatrix
@@ -810,11 +822,11 @@ oder Registrierung auf Material.
 | I-09 Legacy/aktuell | nicht anwendbar | optionaler `.empf`-Explorationslauf gemäß Evidenzversion 3 |
 | I-10 | abgeschlossen | normal/invertiert als Bild akzeptiert; physische Gloss-Polarität offen |
 | I-11 | abgeschlossen | diskrete Sollstufen in der Editorvorschau sichtbar |
-| I-12 | abgeschlossen | abweichende Seitenrelation wird ausdrücklich und ohne stillen Ersatz abgelehnt |
+| I-12 | abgeschlossen (import-only) | abweichende Seitenrelation wird ausdrücklich und ohne stillen Ersatz abgelehnt; kein druckbares Objekt erzeugt |
 | I-13 | abgeschlossen | konstantes nicht-null HEIGHT nativ im selben COLOR-Objekt; Alpha-/Farbfelder bleiben in der 3D-Vorschau erkennbar, physische Wirkung offen |
-| G-01 bis G-08 | abgeschlossen auf Importebene | native Gloss-Verfügbarkeit allgemein belegt; zellspezifische Druckparameter und physische Aussagen offen |
+| G-01 bis G-08 | abgeschlossen auf Importebene | native Gloss-Verfügbarkeit allgemein belegt; für G-04b/c wurden am 2026-09-03 die tatsächlichen Null-/Voll-Writer-Assets sichtbar importiert. EM-S03 ist je importierbarer Zelle ausdrücklich mit „Nein" protokolliert; G-04a ist mangels Gloss-Datei nicht anwendbar. Zellspezifische Druckparameter und physische Aussagen bleiben offen. |
 
-Damit sind alle 27 verpflichtenden Phase-1-Zeilen abgeschlossen und die
+Damit sind alle 27 verpflichtenden Phase-1-Zeilen abgeschlossen und ihre
 „Nichts passiert“-Ausgänge explizit protokolliert. Die beiden I-09-Zeilen
 zählen gemäß Scope-Entscheid nicht dazu.
 
@@ -825,14 +837,23 @@ zählen gemäß Scope-Entscheid nicht dazu.
 | EM-F03 | **widerlegt; Profil umgesetzt** | Die ursprüngliche 8-Bit-Default-Annahme bleibt widerlegt und Profil v1 verwendet 16 Bit. Studio akzeptiert 8- und 16-Bit-PNG nativ; ob 16 Bit im Druck mehr als 8 Bit auflöst, bleibt als getrennte Präzisionsfrage unbewiesen. |
 | EM-H04 | **offen** | Vollweiß erscheint im Editor als gleichmäßiges Plateau; diese konstante Vorschau unterscheidet jedoch weder Clipping noch Sättigung oder Normalisierung. Physisches Clipping und die tatsächliche Maximalhöhe bleiben unbewiesen. |
 | EM-G04 | **bestätigt** | Abweichende absolute HEIGHT-Pixelmaße sind bei gleicher Seitenrelation akzeptiert; eine abweichende Seitenrelation wird mit expliziter Warnung fail-closed abgelehnt. |
-| EM-S03 | **für Studio 4.2.2 und die Pflichtmatrix bestätigt; historischer Gegenbeleg bleibt** | Keine verpflichtende Zelle endete mit stillem, unsichtbarem Import; I-06-JSON und I-12 lieferten stattdessen eindeutige Nichtauswahl beziehungsweise Warnung. Der B2-Befund aus Studio 2.6.0.2 wird dadurch nicht umgedeutet. |
+| EM-S03 | **für Studio 4.2.2 und die Pflichtmatrix bestätigt; historischer Gegenbeleg bleibt** | Keine importierbare Pflichtzelle endete mit stillem, unsichtbarem Import. Für G-04b/c wurden die tatsächlichen Writer-Assets importiert und jeweils sichtbar dargestellt; G-04a ist mangels Gloss-Datei nicht anwendbar. I-06-JSON und I-12 lieferten eindeutige Nichtauswahl beziehungsweise Warnung. Der B2-Befund aus Studio 2.6.0.2 wird dadurch nicht umgedeutet. |
 
 ### 4. Konsequenzen und offene Gates
 
-1. Phase 1 und der Phase-2-Startstand sind abgeschlossen; das physische Budget
-   steht weiterhin unverbraucht bei 0/35.
-2. Die nächsten zulässigen Schritte sind Geräte-/Material-/Messmittelfreigabe,
+1. Phase 1 und das EM-S03-Gate sind nach dem tatsächlichen G-04b/c-
+   Writer-Asset-Import abgeschlossen; das physische Budget steht weiterhin
+   unverbraucht bei 0/35.
+2. I-12 ist import-only und wird nicht in Phase 3 übernommen. Für den
+   abgelehnten 2:1-Fall ist keine physische Messung anwendbar. I-02/I-04 werden
+   bei identischen Layout- und Druckparametern ausschließlich als
+   kombinierter Pixelgrößen-/Resampling-End-to-End-Vergleich geführt. Weil
+   I-04 bereits im Fixture-Generator per LANCZOS verkleinert und gerundet
+   wurde, bleibt die isolierte Studio-Filterwirkung unter kontrollierten
+   Kanten-/Impuls-Fixtures offen. Phase 3 umfasst 12 physische
+   Stammvarianten statt 13.
+3. Die nächsten zulässigen Schritte sind Geräte-/Material-/Messmittelfreigabe,
    die zellspezifische Fixierung der Druckparameter und anschließend Phase 3.
-3. Die physischen HEIGHT-, mm/DPI- und Gloss-Nachweise aus #688–#690 bleiben
+4. Die physischen HEIGHT-, mm/DPI- und Gloss-Nachweise aus #688–#690 bleiben
    offen. Erst danach folgen die Abschluss-Review von #687 und die Entscheidung,
    Profil v1 zu bestätigen oder bei Widerspruch Profil v2 anzulegen.
