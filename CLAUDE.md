@@ -313,7 +313,7 @@ Ein Paket, `bgremover/`:
   physischen #688-Messung unbestätigt, 8-Bit-Ziel
   mit echten 16-Bit-Höhen = Präzisionsverlust (#590), Gloss=Ink-Mode-Hilfsasset,
   physische Größe ohne Herstellervertrag, Motiv überschreitet das eufyMake-
-  Standard-Flachbett `STANDARD_FLATBED_MM` = 330 × 420 mm (#687, ebenfalls Grad S))
+  Standard-Flatbed `STANDARD_FLATBED_MM` = 335 × 420 mm (#687; seit #971 vom Owner bestätigt))
   erlauben den Export erst nach Bestätigung; die Height-Prüfungen arbeiten auf der
   kanonischen Payload. `format_finding` liefert die übersetzte Meldung (literale
   `tr`-Keys `eufymake.export.*`). Das Befund-Fundament (`Severity`,
@@ -372,9 +372,10 @@ Ein Paket, `bgremover/`:
   gegen die handgepflegte `projects.json`, Träger nur byteidentisch oder bewusst
   per `--rebuild-carriers` überschrieben – danach Studio-Neuaufbau und
   Nachzug der Bindung). `--check` ist der Wächter in
-  `tests/test_eufymake_a4_layouts.py`. Die in Studio beobachtete Arbeitsfläche
-  (335 × 420 mm) und `STANDARD_FLATBED_MM` (330 × 420 mm, Herstellerangabe)
-  werden im Manifest getrennt geführt, nicht vermischt.
+  `tests/test_eufymake_a4_layouts.py`. Das Flatbed-Maß kommt allein aus
+  `STANDARD_FLATBED_MM` (335 × 420 mm, Owner-Bestätigung #971); weicht die
+  Konstante je von der Fläche ab, auf der die `.empf`-Projekte gebaut sind,
+  bricht der Generator ab.
 - **Allgemeine Pre-Export-Prüfung:** `export_checks.py` — Qt-freie, strikt getypte,
   geteilte Basis (#379): generischer `Finding`/`CheckCode`/`Severity`-Vertrag mit
   deterministischer Sortierung und `format_finding` (literale `tr`-Keys

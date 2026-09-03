@@ -271,14 +271,14 @@ def test_physical_size_within_flatbed_has_no_print_area_warning() -> None:
 
 def test_physical_size_exceeding_flatbed_warns_print_area() -> None:
     project = _color_project()
-    project.metadata[META_PHYSICAL_SIZE_MM] = (500.0, 200.0)  # Breite > 330 mm
+    project.metadata[META_PHYSICAL_SIZE_MM] = (500.0, 200.0)  # Breite > 335 mm
     findings = validate_export(project)
     warn = next(f for f in findings if f.code is ExportCheckCode.PRINT_AREA_EXCEEDED)
     assert warn.severity is Severity.WARNING
     assert warn.role is None
     assert warn.params["width"] == 500.0
     assert warn.params["height"] == 200.0
-    assert warn.params["medium_w"] == 330.0
+    assert warn.params["medium_w"] == 335.0
     assert warn.params["medium_h"] == 420.0
     assert format_finding(warn)                          # rendert ohne KeyError
 
@@ -407,7 +407,7 @@ def test_format_finding_renders_every_code() -> None:
         ),
         ExportCheckCode.PRINT_AREA_EXCEEDED: ExportFinding(
             ExportCheckCode.PRINT_AREA_EXCEEDED, Severity.WARNING, None,
-            {"width": 500.0, "height": 200.0, "medium_w": 330.0, "medium_h": 420.0},
+            {"width": 500.0, "height": 200.0, "medium_w": 335.0, "medium_h": 420.0},
         ),
     }
     # Jeder Code hat ein Beispiel und rendert in de/en ohne KeyError.

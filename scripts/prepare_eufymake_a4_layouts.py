@@ -30,10 +30,12 @@ Bindungsmodell (fail-closed, Review-Befunde zu PR #971):
   Fixtures, Aufbau-JSONs, Manifest, Vorschau-Pixel) und ist der Wächter in
   ``tests/test_eufymake_a4_layouts.py``. Er braucht keine Schrift.
 
-Die Studio-Koordinaten (``e1_flatbed_geometry_mm``) beziehen sich auf die in
-Studio 4.2.2 beobachtete Arbeitsfläche „Standard Flatbed“ von 335 × 420 mm; die
-bedruckbare Fläche laut Herstellerangabe (``STANDARD_FLATBED_MM``, 330 × 420 mm)
-wird im Manifest getrennt ausgewiesen, nicht vermischt.
+Die Studio-Koordinaten (``e1_flatbed_geometry_mm``) beziehen sich auf das
+Standard-Flatbed des E1 (``STANDARD_FLATBED_MM``, 335 × 420 mm – vom Owner
+bestätigt und identisch mit der in Studio 4.2.2 angezeigten Arbeitsfläche). Die
+13 Projekte sind auf genau dieser Fläche gebaut; ändert sich die Konstante,
+bricht der Generator ab, statt die Aufbau-JSONs still von den realen
+Studio-Koordinaten der Projekte zu entkoppeln.
 """
 
 from __future__ import annotations
@@ -70,20 +72,21 @@ A4_W_MM = 210.0
 A4_H_MM = 297.0
 PX_PER_MM = 10  # Träger und Vorschau mit 254 dpi
 
-# Arbeitsfläche „Standard Flatbed“ in eufyMake Studio 4.2.2: das Bezugssystem
-# aller Studio-Koordinaten in den .empf-Projekten. Beobachtet, nicht gemessen:
-# Studio zentriert ein 101,60-mm-Objekt auf X = 116,70 mm, also (335 − 101,60) / 2
-# (docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md, Studio-Protokoll vom
-# 2026-09-02/03; docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md, Import I-05).
-STUDIO_FLATBED_MM = (335.0, 420.0)
-# Bedruckbare Fläche laut Herstellerangabe (A10/A15 im Annahmeninventar). Die
-# einzige Quelle ist die Validator-Konstante; hier nur zur Gegenüberstellung –
-# der 5-mm-Unterschied in X zur Studio-Arbeitsfläche ist offen und wird nicht
-# weggerundet.
-PRINTABLE_AREA_MM = STANDARD_FLATBED_MM
+# Einzige Quelle des Flatbed-Maßes ist die Validator-Konstante (335 × 420 mm,
+# Owner-Bestätigung 2026-09-03 in #971). Sie ist das Bezugssystem aller
+# Studio-Koordinaten in den .empf-Projekten und identisch mit der Arbeitsfläche
+# „Standard Flatbed“, die Studio 4.2.2 anzeigt (Zentrierung eines 101,60-mm-
+# Objekts auf X = 116,70 mm im Studio-Protokoll, docs/history/EUFYMAKE-689-
+# MM-DPI-VERTRAG.md; Importprotokoll I-05 in EUFYMAKE-687-PROTOKOLL-VORLAGEN.md).
+FLATBED_MM = STANDARD_FLATBED_MM
+# Fläche, auf der die 13 gebundenen .empf-Projekte tatsächlich aufgebaut wurden.
+# Weicht die Konstante je davon ab, sind die Projekte in Studio neu aufzubauen;
+# der Generator bricht dann ab (verify_flatbed_binding), statt Aufbau-JSONs zu
+# schreiben, die nicht mehr zu den Projekten passen.
+EMPF_CANVAS_MM = (335.0, 420.0)
 A4_ORIGIN_MM = (
-    (STUDIO_FLATBED_MM[0] - A4_W_MM) / 2.0,
-    (STUDIO_FLATBED_MM[1] - A4_H_MM) / 2.0,
+    (FLATBED_MM[0] - A4_W_MM) / 2.0,
+    (FLATBED_MM[1] - A4_H_MM) / 2.0,
 )
 
 TITLE_FONT_PX = 42
@@ -721,6 +724,20 @@ def png_bytes(image: Image.Image) -> bytes:
     return buffer.getvalue()
 
 
+# ── Flatbed-Bindung ───────────────────────────────────────────────────────
+
+
+def verify_flatbed_binding() -> None:
+    """Bricht ab, wenn die Konstante nicht mehr die Fläche der gebundenen Projekte ist."""
+    if tuple(FLATBED_MM) != EMPF_CANVAS_MM:
+        raise PreparationError(
+            f"STANDARD_FLATBED_MM = {tuple(FLATBED_MM)} weicht von der Fläche "
+            f"{EMPF_CANVAS_MM} ab, auf der die gebundenen .empf-Projekte aufgebaut sind – "
+            "Projekte in Studio neu aufbauen, projects.json nachziehen und EMPF_CANVAS_MM "
+            "bewusst anpassen"
+        )
+
+
 # ── Fixture-Abgleich ──────────────────────────────────────────────────────
 
 
@@ -1232,35 +1249,26 @@ def build_manifest(
         "generated_by": "scripts/prepare_eufymake_a4_layouts.py",
         "purpose": "Vorbereitung der physischen EufyMake-A4-Testdrucke für #681",
         "a4_mm": {"width": A4_W_MM, "height": A4_H_MM},
-        "studio_flatbed_mm": {
-            "width": STUDIO_FLATBED_MM[0],
-            "height": STUDIO_FLATBED_MM[1],
+        "e1_flatbed_mm": {
+            "width": FLATBED_MM[0],
+            "height": FLATBED_MM[1],
+            "source": "bgremover.eufymake_export.STANDARD_FLATBED_MM",
             "meaning": (
-                "Arbeitsfläche „Standard Flatbed“ in eufyMake Studio 4.2.2; Bezugssystem "
-                "aller e1_flatbed_geometry_mm-Werte und der .empf-Projekte"
+                "Standard-Flatbed des E1: Arbeitsfläche „Standard Flatbed“ in eufyMake "
+                "Studio 4.2.2 und Bezugssystem aller e1_flatbed_geometry_mm-Werte der "
+                ".empf-Projekte"
             ),
             "evidence": [
+                "Owner-Bestätigung 2026-09-03 (PR #971): Standard-Flatbed 335 × 420 mm",
                 "docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md: Studio-Protokoll vom 2026-09-02/03 "
                 "(101,60 mm zentriert auf X = 116,70 mm)",
                 "docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md: Importprotokoll I-05 "
                 "(Standard Flatbed 335×420 mm)",
             ],
         },
-        "printable_area_mm": {
-            "width": PRINTABLE_AREA_MM[0],
-            "height": PRINTABLE_AREA_MM[1],
-            "source": (
-                "bgremover.eufymake_export.STANDARD_FLATBED_MM "
-                "(Herstellerangabe, A10/A15 im Annahmeninventar)"
-            ),
-            "note": (
-                "Die Lage der bedruckbaren Fläche innerhalb der Studio-Arbeitsfläche ist nicht "
-                "belegt; der Unterschied von 5 mm in X bleibt offen und wird nicht weggerundet."
-            ),
-        },
         "a4_on_flatbed": {
             "rule": "zentriert, hochkant, Oberkante parallel zur Flatbed-Oberkante",
-            "coordinate_reference": "studio_flatbed_mm",
+            "coordinate_reference": "e1_flatbed_mm",
             "x": A4_ORIGIN_MM[0],
             "y": A4_ORIGIN_MM[1],
         },
@@ -1304,6 +1312,7 @@ def run(
     """Erzeugt (``write``/``rebuild``) oder prüft (``check``) den Satz; 0 = in Ordnung."""
     if mode not in ("write", "check", "rebuild"):
         raise ValueError(f"unbekannter Modus {mode!r}")
+    verify_flatbed_binding()
     all_layouts = layouts()
     fixtures_manifest_path = fixtures_dir / FIXTURES_MANIFEST_FILENAME
     expected = fixture_hashes(load_json(fixtures_manifest_path))

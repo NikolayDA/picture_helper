@@ -9,8 +9,8 @@ Vergleichsgruppen zusammen und verändert keine der versionierten Testdateien.
 - In jedem nummerierten Unterordner liegt genau eine gleichnamige `.empf`-Datei.
 - Die Projekte sind selbstständig: COLOR-, HEIGHT- und Gloss-Daten sind jeweils
   als eigene native Ebene eingebettet.
-- Alle Projekte liegen auf der Studio-Arbeitsfläche **Standard Flatbed**
-  (335 × 420 mm, wie eufyMake Studio 4.2.2 sie anzeigt), A4 hochkant und mittig
+- Alle Projekte liegen auf dem Standard-Flatbed des E1 (335 × 420 mm, in
+  Studio 4.2.2 die Arbeitsfläche **Standard Flatbed**), A4 hochkant und mittig
   bei X = 62,50 mm / Y = 61,50 mm in Studio-Koordinaten (siehe *Feste Geometrie*).
 - Die Projekte 04 (HEIGHT + Crop + Gloss), 05 (nur Gloss) und 06 (COLOR / mm-DPI)
   wurden in eufyMake Studio 4.2.2 mit Editor v1.20.0 geöffnet. Dabei wurden
@@ -69,17 +69,17 @@ ist keine unabhängige Wiederholung.
 
 ## Feste Geometrie
 
-- Bezugssystem aller Studio-Koordinaten (`e1_flatbed_geometry_mm`) ist die
-  Studio-Arbeitsfläche **Standard Flatbed 335 × 420 mm**, wie Studio 4.2.2 sie
-  anzeigt. Belegt ist das Maß durch die Zentrierung eines 101,60-mm-Objekts auf
-  X = 116,70 mm im Studio-Protokoll vom 2026-09-02/03
+- Bezugssystem aller Studio-Koordinaten (`e1_flatbed_geometry_mm`) ist das
+  Standard-Flatbed des E1 mit **335 × 420 mm** (`STANDARD_FLATBED_MM` in
+  `bgremover/eufymake_export.py`, vom Owner am 2026-09-03 bestätigt). Es ist
+  dieselbe Fläche, die Studio 4.2.2 als Arbeitsfläche „Standard Flatbed“
+  anzeigt; belegt ist das Maß zusätzlich durch die Zentrierung eines
+  101,60-mm-Objekts auf X = 116,70 mm im Studio-Protokoll vom 2026-09-02/03
   (`docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md`).
-- Die bedruckbare Fläche laut Herstellerangabe ist `STANDARD_FLATBED_MM` =
-  330 × 420 mm (`bgremover/eufymake_export.py`, A10/A15 im Annahmeninventar).
-  Der Unterschied von 5 mm in X ist nicht geklärt (Bettmaß gegen bedruckbare
-  Fläche, Lage der Fläche im Bett) und wird nicht weggerundet;
-  `layout_manifest.json` führt beide Werte getrennt.
-- A4 hochkant, exakt mittig auf der Studio-Arbeitsfläche: Ursprung
+- Die 13 Projekte sind auf genau dieser Fläche gebaut. Ändert sich die
+  Konstante, bricht der Generator ab, statt die Aufbau-JSONs still von den
+  realen Studio-Koordinaten der Projekte zu entkoppeln.
+- A4 hochkant, exakt mittig auf dem Flatbed: Ursprung
   X = 62,50 mm, Y = 61,50 mm; A4-Rand X = 62,50…272,50 mm, Y = 61,50…358,50 mm.
 - Rotation aller Objekte: 0°. Keine automatische Skalierung; die in
   `layout_manifest.json` hinterlegten Maße und Positionen gelten verbindlich.

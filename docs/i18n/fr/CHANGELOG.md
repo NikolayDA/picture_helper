@@ -21,6 +21,16 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   Une profondeur de bits enregistrée auparavant reste présélectionnée jusqu'à
   sa modification dans la boîte de dialogue. Contrat : [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
 
+### Modifié
+
+- **L'avertissement de surface d'impression EufyMake utilise désormais le
+  plateau standard confirmé de 335 × 420 mm (#687, #689, #971).**
+  `STANDARD_FLATBED_MM` valait 330 × 420 mm, une donnée du fabricant étayée
+  uniquement par extraction de moteurs de recherche. La dimension est désormais
+  confirmée par le propriétaire et correspond à la zone de travail affichée par
+  eufyMake Studio 4.2.2 ; `PRINT_AREA_EXCEEDED` n'avertit donc qu'au-delà de
+  335 mm de largeur, et le texte ne qualifie plus la valeur de non confirmée.
+
 ## [2.9.0] – 2026-08-26
 
 ### Ajouté

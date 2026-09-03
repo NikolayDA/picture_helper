@@ -6,24 +6,20 @@
     "width": 210.0,
     "height": 297.0
   },
-  "studio_flatbed_mm": {
+  "e1_flatbed_mm": {
     "width": 335.0,
     "height": 420.0,
-    "meaning": "Arbeitsfläche „Standard Flatbed“ in eufyMake Studio 4.2.2; Bezugssystem aller e1_flatbed_geometry_mm-Werte und der .empf-Projekte",
+    "source": "bgremover.eufymake_export.STANDARD_FLATBED_MM",
+    "meaning": "Standard-Flatbed des E1: Arbeitsfläche „Standard Flatbed“ in eufyMake Studio 4.2.2 und Bezugssystem aller e1_flatbed_geometry_mm-Werte der .empf-Projekte",
     "evidence": [
+      "Owner-Bestätigung 2026-09-03 (PR #971): Standard-Flatbed 335 × 420 mm",
       "docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md: Studio-Protokoll vom 2026-09-02/03 (101,60 mm zentriert auf X = 116,70 mm)",
       "docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md: Importprotokoll I-05 (Standard Flatbed 335×420 mm)"
     ]
   },
-  "printable_area_mm": {
-    "width": 330.0,
-    "height": 420.0,
-    "source": "bgremover.eufymake_export.STANDARD_FLATBED_MM (Herstellerangabe, A10/A15 im Annahmeninventar)",
-    "note": "Die Lage der bedruckbaren Fläche innerhalb der Studio-Arbeitsfläche ist nicht belegt; der Unterschied von 5 mm in X bleibt offen und wird nicht weggerundet."
-  },
   "a4_on_flatbed": {
     "rule": "zentriert, hochkant, Oberkante parallel zur Flatbed-Oberkante",
-    "coordinate_reference": "studio_flatbed_mm",
+    "coordinate_reference": "e1_flatbed_mm",
     "x": 62.5,
     "y": 61.5
   },

@@ -22,6 +22,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Eine früher gespeicherte Bittiefe bleibt als Vorauswahl erhalten, bis sie im
   Dialog geändert wird. Vertrag: [`docs/EUFYMAKE_TARGET_PROFILE.md`](docs/EUFYMAKE_TARGET_PROFILE.md).
 
+### Geändert
+
+- **EufyMake-Druckflächen-Warnung auf das bestätigte Standard-Flatbed
+  335 × 420 mm (#687, #689, #971).** `STANDARD_FLATBED_MM` stand mit
+  330 × 420 mm auf einer nur per Suchmaschinen-Extraktion belegten
+  Herstellerangabe. Das Maß ist jetzt vom Owner bestätigt und deckt sich mit
+  der in eufyMake Studio 4.2.2 angezeigten Arbeitsfläche; `PRINT_AREA_EXCEEDED`
+  warnt entsprechend erst ab 335 mm Breite, und der Warnungstext nennt das Maß
+  nicht mehr als unbestätigt.
+
 ## [2.9.0] – 2026-08-26
 
 ### Hinzugefügt

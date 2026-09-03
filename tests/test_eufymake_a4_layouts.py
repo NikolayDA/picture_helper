@@ -98,24 +98,31 @@ def test_non_white_substrate_is_shared_by_i13_and_g06(manifest: dict) -> None:
     assert len({record["substrate"] for record in manifest["layouts"] if record["substrate"]}) == 1
 
 
-def test_flatbed_references_stay_separate_and_sourced(manifest: dict) -> None:
-    printable = manifest["printable_area_mm"]
-    assert (printable["width"], printable["height"]) == STANDARD_FLATBED_MM
-    assert "STANDARD_FLATBED_MM" in printable["source"]
-    studio = manifest["studio_flatbed_mm"]
-    assert (studio["width"], studio["height"]) == (335.0, 420.0)
-    assert studio["evidence"]
+def test_flatbed_reference_comes_from_the_validator_constant(manifest: dict) -> None:
+    flatbed = manifest["e1_flatbed_mm"]
+    assert (flatbed["width"], flatbed["height"]) == STANDARD_FLATBED_MM == (335.0, 420.0)
+    assert flatbed["source"] == "bgremover.eufymake_export.STANDARD_FLATBED_MM"
+    assert flatbed["evidence"]
+    assert "printable_area_mm" not in manifest and "studio_flatbed_mm" not in manifest
+    # Die gebundenen Projekte sind auf genau dieser Fläche gebaut.
+    assert gen.EMPF_CANVAS_MM == STANDARD_FLATBED_MM
     origin = manifest["a4_on_flatbed"]
-    assert origin["coordinate_reference"] == "studio_flatbed_mm"
+    assert origin["coordinate_reference"] == "e1_flatbed_mm"
     assert (origin["x"], origin["y"]) == ((335.0 - 210.0) / 2, (420.0 - 297.0) / 2)
     for record in manifest["layouts"]:
         for item in record["objects"]:
-            a4, flatbed = item["a4_geometry_mm"], item["e1_flatbed_geometry_mm"]
-            assert flatbed["x"] == pytest.approx(a4["x"] + origin["x"], abs=1e-6)
-            assert flatbed["y"] == pytest.approx(a4["y"] + origin["y"], abs=1e-6)
+            a4, flatbed_geometry = item["a4_geometry_mm"], item["e1_flatbed_geometry_mm"]
+            assert flatbed_geometry["x"] == pytest.approx(a4["x"] + origin["x"], abs=1e-6)
+            assert flatbed_geometry["y"] == pytest.approx(a4["y"] + origin["y"], abs=1e-6)
             assert a4["x"] >= 0 and a4["y"] >= 0
             assert a4["x"] + a4["width"] <= 210.0 + 1e-9
             assert a4["y"] + a4["height"] <= 297.0 + 1e-9
+
+
+def test_changed_flatbed_constant_blocks_the_generator(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(gen, "FLATBED_MM", (330.0, 420.0))
+    with pytest.raises(gen.PreparationError, match="STANDARD_FLATBED_MM"):
+        gen.run(mode="check", log=lambda *_: None)
 
 
 def test_manifest_binds_every_layout_to_a_verified_project(manifest: dict) -> None:

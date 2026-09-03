@@ -146,7 +146,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "eufymake.export.print_area_exceeded": (
             "Motiv {width}×{height} mm überschreitet das eufyMake-Standard-Flachbett "
-            "({medium_w}×{medium_h} mm, unbestätigte Herstellerangabe, #687)."
+            "({medium_w}×{medium_h} mm, bestätigtes Standardmaß, #687/#971)."
         ),
         # Allgemeine Pre-Export-Prüfung (#379)
         "export.checks.dimensions_invalid": (
@@ -1070,7 +1070,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "eufymake.export.print_area_exceeded": (
             "Motif {width}×{height} mm exceeds the eufyMake standard flatbed "
-            "({medium_w}×{medium_h} mm, unverified vendor figure, #687)."
+            "({medium_w}×{medium_h} mm, confirmed standard size, #687/#971)."
         ),
         # General pre-export checks (#379)
         "export.checks.dimensions_invalid": (
@@ -1993,7 +1993,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "eufymake.export.print_area_exceeded": (
             "El motivo de {width}×{height} mm supera el flatbed estándar de eufyMake "
-            "({medium_w}×{medium_h} mm, dato del fabricante sin confirmar, #687)."
+            "({medium_w}×{medium_h} mm, medida estándar confirmada, #687/#971)."
         ),
         # Allgemeine Pre-Export-Prüfung (#379)
         "export.checks.dimensions_invalid": (
@@ -2926,7 +2926,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "eufymake.export.print_area_exceeded": (
             "Le motif {width}×{height} mm dépasse le plateau plat standard eufyMake "
-            "({medium_w}×{medium_h} mm, donnée du fabricant non confirmée, #687)."
+            "({medium_w}×{medium_h} mm, dimension standard confirmée, #687/#971)."
         ),
         # Allgemeine Pre-Export-Prüfung (#379)
         "export.checks.dimensions_invalid": (
@@ -3859,7 +3859,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "eufymake.export.print_area_exceeded": (
             "Мотив {width}×{height} мм перевищує стандартний планшет eufyMake "
-            "({medium_w}×{medium_h} мм, непідтверджені дані виробника, #687)."
+            "({medium_w}×{medium_h} мм, підтверджений стандартний розмір, #687/#971)."
         ),
         # Allgemeine Pre-Export-Prüfung (#379)
         "export.checks.dimensions_invalid": (
@@ -4784,7 +4784,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "eufymake.export.print_area_exceeded": (
             "图案 {width}×{height} mm 超出 eufyMake 标准平板尺寸"
-            "（{medium_w}×{medium_h} mm，未经证实的厂商数据，#687）。"
+            "（{medium_w}×{medium_h} mm，已确认的标准尺寸，#687/#971）。"
         ),
         # Allgemeine Pre-Export-Prüfung (#379)
         "export.checks.dimensions_invalid": (
