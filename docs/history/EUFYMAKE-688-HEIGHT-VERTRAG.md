@@ -12,13 +12,13 @@
 | --- | --- |
 | EufyMake Studio | 4.2.2 |
 | Editor-Version | 1.20.0 (Versionshinweis im Editor) |
-| E1-Firmware | |
+| E1-Firmware | vor Phase 3 abzulesen (Checkliste §0); Wert: |
 | Hardware/Flatbed | E1 im Editor online; kein Druck gestartet |
 | Betriebssystem | macOS 26.6.2 (Build 25G83) |
-| Material/Tinte/Ink-Mode | |
+| Material/Tinte/Ink-Mode | Substrat vor Phase 3 festzulegen (Protokoll §3.0); Wert: |
 | Texturmodus und Höhenregler | `Customize Texture`; Ink Mode `Color Raised`; Stärke 2,50 mm; Regler nicht verändert |
-| Messmittel | |
-| Geschätzte Messunsicherheit | |
+| Messmittel | vor Phase 3 nach §4.0 festzulegen (Protokoll §3.0); Wert: |
+| Geschätzte Messunsicherheit | je Messgröße aus §4.0; Wert: |
 | Pre-Import-Report | 42/42 Fixtures und 7/7 Exportpakete erfolgreich; Manifest-Schema 5; erwarteter und tatsächlicher Manifest-SHA-256 `7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a`; Report-SHA-256 `4c418ccceac01b43b3aee615d89574f590a342da88dd4ad9941522e026b3603b` |
 | Foto-/Messdatenablage | gemäß `EUFYMAKE-687-TESTGOVERNANCE.md` |
 
@@ -110,6 +110,48 @@ bewerten.
 | 6 | 46811 | | | | | | |
 | 7 | 56173 | | | | | | |
 | 8 (Maximum) | 65535 | | | | | | |
+
+### 4.0 Messmittel, Auflösung und Auswertungsregel (vor Phase 3 festlegen)
+
+Alle Messmittel-Felder dieser Akte bleiben leer, bis sie in
+[`EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md)
+§3.0 eingetragen sind. Die Tabelle setzt die Sollgrößen der Druckvarianten
+(Layout 90,31 mm Kantenlänge, Texturhöhe 2,50 mm) in die Mindestauflösung
+um, die ein Messmittel haben muss, damit die Zelle überhaupt ein Ergebnis
+liefern kann. Bei anderer Layoutgröße oder Texturhöhe sind die Sollgrößen
+proportional neu zu berechnen.
+
+| Messgröße | Zellen | Sollgröße | Mindestauflösung des Messmittels | Geeignete Mittel |
+| --- | --- | --- | --- | --- |
+| Reliefhöhe absolut (Stufe, Plateau, Basis) | I-11, I-07, I-02/I-04, I-13 | I-11-Stufe 0,357 mm; Basis/Plateau I-14 0,625/1,875 mm | ≤ 0,05 mm | Messschieber mit Tiefenmaß, Messuhr mit Messstativ |
+| Höhenprofil quer zur Kante (Kantenbreite 10–90 %, FWHM) | I-14, I-03 | Pixel 0,353 mm (256 px) bzw. 0,706 mm (128 px); Impulsbreite 1,41 mm | lateral ≤ 0,1 mm, vertikal ≤ 0,05 mm | Messuhr auf Schlitten oder Kreuztisch; Schnitt quer zur Kante plus Makrofoto mit Maßstab; 3D-Scan |
+| 8-Bit-Höhenstufe | I-03 | 0,0098 mm | ≤ 0,002 mm | mit Handmessmitteln nicht auflösbar; Profilometer oder vergleichbar |
+| 16-Bit-Kalibrierstufe (1,25 mm / 4096) | I-03, I-14 | 0,0003 mm | – | physisch nicht auflösbar |
+| Länge und Breite (mm/DPI) | I-05, I-08 | 101,60 mm bzw. 90,31/44,86 mm | ≤ 0,1 mm | Messschieber mit Messbereich ≥ 150 mm |
+
+**Auswertungsregel I-03 (8 gegen 16 Bit), vorab festgelegt:**
+
+1. Zeigt die untere Kalibrierfläche mit dem eingetragenen Messmittel in der
+   16-Bit-Variante mehr unterscheidbare Höhenstufen als in der 8-Bit-Variante,
+   gilt „16-Bit-Nutzung im Druckpfad belegt" (Druckmessung).
+2. Ist keine Differenz messbar und löst das Messmittel ≤ 0,002 mm auf, gilt
+   „Studio-/Druckpfad quantisiert auf 8-Bit-Niveau oder gröber"
+   (Druckmessung).
+3. Ist keine Differenz messbar und löst das Messmittel gröber auf, lautet das
+   Ergebnis „nicht entscheidbar": H-01 bleibt offen, Profil v1 bleibt
+   vorläufig, und es wird kein Wiederholungslauf für I-03 angesetzt.
+4. Unabhängig davon wird aus I-03 und I-11 die kleinste physisch
+   unterscheidbare Höhenstufe (Stufenkanten, sichtbare Schichtdicke) als
+   „praktisch nutzbare Tonwertauflösung" protokolliert; sie erfüllt das
+   #688-Kriterium zur Tonwertauflösung auch dann, wenn H-01 unentschieden
+   bleibt.
+
+**Auswertungsregel I-14, vorab festgelegt:** Filterung gilt als belegt, wenn
+die Kantenbreite 10–90 % der 128-px-Variante die der 256-px-Variante um mehr
+als die Messunsicherheit übersteigt. Normalisierung gilt als belegt, wenn
+Basis und Plateau von 0,625 mm bzw. 1,875 mm um mehr als die Unsicherheit in
+Richtung 0 mm bzw. 2,50 mm abweichen. Ohne ein in Protokoll §3.0
+eingetragenes Profilmessmittel wird I-14 nicht gedruckt.
 
 ### 4.1 Kontrollierte Filtermessung I-14
 

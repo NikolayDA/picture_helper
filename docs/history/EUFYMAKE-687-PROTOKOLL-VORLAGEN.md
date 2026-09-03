@@ -274,6 +274,16 @@ das nicht angenommen werden.
 Je Testzelle **ein** Importvorgang in Studio, direkt im Anschluss an das
 Dateivalidierungsprotokoll derselben Zeile.
 
+**Evidenz ab dem Testtag:** Die Spalte „Screenshot-Referenz" nimmt den
+iCloud-Pfad und den SHA-256 des Screenshots auf (Ablage nach Governance §3
+und dem vorbereiteten Nachtrag in Governance Abschnitt 5). Die vorhandenen
+Einträge „Live-Sitzung, kein Screenshot-Artefakt" bleiben als historischer
+Stand der Sitzungen vom 2./3. September 2026 stehen; eine für die
+Druckvorbereitung erneut importierte Zelle erhält eine **neue** Zeile mit
+Datum und Nachweis. Zusätzlich wird je Zelle das Studio-Projekt gespeichert
+und mit Pfad und SHA-256 in §3.1 referenziert, damit die exakte
+Druckkonfiguration reproduzierbar bleibt.
+
 | Testzelle | Datum/Zeit | Studio-Version | Firmware | Angezeigte Warnung(en) | Vorschau-Verhalten | Automatisch veränderte Einstellungen | „Nichts passiert"-Fall? (EM-S03) | Screenshot-Referenz | Anmerkung |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | I-01 | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `mm_typisch_phys.png` sichtbar und zentriert, 101,60×101,60 mm | keine | Nein | Live-Sitzung, kein Screenshot-Artefakt | kanonischer COLOR-Einzelimport; Paket-`color_motif.png` siehe I-06; kein Druck |
@@ -380,6 +390,66 @@ Nur nach abgeschlossenem Import- und Vorschauprotokoll derselben Zelle.
 Materialverbrauch beachten – siehe
 [`EUFYMAKE-687-TESTGOVERNANCE.md`](EUFYMAKE-687-TESTGOVERNANCE.md) (freigegeben).
 
+### 3.0 Feste Laufparameter (einmal je Testtag, vor dem ersten Druck)
+
+Alle Vergleiche einer Testreihe teilen diese Werte; ändert sich einer davon,
+beginnt eine neue, getrennt protokollierte Reihe. Die Reihenfolge der
+Festlegung steht in
+[`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](EUFYMAKE-687-DRUCK-CHECKLISTE.md)
+(§0 und Phase 2b), die Messmittelanforderungen in
+[`EUFYMAKE-688-HEIGHT-VERTRAG.md`](EUFYMAKE-688-HEIGHT-VERTRAG.md) §4.0.
+
+| Parameter | Wert (am Testtag eintragen) | Vorgabe/Quelle |
+| --- | --- | --- |
+| Datum/Testtag | | |
+| Studio-/Editor-Version | | Phase 1 lief mit 4.2.2 / 1.20.0 |
+| E1-Firmware | | am Gerät bzw. in den Geräteinformationen ablesen; „nicht angezeigt" ist hier unzulässig |
+| Gerätewarnungen (Scraper, Luftfilter, Tinte) | | behoben oder mit Begründung als unkritisch protokolliert |
+| Tintenstände je Kanal (Start / Ende des Testtags) | | |
+| Substrat (Material, Farbe, Dicke, Charge) | | nicht-weiß für I-13 und G-06; innerhalb eines Vergleichs identisch |
+| Layoutgröße und Position der HEIGHT-Vergleiche | | Vorgabe 90,31 × 90,31 mm, X/Y 122,34/164,84 mm (72-dpi-Import) |
+| Texturmodus / Ink Mode / Texturhöhe | | Vorgabe `Customize Texture`, `Color Raised`, 2,50 mm |
+| Qualitätsprofil und weitere Druckoptionen | | |
+| Gloss-Pfad (Gloss-Akte §6.1) mit Ursprung, Skalierung, Rotation, Registrierung | | je Zelle vor dem Lauf |
+| Messmittel Reliefhöhe (Gerät, Auflösung, Unsicherheit) | | HEIGHT-Akte §4.0: ≤ 0,05 mm |
+| Messmittel Höhenprofil I-14 (Methode, laterale und vertikale Auflösung) | | HEIGHT-Akte §4.0: lateral ≤ 0,1 mm, vertikal ≤ 0,05 mm |
+| Messmittel Länge/Breite (mm/DPI) | | Messbereich ≥ 150 mm, Auflösung ≤ 0,1 mm |
+| Beleuchtung/Kamera für Gloss (Position, Winkel, Weißabgleich) | | Gloss-Akte §6.2 |
+| Evidenzablage (iCloud-Pfad für Screenshots und Studio-Projekte) | | Governance §3 |
+
+### 3.1 Vorschau-Protokoll (ohne Druck)
+
+Je Druckvariante einmal vor dem ersten Druck: Vorschau (`Preview`) nur bis zur
+Druckvorbereitungsseite öffnen, `Print` nie auslösen. Eine Warnung in der
+Vorschau sperrt die Variante bis zur Klärung. Zeit- und Tintenschätzung nur
+eintragen, wenn Studio sie tatsächlich anzeigt; sonst „nicht angezeigt".
+
+| Variante | Datum | Warnungen | Objekt W/H und X/Y (mm) | Ink Mode / Texturhöhe | Zeit-/Tintenschätzung | Screenshot-/Projekt-Referenz | Freigabe für Druck |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| I-02 | | | | | | | |
+| I-03 (8 Bit) | | | | | | | |
+| I-03 (16 Bit; I-14-Referenz) | | | | | | | |
+| I-04 | | | | | | | |
+| I-05 (konsistent) | | | | | | | |
+| I-07 | | | | | | | |
+| I-08 (vor Crop) | | | | | | | |
+| I-08 (nach Crop) | | | | | | | |
+| I-10 (normal) – gesperrt bis Owner-Entscheidung I-10/G-02 | | | | | | | |
+| I-10 (invertiert) – gesperrt bis Owner-Entscheidung I-10/G-02 | | | | | | | |
+| I-11 | | | | | | | |
+| I-13 (Alpha/Coverage) | | | | | | | |
+| I-14 (direkte 128×128-Kontrolle) | | | | | | | |
+| G-01 | | | | | | | |
+| G-02 (normal/invertiert) | | | | | | | |
+| G-03 | | | | | | | |
+| G-04a/b/c | | | | | | | |
+| G-05 | | | | | | | |
+| G-06 | | | | | | | |
+| G-07 | | | | | | | |
+| G-08 | | | | | | | |
+
+### 3.2 Druckprotokoll je Variante
+
 | Testzelle | Datum | Druckeinstellung (Texturmodus/Ink-Mode/Bittiefe) | Position/Skalierung im Layout | Physischer Messwert (Breite × Höhe, ggf. Reliefhöhe, mm) | Messmittel | Geschätzte Messunsicherheit | Fotoreferenz | Wiederholungsmessung (2. Lauf) | Abweichung 1. vs. 2. Lauf | Anmerkung |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | I-02 | | | | | | | | | | |
@@ -406,6 +476,24 @@ den 13 Zeilen dieser Tabelle ergibt das die 13 druckbaren Varianten aus dem
 Materialbudget in
 [`EUFYMAKE-687-TESTGOVERNANCE.md`](EUFYMAKE-687-TESTGOVERNANCE.md).
 
+**I-08 nach Crop:** Studio koppelt den bestätigten Crop nur an das native
+COLOR/HEIGHT-Objekt (W/H 44,86/90,31 mm, X/Y 167,79/164,84 mm); die separate
+Gloss-Ebene blieb bei 90,31 × 90,31 mm und X/Y 122,34/164,84 mm. Für die
+Druckvariante „nach Crop" bleibt die Gloss-Ebene unverändert, weder
+beschnitten noch verschoben. Weil der Crop die rechte Objektkante festhielt,
+liegen ihre Landmarken über der verbliebenen COLOR/HEIGHT-Fläche an derselben
+physischen Stelle; die Registrierung wird nur in dieser Überlappung gemessen,
+der übrige Teil druckt Gloss ohne Farbe und wird als solcher protokolliert.
+Manuelles Nachbeschneiden der Gloss-Ebene ist nicht zulässig. Begründung und
+Rechnung stehen in
+[`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md).
+
+**I-10 gesperrt bis zur Owner-Entscheidung:** I-10 normal/invertiert und
+G-02 verwenden dieselben Dateien über denselben Gloss-Pfad. Die Zeilen
+bleiben in dieser Tabelle erhalten, werden aber erst nach dem Freigabe-Vermerk
+in `EUFYMAKE-687-TESTGOVERNANCE.md` §4 gedruckt oder gestrichen (Optionen in
+Governance Abschnitt 5 und in der Druck-Checkliste).
+
 **I-12 ist import-only:** Studio lehnt die 256×128-HEIGHT-Datei am
 256×256-COLOR-Objekt fail-closed ab und erzeugt deshalb kein druckbares
 I-12-Objekt. Die Zelle bleibt als Import-Negativtest in §2 erhalten, hat aber
@@ -430,6 +518,9 @@ Normalisierung zu protokollieren. Die Studio-Vorschau getrennt von den physische
 bewerten. Eine Abweichung belegt ohne zugängliches Studio-Ausgaberaster nur den
 kombinierten Studio-/Druckpfad, nicht eine isolierte Studio-Filterfunktion;
 der I-12-Seitenverhältnisfall darf daraus ebenfalls nicht abgeleitet werden.
+Messmittel, Mindestauflösung und die vorab festgelegte Auswertungsregel für
+I-03 und I-14 stehen in `EUFYMAKE-688-HEIGHT-VERTRAG.md` §4.0; ohne
+eingetragenes Profilmessmittel in §3.0 wird I-14 nicht gedruckt.
 
 **Wiederholungsmessung:** Mindestens die in #688/#689/#690 als Kernaussage
 markierten Zeilen (Nullpunkt/Grundfläche, monotoner Keil, mm/DPI-Referenz,
