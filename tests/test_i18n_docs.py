@@ -331,6 +331,8 @@ def test_anleitung_quotes_ui_labels_verbatim() -> None:
         text = without_fenced_code(_read(path))
         for key in QUOTED_UI_LABEL_KEYS:
             label = _TRANSLATIONS[language][key]
-            assert f"**{label}**" in text or f"*{label}*" in text, (
+            # Ein Sternchen je Seite genügt: Es trifft die kursive Schreibweise
+            # der Menüeinträge und steckt zugleich in der fetten der Knöpfe.
+            assert f"*{label}*" in text, (
                 f"{path.relative_to(ROOT)} does not quote {key} as {label!r}"
             )
