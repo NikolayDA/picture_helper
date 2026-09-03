@@ -3,6 +3,8 @@
 import re
 from pathlib import Path
 
+from tests._markdown_utils import FENCE_RE, local_target, without_fenced_code
+
 ROOT = Path(__file__).resolve().parent.parent
 I18N_ROOT = ROOT / "docs" / "i18n"
 LANGUAGES = ("en", "es", "fr", "uk", "zh")
@@ -28,11 +30,9 @@ README_3D_FEATURE_MARKERS = {
 README_3D_SCREENSHOT = "77_function_preview3d_adjusted.png"
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s+\S", re.MULTILINE)
-_FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
 _IMAGE_LINK_RE = re.compile(r"!\[[^\]]*]\(([^)]+)\)")
 _MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+]\(([^)]+)\)")
 _TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$")
-_SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
 _H2_SECTION_RE = re.compile(r"(?ms)^## [^\n]+\n.*?(?=^## |\Z)")
 
 
@@ -49,30 +49,9 @@ def _h2_sections_containing(text: str, *markers: str) -> list[str]:
     ]
 
 
-def _without_fenced_code(text: str) -> str:
-    lines: list[str] = []
-    in_block = False
-    fence_char = ""
-
-    for line in text.splitlines():
-        match = _FENCE_RE.match(line)
-        if match:
-            current = match.group(1)[0]
-            if not in_block:
-                in_block = True
-                fence_char = current
-            elif current == fence_char:
-                in_block = False
-                fence_char = ""
-            continue
-        if not in_block:
-            lines.append(line)
-
-    return "\n".join(lines)
-
 
 def _heading_levels(text: str) -> list[int]:
-    return [len(match.group(1)) for match in _HEADING_RE.finditer(_without_fenced_code(text))]
+    return [len(match.group(1)) for match in _HEADING_RE.finditer(without_fenced_code(text))]
 
 
 def _count_code_blocks(text: str) -> int:
@@ -81,7 +60,7 @@ def _count_code_blocks(text: str) -> int:
     fence_char = ""
 
     for line in text.splitlines():
-        match = _FENCE_RE.match(line)
+        match = FENCE_RE.match(line)
         if not match:
             continue
 
@@ -98,7 +77,7 @@ def _count_code_blocks(text: str) -> int:
 
 
 def _count_tables(text: str) -> int:
-    lines = _without_fenced_code(text).splitlines()
+    lines = without_fenced_code(text).splitlines()
     count = 0
     index = 0
 
@@ -113,21 +92,6 @@ def _count_tables(text: str) -> int:
 
     return count
 
-
-def _local_target(raw_target: str) -> str | None:
-    target = raw_target.strip()
-    if not target:
-        return None
-    if target.startswith("<") and ">" in target:
-        target = target[1 : target.index(">")]
-    else:
-        target = target.split()[0]
-
-    if _SCHEME_RE.match(target) or target.startswith("#"):
-        return None
-
-    path_part = target.split("#", 1)[0]
-    return path_part or None
 
 
 def _translated_doc_paths() -> list[Path]:
@@ -149,9 +113,9 @@ def test_i18n_expected_docs_exist() -> None:
 
 def test_i18n_local_markdown_links_resolve() -> None:
     for path in _translated_doc_paths():
-        text = _without_fenced_code(_read(path))
+        text = without_fenced_code(_read(path))
         for match in _MARKDOWN_LINK_RE.finditer(text):
-            target = _local_target(match.group(1))
+            target = local_target(match.group(1))
             if target is None:
                 continue
 
@@ -161,9 +125,9 @@ def test_i18n_local_markdown_links_resolve() -> None:
 
 def test_i18n_markdown_image_links_resolve() -> None:
     for path in _translated_doc_paths():
-        text = _without_fenced_code(_read(path))
+        text = without_fenced_code(_read(path))
         for match in _IMAGE_LINK_RE.finditer(text):
-            target = _local_target(match.group(1))
+            target = local_target(match.group(1))
             if target is None:
                 continue
 
@@ -177,7 +141,7 @@ def test_readmes_document_3d_feature_usage_and_screenshot() -> None:
     }
 
     for language, path in paths.items():
-        text = _without_fenced_code(_read(path))
+        text = without_fenced_code(_read(path))
         assert README_3D_FEATURE_MARKERS[language] in text, (
             f"{path.relative_to(ROOT)} does not list the 3D preview as a feature"
         )
@@ -193,7 +157,7 @@ def test_readmes_document_3d_feature_usage_and_screenshot() -> None:
         assert len(screenshot_links) == 1, (
             f"{path.relative_to(ROOT)} must embed exactly one accepted 3D screenshot"
         )
-        target = _local_target(screenshot_links[0])
+        target = local_target(screenshot_links[0])
         assert target is not None
         assert (path.parent / target).resolve().is_file(), (
             f"{path.relative_to(ROOT)} links to a missing 3D screenshot: {target}"

@@ -1,79 +1,31 @@
 """Repository-wide Markdown link hygiene checks."""
 from __future__ import annotations
 
-import re
 from pathlib import Path
-from urllib.parse import unquote
 
-ROOT = Path(__file__).resolve().parent.parent
-FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
-IMAGE_LINK_RE = re.compile(r"!\[[^\]]*]\(([^)]+)\)")
-MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+]\(([^)]+)\)")
-SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
-IGNORED_MARKDOWN_DIRS = {
-    ".git",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".venv",
-    "bgremover.egg-info",
-    "build",
-    "dist",
-    "htmlcov",
-}
-
-
-def _without_fenced_code(text: str) -> str:
-    lines: list[str] = []
-    in_block = False
-    fence_char = ""
-
-    for line in text.splitlines():
-        match = FENCE_RE.match(line)
-        if match:
-            current = match.group(1)[0]
-            if not in_block:
-                in_block = True
-                fence_char = current
-            elif current == fence_char:
-                in_block = False
-                fence_char = ""
-            continue
-        if not in_block:
-            lines.append(line)
-
-    return "\n".join(lines)
-
-
-def _local_target(raw_target: str) -> str | None:
-    target = raw_target.strip()
-    if not target:
-        return None
-    if target.startswith("<") and ">" in target:
-        target = target[1 : target.index(">")]
-    else:
-        target = target.split()[0]
-
-    if SCHEME_RE.match(target) or target.startswith("#"):
-        return None
-
-    path_part = target.split("#", 1)[0]
-    return unquote(path_part) or None
+from tests._markdown_utils import (
+    IMAGE_LINK_RE,
+    MARKDOWN_LINK_RE,
+    ROOT,
+    anchor_slug,
+    heading_anchors,
+    iter_link_targets,
+    local_target,
+    markdown_files,
+    split_target,
+    without_fenced_code,
+)
 
 
 def test_all_markdown_local_links_and_images_resolve() -> None:
     """Every local Markdown link/image target in the repository must exist."""
 
     missing: list[str] = []
-    for path in sorted(ROOT.rglob("*.md")):
-        relative_parts = path.relative_to(ROOT).parts
-        if any(part in IGNORED_MARKDOWN_DIRS for part in relative_parts[:-1]):
-            continue
-
-        text = _without_fenced_code(path.read_text(encoding="utf-8"))
+    for path in markdown_files():
+        text = without_fenced_code(path.read_text(encoding="utf-8"))
         for kind, pattern in (("link", MARKDOWN_LINK_RE), ("image", IMAGE_LINK_RE)):
             for match in pattern.finditer(text):
-                target = _local_target(match.group(1))
+                target = local_target(match.group(1))
                 if target is None:
                     continue
                 resolved = (path.parent / target).resolve()
@@ -83,3 +35,127 @@ def test_all_markdown_local_links_and_images_resolve() -> None:
                     )
 
     assert not missing, "Broken local Markdown targets:\n" + "\n".join(missing)
+
+
+def test_all_markdown_anchor_links_resolve() -> None:
+    """Jeder dokumentinterne Anker muss auf eine echte Überschrift zeigen.
+
+    Geprüft werden beide Zielformen: ``#abschnitt`` gegen die Überschriften
+    derselben Datei und ``pfad.md#abschnitt`` gegen die der Zieldatei. Ohne
+    diesen Wächter bleibt ein toter Sprungverweis unsichtbar (#964/#965) –
+    die Pfadprüfung oben verwirft Fragmente.
+    """
+
+    anchors_by_file: dict[Path, dict[str, int]] = {}
+
+    def anchors_of(path: Path) -> dict[str, int]:
+        if path not in anchors_by_file:
+            anchors_by_file[path] = heading_anchors(path.read_text(encoding="utf-8"))
+        return anchors_by_file[path]
+
+    broken: list[str] = []
+    for path in markdown_files():
+        for line, raw_target in iter_link_targets(path.read_text(encoding="utf-8")):
+            parts = split_target(raw_target)
+            if parts is None:
+                continue
+            path_part, fragment = parts
+            if not fragment:
+                continue
+
+            target_path = path if not path_part else (path.parent / path_part).resolve()
+            if target_path.suffix.lower() != ".md" or not target_path.is_file():
+                continue
+
+            if fragment not in anchors_of(target_path):
+                where = "" if target_path == path else f" in {target_path.relative_to(ROOT)}"
+                broken.append(
+                    f"{path.relative_to(ROOT)}:{line} anchor does not resolve{where}: #{fragment}"
+                )
+
+    assert not broken, "Broken Markdown anchors:\n" + "\n".join(broken)
+
+
+def test_anchor_slug_covers_the_characters_that_surprise() -> None:
+    """Die Slug-Regel an den Zeichen prüfen, an denen sie überrascht.
+
+    Die Fälle stammen bis auf die Dublette aus echten Überschriften des
+    Bestands; erwartet wird jeweils der Anker, den GitHub daraus bildet.
+    """
+
+    cases = {
+        # Umlaute bleiben stehen (ANLEITUNG.md:76).
+        "2. Die Programmoberfläche im Überblick": "2-die-programmoberfläche-im-überblick",
+        # Halbgeviertstrich entfällt und hinterlässt den doppelten Bindestrich
+        # (docs/i18n/en/ANLEITUNG.md:342 – der Anker aus #964).
+        "7. Step 2 – Cut out": "7-step-2--cut-out",
+        # "&" und typografische Anführungszeichen entfallen (ANLEITUNG.md:139).
+        "Menüs „Bearbeiten\", „Ansicht\", „Projekt\" & „Extras\"":
+            "menüs-bearbeiten-ansicht-projekt--extras",
+        # Klammern entfallen ohne Ersatz (ANLEITUNG.md:267).
+        "5. Die Werkzeugleiste (links)": "5-die-werkzeugleiste-links",
+        # CJK bleibt erhalten, Vollbreite-Satzzeichen entfallen
+        # (docs/i18n/zh/ANLEITUNG.md:44 bzw. :226).
+        "1. BgRemover 能做什么？": "1-bgremover-能做什么",
+        "5. 工具栏（左侧）": "5-工具栏左侧",
+        # Kyrillisch bleibt erhalten (docs/i18n/uk/ANLEITUNG.md:220).
+        "4. Крок 1 – Відкрити зображення": "4-крок-1--відкрити-зображення",
+    }
+
+    for heading, expected in cases.items():
+        assert anchor_slug(heading) == expected, heading
+
+
+def test_heading_anchors_ignore_code_blocks_and_number_duplicates() -> None:
+    """Überschriften in Codeblöcken erzeugen keinen Anker; Dubletten zählen hoch.
+
+    Für die Dublette gibt es im Bestand keinen Fall – sie wird deshalb als
+    einzige an einem konstruierten Dokument geprüft.
+    """
+
+    document = "\n".join(
+        [
+            "# Titel",
+            "",
+            "```",
+            "## Keine Überschrift",
+            "```",
+            "",
+            "## Abschnitt",
+            "text",
+            "## Abschnitt",
+            "## Abschnitt",
+        ]
+    )
+
+    anchors = heading_anchors(document)
+
+    assert "keine-überschrift" not in anchors
+    assert anchors["titel"] == 1
+    assert anchors["abschnitt"] == 7
+    assert anchors["abschnitt-1"] == 9
+    assert anchors["abschnitt-2"] == 10
+
+
+def test_anchor_guard_checks_fragments_behind_a_file_path(tmp_path: Path) -> None:
+    """Auch ``pfad.md#abschnitt`` wird gegen die Zieldatei geprüft.
+
+    Diese Zielform kommt im Bestand derzeit nicht vor; ohne diese Zusicherung
+    bliebe der Zweig ungeprüft.
+    """
+
+    (tmp_path / "ziel.md").write_text("# Erster Abschnitt\n", encoding="utf-8")
+    source = tmp_path / "quelle.md"
+    source.write_text(
+        "[gut](ziel.md#erster-abschnitt) und [kaputt](ziel.md#zweiter-abschnitt)\n",
+        encoding="utf-8",
+    )
+
+    unresolved = []
+    for line, raw_target in iter_link_targets(source.read_text(encoding="utf-8")):
+        path_part, fragment = split_target(raw_target)
+        target_path = (source.parent / path_part).resolve()
+        if fragment not in heading_anchors(target_path.read_text(encoding="utf-8")):
+            unresolved.append((line, fragment))
+
+    assert unresolved == [(1, "zweiter-abschnitt")]

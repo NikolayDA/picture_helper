@@ -380,6 +380,28 @@ Zeile zu entfernen.
 | `bgremover/status_messages.py` | `tests/test_i18n_runtime.py`, `tests/test_canvas_events.py` |
 | `bgremover/stepper.py` | `tests/test_workflow.py`, `tests/test_right_panel.py` |
 
+## Doku-Governance-Tests
+
+Dokumentation wird wie Code geprüft: netzfrei, fail-closed, im Standard-Gate.
+Diese Wächter laufen mit `make check` und brauchen weder Qt noch Netzzugang.
+
+| Wächter | Hält fest |
+| --- | --- |
+| `tests/test_markdown_links.py` | Repo-weit: jedes lokale Link-/Bildziel existiert **und** jeder dokumentinterne Anker (`](#abschnitt)`, auch `pfad.md#abschnitt`) zeigt auf eine echte Überschrift (#965) |
+| `tests/test_i18n_docs.py` | Struktur-Parität der sechs Sprachfassungen (Überschriften, Codeblöcke, Tabellen) plus inhaltliche Marker |
+| `tests/test_screenshot_references.py` | Eingebettete Screenshots zeigen auf den aktuellen Satz |
+| `tests/test_resource_docs.py` | `RESOURCES.md` gegen den CI-Stand |
+| `tests/test_changelog_metadata.py` | CHANGELOG-Abschnitte und AppStream-Metadaten |
+| `tests/test_recommendations_freeze_consistency.py` | Kurzstatus und Triage-Menge über alle sechs `RECOMMENDATIONS.md` |
+
+Die Ankerprüfung bildet die GitHub-Slug-Regel nach (Kleinschreibung,
+Satzzeichen entfallen ersatzlos, Leerzeichen zu `-`, Dubletten mit `-1`);
+Umlaute, Kyrillisch und CJK bleiben dabei erhalten. Überschriften in
+Codeblöcken erzeugen keinen Anker. Die geteilten Helfer dafür liegen in
+`tests/_markdown_utils.py` – wer eine Markdown-Prüfung ergänzt, nutzt sie von
+dort, statt sie ein drittes Mal zu kopieren. Externe `http(s)`-Links prüft
+bewusst niemand: Das bräuchte Netzzugang und gehört nicht ins Standard-Gate.
+
 ## GitHub-Tests bei PR, manuell oder Release
 
 **Pull Request:** Der Workflow **PR CI** läuft automatisch auf
