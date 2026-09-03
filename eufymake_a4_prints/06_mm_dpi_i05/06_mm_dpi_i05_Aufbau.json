@@ -1,0 +1,54 @@
+{
+  "number": 6,
+  "slug": "mm_dpi_i05",
+  "title": "I-05 – mm/DPI-Referenz",
+  "budget_slots": [
+    "I-05 konsistent Lauf 1"
+  ],
+  "physical_a4_copies": 1,
+  "carrier": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05_A4_Beschriftung.png",
+  "carrier_sha256": "821839b19a2182c1fe28bcdabe0a5e57314e02e9aa8d38264b441e6410dbc76d",
+  "preview": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05_NUR_VORSCHAU.png",
+  "notes": [
+    "Native Studio-Ausdehnung 101,60 × 101,60 mm beibehalten."
+  ],
+  "objects": [
+    {
+      "label": "I-05 · 300 dpi · 101,60 mm",
+      "role": "COLOR",
+      "source": "mm_typisch_phys.png",
+      "source_sha256": "c0525c34ab4b689c59031551ecb2e5ea869724f74ef4a6f5870b619c5dd0f2a3",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 54.2,
+        "y": 97.7,
+        "width": 101.6,
+        "height": 101.6,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 116.7,
+        "y": 159.2,
+        "width": 101.6,
+        "height": 101.6,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Flat / Standard COLOR",
+      "crop": null,
+      "notes": null
+    }
+  ],
+  "project": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05.empf",
+  "project_sha256": "a8542743bffd1dfd8b0f563fb1e6bba0e7747f888d7fa903f6c097ac8aa7d9e8",
+  "project_layers": [
+    {
+      "name": "A4 Beschriftung und Eckmarken",
+      "role": "COLOR"
+    },
+    {
+      "name": "I-05 · 300 dpi · 101,60 mm",
+      "role": "COLOR"
+    }
+  ]
+}

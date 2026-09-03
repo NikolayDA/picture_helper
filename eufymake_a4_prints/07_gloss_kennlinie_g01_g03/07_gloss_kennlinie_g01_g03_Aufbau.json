@@ -1,0 +1,171 @@
+{
+  "number": 7,
+  "slug": "gloss_kennlinie_g01_g03",
+  "title": "G-01 / G-03 – Gloss-Grenzen und Kennlinie",
+  "budget_slots": [
+    "G-01",
+    "G-03"
+  ],
+  "physical_a4_copies": 1,
+  "carrier": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03_A4_Beschriftung.png",
+  "carrier_sha256": "5e018f747e191146efab25cb4a818994c8bd5f4b964cc3a865ea1c37e5414aea",
+  "preview": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03_NUR_VORSCHAU.png",
+  "notes": [
+    "Alle fünf Felder mit identischem nativen Gloss-Varnish-Modus und identischer Passzahl."
+  ],
+  "objects": [
+    {
+      "label": "G-01 · Wert 0",
+      "role": "GLOSS",
+      "source": "gloss_min.png",
+      "source_sha256": "94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 9.69,
+        "y": 6.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 72.19,
+        "y": 67.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "G-01 · Wert 128",
+      "role": "GLOSS",
+      "source": "gloss_mean.png",
+      "source_sha256": "0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 110.0,
+        "y": 6.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 172.5,
+        "y": 67.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "G-01 · Wert 255",
+      "role": "GLOSS",
+      "source": "gloss_max.png",
+      "source_sha256": "d695fc28e6e329415214cc1f3529299024f999f881289b73d49b9418c900f463",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 9.69,
+        "y": 103.35,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 72.19,
+        "y": 164.85,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "G-03 · 8 Stufen",
+      "role": "GLOSS",
+      "source": "gloss_steps.png",
+      "source_sha256": "41a5c094e5712e398ed6ba6b446fcae30f3187e1a5efd6df72733c8d7a435324",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 110.0,
+        "y": 103.35,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 172.5,
+        "y": 164.85,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "G-03 · Keil 64…192",
+      "role": "GLOSS",
+      "source": "gloss_wedge_limited.png",
+      "source_sha256": "540d8f08e573944cbd7cb7dc5640f5fca92c3227207f88759c45e8b67a28a4a5",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 59.845,
+        "y": 200.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 122.345,
+        "y": 261.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    }
+  ],
+  "project": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03.empf",
+  "project_sha256": "67df0aa85a73788551d95ad6be5983768b0b74aaf930bbc8bea5a07b4984ab95",
+  "project_layers": [
+    {
+      "name": "A4 Beschriftung und Eckmarken",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-01 · Wert 0",
+      "role": "GLOSS"
+    },
+    {
+      "name": "G-01 · Wert 128",
+      "role": "GLOSS"
+    },
+    {
+      "name": "G-01 · Wert 255",
+      "role": "GLOSS"
+    },
+    {
+      "name": "G-03 · 8 Stufen",
+      "role": "GLOSS"
+    },
+    {
+      "name": "G-03 · Keil 64…192",
+      "role": "GLOSS"
+    }
+  ]
+}

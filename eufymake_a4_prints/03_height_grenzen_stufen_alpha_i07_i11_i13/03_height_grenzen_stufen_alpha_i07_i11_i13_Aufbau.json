@@ -1,0 +1,143 @@
+{
+  "number": 3,
+  "slug": "height_grenzen_stufen_alpha_i07_i11_i13",
+  "title": "I-07 / I-11 / I-13 – Grenzen, Stufen, Alpha",
+  "budget_slots": [
+    "I-07 Lauf 1",
+    "I-11 Lauf 1",
+    "I-13 Lauf 1"
+  ],
+  "physical_a4_copies": 1,
+  "carrier": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13_A4_Beschriftung.png",
+  "carrier_sha256": "357f4ed9300e3a36e7849c9383537ade23d0b2034925c749d4f703514634feb7",
+  "preview": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13_NUR_VORSCHAU.png",
+  "notes": [
+    "I-07 bleibt eine Budgetvariante mit zwei Messfeldern (Null und Maximum)."
+  ],
+  "objects": [
+    {
+      "label": "I-07 · Null",
+      "role": "COLOR+HEIGHT",
+      "source": "color_height_reference.png",
+      "source_sha256": "f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a",
+      "height_source": "height_zero_16bit.png",
+      "height_source_sha256": "0632d82f3e9c363f50885749e58a3ff680c4f1bec2a744c4ad06b6ecebbef008",
+      "a4_geometry_mm": {
+        "x": 9.69,
+        "y": 27.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 72.19,
+        "y": 88.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "I-07 · Maximum",
+      "role": "COLOR+HEIGHT",
+      "source": "color_height_reference.png",
+      "source_sha256": "f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a",
+      "height_source": "height_max_16bit.png",
+      "height_source_sha256": "1c56a015e60acb327528a3da4c654dd6a33b49d9b85d44c3929ba77717a4cb0a",
+      "a4_geometry_mm": {
+        "x": 110.0,
+        "y": 27.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 172.5,
+        "y": 88.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "I-11 · 8 Stufen",
+      "role": "COLOR+HEIGHT",
+      "source": "color_height_reference.png",
+      "source_sha256": "f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a",
+      "height_source": "height_steps_16bit.png",
+      "height_source_sha256": "484ec7250b1d65bc05c72c4f689acf0041253dc1ed531245b309782c4e4e1545",
+      "a4_geometry_mm": {
+        "x": 9.69,
+        "y": 164.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 72.19,
+        "y": 225.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "I-13 · Alpha 0/128/255",
+      "role": "COLOR+HEIGHT",
+      "source": "color_alpha_coverage.png",
+      "source_sha256": "a9fb75773d24ab2df21fd27591d32f7717cba79be4e12a6bf5731094fe6efb34",
+      "height_source": "height_mean_16bit.png",
+      "height_source_sha256": "5d32c766fc13ec624b4ad78c5628ceeea3669b0650649cda82de9400d5ee0706",
+      "a4_geometry_mm": {
+        "x": 110.0,
+        "y": 164.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 172.5,
+        "y": 225.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
+      "crop": null,
+      "notes": null
+    }
+  ],
+  "project": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13.empf",
+  "project_sha256": "00f101637a342bd88dcb4391b29ba39f8d389489d504d1dd66c390c1f0f3879c",
+  "project_layers": [
+    {
+      "name": "A4 Beschriftung und Eckmarken",
+      "role": "COLOR"
+    },
+    {
+      "name": "I-07 · Null",
+      "role": "HEIGHT"
+    },
+    {
+      "name": "I-07 · Maximum",
+      "role": "HEIGHT"
+    },
+    {
+      "name": "I-11 · 8 Stufen",
+      "role": "HEIGHT"
+    },
+    {
+      "name": "I-13 · Alpha 0/128/255",
+      "role": "HEIGHT"
+    }
+  ]
+}

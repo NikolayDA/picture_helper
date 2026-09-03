@@ -1,0 +1,83 @@
+{
+  "number": 12,
+  "slug": "gloss_height_g07",
+  "title": "G-07 – HEIGHT × Gloss",
+  "budget_slots": [
+    "G-07"
+  ],
+  "physical_a4_copies": 1,
+  "carrier": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07_A4_Beschriftung.png",
+  "carrier_sha256": "79a92b197b64da8844b08d891f1ede42597586264f9098600a573da5580cfafa",
+  "preview": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07_NUR_VORSCHAU.png",
+  "notes": [
+    "Color Raised 2,50 mm und Gloss Varnish × 1; beide Objekte exakt deckungsgleich."
+  ],
+  "objects": [
+    {
+      "label": "G-07 · HEIGHT 0/32768/65535",
+      "role": "COLOR+HEIGHT",
+      "source": "export_gloss_height_cross/color_motif.png",
+      "source_sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+      "height_source": "export_gloss_height_cross/height_map.png",
+      "height_source_sha256": "7ddca45053998069ed5711e8696fdc6d85312505f3bb3ee3420828674476ba49",
+      "a4_geometry_mm": {
+        "x": 59.845,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 122.345,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "G-07 · Gloss konstant 128",
+      "role": "GLOSS",
+      "source": "export_gloss_height_cross/gloss_mask.png",
+      "source_sha256": "fa3ef870d4b45a0e3b3d1fa2ed2c01afc90d72d8f67659d0fd3258764b737b27",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 59.845,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 122.345,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    }
+  ],
+  "project": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07.empf",
+  "project_sha256": "7ea3b7d310336af469543ead6c2430ee25385e82d407b30d732a495f72801752",
+  "project_layers": [
+    {
+      "name": "A4 Beschriftung und Eckmarken",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-07 · HEIGHT 0/32768/65535",
+      "role": "HEIGHT"
+    },
+    {
+      "name": "G-07 · Gloss konstant 128",
+      "role": "GLOSS"
+    }
+  ]
+}

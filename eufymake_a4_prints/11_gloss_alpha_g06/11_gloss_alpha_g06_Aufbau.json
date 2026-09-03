@@ -1,0 +1,83 @@
+{
+  "number": 11,
+  "slug": "gloss_alpha_g06",
+  "title": "G-06 – Alpha × Gloss",
+  "budget_slots": [
+    "G-06"
+  ],
+  "physical_a4_copies": 1,
+  "carrier": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06_A4_Beschriftung.png",
+  "carrier_sha256": "180c0690c9bc1563eda8c0026d8540e4e3c445895cb5b3c3eb4120311da61303",
+  "preview": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06_NUR_VORSCHAU.png",
+  "notes": [
+    "COLOR/HEIGHT-Basis und konstante Glossmaske exakt deckungsgleich."
+  ],
+  "objects": [
+    {
+      "label": "G-06 · Alpha 0/128/255",
+      "role": "COLOR+HEIGHT",
+      "source": "export_gloss_alpha_coverage/color_motif.png",
+      "source_sha256": "1d2b8c9a0824ccc7bf669c8c1d89ea448440adde88af55f333242d9d1001f3b3",
+      "height_source": "export_gloss_alpha_coverage/height_map.png",
+      "height_source_sha256": "16482787786a1142075cd9f66f22a7b061f9c0907524ddac82b7a30e6b08ee54",
+      "a4_geometry_mm": {
+        "x": 59.845,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 122.345,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "G-06 · Gloss konstant 128",
+      "role": "GLOSS",
+      "source": "export_gloss_alpha_coverage/gloss_mask.png",
+      "source_sha256": "fa3ef870d4b45a0e3b3d1fa2ed2c01afc90d72d8f67659d0fd3258764b737b27",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 59.845,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 122.345,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    }
+  ],
+  "project": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06.empf",
+  "project_sha256": "7dcf6f06e695ff298d18fed31bcfb3272cb415de0c3c82bf6d227de8234a8f56",
+  "project_layers": [
+    {
+      "name": "A4 Beschriftung und Eckmarken",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-06 · Alpha 0/128/255",
+      "role": "HEIGHT"
+    },
+    {
+      "name": "G-06 · Gloss konstant 128",
+      "role": "GLOSS"
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "number": 8,
+  "slug": "gloss_polaritaet_g02",
+  "title": "G-02 – Gloss-Polarität (zweimal drucken)",
+  "budget_slots": [
+    "G-02 normal Lauf 1+2",
+    "G-02 invertiert Lauf 1+2"
+  ],
+  "physical_a4_copies": 2,
+  "carrier": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02_A4_Beschriftung.png",
+  "carrier_sha256": "b37fe04027e1a4e6cdd69566aeddd072899039618011f7d789b92bc76a665feb",
+  "preview": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02_NUR_VORSCHAU.png",
+  "notes": [
+    "Zwei unabhängige A4-Kartons; nicht zweimal auf denselben Karton drucken."
+  ],
+  "objects": [
+    {
+      "label": "G-02 · normal",
+      "role": "GLOSS",
+      "source": "gloss_wedge.png",
+      "source_sha256": "1d6df1bfbb11c044d74110fb0ba5511b1813870c38ea9044e1be52c2159d5dd2",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 9.69,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 72.19,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "G-02 · invertiert",
+      "role": "GLOSS",
+      "source": "gloss_wedge_inverted.png",
+      "source_sha256": "885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 110.0,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 172.5,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    }
+  ],
+  "project": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02.empf",
+  "project_sha256": "dc01ca8acac58d1751306a5e51e693dec8b2ff1ad15ca102426c5bddffa6489a",
+  "project_layers": [
+    {
+      "name": "A4 Beschriftung und Eckmarken",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-02 · normal",
+      "role": "GLOSS"
+    },
+    {
+      "name": "G-02 · invertiert",
+      "role": "GLOSS"
+    }
+  ]
+}

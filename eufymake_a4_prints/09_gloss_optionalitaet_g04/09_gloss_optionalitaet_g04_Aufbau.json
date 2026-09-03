@@ -1,0 +1,170 @@
+{
+  "number": 9,
+  "slug": "gloss_optionalitaet_g04",
+  "title": "G-04 – fehlend / Null / Voll",
+  "budget_slots": [
+    "G-04a/b/c"
+  ],
+  "physical_a4_copies": 1,
+  "carrier": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04_A4_Beschriftung.png",
+  "carrier_sha256": "5f9031509a6df8fb15bf53c14783630249100810f5b651e97fdb6af736bb4fa3",
+  "preview": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04_NUR_VORSCHAU.png",
+  "notes": [
+    "G-04a enthält bewusst kein Gloss-Objekt; Schwarz/Weiß nicht semantisch umbenennen, bevor der Druck ausgewertet ist."
+  ],
+  "objects": [
+    {
+      "label": "G-04a · Gloss fehlt",
+      "role": "COLOR",
+      "source": "export_gloss_absent/color_motif.png",
+      "source_sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 9.69,
+        "y": 30.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 72.19,
+        "y": 91.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Flat / Standard COLOR",
+      "crop": null,
+      "notes": "Kein GLOSS-Objekt über diesem Feld."
+    },
+    {
+      "label": "G-04b · Digitalwert 0",
+      "role": "COLOR",
+      "source": "export_gloss_zero/color_motif.png",
+      "source_sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 110.0,
+        "y": 30.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 172.5,
+        "y": 91.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Flat / Standard COLOR",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "G-04b · Gloss 0",
+      "role": "GLOSS",
+      "source": "export_gloss_zero/gloss_mask.png",
+      "source_sha256": "5933d4c44ed2bc2f431e2698b41923a18d056b24b450540bb109e7592a547060",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 110.0,
+        "y": 30.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 172.5,
+        "y": 91.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "G-04c · Digitalwert 255",
+      "role": "COLOR",
+      "source": "export_gloss_full/color_motif.png",
+      "source_sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 59.845,
+        "y": 170.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 122.345,
+        "y": 231.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Flat / Standard COLOR",
+      "crop": null,
+      "notes": null
+    },
+    {
+      "label": "G-04c · Gloss 255",
+      "role": "GLOSS",
+      "source": "export_gloss_full/gloss_mask.png",
+      "source_sha256": "f06e89dc7f39be266a34ab9d56c628694bcc6f491e27b9fad873cfa459731143",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 59.845,
+        "y": 170.0,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 122.345,
+        "y": 231.5,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "notes": null
+    }
+  ],
+  "project": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04.empf",
+  "project_sha256": "965f7a39794d3aaed05d0ffd0967fab6d27641a69aa5ff70fe71760565c8538d",
+  "project_layers": [
+    {
+      "name": "A4 Beschriftung und Eckmarken",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-04a · Gloss fehlt",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-04b · Digitalwert 0",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-04b · Gloss 0",
+      "role": "GLOSS"
+    },
+    {
+      "name": "G-04c · Digitalwert 255",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-04c · Gloss 255",
+      "role": "GLOSS"
+    }
+  ]
+}

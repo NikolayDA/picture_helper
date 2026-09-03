@@ -29,3 +29,6 @@ license-raw-all-installed.md
 # Doku-Screenshots werden committet, _runtime/ und _exports/ nicht)
 app_screenshots/**/_runtime/
 app_screenshots/**/_exports/
+
+# Lokale Sicherungen aus eufyMake Studio; keine freigegebenen Druckprojekte.
+eufymake_a4_prints/_vorherige_studio_tabs/
