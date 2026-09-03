@@ -66,6 +66,9 @@ durch die Bearbeitung. Die wichtigsten Funktionen:
 - **Höhenkarten** – aus einem Bild eine Höhenkarte erzeugen, per Regler
   oder direkt mit dem Pinsel bearbeiten und optimieren.
 - **2D-Vorschau** – Farbe, Relief, Höhe und Gloss am Bildschirm prüfen.
+- **3D-Reliefvorschau** – die Höhenkarte als drehbare 3D-Oberfläche
+  prüfen; reine Darstellung, ohne Änderung an Bild, Höhendaten oder
+  Export.
 - **EufyMake-Studio-Export** – Import-Assets für den UV-Druck erzeugen.
 - **Verlauf** mit Rückgängig/Wiederherstellen und Sprung zu jedem
   früheren Bearbeitungsschritt.
@@ -147,8 +150,10 @@ Viele Aktionen sind zusätzlich über die Menüleiste erreichbar:
   Karten-Inspector aufrufen.
 - **Ansicht** – *Fit to View* (⌘0), *Verlauf* (öffnet dieselbe
   Änderungshistorie wie zuvor der Werkzeugleisten-Knopf), das Untermenü
-  *Vorschaumodus* (siehe [Abschnitt 12](#12-schritt-6--export)) sowie
-  *Helles Design* zum Umschalten des Farbschemas.
+  *Vorschaumodus* (siehe [Abschnitt 12](#12-schritt-6--export)),
+  *3D-Relief anzeigen* (siehe
+  [Abschnitt 11](#11-schritt-5--relief--ebenen)) sowie *Helles Design*
+  zum Umschalten des Farbschemas.
 - **Projekt** – *Neues Projekt*, *Projekt öffnen…*, *Projekt speichern* /
   *…unter…* (`.bgrproj`) sowie *Assets für EufyMake Studio exportieren…*
   (siehe [Abschnitt 11](#11-schritt-5--relief--ebenen) und
@@ -514,7 +519,7 @@ PNG.
 ### Größe ändern (Pixel, direkt im Schritt; nur im Experten-Modus)
 
 Die Karte „Größe ändern" bietet **Breite × Höhe in Pixeln** direkt im
-Schritt an: Werte eintragen und **Übernehmen** anklicken. Für das
+Schritt an: Werte eintragen und **Größe anwenden** anklicken. Für das
 gekoppelte Seitenverhältnis, Resampling-Verfahren und die physischen
 Maße (mm/DPI) nutzen Sie den vollständigen Dialog aus
 [Abschnitt 10](#10-größe-ändern--physische-maße).
@@ -757,7 +762,7 @@ Segmented-Control mit vier Modi; der fünfte Modus „Kombiniert" ist über
   Intensität des Reliefs ein; bei 0 % wird das Relief übersprungen.
 - **Gloss anzeigen** blendet den Glanzanteil ein oder aus.
 
-Der Vorschau-Karte und das Ansicht-Untermenü bleiben synchron. Unsichtbare
+Die Vorschau-Karte und das Ansicht-Untermenü bleiben synchron. Unsichtbare
 Datenebenen werden in der Vorschau ignoriert.
 
 ### Speichern
@@ -814,8 +819,10 @@ Schweregrad:
 - **Fehler** (⛔) blockieren den Export, bis sie behoben sind – z. B. ein
   fehlendes Farbmotiv oder nicht zusammenpassende Größen.
 - **Warnungen** (⚠️) müssen bewusst bestätigt werden – z. B. leere Höhen-/
-  Gloss-Daten, offene HEIGHT-Trägernutzung oder die notwendige native
-  Gloss-Zuweisung in Studio.
+  Gloss-Daten, offene HEIGHT-Trägernutzung, die notwendige native
+  Gloss-Zuweisung in Studio, ein Motiv über dem eufyMake-Standard-Flachbett
+  (335 × 420 mm) oder der Präzisionsverlust, wenn echte 16-Bit-Höhen auf
+  ein 8-Bit-Ziel quantisiert werden.
 
 `manifest.json` ist interne Provenienz mit Profil-/App-Version,
 Kanalinterpretation, Pixel/mm und X-/Y-DPI; es wird von Studio 4.2.2 nicht als
@@ -1016,9 +1023,11 @@ Knopf **„Ordner öffnen"** öffnet das Verzeichnis direkt im Dateimanager
 ## 19. Lizenz
 
 BgRemover steht unter der **GNU General Public License v3.0 oder später**
-(`GPL-3.0-or-later`) – siehe [LICENSE](LICENSE). Eine vollständige
-Auflistung aller verwendeten Bibliotheken und Lizenzen steht in
-[RESOURCES.md](RESOURCES.md).
+(`GPL-3.0-or-later`) – siehe [LICENSE](LICENSE). Eine kuratierte Übersicht
+der verwendeten Ressourcen mit ihrem jeweiligen Zweck steht in
+[RESOURCES.md](RESOURCES.md); die vollständige, automatisch erzeugte
+Aufstellung aller Bibliotheken samt Lizenzbewertung führt
+[LICENSES.md](LICENSES.md).
 
 ---
 
