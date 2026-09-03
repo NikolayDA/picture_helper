@@ -93,17 +93,17 @@ La ventana está dividida en cinco áreas:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Barra de menú                                                 │
+│ Barra de menú                                               │
 ├──────────┬───────────────────────────────┬──────────────────┤
-│          │      Barra de pasos (6 pasos)                     │
+│          │      Barra de pasos (6 pasos)                    │
 │ Barra de ├───────────────────────────────┼──────────────────┤
 │ herra-   │                               │  Inspector       │
 │ mientas  │        Lienzo                 │  de tarjetas     │
 │ (izq.)   │      (imagen + selección)     │  (derecha)       │
 │          │                               │                  │
 ├──────────┴───────────────────────────────┴──────────────────┤
-│ Barra de estado (sugerencias y mensajes)                     │
-└──────────────────────────────────────────────────────────────┘
+│ Barra de estado (sugerencias y mensajes)                    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 | Área | Función |
