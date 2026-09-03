@@ -641,7 +641,8 @@ Der neue unabhängige Pre-Import-Inspector
 Bytegröße, Pillow-Lesbarkeit/-Version, IHDR, vollständige Chunkfolge, `pHYs`
 und CRCs aus und schreibt einen JSON-Nachweis. Der Pillow-Modus bleibt
 diagnostisch; die Formatprüfung verwendet die rohen IHDR-Felder. Schema 3
-(seit #952: Schema 4) und der extern vorgegebene Manifest-SHA binden den Report
+(seit #952 Schema 4, seit I-14 Schema 5) und der extern vorgegebene
+Manifest-SHA binden den Report
 an den aktuellen Satz.
 Dieser Nachtrag ändert keine Hardwareaussage:
 Import- und Druckresultate bleiben bis zum realen Test als **offen** markiert.
@@ -674,7 +675,7 @@ Hardwarebeobachtung vorwegzunehmen:
   pixelgenau.
 
 Der unabhängige Inspector prüft nun neben den Einzel-Fixtures (Schema 3: 36,
-seit #952 Schema 4: 41) auch Dateiliste, Hashes, PNG-Metadaten und
+seit #952 Schema 4: 41, seit I-14 Schema 5: 42) auch Dateiliste, Hashes, PNG-Metadaten und
 Manifestsemantik der Exportpakete (Schema 3: eines, Schema 4: sieben).
 Importanzeige, tatsächliche Druckmaße, Crop/Offset und die daraus folgende
 Produktentscheidung bleiben bis zur kontrollierten Studio-/E1-Ausführung
@@ -857,3 +858,47 @@ zählen gemäß Scope-Entscheid nicht dazu.
 4. Die physischen HEIGHT-, mm/DPI- und Gloss-Nachweise aus #688–#690 bleiben
    offen. Erst danach folgen die Abschluss-Review von #687 und die Entscheidung,
    Profil v1 zu bestätigen oder bei Widerspruch Profil v2 anzulegen.
+
+---
+
+## Evidenzversion 5 (2026-09-03)
+
+### 0. Methodik und Grenzen
+
+Version 5 ergänzt I-14 als kontrollierte Filterzelle und ersetzt keine ältere
+Studio-Beobachtung. Manifest-Schema 5 enthält 42 Einzel-Fixtures und die sieben
+unveränderten, eingefrorenen Writer-Pakete. Der unabhängige Inspector bestätigte
+42/42 Fixtures und 7/7 Pakete gegen den Manifest-SHA-256
+`7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a`;
+der Report hat SHA-256
+`4c418ccceac01b43b3aee615d89574f590a342da88dd4ad9941522e026b3603b`.
+Weder `Preview` noch `Print` wurde ausgelöst; das physische Budget steht bei
+0/35.
+
+### 1. Neue Studio- und Dateinachweise
+
+| ID | Nachweis | Evidenzgrad |
+| --- | --- | --- |
+| V5-P1 | `height_impulse_edge_direct_half_16bit.png` ist 128×128, 16 Bit und direkt aus derselben normierten Formel wie die 256×256-Referenz erzeugt; kein Resize/keine Vorfilterung. Der Bereich ist auf 1/4…3/4 begrenzt, das untere Viertel enthält 4096 feine 16-Bit-Sollstufen. Generator-Tests prüfen exakte 2×2-Entsprechung, zusätzliche 16-Bit-Stufen und Ungleichheit zum LANCZOS-Resize. | P |
+| V5-T1 | Die endgültigen begrenzten Bytes von `height_impulse_edge_16bit.png` und der direkten 128×128-Kontrolle wurden in Studio 4.2.2 nativ über `Customize Texture` ohne Warnung akzeptiert; beim Ersetzen blieben W/H 90,31/90,31 mm und X/Y 122,34/164,84 mm. | T |
+| V5-T2 | Die pixelgleiche, gröber quantisierte 8-Bit-Variante `height_impulse_edge_8bit.png` wurde für den I-03-Druckvergleich ebenfalls ohne Warnung nativ akzeptiert. | T |
+
+### 2. Aktualisierte Testmatrix und Budget
+
+| Zelle | Status V5 | Belegte Grenze |
+| --- | --- | --- |
+| I-03 (8/16 Bit) | importseitig abgeschlossen | physischer Vergleich verwendet die pixelgleichen Impuls-/Kantenkarten mit 4096 16-Bit-Sollstufen gegenüber gröberer 8-Bit-Quantisierung; 16 Bit ist zugleich I-14-Referenz |
+| I-14 (direkte 256/128-px-Kontrolle) | importseitig abgeschlossen | Fixture-Generator als Filter-Störvariable ausgeschlossen; begrenzter 1/4…3/4-Bereich macht Vollbereichsnormalisierung sichtbar; physischer kombinierter Studio-/Druckpfad offen |
+
+Damit sind 29 verpflichtende Phase-1-Zeilen abgeschlossen. NikolayDA hat mit
+dem Auftrag zur vollständigen Umsetzung den zuvor freien Budgetplatz 24 I-14
+zugeordnet. Phase 3 umfasst 13 Stammvarianten, höchstens 11 priorisierte
+Wiederholungen und 11 Gloss-Läufe, insgesamt maximal 35 Drucke.
+
+I-14 misst auf y=1/2 Kantenbreite (10–90 %) und Impulsbreite (FWHM) sowie
+Peak-, Plateau- und Basishöhe; die untere Kalibrierfläche prüft die nutzbaren
+16-Bit-Stufen. Alle Läufe verwenden identische Layoutgröße/-position, `Customize Texture`,
+`Color Raised`, 2,50 mm, Material und Qualitätsprofil. Ohne zugängliches
+Studio-Ausgaberaster belegt eine physische Differenz nur den kombinierten
+Studio-/Druckpfad, nicht Studio allein. Aus I-14 darf außerdem kein Ergebnis
+für den abgelehnten I-12-Seitenverhältnisfall abgeleitet werden.

@@ -9,8 +9,8 @@ Ergebnisdokument für
 
 ## Status am 2026-09-03
 
-- **Dateievidenz:** vollständig und automatisiert geprüft. Es gibt (seit
-  #952, Schema 4) 41 Einzel-Fixtures sowie sieben echte BgRemover-Exportpakete:
+- **Dateievidenz:** vollständig und automatisiert geprüft. Schema 5 enthält
+  42 Einzel-Fixtures sowie sieben unveränderte echte BgRemover-Exportpakete:
   das Vier-Dateien-Paket `export_mm_dpi_conflict/` für I-06 und die sechs
   `export_gloss_*`-Pakete aus #690.
 - **Studio-Beobachtung:** für Startgröße, DPI-Priorität, X/Y-DPI,
@@ -33,8 +33,8 @@ Vertrauensanker des eingecheckten Satzes:
 
 ```text
 fixtures_manifest.json
-SHA-256 8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758
-Schema 4 · 41 Einzel-Fixtures · 7 Exportpakete
+SHA-256 7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a
+Schema 5 · 42 Einzel-Fixtures · 7 Exportpakete
 ```
 
 Prüfbefehl vor jedem Import:
@@ -42,7 +42,7 @@ Prüfbefehl vor jedem Import:
 ```bash
 python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
-  --expected-manifest-sha256 8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758 \
+  --expected-manifest-sha256 7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a \
   --output eufymake-pre-import-report.json
 ```
 

@@ -39,8 +39,9 @@ from PIL import __version__ as PILLOW_VERSION
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIXTURE_DIR = ROOT / "tests" / "fixtures" / "eufymake_hardware"
 MANIFEST_FILENAME = "fixtures_manifest.json"
+BUNDLE_MANIFEST_FILENAME = "manifest.json"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-EXPECTED_MANIFEST_SCHEMA = 4
+EXPECTED_MANIFEST_SCHEMA = 5
 
 _PNG_COLOR_TYPE_BY_MODE = {
     "L": 0,
@@ -300,12 +301,29 @@ def _inspect_export_manifest(
     }
 
 
-def _validate_bundles(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+def validate_bundles(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    """Validate the catalog structure shared by inspection and preservation."""
     bundles = manifest.get("bundles")
     if not isinstance(bundles, list):
         raise ValueError("Manifestfeld 'bundles' muss eine Liste sein")
     required_bundle_fields = {
-        "id", "directory", "generated_via", "manifest_contract", "file_count", "files",
+        "id",
+        "directory",
+        "purpose",
+        "generated_via",
+        "manifest_contract",
+        "file_count",
+        "files",
+    }
+    required_contract_fields = {
+        "profile",
+        "profile_version",
+        "kind",
+        "pixel_size",
+        "bit_depth",
+        "physical_size_mm",
+        "dpi",
+        "assets",
     }
     seen_directories: set[str] = set()
     for bundle_index, bundle in enumerate(bundles):
@@ -314,8 +332,20 @@ def _validate_bundles(manifest: dict[str, Any]) -> list[dict[str, Any]]:
         missing = sorted(required_bundle_fields - bundle.keys())
         if missing:
             raise ValueError(f"Bundle {bundle_index} enthält nicht alle Pflichtfelder: {missing}")
+        for text_field in ("id", "purpose", "generated_via"):
+            if not isinstance(bundle[text_field], str) or not bundle[text_field]:
+                raise ValueError(
+                    f"Bundle {bundle_index}: {text_field} muss nichtleer sein"
+                )
         if not isinstance(bundle["manifest_contract"], dict):
             raise ValueError(f"Bundle {bundle_index}: manifest_contract muss ein Objekt sein")
+        contract = bundle["manifest_contract"]
+        missing_contract_fields = sorted(required_contract_fields - contract.keys())
+        if missing_contract_fields:
+            raise ValueError(
+                f"Bundle {bundle_index}: manifest_contract enthält nicht alle "
+                f"Pflichtfelder: {missing_contract_fields}"
+            )
         directory = bundle["directory"]
         if (
             not isinstance(directory, str)
@@ -333,6 +363,8 @@ def _validate_bundles(manifest: dict[str, Any]) -> list[dict[str, Any]]:
         if bundle["file_count"] != len(files):
             raise ValueError(f"Bundle {bundle_index}: file_count stimmt nicht")
         seen_files: set[str] = set()
+        png_files: list[str] = []
+        manifest_files: list[str] = []
         for file_index, entry in enumerate(files):
             if not isinstance(entry, dict):
                 raise ValueError(
@@ -360,6 +392,7 @@ def _validate_bundles(manifest: dict[str, Any]) -> list[dict[str, Any]]:
                 )
             seen_files.add(filename)
             if entry["media_type"] == "image/png":
+                png_files.append(filename)
                 png_fields = {
                     "role", "pattern", "png_mode", "bit_depth", "width", "height",
                 }
@@ -369,23 +402,53 @@ def _validate_bundles(manifest: dict[str, Any]) -> list[dict[str, Any]]:
                         f"Bundle {bundle_index}, PNG {file_index} enthält nicht alle "
                         f"Pflichtfelder: {missing}"
                     )
-            elif entry["media_type"] != "application/json":
+            elif entry["media_type"] == "application/json":
+                manifest_files.append(filename)
+            else:
                 raise ValueError(
                     f"Bundle {bundle_index}, Datei {file_index}: unbekannter Medientyp"
                 )
+        if manifest_files != [BUNDLE_MANIFEST_FILENAME]:
+            raise ValueError(
+                f"Bundle {bundle_index}: genau {BUNDLE_MANIFEST_FILENAME!r} muss "
+                "das Exportmanifest sein"
+            )
+        assets = contract["assets"]
+        if (
+            not isinstance(assets, list)
+            or not all(isinstance(asset, str) for asset in assets)
+            or len(set(assets)) != len(assets)
+            or set(assets) != set(png_files)
+        ):
+            raise ValueError(
+                f"Bundle {bundle_index}: manifest_contract.assets stimmt nicht "
+                "mit den PNG-Dateien überein"
+            )
     return bundles
 
 
-def _inspect_bundle(fixture_dir: Path, bundle: dict[str, Any]) -> dict[str, Any]:
+def inspect_bundle(fixture_dir: Path, bundle: dict[str, Any]) -> dict[str, Any]:
+    """Inspect one structurally validated bundle without following symlinks."""
     bundle_dir = fixture_dir / bundle["directory"]
     errors: list[str] = []
     expected_names = {entry["filename"] for entry in bundle["files"]}
-    actual_entries = list(bundle_dir.iterdir()) if bundle_dir.is_dir() else []
-    actual_file_names = {path.name for path in actual_entries if path.is_file()}
-    non_file_names = {path.name for path in actual_entries if not path.is_file()}
+    bundle_dir_valid = bundle_dir.is_dir() and not bundle_dir.is_symlink()
+    actual_entries = list(bundle_dir.iterdir()) if bundle_dir_valid else []
+    actual_file_names = {
+        path.name
+        for path in actual_entries
+        if path.is_file() and not path.is_symlink()
+    }
+    non_file_names = {
+        path.name
+        for path in actual_entries
+        if not path.is_file() or path.is_symlink()
+    }
     missing = sorted(expected_names - actual_file_names)
     unexpected = sorted((actual_file_names - expected_names) | non_file_names)
-    if not bundle_dir.is_dir():
+    if bundle_dir.is_symlink():
+        errors.append("Bundle-Verzeichnis darf kein Symlink sein")
+    elif not bundle_dir.is_dir():
         errors.append("Bundle-Verzeichnis fehlt")
     if missing:
         errors.append(f"fehlende Bundle-Dateien: {missing}")
@@ -395,7 +458,7 @@ def _inspect_bundle(fixture_dir: Path, bundle: dict[str, Any]) -> dict[str, Any]
     results: list[dict[str, Any]] = []
     for entry in sorted(bundle["files"], key=lambda item: item["filename"]):
         path = bundle_dir / entry["filename"]
-        if not path.is_file():
+        if not bundle_dir_valid or not path.is_file() or path.is_symlink():
             results.append({
                 "filename": entry["filename"],
                 "media_type": entry["media_type"],
@@ -457,7 +520,7 @@ def inspect_fixture_dir(
     entries = manifest.get("fixtures")
     if not isinstance(entries, list):
         raise ValueError("Manifestfeld 'fixtures' muss eine Liste sein")
-    bundles = _validate_bundles(manifest)
+    bundles = validate_bundles(manifest)
 
     required_fields = {
         "filename",
@@ -556,7 +619,7 @@ def inspect_fixture_dir(
             })
 
     failed = sum(not result["ok"] for result in results)
-    bundle_results = [_inspect_bundle(fixture_dir, bundle) for bundle in bundles]
+    bundle_results = [inspect_bundle(fixture_dir, bundle) for bundle in bundles]
     failed_bundles = sum(not bundle["ok"] for bundle in bundle_results)
     return {
         "schema": 1,

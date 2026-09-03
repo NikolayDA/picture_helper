@@ -19,7 +19,9 @@ Drei Fixture-Rollen, alle unter ``tests/fixtures/eufymake_hardware/``:
   Registriermotiv mit exakt demselben Pixelmaß wie die HEIGHT-Referenz sowie
   ein dreigeteiltes RGBA-Motiv mit 0/50/100 % Alpha. Letzteres wird mit einer
   konstanten, nicht-null HEIGHT-Map kombiniert und trennt dadurch
-  Alpha/Coverage vom digitalen Höhenwert.
+  Alpha/Coverage vom digitalen Höhenwert. Für I-14 ergänzt eine direkt bei
+  128×128 erzeugte Kanten-/Impulskontrolle die ebenfalls direkt erzeugte
+  256×256-Referenz, ohne vorgelagertes Resampling.
 - **mm/DPI** (#689-Testdesign): ein Kontrollmotiv mit Messrahmen und
   Achsenmarkern (asymmetrische Markierungsdichte auf X- vs. Y-Achse, damit
   ein achsenspezifischer Skalierungsfehler sichtbar wird) in drei
@@ -127,6 +129,10 @@ from bgremover.project_model import (  # noqa: E402
     LayerRole,
     Project,
 )
+from scripts.eufymake_fixture_inspector import (  # noqa: E402
+    inspect_bundle,
+    validate_bundles,
+)
 
 DEFAULT_OUT_DIR = ROOT / "tests" / "fixtures" / "eufymake_hardware"
 MANIFEST_FILENAME = "fixtures_manifest.json"
@@ -136,8 +142,11 @@ MANIFEST_FILENAME = "fixtures_manifest.json"
 # X-/Y-DPI, die dreifache COLOR/HEIGHT/GLOSS-Registrierung und echte
 # BgRemover-Exportpakete unter ``bundles``. Schema 4 ergänzt die isolierten
 # Gloss-Szenarien aus #690: fehlend/Null/Voll, Alpha×Gloss, HEIGHT×Gloss und
-# eine kontrolliert dimensionsfremde Gloss-Datei.
-SCHEMA_VERSION = 4
+# eine kontrolliert dimensionsfremde Gloss-Datei. Schema 5 ergänzt für I-14
+# eine direkt bei 128×128 erzeugte Kanten-/Impulskontrolle. Zusammen mit der
+# vorhandenen direkten 256×256-Referenz prüft sie den nachgelagerten
+# Studio-/Druck-Resamplingpfad, ohne bereits im Fixture-Generator zu filtern.
+SCHEMA_VERSION = 5
 
 HEIGHT_SIZE = (256, 256)  # (Breite, Höhe) px – klein genug fürs Repo, groß
 # genug für eine sichtbare Stufen-/Keilauflösung.
@@ -169,6 +178,17 @@ GLOSS_BUNDLE_DIRNAMES = (
 PIXEL_SIZE_VARIANT_SIZE = (HEIGHT_SIZE[0] // 2, HEIGHT_SIZE[1] // 2)
 PIXEL_SIZE_VARIANT_PATTERN = "wedge_pixelsize_half"
 PIXEL_SIZE_VARIANT_SOURCE = "height_wedge_16bit.png"
+# I-14 (#688): kontrolliertes Auflösungspaar ohne vorgelagertes Resampling.
+# Die 256×256-Referenz entsteht bereits direkt in ``generate_height_fixtures``;
+# nur die ebenfalls direkt aus derselben Formel erzeugte 128×128-Variante ist
+# ein zusätzliches Fixture.
+FILTER_CONTROL_SIZE = PIXEL_SIZE_VARIANT_SIZE
+FILTER_CONTROL_PATTERN = "impulse_edge_direct_half"
+FILTER_CONTROL_REFERENCE = "height_impulse_edge_16bit.png"
+FILTER_CONTROL_BASELINE = 0.25
+FILTER_CONTROL_PEAK = 0.75
+FILTER_CONTROL_GRID_SIZE = 128
+FILTER_CONTROL_CALIBRATION_Y_START = 96
 # I-12 (H-03, #688): bewusst *anderes* Seitenverhältnis als HEIGHT_SIZE (2:1 statt
 # 1:1) – abzugrenzen von I-04 (Pixelmaß bei gleichem Seitenverhältnis).
 ASPECT_RATIO_VARIANT_SIZE = (HEIGHT_SIZE[0], HEIGHT_SIZE[1] // 2)
@@ -228,17 +248,49 @@ def _pattern_steps(width: int, height: int, levels: int = STEP_LEVELS) -> np.nda
 
 
 def _pattern_impulse_edge(width: int, height: int) -> np.ndarray:
-    """Harte Kante (rechte Bildhälfte) plus isolierter, schmaler Impuls links davon.
+    """Begrenzte Kante/Impuls plus feine 16-Bit-Kalibrierfläche.
 
     Deckt beide in #688 genannten Fälle ab: eine scharfe Kante (Filterung an
-    einem Übergang) und einen einzelnen, isolierten Impuls (Glättung/
-    automatische Normalisierung eines Ausreißers).
+    einem Übergang) und einen einzelnen, isolierten Impuls (Glättung). Der
+    Wertebereich 1/4…3/4 macht eine automatische Vollbereichsnormalisierung
+    sichtbar. Das untere Viertel enthält 4096 fein abgestufte Sollwerte und
+    unterscheidet damit echte 16-Bit-Nutzung von der 8-Bit-Quantisierung.
+
+    Die Formel arbeitet auf einem normierten 128×128-Kontrollraster. Für die
+    256×256-Referenz wird jeder Kontrollpunkt direkt einer 2×2-Zelle
+    zugeordnet; die 128×128-Variante verwendet genau einen Pixel je Punkt.
+    Dadurch sind beide Auflösungen exakt vergleichbar, ohne ein Bild zu
+    resamplen.
     """
-    field = np.zeros((height, width), dtype=np.float64)
-    field[:, width // 2 :] = 1.0
-    impulse_center = width // 4
-    half = max(1, width // 128)
-    field[:, max(0, impulse_center - half) : impulse_center + half] = 1.0
+    if (
+        width % FILTER_CONTROL_GRID_SIZE != 0
+        or height % FILTER_CONTROL_GRID_SIZE != 0
+    ):
+        raise ValueError("Impuls-/Kantenkontrolle benötigt Vielfache von 128 px")
+
+    control_x = np.arange(width) * FILTER_CONTROL_GRID_SIZE // width
+    control_y = np.arange(height) * FILTER_CONTROL_GRID_SIZE // height
+    xx, yy = np.meshgrid(control_x, control_y)
+    field = np.full((height, width), FILTER_CONTROL_BASELINE, dtype=np.float64)
+    field[xx >= FILTER_CONTROL_GRID_SIZE // 2] = FILTER_CONTROL_PEAK
+    impulse_center = FILTER_CONTROL_GRID_SIZE // 4
+    field[(xx >= impulse_center - 1) & (xx < impulse_center + 1)] = (
+        FILTER_CONTROL_PEAK
+    )
+
+    calibration_mask = yy >= FILTER_CONTROL_CALIBRATION_Y_START
+    calibration_index = (
+        (yy - FILTER_CONTROL_CALIBRATION_Y_START) * FILTER_CONTROL_GRID_SIZE + xx
+    )
+    calibration_span = (
+        (FILTER_CONTROL_GRID_SIZE - FILTER_CONTROL_CALIBRATION_Y_START)
+        * FILTER_CONTROL_GRID_SIZE
+        - 1
+    )
+    calibration = FILTER_CONTROL_BASELINE + (
+        FILTER_CONTROL_PEAK - FILTER_CONTROL_BASELINE
+    ) * calibration_index / calibration_span
+    field[calibration_mask] = calibration[calibration_mask]
     return field
 
 
@@ -314,6 +366,20 @@ def generate_height_fixtures() -> list[FixtureSpec]:
     for name, builder in _HEIGHT_PATTERNS:
         pattern = builder(width, height)
         params = {"width_px": width, "height_px": height}
+        if name == "impulse_edge":
+            params.update({
+                "value_range_normalized": [
+                    FILTER_CONTROL_BASELINE,
+                    FILTER_CONTROL_PEAK,
+                ],
+                "measurement_scanline_y": "1/2",
+                "calibration_band_y": "3/4..1",
+                "calibration_levels_16bit": 4096,
+                "purpose": (
+                    "I-03/I-14: Bittiefen-, Filter- und "
+                    "Normalisierungskontrolle"
+                ),
+            })
         specs.append(FixtureSpec(
             filename=f"height_{name}_8bit.png", role="height_map", pattern=name,
             bit_depth=8, png_mode="L", image=_to_8bit_l(pattern), params=params,
@@ -360,6 +426,52 @@ def generate_pixel_size_variant_fixture() -> list[FixtureSpec]:
         filename="height_wedge_16bit_half.png", role="height_map",
         pattern=PIXEL_SIZE_VARIANT_PATTERN, bit_depth=16, png_mode="I;16",
         image=image, params=params,
+    )]
+
+
+# ── Filterkontrolle (I-14, #688-Testdesign) ────────────────────────────────
+
+def generate_filter_control_fixture() -> list[FixtureSpec]:
+    """Direkte 128×128-Kanten-/Impulskontrolle ohne Resampling erzeugen.
+
+    Die Referenz ``height_impulse_edge_16bit.png`` wird bei 256×256 ebenfalls
+    direkt durch :func:`_pattern_impulse_edge` erzeugt. Kante, Impulszentrum
+    und normierte Impulsbreite sind damit geometrisch identisch. Anders als
+    I-04 läuft keine Variante vorab durch ``resize_height_field``; gemessene
+    Unterschiede können daher nicht dem Fixture-Generator zugeschrieben
+    werden. Ohne zugängliches Studio-Ausgaberaster bleibt ein physischer
+    Befund dennoch eine Aussage über den kombinierten Studio-/Druckpfad.
+    """
+    width, height = FILTER_CONTROL_SIZE
+    pattern = _pattern_impulse_edge(width, height)
+    return [FixtureSpec(
+        filename="height_impulse_edge_direct_half_16bit.png",
+        role="height_map",
+        pattern=FILTER_CONTROL_PATTERN,
+        bit_depth=16,
+        png_mode="I;16",
+        image=_to_16bit_i16(pattern),
+        params={
+            "width_px": width,
+            "height_px": height,
+            "generation_method": "direct_formula_no_resampling",
+            "reference_file": FILTER_CONTROL_REFERENCE,
+            "reference_size_px": list(HEIGHT_SIZE),
+            "normalized_edge_x": "1/2",
+            "normalized_impulse_center_x": "1/4",
+            "normalized_impulse_width": "1/64",
+            "value_range_normalized": [
+                FILTER_CONTROL_BASELINE,
+                FILTER_CONTROL_PEAK,
+            ],
+            "measurement_scanline_y": "1/2",
+            "calibration_band_y": "3/4..1",
+            "calibration_levels_16bit": 4096,
+            "purpose": (
+                "I-14: kontrollierter 256/128-px-Kanten-/Impulsvergleich "
+                "ohne vorgelagertes Fixture-Resampling"
+            ),
+        },
     )]
 
 
@@ -502,11 +614,13 @@ def generate_color_height_control_fixtures() -> list[FixtureSpec]:
                 "paired_height_files": [
                     "height_wedge_16bit.png",
                     "height_registration_16bit.png",
+                    "height_impulse_edge_16bit.png",
                 ],
                 "alpha_levels": [255],
                 "purpose": (
                     "I-02: dimensionsgleich mit HEIGHT-Keil; I-08: "
-                    "pixelgleiche Registriermarker"
+                    "pixelgleiche Registriermarker; I-14: direkte "
+                    "256/128-px-Kanten-/Impulskontrolle"
                 ),
             },
         ),
@@ -771,6 +885,7 @@ def generate_all_fixtures() -> list[FixtureSpec]:
     return [
         *generate_height_fixtures(),
         *generate_pixel_size_variant_fixture(),
+        *generate_filter_control_fixture(),
         *generate_aspect_ratio_variant_fixture(),
         *generate_color_height_control_fixtures(),
         *generate_mm_dpi_fixtures(),
@@ -1235,13 +1350,64 @@ def _write_gloss_scenario_bundles(out_dir: Path) -> list[dict[str, Any]]:
     return bundles
 
 
-def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any]:
+def _load_preserved_bundles(out_dir: Path) -> list[dict[str, Any]]:
+    """Vorhandene, eingefrorene Writer-Pakete prüfen und katalogseitig laden."""
+    manifest_path = out_dir / MANIFEST_FILENAME
+    if not manifest_path.is_file():
+        raise ValueError(
+            "--preserve-existing-bundles benötigt ein vorhandenes "
+            f"{MANIFEST_FILENAME} in {out_dir}"
+        )
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    bundles = validate_bundles(payload)
+    if not bundles:
+        raise ValueError(f"Keine erhaltbaren Exportpakete in {manifest_path}")
+    expected_directories = {EXPORT_BUNDLE_DIRNAME, *GLOSS_BUNDLE_DIRNAMES}
+    actual_directories = {
+        bundle.get("directory")
+        for bundle in bundles
+        if isinstance(bundle, dict)
+    }
+    if (
+        payload.get("bundle_count") != len(bundles)
+        or len(bundles) != len(expected_directories)
+        or actual_directories != expected_directories
+    ):
+        raise ValueError(f"Unerwartete Exportpaket-Liste in {manifest_path}")
+    for bundle in bundles:
+        result = inspect_bundle(out_dir, bundle)
+        if not result["ok"]:
+            errors = list(result["errors"])
+            errors.extend(
+                error
+                for file_result in result["files"]
+                for error in file_result["errors"]
+            )
+            raise ValueError(
+                f"Eingefrorenes Exportpaket {bundle['directory']} ist ungültig: "
+                + "; ".join(errors)
+            )
+    return bundles
+
+
+def write_fixtures(
+    specs: Iterable[FixtureSpec],
+    out_dir: Path,
+    *,
+    preserve_existing_bundles: bool = False,
+) -> dict[str, Any]:
     """Schreibt alle ``specs`` als PNG nach ``out_dir`` und das SHA-256-Manifest.
 
     Nach Dateiname sortiert, damit das Manifest unabhängig von der
-    Erzeugungsreihenfolge byteidentisch bleibt (Determinismus-Test).
+    Erzeugungsreihenfolge byteidentisch bleibt (Determinismus-Test). Mit
+    ``preserve_existing_bundles`` werden vorhandene Writer-Pakete zuerst
+    fail-closed gegen das bisherige Manifest geprüft und dann bytegleich in
+    den neuen Katalog übernommen.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
+    preserved_bundles = (
+        _load_preserved_bundles(out_dir) if preserve_existing_bundles else None
+    )
     entries: list[dict[str, Any]] = []
     for spec in sorted(specs, key=lambda s: s.filename):
         path = out_dir / spec.filename
@@ -1266,7 +1432,7 @@ def write_fixtures(specs: Iterable[FixtureSpec], out_dir: Path) -> dict[str, Any
             "sha256": hashlib.sha256(data).hexdigest(),
             "bytes": len(data),
         })
-    bundles = [
+    bundles = preserved_bundles or [
         _write_mm_dpi_export_bundle(out_dir),
         *_write_gloss_scenario_bundles(out_dir),
     ]
@@ -1303,12 +1469,24 @@ def main(argv: list[str] | None = None) -> int:
         "--out-dir", type=Path, default=DEFAULT_OUT_DIR,
         help=f"Zielverzeichnis (Default: {_rel(DEFAULT_OUT_DIR)}).",
     )
+    gen_p.add_argument(
+        "--preserve-existing-bundles",
+        action="store_true",
+        help=(
+            "Vorhandene, gegen ihr Manifest geprüfte Writer-Paketbytes nicht "
+            "neu erzeugen; für die in-place-Erweiterung eingefrorener Belege."
+        ),
+    )
 
     args = parser.parse_args(argv)
     if args.command != "generate":  # pragma: no cover - einziger Unterbefehl
         parser.error(f"Unbekannter Befehl: {args.command}")
 
-    manifest = write_fixtures(generate_all_fixtures(), args.out_dir)
+    manifest = write_fixtures(
+        generate_all_fixtures(),
+        args.out_dir,
+        preserve_existing_bundles=args.preserve_existing_bundles,
+    )
     total_bytes = sum(entry["bytes"] for entry in manifest["fixtures"])
     total_bytes += sum(
         entry["bytes"]

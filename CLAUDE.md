@@ -341,11 +341,14 @@ Ein Paket, `bgremover/`:
   für den Testtag [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](docs/history/EUFYMAKE-687-DRUCK-CHECKLISTE.md)
   (#803; bündelt nur Reihenfolge/Budget/Sicherheitsregeln, ist bewusst *keine*
   eigene Datenquelle – bei Widerspruch gelten die beiden Quelldokumente). Die
-  Fixtures erzeugt `scripts/eufymake_fixture_generator.py` (`generate`)
+  Fixtures erzeugt `scripts/eufymake_fixture_generator.py` (`generate`; bei
+  einer In-place-Erweiterung des geprüften Satzes zwingend zusätzlich
+  `--preserve-existing-bundles`)
   deterministisch (reine Formel-/Rastermuster, keine Zufallszahlen) nach
   `tests/fixtures/eufymake_hardware/` inkl. `fixtures_manifest.json` mit SHA-256
-  je Datei. Schema 4 umfasst 41 Einzel-Fixtures (u. a. getrennte X-/Y-DPI,
-  pixelgleiche COLOR/HEIGHT/GLOSS-Landmarks und Gloss 0/128/255) sowie sieben
+  je Datei. Schema 5 umfasst 42 Einzel-Fixtures (u. a. getrennte X-/Y-DPI,
+  pixelgleiche COLOR/HEIGHT/GLOSS-Landmarks, Gloss 0/128/255 und das direkte,
+  nicht vorgefilterte 128×128-I-14-Kanten-/Impuls-Fixture) sowie sieben
   über den produktiven Writer erzeugte Exportpakete: `export_mm_dpi_conflict/`
   (Vier-Dateien-Paket mit absichtlich widersprüchlichen Manifest-/`pHYs`-Werten,
   I-06) und die sechs `export_gloss_*`-Pakete aus #690 (fehlende/Null-/Voll-Gloss,
