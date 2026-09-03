@@ -147,7 +147,7 @@ Many actions are also available from the menu bar:
   [section 12](#12-step-6--export)).
 - **Extras** – *Settings…* (see [section 13](#13-settings)), *Check for
   updates…*, *Manage AI model…*, and *Install AI background removal…* (see
-  [section 7](#7-step-2--cutout) and
+  [section 7](#7-step-2--cut-out) and
   [section 18](#18-troubleshooting--log-file)).
 
 ![The "Edit" menu](../../../app_screenshots/bgremover_complete_20260828_184550/23_menu_edit.png)
