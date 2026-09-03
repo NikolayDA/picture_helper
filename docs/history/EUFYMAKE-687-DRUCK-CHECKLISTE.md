@@ -114,7 +114,7 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 22 | G-01 (Gloss min/mittel/max) | ☑ | ☑ |
 | 23 | G-02 (normal/invertiert) | ☑ | ☑ |
 | 24 | G-03 (Stufen + 64…192-Keil) | ☑ | ☑ |
-| 25 | G-04a/b/c (fehlend/Null/voll) | ☑ | ☐ |
+| 25 | G-04a/b/c (fehlend/Null/voll) | ☑ | ☑ |
 | 26 | G-05 (Gloss 128×256 gegen COLOR 256×256) | ☑ | ☑ |
 | 27 | G-06 (Alpha 0/128/255 × Gloss 128) | ☑ | ☑ |
 | 28 | G-07 (HEIGHT 0/32768/65535 × Gloss 128) | ☑ | ☑ |
@@ -124,11 +124,13 @@ Die #688-Zeile 21 (I-13) wurde am 2026-09-02 dateivalidiert und zunächst über
 den Bilddialog importiert. Am 2026-09-03 wurde `height_mean_16bit.png` zusätzlich
 im selben `color_alpha_coverage.png`-Objekt nativ über `Customize Texture`
 zugewiesen; `3D` und die drei Alpha-/Farbfelder blieben in der Vorschau sichtbar.
-Die #690-Zeilen 22–29 wurden am 2026-09-02 mit Studio 4.2.2 / Editor 1.20.0
-abgeschlossen und in der #690-Ergebnisakte protokolliert; dort bedeutet
-„Import“ weiterhin ausdrücklich den Bilddialog-Grenzbefund ohne native
-Gloss-Maskenkopplung. Es wurde weder **Preview** noch **Print** ausgelöst; die
-physischen Aussagen bleiben offen.
+Die #690-Zeilen 22–24 und 26–29 wurden am 2026-09-02 mit Studio 4.2.2 /
+Editor 1.20.0 abgeschlossen. Zeile 25 (G-04) folgte am 2026-09-03 mit dem
+Import der tatsächlichen Null-/Voll-Writer-Assets; G-04a ist mangels
+Gloss-Datei nicht anwendbar. Damit sind die #690-Importzeilen vollständig in
+der Ergebnisakte protokolliert. „Import“ bedeutet weiterhin ausdrücklich den
+Bilddialog-Grenzbefund ohne native Gloss-Maskenkopplung. Es wurde weder
+**Preview** noch **Print** ausgelöst; die physischen Aussagen bleiben offen.
 
 I-08 wurde am 2026-09-03 ergänzt: Die 16-Bit-HEIGHT-Datei wurde über den
 nativen `Customize Texture`-Pfad dem COLOR-Objekt zugewiesen. Der Crop blieb
@@ -139,7 +141,8 @@ Bestandteil des bestätigten BgRemover-PNG-Workflows. Die Zeilen bleiben zur
 Transparenz erhalten und werden nur bei einer späteren Produktentscheidung für
 native `.empf`-Projekte reaktiviert.
 
-Die bis dahin noch offenen Pflichtzeilen wurden am 2026-09-03 abgeschlossen.
+Die bis dahin noch offenen HEIGHT-/mm-DPI-Pflichtzeilen wurden am 2026-09-03
+abgeschlossen.
 I-02 und I-03 akzeptierten 16- und 8-Bit-HEIGHT nativ; I-04 skalierte die
 pixelhalbierte, aber seitenverhältnisgleiche HEIGHT-Datei auf die unveränderte
 COLOR-Fläche. Die invertierte 16-Bit-Gegenprobe kehrte die Neigungsrichtung der
@@ -150,13 +153,20 @@ abgelehnt und ersetzte die bestehende HEIGHT-Zuweisung nicht. Alle Ergebnisse
 stehen im Importprotokoll. Es wurde weiterhin weder **Preview** noch **Print**
 ausgelöst; der Budgetstand bleibt **0/35**.
 
+Für G-04b/c wurden am 2026-09-03 anschließend auch die tatsächlichen
+`export_gloss_zero/full/gloss_mask.png`-Writer-Assets importiert. Studio zeigte
+beide ohne Warnung als sichtbare schwarze beziehungsweise weiße
+`gloss_mask`-Ebene, jeweils „Flat“ und 90,31×90,31 mm. G-04a bleibt mangels
+Gloss-Datei nicht anwendbar. Weder **Preview** noch **Print** wurde ausgelöst;
+der Budgetstand bleibt **0/35**.
+
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 
-- [ ] Alle 27 verpflichtenden Zeilen aus Phase 1 abgeschlossen; I-09 Legacy/
+- [x] Alle 27 verpflichtenden Zeilen aus Phase 1 abgeschlossen; I-09 Legacy/
       aktuell sind gemäß Scope-Entscheid vom 2026-09-03 nicht anwendbar;
-      G-04b/c bleiben bis zum Import der tatsächlichen Writer-Assets offen.
-- [ ] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
-      protokolliert, nicht nur bei „Ja" übersprungen; G-04b/c fehlen noch.
+      G-04b/c wurden mit den tatsächlichen Writer-Assets abgeschlossen.
+- [x] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
+      protokolliert, nicht nur bei „Ja" übersprungen.
 - [x] Budget-Startstand notiert (**0 von 35**, 2026-09-03; sonst der
       aus Abschnitt 1 übertragene Vortagesstand).
 
@@ -172,8 +182,10 @@ fail-closed abgelehnt; I-12 ist damit ein abgeschlossener Import-Negativtest
 ohne druckbares Objekt und ohne Materialplatz. Der abgelehnte 2:1-Fall besitzt
 daher keine physische H-03-Messung. I-02 (256×256-HEIGHT-Referenz) und I-04
 (128×128-HEIGHT bei gleicher Seitenrelation) werden bei identischen Layout-
-und Druckparametern als getrennte Pixelgrößen-/Filterprüfung verglichen; ihr
-Ergebnis darf nicht dem abweichenden Seitenverhältnis zugerechnet werden.
+und Druckparametern als kombinierter Pixelgrößen-/Resampling-End-to-End-Test
+verglichen. Da I-04 bereits im Fixture-Generator per LANCZOS verkleinert und
+gerundet wird, darf das Ergebnis weder als isolierte Studio-Filterwirkung noch
+dem abweichenden Seitenverhältnis zugerechnet werden.
 
 **Zusätzlicher #690-Gloss-Preflight:** Ein importiertes „Flat“-Graustufenbild
 ist keine Gloss-Zuweisung. Vor jeder Gloss-Zelle muss der in
@@ -195,7 +207,7 @@ Budgetplatz blockiert.
 | G-01 | NikolayDA, 2026-09-02; Governance §4 | 25 | nativer Gloss-/Spot-UV-Pfad | freigegeben; `Gloss Varnish`-Pfad belegt, Laufparameter offen |
 | G-02 | NikolayDA, 2026-09-02; Governance §4 | 26–29 (normal 1/2, invertiert 1/2) | nativer Gloss-/Spot-UV-Pfad | freigegeben; `Gloss Varnish`-Pfad belegt, Polarität/Laufparameter offen |
 | G-03 | NikolayDA, 2026-09-02; Governance §4 | 30 | nativer Gloss-/Spot-UV-Pfad | freigegeben; `Gloss Varnish`-Pfad belegt, Laufparameter offen |
-| G-04a/b/c | NikolayDA, 2026-09-02; Governance §4 | 31 | Produktionswriter-Assets importieren; nativer Gloss-/Spot-UV-Pfad | freigegeben; nativer Pfad belegt, konkrete Paketassets/Laufparameter offen |
+| G-04a/b/c | NikolayDA, 2026-09-02; Governance §4 | 31 | Produktionswriter-Assets importieren; nativer Gloss-/Spot-UV-Pfad | freigegeben; tatsächliche Null-/Voll-Writer-Assets im Bildimport belegt, nativer Gloss-/Spot-UV-Pfad und Laufparameter offen |
 | G-05 | NikolayDA, 2026-09-02; Governance §4 | 32 | feste Dimensions-/Registrierungsregel | freigegeben; Dimensions-/Registrierungsregel offen |
 | G-06 | NikolayDA, 2026-09-02; Governance §4 | 33 | nativer Gloss-/Spot-UV-Pfad; Basispass fixiert | freigegeben; nativer Pfad belegt, Basispass/Registrierung offen |
 | G-07 | NikolayDA, 2026-09-02; Governance §4 | 34 | native HEIGHT-/Texture- und Gloss-Zuweisung; Reliefwerte fixiert | freigegeben; beide nativen Pfade belegt, Reliefwerte/Registrierung offen |

@@ -51,7 +51,8 @@ neu erzeugt werden.
 | Fehlend/Nullfläche/konstant/Dimensionsabweichung | I-01, `height_zero_16bit.png`, `height_mean_16bit.png`, I-04/I-12 | COLOR allein akzeptiert; Null, konstante Mitte und Maximum nativ akzeptiert; halbe Pixelkante bei gleichem Verhältnis auf volle Fläche abgebildet; abweichendes Seitenverhältnis ausdrücklich abgelehnt | | Importvertrag belegt; physische Auswirkung nur für akzeptierte Varianten offen, I-12 ist import-only |
 | Alpha/Coverage bei nicht-null HEIGHT | I-13, `color_alpha_coverage.png` + `height_mean_16bit.png` | HEIGHT im selben COLOR-Objekt nativ zugewiesen; `3D`-Vorschau mit drei weiterhin sichtbaren Alpha-/Farbfeldern | | Importkopplung belegt; physische Coverage/Underbase offen |
 | Crop-/Registrierungstreue | I-08, `color_height_reference.png` + `height_registration_16bit.png` mit pixelgleichen X/Y-Landmarken | | | offen |
-| Filterung/Glättung/Normalisierung | I-02/I-04 als 256×256-/128×128-Vergleich bei gleicher Seitenrelation; `height_impulse_edge_*`, Keile | | | offen |
+| Pixelmaß/Resampling (End-to-End) | I-02/I-04 als 256×256-/128×128-Vergleich bei gleicher Seitenrelation | I-04 wurde bereits im Fixture-Generator über float32, LANCZOS, `rint` und Clamp verkleinert | | kombinierter physischer End-to-End-Effekt offen; keine isolierte Studio-Filteraussage |
+| Filterung/Glättung/Normalisierung | kontrollierte `height_impulse_edge_*`, Keile und Auflösungsvarianten ohne vorweggenommenes Resampling | | | offen |
 | Reproduzierbarkeit | zweiter unabhängiger Lauf der Kernaussagen | | | offen |
 
 ### Importbeobachtungen vom 2. und 3. September 2026
@@ -67,7 +68,7 @@ Abnahmekriterien bis zur reproduzierbaren Ablage und Druckmessung offen.
 | --- | --- | --- | --- |
 | I-02 | `color_height_reference.png` + `height_wedge_16bit.png` | Beide Dateien wurden ohne sichtbare Importwarnung akzeptiert. COLOR und HEIGHT besitzen 256×256 Pixel; Studio zeigte für COLOR 90,31×90,31 mm. `Customize Texture` erzeugte eine sichtbare 3D-Vorschau. | Importbeobachtung; akzeptierter 16-Bit-Träger und dimensionsgleiche Kopplung. Dieses Paar allein belegt weder physische Monotonie noch Bittiefennutzung oder mm-Höhe; die editorseitige Richtung wird durch die I-03-Gegenprobe abgesichert. Dieses Paar wird nicht mehr für I-08 verwendet. |
 | I-03 | `color_height_reference.png` + `height_wedge_8bit.png`, `height_wedge_16bit.png` und `height_wedge_inverted_16bit.png` | Beide Bittiefen wurden nativ ohne Warnung akzeptiert und zeigten bei identischem `Color Raised`-/2,50-mm-Aufbau eine vergleichbare Keilvorschau. Beim direkten Wechsel vom Normalkeil 0→65535 links→rechts zur invertierten Gegenprobe 65535→0 kehrte sich die 3D-Neigungsrichtung sichtbar um. | Importbeobachtung: Trägerakzeptanz und editorseitige Fixture-Polarität belegt; die Ausnutzung zusätzlicher 16-Bit-Stufen sowie physische Monotonie bleiben Druckmessung. |
-| I-04 | `color_height_reference.png` + `height_wedge_16bit_half.png` | Die 128×128-HEIGHT-Datei mit gleichem 1:1-Seitenverhältnis wurde ohne Warnung auf dem 256×256-COLOR-Objekt akzeptiert. Das Objekt blieb 90,31×90,31 mm; die Höhenvorschau belegte die volle Fläche. | Importbeobachtung: absolute Pixelgleichheit ist für diesen Pfad nicht erforderlich, das Seitenverhältnis dagegen relevant. Filterung/Interpolation und Druckwirkung bleiben offen. |
+| I-04 | `color_height_reference.png` + `height_wedge_16bit_half.png` | Die 128×128-HEIGHT-Datei mit gleichem 1:1-Seitenverhältnis wurde ohne Warnung auf dem 256×256-COLOR-Objekt akzeptiert. Das Objekt blieb 90,31×90,31 mm; die Höhenvorschau belegte die volle Fläche. | Importbeobachtung: absolute Pixelgleichheit ist für diesen Pfad nicht erforderlich, das Seitenverhältnis dagegen relevant. Die kombinierte Pixelgrößen-/Resampling-Druckwirkung bleibt offen. Weil die Datei bereits im Fixture-Generator per LANCZOS verkleinert und gerundet wurde, ist keine isolierte Studio-Filteraussage möglich. |
 | I-07 | `color_height_reference.png` + `height_max_16bit.png` beziehungsweise `height_zero_16bit.png` | Vollweiß wurde ohne Warnung als gleichmäßiges Plateau dargestellt; die anschließend nativ geladene Null-Gegenprobe ebenfalls ohne Warnung als ebene Grundfläche. `Color Raised` und 2,50 mm blieben unverändert. | Importbeobachtung: beide konstanten Grenzträger akzeptiert; tatsächliche Null-/Maximalhöhe, Sättigung und Clipping bleiben offen. |
 | I-11 | `color_height_reference.png` + `height_steps_16bit.png` | Die 16-Bit-Treppenkarte wurde ohne Warnung akzeptiert; acht diskrete Plateaus waren in der 3D-Vorschau erkennbar. | Importbeobachtung: Stufentrennung im Editor belegt; Digitalwert→mm-Kennlinie und Reproduzierbarkeit bleiben Druckmessung. |
 | I-12 | `color_height_reference.png` + `height_wedge_16bit_aspect.png` | Studio zeigte exakt `Depth image ratio does not match the original image`. Die 256×128-HEIGHT-Datei wurde für das 256×256-COLOR-Objekt nicht übernommen; die vorherige Treppen-HEIGHT-Zuweisung und Objektgeometrie blieben unverändert. | Importbeobachtung: abweichende Seitenrelation wird fail-closed abgelehnt; keine stille Skalierung. |
@@ -79,9 +80,12 @@ HEIGHT-Datei nicht übernimmt, existiert kein I-12-Objekt für Vorschau oder
 Druck. Die Zelle hat deshalb keine physische Messzeile; für den abgelehnten
 2:1-Seitenverhältnis-Fall ist eine Druckmessung nicht anwendbar. Die
 akzeptierten I-02- und I-04-Objekte bleiben bei identischer Layoutgröße,
-Texturhöhe und Druckeinstellung als separate Pixelgrößen-/Filterprüfung
-erhalten. Ihre Filter-/Interpolationsmessung bei gleicher 1:1-Seitenrelation
-darf nicht als physische Evidenz für I-12 gewertet werden.
+Texturhöhe und Druckeinstellung als separater kombinierter Pixelgrößen-/
+Resampling-End-to-End-Vergleich erhalten. I-04 wurde jedoch bereits im
+Fixture-Generator über float32, LANCZOS, `rint` und Clamp verkleinert. Der
+Druckvergleich darf deshalb weder als isolierte Studio-Filtermessung noch als
+physische Evidenz für I-12 gewertet werden. Die isolierte Studio-Filterung
+bleibt unter kontrollierten Kanten-/Impuls-Fixtures offen.
 
 ## 4. Messschema für HEIGHT → mm
 

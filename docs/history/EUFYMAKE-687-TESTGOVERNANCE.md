@@ -23,7 +23,11 @@ gesetzten Policy, jetzt mit expliziter Freigabe (Abschnitt 4).
   I-10 invertiert, I-11 (Treppenkeil, H-02) und I-13 (Alpha/Coverage bei
   nicht-null HEIGHT) – **12 Varianten**. I-02 (256×256) und I-04
   (128×128 bei gleicher Seitenrelation) bilden dabei das druckbare
-  Pixelgrößen-/Filterpaar. I-12 bleibt als abgeschlossener H-03-
+  kombinierte Pixelgrößen-/Resampling-End-to-End-Paar. I-04 wurde bereits bei
+  der Fixture-Erzeugung über den HEIGHT-Pfad mit float32-Zwischenpräzision,
+  LANCZOS sowie `rint` und Clamp verkleinert; der spätere Vergleich kann die
+  Studio-Filterung daher nicht isolieren. Diese bleibt kontrollierten
+  Kanten-/Impuls-Fixtures vorbehalten. I-12 bleibt als abgeschlossener H-03-
   Import-Negativtest erhalten, ist nach der ausdrücklichen Ablehnung durch
   Studio aber **import-only** und besitzt keine druckbare Variante. Das
   I-02/I-04-Paar liefert keine Evidenz für den abgelehnten 2:1-Fall. I-08
@@ -170,9 +174,12 @@ Aktualisiert: 2026-09-03 – I-12 nach der expliziten Studio-Ablehnung als
   abgeschlossener Import-Negativtest und nicht druckbare Zelle eingestuft.
   Die physische Stammvariantenmatrix enthält dadurch 12 statt 13 Zeilen;
   I-12 besitzt keine physische Messzeile. I-02 (256×256) und I-04
-  (128×128 bei gleicher Seitenrelation) bleiben als getrenntes druckbares
-  Pixelgrößen-/Filterpaar erhalten und dürfen nicht als physische Evidenz für
-  den abgelehnten 2:1-Fall gewertet werden. Das harte Limit von 35 bleibt
+  (128×128 bei gleicher Seitenrelation) bleiben als getrennter druckbarer,
+  kombinierter Pixelgrößen-/Resampling-End-to-End-Vergleich erhalten. Weil
+  I-04 bereits im Fixture-Generator per LANCZOS verkleinert und gerundet wird,
+  darf das Ergebnis weder als isolierte Studio-Filterwirkung noch als
+  physische Evidenz für den abgelehnten 2:1-Fall gewertet werden. Das harte
+  Limit von 35 bleibt
   bestehen, der ausführbare und freigegebene Plan umfasst jedoch höchstens
   12 Erstläufe + 11 Wiederholungen + 11 Gloss-Läufe = 34 Drucke. Budgetplatz
   24 bleibt frei und darf ohne neue Owner-Freigabe nicht umgewidmet werden;
