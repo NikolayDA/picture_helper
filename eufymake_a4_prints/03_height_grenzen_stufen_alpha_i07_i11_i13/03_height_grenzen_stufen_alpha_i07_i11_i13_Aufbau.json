@@ -8,11 +8,14 @@
     "I-13 Lauf 1"
   ],
   "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": "nicht-weiß (Druck-Checkliste §0: Deckung und Weiß-Unterlage bleiben auf weißem Material unsichtbar); dasselbe in Protokoll §3.0 eingetragene Substrat für Karton 03 (I-13) und Karton 11 (G-06)",
   "carrier": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13_A4_Beschriftung.png",
   "carrier_sha256": "357f4ed9300e3a36e7849c9383537ade23d0b2034925c749d4f703514634feb7",
   "preview": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13_NUR_VORSCHAU.png",
   "notes": [
-    "I-07 bleibt eine Budgetvariante mit zwei Messfeldern (Null und Maximum)."
+    "I-07 bleibt eine Budgetvariante mit zwei Messfeldern (Null und Maximum).",
+    "Wegen I-13 wird der ganze Karton auf nicht-weißem Substrat gedruckt (siehe substrate)."
   ],
   "objects": [
     {
@@ -38,6 +41,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -63,6 +67,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -88,6 +93,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -113,6 +119,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     }
   ],

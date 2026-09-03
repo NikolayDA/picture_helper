@@ -7,6 +7,8 @@
     "I-08 nach Crop Lauf 1"
   ],
   "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": null,
   "carrier": "eufymake_a4_prints/04_registrierung_crop_i08/04_registrierung_crop_i08_A4_Beschriftung.png",
   "carrier_sha256": "b88c38553a90ccd8e0c790b8c706330a89f33a1f968f283d686a984c5d266b15",
   "preview": "eufymake_a4_prints/04_registrierung_crop_i08/04_registrierung_crop_i08_NUR_VORSCHAU.png",
@@ -37,6 +39,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -62,6 +65,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -87,6 +91,12 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": "rechte Bildhälfte; Studio-Crop, nicht extern vorbeschneiden",
+      "crop_fraction": [
+        0.5,
+        0.0,
+        1.0,
+        1.0
+      ],
       "notes": null
     },
     {
@@ -112,6 +122,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     }
   ],

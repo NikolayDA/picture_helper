@@ -7,6 +7,8 @@
     "I-04 Lauf 1"
   ],
   "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": null,
   "carrier": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04_A4_Beschriftung.png",
   "carrier_sha256": "d5b9aae861a8c10da4504959959da478b05db41b95abcc50385858888afbc344",
   "preview": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04_NUR_VORSCHAU.png",
@@ -37,6 +39,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -62,6 +65,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     }
   ],

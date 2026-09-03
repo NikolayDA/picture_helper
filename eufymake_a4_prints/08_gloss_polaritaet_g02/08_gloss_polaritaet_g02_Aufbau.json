@@ -7,6 +7,8 @@
     "G-02 invertiert Lauf 1+2"
   ],
   "physical_a4_copies": 2,
+  "print_blocked": null,
+  "substrate": null,
   "carrier": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02_A4_Beschriftung.png",
   "carrier_sha256": "b37fe04027e1a4e6cdd69566aeddd072899039618011f7d789b92bc76a665feb",
   "preview": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02_NUR_VORSCHAU.png",
@@ -37,6 +39,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -62,6 +65,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     }
   ],

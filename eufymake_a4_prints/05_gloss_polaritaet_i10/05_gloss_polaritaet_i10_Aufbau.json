@@ -7,10 +7,14 @@
     "I-10 invertiert Lauf 1"
   ],
   "physical_a4_copies": 1,
+  "print_blocked": "Owner-Entscheidung I-10 gegen G-02 steht aus (TESTGOVERNANCE §5.3, Druck-Checkliste §0): Option A streicht I-10 physisch; Option B verlangt den Spot-UV-Zweipass (Pfad 2) statt des hier gebauten nativen Gloss-Varnish-Pfads. Nicht drucken, bis der Freigabe-Vermerk in Governance §4 vorliegt.",
+  "substrate": null,
   "carrier": "eufymake_a4_prints/05_gloss_polaritaet_i10/05_gloss_polaritaet_i10_A4_Beschriftung.png",
   "carrier_sha256": "98433d9b75ba2a39ccd2589698f1ebb28ca24dff682d77d2592e949cc41431a1",
   "preview": "eufymake_a4_prints/05_gloss_polaritaet_i10/05_gloss_polaritaet_i10_NUR_VORSCHAU.png",
-  "notes": [],
+  "notes": [
+    "Gesperrt: Projekt 05 nutzt den nativen Gloss-Varnish-Pfad; unter Option B wäre I-10 dem Zweipass zuzuordnen und das Projekt neu aufzubauen."
+  ],
   "objects": [
     {
       "label": "I-10 · normal",
@@ -35,6 +39,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -60,6 +65,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     }
   ],

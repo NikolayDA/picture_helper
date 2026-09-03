@@ -6,6 +6,8 @@
     "G-06"
   ],
   "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": "nicht-weiß (Druck-Checkliste §0: Deckung und Weiß-Unterlage bleiben auf weißem Material unsichtbar); dasselbe in Protokoll §3.0 eingetragene Substrat für Karton 03 (I-13) und Karton 11 (G-06)",
   "carrier": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06_A4_Beschriftung.png",
   "carrier_sha256": "180c0690c9bc1563eda8c0026d8540e4e3c445895cb5b3c3eb4120311da61303",
   "preview": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06_NUR_VORSCHAU.png",
@@ -36,6 +38,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -61,6 +64,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     }
   ],

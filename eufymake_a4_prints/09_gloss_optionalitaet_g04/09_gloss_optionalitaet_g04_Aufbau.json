@@ -6,6 +6,8 @@
     "G-04a/b/c"
   ],
   "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": null,
   "carrier": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04_A4_Beschriftung.png",
   "carrier_sha256": "5f9031509a6df8fb15bf53c14783630249100810f5b651e97fdb6af736bb4fa3",
   "preview": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04_NUR_VORSCHAU.png",
@@ -36,6 +38,7 @@
       },
       "ink_mode": "Flat / Standard COLOR",
       "crop": null,
+      "crop_fraction": null,
       "notes": "Kein GLOSS-Objekt über diesem Feld."
     },
     {
@@ -61,6 +64,7 @@
       },
       "ink_mode": "Flat / Standard COLOR",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -86,6 +90,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -111,6 +116,7 @@
       },
       "ink_mode": "Flat / Standard COLOR",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -136,6 +142,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     }
   ],

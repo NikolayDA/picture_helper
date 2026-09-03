@@ -8,6 +8,8 @@
     "I-14 128 px Lauf 1"
   ],
   "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": null,
   "carrier": "eufymake_a4_prints/02_height_bittiefe_filter_i03_i14/02_height_bittiefe_filter_i03_i14_A4_Beschriftung.png",
   "carrier_sha256": "37f8954b0bf32ceeb471d303f3e75c5f2b376637bebf87f0883ff7022f8830b8",
   "preview": "eufymake_a4_prints/02_height_bittiefe_filter_i03_i14/02_height_bittiefe_filter_i03_i14_NUR_VORSCHAU.png",
@@ -38,6 +40,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -63,6 +66,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -88,6 +92,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     }
   ],

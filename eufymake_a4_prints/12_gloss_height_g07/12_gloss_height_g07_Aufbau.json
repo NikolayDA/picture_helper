@@ -6,6 +6,8 @@
     "G-07"
   ],
   "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": null,
   "carrier": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07_A4_Beschriftung.png",
   "carrier_sha256": "79a92b197b64da8844b08d891f1ede42597586264f9098600a573da5580cfafa",
   "preview": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07_NUR_VORSCHAU.png",
@@ -36,6 +38,7 @@
       },
       "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -61,6 +64,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     }
   ],

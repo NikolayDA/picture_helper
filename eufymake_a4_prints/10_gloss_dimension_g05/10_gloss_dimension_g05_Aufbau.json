@@ -6,6 +6,8 @@
     "G-05"
   ],
   "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": null,
   "carrier": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05_A4_Beschriftung.png",
   "carrier_sha256": "07c0c8009c74649f3482520c1a0f31a1e596b58a6113d900e12a949cd3a2f201",
   "preview": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05_NUR_VORSCHAU.png",
@@ -36,6 +38,7 @@
       },
       "ink_mode": "Flat / Standard COLOR",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -61,6 +64,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": "Oberkante und linke Kante deckungsgleich mit COLOR; keine Skalierung."
     }
   ],

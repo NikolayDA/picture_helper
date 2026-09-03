@@ -522,6 +522,22 @@
       "sample_path": ".github/agents/README.md",
       "reason": "Agentenprofile steuern interaktive Entwicklungshelfer, nicht den reproduzierbaren Build- oder Release-Pfad.",
       "evidence": ["Kein Release-Workflow lädt .github/agents als Konfiguration"]
+    },
+    {
+      "id": "gitignore",
+      "kind": "exact",
+      "path": ".gitignore",
+      "sample_path": ".gitignore",
+      "reason": "Arbeitsbaum-Hygiene für lokale Sicherungen und Laufzeitordner; setuptools bestimmt den Paketinhalt über [tool.setuptools] und package-data, und kein Build-, Bundle-, Release- oder Gate-Schritt liest .gitignore.",
+      "evidence": ["pyproject.toml:[tool.setuptools] packages = [bgremover] mit expliziter package-data, kein Git-basiertes Dateilisting", "Kein Skript unter scripts/ und kein Workflow unter .github/workflows/ liest .gitignore"]
+    },
+    {
+      "id": "eufymake-a4-print-preparation",
+      "kind": "prefix",
+      "path": "eufymake_a4_prints/",
+      "sample_path": "eufymake_a4_prints/layout_manifest.json",
+      "reason": "Vorbereitete A4-Druckprojekte, Beschriftungsträger, Vorschauen, Bindungsdatei und Manifeste der EufyMake-Hardwaretests (#681) sind Testmaterial für den Drucktag; weder Paket-, Bundle-, Release- noch Gate-Eingang.",
+      "evidence": ["pyproject.toml:[tool.setuptools] packages = [bgremover]; eufymake_a4_prints/ liegt außerhalb des Pakets", "Kein Packaging- oder Workflow-Schritt liest eufymake_a4_prints/", "tests/test_eufymake_a4_layouts.py prüft den Satz nur gegen sich selbst, projects.json und tests/fixtures/eufymake_hardware/"]
     }
   ],
   "candidate_relevant": [

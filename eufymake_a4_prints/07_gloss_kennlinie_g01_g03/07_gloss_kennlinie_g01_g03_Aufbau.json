@@ -7,6 +7,8 @@
     "G-03"
   ],
   "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": null,
   "carrier": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03_A4_Beschriftung.png",
   "carrier_sha256": "5e018f747e191146efab25cb4a818994c8bd5f4b964cc3a865ea1c37e5414aea",
   "preview": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03_NUR_VORSCHAU.png",
@@ -37,6 +39,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -62,6 +65,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -87,6 +91,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -112,6 +117,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     },
     {
@@ -137,6 +143,7 @@
       },
       "ink_mode": "Gloss Varnish × 1",
       "crop": null,
+      "crop_fraction": null,
       "notes": null
     }
   ],

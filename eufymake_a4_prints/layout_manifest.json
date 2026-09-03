@@ -1,24 +1,55 @@
 {
   "schema": 1,
+  "generated_by": "scripts/prepare_eufymake_a4_layouts.py",
   "purpose": "Vorbereitung der physischen EufyMake-A4-Testdrucke für #681",
   "a4_mm": {
     "width": 210.0,
     "height": 297.0
   },
-  "e1_flatbed_mm": {
+  "studio_flatbed_mm": {
     "width": 335.0,
-    "height": 420.0
+    "height": 420.0,
+    "meaning": "Arbeitsfläche „Standard Flatbed“ in eufyMake Studio 4.2.2; Bezugssystem aller e1_flatbed_geometry_mm-Werte und der .empf-Projekte",
+    "evidence": [
+      "docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md: Studio-Protokoll vom 2026-09-02/03 (101,60 mm zentriert auf X = 116,70 mm)",
+      "docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md: Importprotokoll I-05 (Standard Flatbed 335×420 mm)"
+    ]
+  },
+  "printable_area_mm": {
+    "width": 330.0,
+    "height": 420.0,
+    "source": "bgremover.eufymake_export.STANDARD_FLATBED_MM (Herstellerangabe, A10/A15 im Annahmeninventar)",
+    "note": "Die Lage der bedruckbaren Fläche innerhalb der Studio-Arbeitsfläche ist nicht belegt; der Unterschied von 5 mm in X bleibt offen und wird nicht weggerundet."
   },
   "a4_on_flatbed": {
     "rule": "zentriert, hochkant, Oberkante parallel zur Flatbed-Oberkante",
+    "coordinate_reference": "studio_flatbed_mm",
     "x": 62.5,
     "y": 61.5
   },
+  "sources": {
+    "fixtures_manifest": "tests/fixtures/eufymake_hardware/fixtures_manifest.json",
+    "fixtures_manifest_sha256": "7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a",
+    "projects": "eufymake_a4_prints/projects.json",
+    "carrier_font": "Arial Bold (macOS Supplemental, /System/Library/Fonts/Supplemental/Arial Bold.ttf)"
+  },
+  "binding_rule": "project_sha256 und carrier_sha256 jedes Layouts sind beim Erzeugen gegen projects.json und die Dateien geprüft. Träger werden nur byteidentisch oder bewusst mit --rebuild-carriers überschrieben; danach ist das Projekt in Studio neu aufzubauen und projects.json nachzuziehen.",
   "warnings": [
     "Vorschau-PNGs sind Platzierungshilfen und ersetzen KEINE nativen Fixture-Objekte.",
     "HEIGHT- oder GLOSS-Objekte nicht reduzieren.",
-    "Beim bloßen Vorbereiten oder Prüfen weder Preview noch Print auslösen."
+    "Beim bloßen Vorbereiten oder Prüfen weder Preview noch Print auslösen.",
+    "Layouts mit print_blocked werden bis zum Freigabe-Vermerk nicht gedruckt."
   ],
+  "project_format": {
+    "container": "encrypted eufyMake EMPF",
+    "canvas_version": "5.3.0",
+    "editor_compatibility_checked": "eufyMake Editor v1.20.0 / Studio 4.2.2",
+    "native_samples_opened_without_preview_or_print": [
+      4,
+      5,
+      6
+    ]
+  },
   "layouts": [
     {
       "number": 1,
@@ -29,6 +60,8 @@
         "I-04 Lauf 1"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": null,
       "carrier": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04_A4_Beschriftung.png",
       "carrier_sha256": "d5b9aae861a8c10da4504959959da478b05db41b95abcc50385858888afbc344",
       "preview": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04_NUR_VORSCHAU.png",
@@ -59,6 +92,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -84,6 +118,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -114,6 +149,8 @@
         "I-14 128 px Lauf 1"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": null,
       "carrier": "eufymake_a4_prints/02_height_bittiefe_filter_i03_i14/02_height_bittiefe_filter_i03_i14_A4_Beschriftung.png",
       "carrier_sha256": "37f8954b0bf32ceeb471d303f3e75c5f2b376637bebf87f0883ff7022f8830b8",
       "preview": "eufymake_a4_prints/02_height_bittiefe_filter_i03_i14/02_height_bittiefe_filter_i03_i14_NUR_VORSCHAU.png",
@@ -144,6 +181,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -169,6 +207,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -194,6 +233,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -228,11 +268,14 @@
         "I-13 Lauf 1"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": "nicht-weiß (Druck-Checkliste §0: Deckung und Weiß-Unterlage bleiben auf weißem Material unsichtbar); dasselbe in Protokoll §3.0 eingetragene Substrat für Karton 03 (I-13) und Karton 11 (G-06)",
       "carrier": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13_A4_Beschriftung.png",
       "carrier_sha256": "357f4ed9300e3a36e7849c9383537ade23d0b2034925c749d4f703514634feb7",
       "preview": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13_NUR_VORSCHAU.png",
       "notes": [
-        "I-07 bleibt eine Budgetvariante mit zwei Messfeldern (Null und Maximum)."
+        "I-07 bleibt eine Budgetvariante mit zwei Messfeldern (Null und Maximum).",
+        "Wegen I-13 wird der ganze Karton auf nicht-weißem Substrat gedruckt (siehe substrate)."
       ],
       "objects": [
         {
@@ -258,6 +301,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -283,6 +327,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -308,6 +353,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -333,6 +379,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -370,6 +417,8 @@
         "I-08 nach Crop Lauf 1"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": null,
       "carrier": "eufymake_a4_prints/04_registrierung_crop_i08/04_registrierung_crop_i08_A4_Beschriftung.png",
       "carrier_sha256": "b88c38553a90ccd8e0c790b8c706330a89f33a1f968f283d686a984c5d266b15",
       "preview": "eufymake_a4_prints/04_registrierung_crop_i08/04_registrierung_crop_i08_NUR_VORSCHAU.png",
@@ -400,6 +449,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -425,6 +475,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -450,6 +501,12 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": "rechte Bildhälfte; Studio-Crop, nicht extern vorbeschneiden",
+          "crop_fraction": [
+            0.5,
+            0.0,
+            1.0,
+            1.0
+          ],
           "notes": null
         },
         {
@@ -475,6 +532,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -512,10 +570,14 @@
         "I-10 invertiert Lauf 1"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": "Owner-Entscheidung I-10 gegen G-02 steht aus (TESTGOVERNANCE §5.3, Druck-Checkliste §0): Option A streicht I-10 physisch; Option B verlangt den Spot-UV-Zweipass (Pfad 2) statt des hier gebauten nativen Gloss-Varnish-Pfads. Nicht drucken, bis der Freigabe-Vermerk in Governance §4 vorliegt.",
+      "substrate": null,
       "carrier": "eufymake_a4_prints/05_gloss_polaritaet_i10/05_gloss_polaritaet_i10_A4_Beschriftung.png",
       "carrier_sha256": "98433d9b75ba2a39ccd2589698f1ebb28ca24dff682d77d2592e949cc41431a1",
       "preview": "eufymake_a4_prints/05_gloss_polaritaet_i10/05_gloss_polaritaet_i10_NUR_VORSCHAU.png",
-      "notes": [],
+      "notes": [
+        "Gesperrt: Projekt 05 nutzt den nativen Gloss-Varnish-Pfad; unter Option B wäre I-10 dem Zweipass zuzuordnen und das Projekt neu aufzubauen."
+      ],
       "objects": [
         {
           "label": "I-10 · normal",
@@ -540,6 +602,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -565,6 +628,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -593,6 +657,8 @@
         "I-05 konsistent Lauf 1"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": null,
       "carrier": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05_A4_Beschriftung.png",
       "carrier_sha256": "821839b19a2182c1fe28bcdabe0a5e57314e02e9aa8d38264b441e6410dbc76d",
       "preview": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05_NUR_VORSCHAU.png",
@@ -623,6 +689,7 @@
           },
           "ink_mode": "Flat / Standard COLOR",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -648,6 +715,8 @@
         "G-03"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": null,
       "carrier": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03_A4_Beschriftung.png",
       "carrier_sha256": "5e018f747e191146efab25cb4a818994c8bd5f4b964cc3a865ea1c37e5414aea",
       "preview": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03_NUR_VORSCHAU.png",
@@ -678,6 +747,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -703,6 +773,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -728,6 +799,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -753,6 +825,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -778,6 +851,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -819,6 +893,8 @@
         "G-02 invertiert Lauf 1+2"
       ],
       "physical_a4_copies": 2,
+      "print_blocked": null,
+      "substrate": null,
       "carrier": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02_A4_Beschriftung.png",
       "carrier_sha256": "b37fe04027e1a4e6cdd69566aeddd072899039618011f7d789b92bc76a665feb",
       "preview": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02_NUR_VORSCHAU.png",
@@ -849,6 +925,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -874,6 +951,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -902,6 +980,8 @@
         "G-04a/b/c"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": null,
       "carrier": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04_A4_Beschriftung.png",
       "carrier_sha256": "5f9031509a6df8fb15bf53c14783630249100810f5b651e97fdb6af736bb4fa3",
       "preview": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04_NUR_VORSCHAU.png",
@@ -932,6 +1012,7 @@
           },
           "ink_mode": "Flat / Standard COLOR",
           "crop": null,
+          "crop_fraction": null,
           "notes": "Kein GLOSS-Objekt über diesem Feld."
         },
         {
@@ -957,6 +1038,7 @@
           },
           "ink_mode": "Flat / Standard COLOR",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -982,6 +1064,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -1007,6 +1090,7 @@
           },
           "ink_mode": "Flat / Standard COLOR",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -1032,6 +1116,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -1072,6 +1157,8 @@
         "G-05"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": null,
       "carrier": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05_A4_Beschriftung.png",
       "carrier_sha256": "07c0c8009c74649f3482520c1a0f31a1e596b58a6113d900e12a949cd3a2f201",
       "preview": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05_NUR_VORSCHAU.png",
@@ -1102,6 +1189,7 @@
           },
           "ink_mode": "Flat / Standard COLOR",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -1127,6 +1215,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": "Oberkante und linke Kante deckungsgleich mit COLOR; keine Skalierung."
         }
       ],
@@ -1155,6 +1244,8 @@
         "G-06"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": "nicht-weiß (Druck-Checkliste §0: Deckung und Weiß-Unterlage bleiben auf weißem Material unsichtbar); dasselbe in Protokoll §3.0 eingetragene Substrat für Karton 03 (I-13) und Karton 11 (G-06)",
       "carrier": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06_A4_Beschriftung.png",
       "carrier_sha256": "180c0690c9bc1563eda8c0026d8540e4e3c445895cb5b3c3eb4120311da61303",
       "preview": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06_NUR_VORSCHAU.png",
@@ -1185,6 +1276,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -1210,6 +1302,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -1238,6 +1331,8 @@
         "G-07"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": null,
       "carrier": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07_A4_Beschriftung.png",
       "carrier_sha256": "79a92b197b64da8844b08d891f1ede42597586264f9098600a573da5580cfafa",
       "preview": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07_NUR_VORSCHAU.png",
@@ -1268,6 +1363,7 @@
           },
           "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -1293,6 +1389,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -1321,6 +1418,8 @@
         "G-08"
       ],
       "physical_a4_copies": 1,
+      "print_blocked": null,
+      "substrate": null,
       "carrier": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08_A4_Beschriftung.png",
       "carrier_sha256": "418a061972665ddc33d826f7e5246c864dc52f1199c0f07299293734335c535c",
       "preview": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08_NUR_VORSCHAU.png",
@@ -1351,6 +1450,7 @@
           },
           "ink_mode": "Flat / Standard COLOR",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -1376,6 +1476,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         },
         {
@@ -1401,6 +1502,7 @@
           },
           "ink_mode": "Gloss Varnish × 1",
           "crop": null,
+          "crop_fraction": null,
           "notes": null
         }
       ],
@@ -1425,15 +1527,5 @@
         }
       ]
     }
-  ],
-  "project_format": {
-    "container": "encrypted eufyMake EMPF",
-    "canvas_version": "5.3.0",
-    "editor_compatibility_checked": "eufyMake Editor v1.20.0 / Studio 4.2.2",
-    "native_samples_opened_without_preview_or_print": [
-      4,
-      5,
-      6
-    ]
-  }
+  ]
 }
