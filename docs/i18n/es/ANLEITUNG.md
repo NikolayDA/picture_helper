@@ -68,6 +68,9 @@ te acompaña durante la edición. Las funciones principales:
   optimizarlo.
 - **Vista previa 2D** – comprobar color, relieve, altura y gloss en
   pantalla.
+- **Vista previa de relieve 3D** – comprobar el mapa de altura como una
+  superficie 3D giratoria; solo visualización, sin modificar la imagen,
+  los datos de altura ni la exportación.
 - **Exportación a EufyMake Studio** – generar activos de importación
   para impresión UV.
 - **Historial** con deshacer/rehacer y salto a cualquier paso anterior
@@ -149,8 +152,9 @@ Muchas acciones también están disponibles desde la barra de menú:
 - **Ver** – *Ajustar a la vista* (⌘0), *Historial* (abre el mismo
   historial de cambios que antes el botón de la barra de
   herramientas), el submenú *Modo de vista previa* (consulta la
-  [sección 12](#12-paso-6--exportar)) y *Tema claro* para alternar el
-  esquema de color.
+  [sección 12](#12-paso-6--exportar)), *Mostrar relieve 3D* (consulta la
+  [sección 11](#11-paso-5--relieve-y-capas)) y *Tema claro* para alternar
+  el esquema de color.
 - **Proyecto** – *Nuevo proyecto*, *Abrir proyecto…*, *Guardar
   proyecto* / *…como…* (`.bgrproj`) y *Exportar assets para EufyMake
   Studio…* (consulta la [sección 11](#11-paso-5--relieve-y-capas) y la
@@ -526,7 +530,7 @@ hacerlo como PNG.
 
 La tarjeta "Cambiar tamaño" ofrece **Anchura × Altura en píxeles**
 directamente en el paso: introduce los valores y haz clic en
-**Aplicar**. Para la relación de aspecto vinculada, el método de
+**Aplicar tamaño**. Para la relación de aspecto vinculada, el método de
 remuestreo y las medidas físicas (mm/DPI), usa el diálogo completo de
 la [sección 10](#10-cambiar-tamaño-y-medidas-físicas).
 
@@ -825,7 +829,10 @@ gravedad:
 - **Errores** (⛔) bloquean la exportación hasta que se corrigen – p.
   ej. un motivo de color ausente o tamaños que no coinciden.
 - **Advertencias** (⚠️) deben confirmarse de forma deliberada – p. ej.
-  datos vacíos, uso HEIGHT abierto o la asignación gloss nativa en Studio.
+  datos vacíos, uso HEIGHT abierto, la asignación gloss nativa en Studio,
+  un motivo mayor que la bandeja plana estándar de eufyMake
+  (335 × 420 mm) o la pérdida de precisión al cuantizar alturas reales de
+  16 bits a un destino de 8 bits.
 
 `manifest.json` es procedencia interna con versiones de perfil/app,
 interpretación de canales, píxeles/mm y DPI X/Y; Studio 4.2.2 no lo interpreta
@@ -1035,8 +1042,10 @@ de registro a un correo de soporte.
 
 BgRemover se distribuye bajo la **GNU General Public License v3.0 o
 posterior** (`GPL-3.0-or-later`) – consulta [LICENSE](../../../LICENSE).
-Una lista completa de todas las bibliotecas utilizadas y sus licencias
-está en [RESOURCES.md](RESOURCES.md).
+Una vista general curada de los recursos utilizados y su finalidad está en
+[RESOURCES.md](RESOURCES.md); la lista completa y generada automáticamente
+de todas las bibliotecas con su evaluación de licencias está en
+[LICENSES.md](LICENSES.md).
 
 ---
 

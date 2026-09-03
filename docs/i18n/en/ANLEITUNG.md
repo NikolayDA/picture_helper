@@ -64,6 +64,9 @@ through the editing process. The key features:
 - **Height maps** – generate a height map from an image, edit it with sliders
   or directly with the brush, and optimise it.
 - **2D preview** – check colour, relief, height, and gloss on screen.
+- **3D relief preview** – check the height map as a rotatable 3D surface;
+  display only, without changing the image, the height data, or the
+  export.
 - **EufyMake Studio export** – generate import assets for UV printing.
 - **History** with undo/redo and jump to any earlier editing step.
 - **Save** as PNG, JPEG, WebP, or TIFF.
@@ -139,8 +142,9 @@ Many actions are also available from the menu bar:
   menu rather than the toolbar or card inspector.
 - **View** – *Fit to View* (⌘0), *History* (opens the same change history as
   the former toolbar button), the *Preview mode* submenu (see
-  [section 12](#12-step-6--export)), and *Light theme* to switch the colour
-  scheme.
+  [section 12](#12-step-6--export)), *Show 3D relief* (see
+  [section 11](#11-step-5--relief--layers)), and *Light theme* to switch
+  the colour scheme.
 - **Project** – *New project*, *Open project…*, *Save project* / *…as…*
   (`.bgrproj`), and *Export assets for EufyMake Studio…* (see
   [section 11](#11-step-5--relief--layers) and
@@ -478,7 +482,7 @@ The result is saved with transparent corners – best as PNG.
 ### Resize (pixels, directly in the step; expert mode only)
 
 The "Resize" card offers **width × height in pixels** directly in the step:
-enter values and click **Apply**. For the linked aspect ratio, the
+enter values and click **Apply size**. For the linked aspect ratio, the
 resampling method, and the physical dimensions (mm/DPI), use the full
 dialog from [section 10](#10-resize--physical-dimensions).
 
@@ -761,8 +765,10 @@ separately. A
 - **Errors** (⛔) block the export until they are fixed – e.g. a missing
   colour motif or mismatching sizes.
 - **Warnings** (⚠️) must be confirmed deliberately – e.g. empty height/gloss
-  data, open HEIGHT-carrier use, or the required native gloss assignment in
-  Studio.
+  data, open HEIGHT-carrier use, the required native gloss assignment in
+  Studio, a motif larger than the standard eufyMake flatbed
+  (335 × 420 mm), or the precision loss when real 16-bit heights are
+  quantised to an 8-bit target.
 
 `manifest.json` is internal provenance containing profile/app versions,
 channel interpretation, pixels/mm, and X/Y DPI; Studio 4.2.2 does not consume
@@ -958,8 +964,11 @@ to a support email.
 ## 19. License
 
 BgRemover is released under the **GNU General Public License v3.0 or later**
-(`GPL-3.0-or-later`) – see [LICENSE](../../../LICENSE). A complete list of
-all libraries used and their licences is in [RESOURCES.md](RESOURCES.md).
+(`GPL-3.0-or-later`) – see [LICENSE](../../../LICENSE). A curated overview
+of the resources used and their purpose is in
+[RESOURCES.md](RESOURCES.md); the complete, automatically generated list
+of all libraries and their licence assessment is in
+[LICENSES.md](LICENSES.md).
 
 ---
 

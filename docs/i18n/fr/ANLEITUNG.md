@@ -71,6 +71,9 @@ tout au long de l'édition. Les fonctionnalités principales :
   la modifier au curseur ou directement au pinceau, puis l'optimiser.
 - **Aperçu 2D** – vérifier la couleur, le relief, la hauteur et le gloss à
   l'écran.
+- **Aperçu du relief 3D** – vérifier la carte de hauteur sous forme de
+  surface 3D pivotante ; affichage seul, sans modifier l'image, les
+  données de hauteur ni l'export.
 - **Export EufyMake Studio** – générer des assets d'import pour l'impression
   UV.
 - **Historique** avec annuler/rétablir et saut vers n'importe quelle étape
@@ -152,8 +155,9 @@ De nombreuses actions sont aussi accessibles depuis la barre de menus :
 - **Affichage** – *Ajuster à la vue* (⌘0), *Historique* (ouvre le même
   historique de modifications que le bouton de la barre d'outils
   auparavant), le sous-menu *Mode d'aperçu* (voir la
-  [section 12](#12-étape-6--export)) ainsi que *Thème clair* pour basculer
-  le jeu de couleurs.
+  [section 12](#12-étape-6--export)), *Afficher le relief 3D* (voir la
+  [section 11](#11-étape-5--relief--calques)) ainsi que *Thème clair* pour
+  basculer le jeu de couleurs.
 - **Projet** – *Nouveau projet*, *Ouvrir un projet…*, *Enregistrer le
   projet* / *…sous…* (`.bgrproj`) ainsi que *Exporter des assets pour
   EufyMake Studio…* (voir la [section 11](#11-étape-5--relief--calques) et
@@ -529,7 +533,7 @@ PNG.
 
 La carte « Redimensionner » propose **largeur × hauteur en pixels**
 directement dans l'étape : saisissez les valeurs et cliquez sur
-**Appliquer**. Pour le rapport d'aspect lié, la méthode de
+**Appliquer la taille**. Pour le rapport d'aspect lié, la méthode de
 rééchantillonnage et les dimensions physiques (mm/DPI), utilisez la boîte
 de dialogue complète de la
 [section 10](#10-redimensionner-et-dimensions-physiques).
@@ -829,7 +833,10 @@ en continu et signale les constats par gravité :
 - **Erreurs** (⛔) bloquent l'export jusqu'à correction – p. ex. un motif
   couleur manquant ou des tailles non concordantes.
 - **Avertissements** (⚠️) doivent être confirmés délibérément – p. ex. des
-  données vides, l'usage HEIGHT ouvert ou l'affectation gloss native dans Studio.
+  données vides, l'usage HEIGHT ouvert, l'affectation gloss native dans
+  Studio, un motif dépassant le plateau standard eufyMake
+  (335 × 420 mm) ou la perte de précision lorsque de véritables hauteurs
+  16 bits sont quantifiées vers une cible 8 bits.
 
 `manifest.json` est une provenance interne avec versions profil/app,
 interprétation des canaux, pixels/mm et DPI X/Y ; Studio 4.2.2 ne le traite pas
@@ -1038,9 +1045,11 @@ e-mail d'assistance.
 ## 19. Licence
 
 BgRemover est distribué sous la **Licence Publique Générale GNU v3.0 ou
-ultérieure** (`GPL-3.0-or-later`) – consultez [LICENSE](../../../LICENSE). Une liste
-complète de toutes les bibliothèques utilisées et de leurs licences se
-trouve dans [RESOURCES.md](RESOURCES.md).
+ultérieure** (`GPL-3.0-or-later`) – consultez [LICENSE](../../../LICENSE).
+Un aperçu commenté des ressources utilisées et de leur usage se trouve
+dans [RESOURCES.md](RESOURCES.md) ; la liste complète, générée
+automatiquement, de toutes les bibliothèques avec l'évaluation de leurs
+licences se trouve dans [LICENSES.md](LICENSES.md).
 
 ---
 

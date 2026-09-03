@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 
+from bgremover.i18n import _TRANSLATIONS
 from tests._markdown_utils import FENCE_RE, local_target, without_fenced_code
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -28,6 +29,25 @@ README_3D_FEATURE_MARKERS = {
     "zh": "**🧊 3D 浮雕预览**",
 }
 README_3D_SCREENSHOT = "77_function_preview3d_adjusted.png"
+
+# Die 3D-Reliefvorschau muss auch in der Funktionsübersicht des Handbuchs
+# stehen (#968). Der Struktur-Paritätstest zählt nur Überschriften,
+# Codeblöcke und Tabellen – ein in einer Übersetzung vergessener Listenpunkt
+# bliebe ohne diesen Marker still.
+ANLEITUNG_3D_FEATURE_MARKERS = {
+    "de": "**3D-Reliefvorschau**",
+    "en": "**3D relief preview**",
+    "es": "**Vista previa de relieve 3D**",
+    "fr": "**Aperçu du relief 3D**",
+    "uk": "**3D-перегляд рельєфу**",
+    "zh": "**3D 浮雕预览**",
+}
+
+# Beschriftungen, die das Handbuch wörtlich aus der UI übernimmt (#966/#969).
+# Quelle ist die jeweilige Sprachtabelle in bgremover/i18n.py, nicht eine
+# freie Übersetzung – wird eine Beschriftung dort umbenannt, zieht das
+# Handbuch nach.
+QUOTED_UI_LABEL_KEYS = ("right_panel.shape.resize_apply", "menu.view.show_3d")
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s+\S", re.MULTILINE)
 _IMAGE_LINK_RE = re.compile(r"!\[[^\]]*]\(([^)]+)\)")
@@ -276,4 +296,37 @@ def test_i18n_docs_match_canonical_structure() -> None:
             assert actual == expected, (
                 f"{path.relative_to(ROOT)} structure differs from canonical {name}: "
                 f"headings/code blocks/tables = {actual}, expected {expected}"
+            )
+
+
+def _anleitung_paths() -> dict[str, Path]:
+    return {"de": ROOT / "ANLEITUNG.md"} | {
+        language: I18N_ROOT / language / "ANLEITUNG.md" for language in LANGUAGES
+    }
+
+
+def test_anleitung_lists_the_3d_relief_preview_as_a_feature() -> None:
+    """Abschnitt 1 muss die 3D-Reliefvorschau als eigenen Punkt führen (#968)."""
+
+    for language, path in _anleitung_paths().items():
+        text = without_fenced_code(_read(path))
+        assert ANLEITUNG_3D_FEATURE_MARKERS[language] in text, (
+            f"{path.relative_to(ROOT)} lists no 3D relief preview feature"
+        )
+
+
+def test_anleitung_quotes_ui_labels_verbatim() -> None:
+    """Zitierte Bedienelemente tragen den echten ``tr``-Wert (#966/#969).
+
+    Ohne diese Bindung driftet das Handbuch von der UI weg, sobald eine
+    Beschriftung in ``bgremover/i18n.py`` umbenannt wird – genau der Fall,
+    der zu #966 führte („Übernehmen" statt „Größe anwenden").
+    """
+
+    for language, path in _anleitung_paths().items():
+        text = without_fenced_code(_read(path))
+        for key in QUOTED_UI_LABEL_KEYS:
+            label = _TRANSLATIONS[language][key]
+            assert f"**{label}**" in text or f"*{label}*" in text, (
+                f"{path.relative_to(ROOT)} does not quote {key} as {label!r}"
             )
