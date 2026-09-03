@@ -11,7 +11,7 @@ Fixtures selbst kommen aus
 mit SHA-256 je Datei in `fixtures_manifest.json`. Die Testzellen I-01 bis I-10
 und ihre ursprüngliche Bedeutung stehen im
 [Annahmeninventar](EUFYMAKE-687-ANNAHMENINVENTAR.md), Abschnitt „Testmatrix"
-(V1) bzw. „Aktualisierte Testmatrix" (V2). **I-11 bis I-13 sind dort erst in
+(V1) bzw. „Aktualisierte Testmatrix" (V2). **I-11 bis I-14 sind dort erst in
 Nachträgen gelistet**: I-11 ergänzt die druckbare Treppenkeil-Zelle für H-02
 (Graustufe→mm-Kennlinie). I-12 wurde für H-03 (abweichendes
 Höhenkarten-Seitenverhältnis) ergänzt, ist nach der ausdrücklichen
@@ -24,7 +24,11 @@ Studio-Filterwirkung und liefert auch keine Evidenz für den abgelehnten
 2:1-Fall. Eine isolierte Filterprüfung bleibt kontrollierten Kanten-/Impuls-
 Fixtures vorbehalten.
 I-13 schließt die in #688 geforderte Alpha/Coverage-Kreuzung mit einer
-konstanten, nicht-null HEIGHT-Map.
+konstanten, nicht-null HEIGHT-Map. I-14 ergänzt den kontrollierten
+Filtervergleich: `height_impulse_edge_16bit.png` (256×256; zugleich
+I-03-16-Bit-Druckvariante) und
+`height_impulse_edge_direct_half_16bit.png` (128×128) werden direkt aus
+derselben normierten Formel erzeugt und nicht auseinander skaliert.
 
 Für den eigentlichen Testtag bündelt
 [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](EUFYMAKE-687-DRUCK-CHECKLISTE.md) die
@@ -58,6 +62,7 @@ Fixture-Erzeugung.
 | I-11 | Höhenkarte mit Treppenkeil (bekannte, diskrete Stufen) | Graustufe→mm-Kennlinie (H-02) | #688 |
 | I-12 | Höhenkarte mit abweichendem Seitenverhältnis (256×128 statt 256×256) | Seitenverhältnis (H-03) | #688 |
 | I-13 | RGBA mit 0/50/100 % Alpha + konstante nicht-null HEIGHT | Alpha/Coverage | #688 |
+| I-14 | direkte 256×256-/128×128-Kanten-/Impuls-Fixtures, identische normierte Geometrie | Filterung ohne vorgelagertes Fixture-Resampling | #688 |
 
 ---
 
@@ -70,7 +75,7 @@ Der reproduzierbare Standardaufruf am Zielrechner ist:
 ```bash
 python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
-  --expected-manifest-sha256 8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758 \
+  --expected-manifest-sha256 7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a \
   --output eufymake-pre-import-report.json
 ```
 
@@ -79,15 +84,15 @@ IHDR-Bittiefe/-Farbtyp, vollständige Chunkfolge, `pHYs` und Chunk-CRCs direkt
 aus den übertragenen Dateien. Der Pillow-Modus ist nur ein Diagnosefeld; die
 Formatentscheidung beruht auf IHDR. Der im Befehl fest vorgegebene
 Manifest-SHA bindet das kopierte Verzeichnis an den versionierten Sollsatz.
-Nur Exitcode 0, `"ok": true`, Manifest-Schema 4 und derselbe Soll-Hash erlauben
+Nur Exitcode 0, `"ok": true`, Manifest-Schema 5 und derselbe Soll-Hash erlauben
 den anschließenden Import; der Report wird mit den Nachweisen abgelegt.
 
-**Repository-Gesamtprüfung (2026-09-02, automatisiert, kein Studio-Zugriff):**
-Alle 41 im Repository committeten Einzel-Fixtures und alle sieben
+**Repository-Gesamtprüfung (2026-09-03, automatisiert, kein Studio-Zugriff):**
+Alle 42 im Repository committeten Einzel-Fixtures und alle sieben
 Exportpakete wurden direkt gegen `fixtures_manifest.json` geprüft – SHA-256
 der Datei, Bytegröße, PNG-Modus/
 IHDR-Bittiefe/-Farbtyp, Maße sowie eine vollständige Chunk-Liste (per
-struct-Parsing der PNG-Bytes, nicht nur über PIL). Ergebnis: **41/41
+struct-Parsing der PNG-Bytes, nicht nur über PIL). Ergebnis: **42/42
 Einzel-Fixtures und 7/7 Exportpakete stimmen mit dem Manifest überein**;
 keine PNG-Datei enthält
 Chunks außer `IHDR`/`IDAT`/`IEND` und – wo im Manifest dokumentiert –
@@ -129,6 +134,21 @@ RGB-Payload 40/80/220 drei Felder mit Alpha 0/128/255 und wird in I-13 mit der
 durchgehend nicht-null `height_mean_16bit.png` (digitaler Wert 32768)
 kombiniert. Die Generator-Tests prüfen Landmarks, Feldgrenzen, Alphawerte,
 identische Maße sowie konstante RGB- und HEIGHT-Werte bitgenau.
+
+**Ergänzung (#688-Filterkontrolle, I-03/I-14):** Für den physischen
+8-/16-Bit-Vergleich I-03 werden die pixelgleichen
+`height_impulse_edge_8bit.png` und `height_impulse_edge_16bit.png` verwendet.
+Die 16-Bit-Datei ist zugleich die 256×256-Referenz von I-14; nur die direkt
+erzeugte 128×128-Datei `height_impulse_edge_direct_half_16bit.png` kommt als
+zusätzliche physische Variante hinzu. Die normierte Kante liegt bei x=1/2,
+das Impulszentrum bei 1/4 und die Impulsbreite bei 1/64. Der Generator-Test
+belegt, dass eine 2×2-Expansion der 128×128-Werte exakt der Referenz entspricht
+und dass das neue Fixture gerade nicht dem LANCZOS-Resize der Referenz gleicht.
+Der gesamte Wertebereich ist bewusst auf 1/4…3/4 begrenzt: Eine automatische
+Vollbereichsnormalisierung verändert daher messbar Basis und Plateau. Das
+untere Bildviertel enthält 4096 feine 16-Bit-Sollstufen; die 8-Bit-Datei
+quantisiert dieselbe Fläche gröber. Kante und Impuls werden auf der mittleren
+Scanlinie y=1/2 ausgewertet, getrennt von dieser Kalibrierfläche.
 
 **Ergänzung (#689-Vorbereitung, I-05/I-06/I-08):**
 `mm_typisch_phys_xy.png` trägt getrennte X-/Y-Werte von ca. 300/150 dpi.
@@ -202,17 +222,17 @@ Dateinamen prüfen, nicht nur den Hash.
 | I-13 | `color_alpha_coverage.png` | `a9fb75773d24ab2df21fd27591d32f7717cba79be4e12a6bf5731094fe6efb34` | `a9fb75773d24ab2df21fd27591d32f7717cba79be4e12a6bf5731094fe6efb34` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Drei Felder Alpha 0/128/255; RGB-Payload in allen Feldern konstant 40/80/220 |
 | I-13 | `height_mean_16bit.png` | `5d32c766fc13ec624b4ad78c5628ceeea3669b0650649cda82de9400d5ee0706` | `5d32c766fc13ec624b4ad78c5628ceeea3669b0650649cda82de9400d5ee0706` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 256×256, konstanter digitaler Wert 32768 (> 0) unter allen drei Alpha-Feldern |
 
-**Zusätzliche Fixtures** (nicht in einer I-01…I-13-Zelle referenziert, aber
-Teil des Testdesigns aus #688/#689/#690 und hiermit vollständig
-mitverifiziert – bei Bedarf einer eigenen Testzelle zuordnen):
+**Weitere und rollenübergreifende Fixtures** (einschließlich der hier
+zugeordneten I-03-/I-14-Kontrollen; vollständig mitverifiziert):
 
 | Testzelle | Fixture-Datei | Erwarteter SHA-256 (aus Manifest) | Tatsächlicher SHA-256 | Rolle | PNG-Modus | Bittiefe | `pHYs` vorhanden/Wert | Sonstige relevante Chunks | Ergebnis (OK/Abweichung) | Anmerkung |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | zusätzlich | `height_zero_8bit.png` | `94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03` | `94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_min.png` |
 | zusätzlich | `height_zero_16bit.png` | `0632d82f3e9c363f50885749e58a3ff680c4f1bec2a744c4ad06b6ecebbef008` | `0632d82f3e9c363f50885749e58a3ff680c4f1bec2a744c4ad06b6ecebbef008` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | zusätzlich | `height_mean_8bit.png` | `0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9` | `0eebc165bb858dcd3da81133373152591fe476623a8160642282764a0b3b61b9` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| zusätzlich | `height_impulse_edge_8bit.png` | `461a9742e19d84f7e99c776297ad42f8c3858fa2147e5b6bba0ce1f5587d7418` | `461a9742e19d84f7e99c776297ad42f8c3858fa2147e5b6bba0ce1f5587d7418` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| zusätzlich | `height_impulse_edge_16bit.png` | `a89993f4da39b3a70865cc982657faa2407f29747d02fadcd1eb959b19c34125` | `a89993f4da39b3a70865cc982657faa2407f29747d02fadcd1eb959b19c34125` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| I-03 (8 Bit) | `height_impulse_edge_8bit.png` | `855e2b9ab64d3ccd86e0bfd51442d7a1fafcbc29846476e0f0c1727d23ee361b` | `855e2b9ab64d3ccd86e0bfd51442d7a1fafcbc29846476e0f0c1727d23ee361b` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | physische I-03-Variante; 1/4…3/4, Kalibrierfläche gröber quantisiert |
+| I-03 (16 Bit) / I-14 (Referenz) | `height_impulse_edge_16bit.png` | `29f59dd5b3ea40d8a95a67e8dfbaafe716f4402c2178fc45d25e8ec46c302c6e` | `29f59dd5b3ea40d8a95a67e8dfbaafe716f4402c2178fc45d25e8ec46c302c6e` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 256×256; 1/4…3/4 mit 4096 Sollstufen, direkt erzeugt und nur einmal physisch zu drucken |
+| I-14 (direkte 128×128-Kontrolle) | `height_impulse_edge_direct_half_16bit.png` | `969b33b181dd0bffa5c0444248d7f08d73e05c7451b2e2fc73dcd2d1bfef8a0d` | `969b33b181dd0bffa5c0444248d7f08d73e05c7451b2e2fc73dcd2d1bfef8a0d` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 1/4…3/4 mit denselben 4096 Sollstufen; direkt bei 128×128 erzeugt, kein Resize/keine Vorfilterung |
 | zusätzlich | `height_wedge_inverted_8bit.png` | `885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c` | `885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_wedge_inverted.png` |
 | zusätzlich | `height_wedge_inverted_16bit.png` | `7a1a9989196f74464f48d2496a65240d616d9c6c32662505b685435038142f9b` | `7a1a9989196f74464f48d2496a65240d616d9c6c32662505b685435038142f9b` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | zusätzlich | `mm_gross_no_phys.png` | `5e43da317812d3fca68ded78a6576237f10622a724449485429afeb6da6f8a92` | `5e43da317812d3fca68ded78a6576237f10622a724449485429afeb6da6f8a92` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
@@ -230,10 +250,11 @@ mitverifiziert – bei Bedarf einer eigenen Testzelle zuordnen):
 | zusätzlich | `gloss_dimensions_half_width.png` | `9553e045df957630098ad7e12bdfacef5dbd39a38fe74691de68d93b9c33f6b7` | `9553e045df957630098ad7e12bdfacef5dbd39a38fe74691de68d93b9c33f6b7` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 128×256 gegen 256×256-Referenz für G-05 |
 | zusätzlich | `gloss_checkerboard.png` | `b15cd8d2c922053b35d117f3d68d12ad4df828853a3ddc34abb44061a1d70f65` | `b15cd8d2c922053b35d117f3d68d12ad4df828853a3ddc34abb44061a1d70f65` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 
-**Ergebnis der Basisprüfung: 41/41 Einzel-Fixtures und 7/7 Exportpakete OK,
-0 Abweichungen** (36 Fixtures aus Schema 3 plus fünf isolierte #690-Fixtures;
-das frühere mm/DPI-Paket plus sechs Gloss-Szenariopakete). Die Zuordnung der
-älteren I-01…I-13-Zellen bleibt unverändert; G-01…G-08 verwenden die neuen
+**Ergebnis der Basisprüfung: 42/42 Einzel-Fixtures und 7/7 Exportpakete OK,
+0 Abweichungen** (36 Fixtures aus Schema 3 plus fünf isolierte #690-Fixtures
+plus ein I-14-Fixture; das frühere mm/DPI-Paket plus sechs Gloss-
+Szenariopakete). Die bisherigen I-01…I-13-Zuordnungen bleiben bis auf die
+präzisierte I-03-Druckvariante unverändert; G-01…G-08 verwenden die neuen
 Dateien und Pakete aus der #690-Ergebnisakte.
 Damit ist die im Repository committete Fixture-Menge nachweislich konsistent
 mit `fixtures_manifest.json`. Das ersetzt **nicht** die Prüfung am Zielrechner:
@@ -257,8 +278,8 @@ Dateivalidierungsprotokoll derselben Zeile.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | I-01 | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `mm_typisch_phys.png` sichtbar und zentriert, 101,60×101,60 mm | keine | Nein | Live-Sitzung, kein Screenshot-Artefakt | kanonischer COLOR-Einzelimport; Paket-`color_motif.png` siehe I-06; kein Druck |
 | I-02 | 2026-09-03 (Sitzung bis 01:06 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `color_height_reference.png` 90,31×90,31 mm; `height_wedge_16bit.png` nativ über `Customize Texture` zugewiesen; `3D` und Keilvorschau sichtbar | Craft Mode `Customize Texture`; Ink Mode `Color Raised`; Stärke 2,50 mm, nicht verändert | Nein | Live-Sitzung, kein Screenshot-Artefakt | E1 online; dimensionsgleiche 16-Bit-Zuweisung akzeptiert; kein Druck |
-| I-03 (8 Bit) | 2026-09-03 (Sitzung bis 01:06 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `height_wedge_8bit.png` nativ akzeptiert; `3D` und Keilvorschau sichtbar | wie I-02; 2,50 mm, nicht verändert | Nein | Live-Sitzung, kein Screenshot-Artefakt | bei identischem COLOR-Aufbau kein belastbarer visueller Unterschied zur 16-Bit-Vorschau; Präzisionsnutzung bleibt Druckfrage |
-| I-03 (16 Bit) | 2026-09-03 (Sitzung bis 01:27 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `height_wedge_16bit.png` und die Gegenprobe `height_wedge_inverted_16bit.png` nativ akzeptiert; der Normalkeil 0→65535 von links nach rechts und der invertierte Keil 65535→0 kehrten die Neigungsrichtung in der 3D-Vorschau sichtbar um | wie I-02; 2,50 mm, nicht verändert | Nein | Live-Sitzung, kein Screenshot-Artefakt | Studio akzeptiert beide Bittiefen und bildet die Fixture-Polarität editorseitig richtungstreu ab; physische Monotonie und Nutzung aller 65.536 Werte bleiben ohne Druck offen |
+| I-03 (8 Bit) | 2026-09-03 (endgültige Bytes bis 03:00 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | Keil und die begrenzte Druckvariante `height_impulse_edge_8bit.png` nativ akzeptiert; `3D`-Vorschau einschließlich unterer Kalibrierfläche sichtbar | wie I-02; 2,50 mm, nicht verändert | Nein | Live-Sitzung, kein Screenshot-Artefakt | pixelgleiches, gröber quantisiertes Gegenstück der I-03-16-Bit-/I-14-Referenz; Präzisionsnutzung bleibt Druckfrage |
+| I-03 (16 Bit) | 2026-09-03 (endgültige Bytes bis 03:00 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | Keil, invertierte Gegenprobe und die begrenzte Druckvariante `height_impulse_edge_16bit.png` nativ akzeptiert; Impuls/Kante und untere Kalibrierfläche waren in der 3D-Vorschau sichtbar | wie I-02; 2,50 mm, nicht verändert | Nein | Live-Sitzung, kein Screenshot-Artefakt | 4096 feine Sollstufen im unteren Viertel machen zusätzliche 16-Bit-Nutzung gegenüber der 8-Bit-Quantisierung prüfbar; physische Monotonie und Präzision bleiben ohne Druck offen |
 | I-04 | 2026-09-03 (Sitzung bis 01:06 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `height_wedge_16bit_half.png` (128×128) auf COLOR 256×256 nativ akzeptiert; Vorschau belegt die volle 90,31×90,31-mm-Objektfläche | HEIGHT-Inhalt an die unveränderte COLOR-Objektfläche angepasst; keine separate 45,16-mm-Ausdehnung angezeigt | Nein | Live-Sitzung, kein Screenshot-Artefakt | gleiche Seitenrelation bei halbierter Pixelkante wird nicht abgelehnt; kombinierte Pixelgrößen-/Resampling-Druckwirkung offen. I-04 wurde bereits im Fixture-Generator per LANCZOS verkleinert und gerundet, daher keine isolierte Studio-Filteraussage |
 | I-05 (konsistent) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | sichtbar, zentriert, 101,60×101,60 mm | keine | Nein | Live-Sitzung, kein Screenshot-Artefakt | E1 online; Standard Flatbed 335×420 mm; kein Druck |
 | I-05 (ohne `pHYs`) | 2026-09-02 (Uhrzeit nicht protokolliert) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | Motiv überschreitet Arbeitsfläche; automatische Verkleinerung angeboten | nach bestätigtem Beibehalten der Originalgröße sichtbar, 423,33×423,33 mm | keine; angebotene Verkleinerung abgelehnt | Nein | Live-Sitzung, kein Screenshot-Artefakt | 72-dpi-Fallback; kein Druck |
@@ -276,6 +297,8 @@ Dateivalidierungsprotokoll derselben Zeile.
 | I-11 | 2026-09-03 (Sitzung bis 01:06 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `height_steps_16bit.png` nativ akzeptiert; acht diskrete Plateaus in der 3D-Vorschau erkennbar | `Color Raised`, Stärke 2,50 mm, nicht verändert | Nein | Live-Sitzung, kein Screenshot-Artefakt | Editor trennt die Sollstufen visuell; Kennlinie und mm-Höhen bleiben Druckmessung |
 | I-12 | 2026-09-03 (Sitzung bis 01:06 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | `Depth image ratio does not match the original image` | `height_wedge_16bit_aspect.png` (256×128) wurde für COLOR 256×256 nicht übernommen; vorherige Treppen-HEIGHT-Vorschau blieb bestehen | keine; bestehende HEIGHT-Zuweisung blieb unverändert | Nein | Live-Sitzung, kein Screenshot-Artefakt | explizite Ablehnung bei abweichendem Seitenverhältnis; kein Preview/Print |
 | I-13 (Alpha/Coverage) | 2026-09-02/03 (native Kopplung bis 01:27 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | `color_alpha_coverage.png` 90,31×90,31 mm; `height_mean_16bit.png` im selben COLOR-Objekt nativ über `Customize Texture` zugewiesen; `3D` und gleichmäßig hohe Vorschau mit weiterhin sichtbaren Alpha-/Farbfeldern | COLOR/HEIGHT zu einem `3D`-Objekt gekoppelt; keine automatische Gloss-Kopplung | Nein | Live-Sitzung, kein Screenshot-Artefakt | Alpha×konstantes nicht-null HEIGHT ist im nativen Pfad vorgeprüft; Underbase, Deckung und physische Reliefhöhe bleiben ohne Druck offen |
+| I-14 (256×256-Referenz) | 2026-09-03 (endgültige Bytes bis 03:00 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | begrenzte `height_impulse_edge_16bit.png` nativ über `Customize Texture` akzeptiert; Kante, Impuls und Kalibrierfläche in der 3D-Vorschau sichtbar | Objekt W/H 90,31/90,31 mm, X/Y 122,34/164,84 mm; `Color Raised`, 2,50 mm | Nein | Live-Sitzung, kein Screenshot-Artefakt | zugleich I-03-16-Bit-Druckvariante; kein eigener zusätzlicher Druck für die Referenz |
+| I-14 (direkte 128×128-Kontrolle) | 2026-09-03 (endgültige Bytes bis 03:00 CEST) | Studio 4.2.2 / Editor 1.20.0 | nicht angezeigt | keine | begrenzte `height_impulse_edge_direct_half_16bit.png` ersetzte die Referenz nativ; Kante, Impuls und Kalibrierfläche in der 3D-Vorschau sichtbar | W/H und X/Y unverändert; `Color Raised`, 2,50 mm | Nein | Live-Sitzung, kein Screenshot-Artefakt | gleiche normierte Geometrie und 4096 Sollstufen, direkt erzeugt und nicht vorgefiltert; physische Filter-/Normalisierungswirkung offen |
 
 ### 2.1 mm/DPI-Detailwerte für #689
 
@@ -307,7 +330,7 @@ in der allgemeinen Importtabelle markiert.
 
 Live-Sitzung am 2026-09-02 mit Studio 4.2.2 / Editor 1.20.0; E1 online,
 Firmware nicht angezeigt. Der unmittelbar vorher erzeugte Inspectorreport
-bestätigte 41/41 Einzel-Fixtures und 7/7 Pakete. Es wurde weder **Preview**
+bestätigte 42/42 Einzel-Fixtures und 7/7 Pakete. Es wurde weder **Preview**
 noch **Print** ausgelöst.
 
 | Zelle | Importierte Dateien | Studio-Ergebnis | Warnung/Änderung | „Nichts passiert"? (EM-S03) | Belegte Grenze |
@@ -360,8 +383,8 @@ Materialverbrauch beachten – siehe
 | Testzelle | Datum | Druckeinstellung (Texturmodus/Ink-Mode/Bittiefe) | Position/Skalierung im Layout | Physischer Messwert (Breite × Höhe, ggf. Reliefhöhe, mm) | Messmittel | Geschätzte Messunsicherheit | Fotoreferenz | Wiederholungsmessung (2. Lauf) | Abweichung 1. vs. 2. Lauf | Anmerkung |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | I-02 | | | | | | | | | | |
-| I-03 (8 Bit) | | | | | | | | | | |
-| I-03 (16 Bit) | | | | | | | | | | |
+| I-03 (8 Bit, Impuls/Kante) | | | | | | | | | | |
+| I-03 (16 Bit, Impuls/Kante; I-14-Referenz) | | | | | | | | | | |
 | I-04 (halbierte Pixelkante; Referenz I-02) | | | | | | | | | | |
 | I-05 (konsistent) | | | | | | | | | | |
 | I-07 | | | | | | | | | | |
@@ -371,6 +394,7 @@ Materialverbrauch beachten – siehe
 | I-10 (invertiert) | | | | | | | | | | |
 | I-11 | | | | | | | | | | |
 | I-13 (Alpha/Coverage) | | | | | | | | | | |
+| I-14 (direkte 128×128-Kontrolle; Referenz I-03 16 Bit) | | | | | | | | | | |
 
 **Je Zeile eine eigene physische Variante:** I-08 und I-10 vergleichen selbst
 zwei Ausprägungen (vor/nach Crop bzw. normal/invertiert) – das sind zwei
@@ -378,7 +402,7 @@ eigenständig zu druckende und zu protokollierende Varianten, nicht zwei
 Aspekte eines einzigen Drucks. Die Spalte „Wiederholungsmessung (2. Lauf)"
 bezieht sich je Zeile ausschließlich auf einen zweiten, unabhängigen Druck
 **derselben** Variante – nicht auf die jeweils andere Variante. Zusammen mit
-den 12 Zeilen dieser Tabelle ergibt das die 12 druckbaren Varianten aus dem
+den 13 Zeilen dieser Tabelle ergibt das die 13 druckbaren Varianten aus dem
 Materialbudget in
 [`EUFYMAKE-687-TESTGOVERNANCE.md`](EUFYMAKE-687-TESTGOVERNANCE.md).
 
@@ -394,6 +418,18 @@ beiden Läufen identisch zu halten. Da I-04 schon im Fixture-Generator per
 LANCZOS verkleinert und gerundet wird, darf das Ergebnis nicht als isolierte
 Studio-Filterwirkung ausgewiesen werden. Dafür bleiben kontrollierte Kanten-/
 Impuls-Fixtures erforderlich.
+
+**I-14-Messung:** Referenz und Kontrolle mit identischer Layoutgröße,
+Position, `Customize Texture`, `Color Raised`, 2,50 mm, Material- und
+Qualitätseinstellung drucken. Für beide Varianten Kantenbreite 10–90 %,
+Impulsbreite als FWHM auf der Scanlinie y=1/2 sowie Peak-, Plateau- und
+Basishöhe mit Messunsicherheit protokollieren. Im unteren Viertel zusätzlich
+die Trennbarkeit der 4096 16-Bit-Sollstufen gegenüber der 8-Bit-Variante
+bewerten; eine Streckung des 1/4…3/4-Bereichs auf Minimum/Maximum ist als
+Normalisierung zu protokollieren. Die Studio-Vorschau getrennt von den physischen Messwerten
+bewerten. Eine Abweichung belegt ohne zugängliches Studio-Ausgaberaster nur den
+kombinierten Studio-/Druckpfad, nicht eine isolierte Studio-Filterfunktion;
+der I-12-Seitenverhältnisfall darf daraus ebenfalls nicht abgeleitet werden.
 
 **Wiederholungsmessung:** Mindestens die in #688/#689/#690 als Kernaussage
 markierten Zeilen (Nullpunkt/Grundfläche, monotoner Keil, mm/DPI-Referenz,

@@ -32,9 +32,10 @@ Quelldokumente.
 - [ ] Unabhängigen Pre-Import-Report am Zielrechner erzeugt:
       `python scripts/eufymake_fixture_inspector.py
       --expected-manifest-sha256
-      8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758
-      --output eufymake-pre-import-report.json`; Ergebnis `ok: true`, Schema 4
-      und Soll-Hash bestätigt, Report bei den übrigen Nachweisen abgelegt.
+      7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a
+      --output eufymake-pre-import-report.json`; Ergebnis `ok: true`, Schema 5,
+      42/42 Fixtures und 7/7 Pakete bestätigt; Report-SHA-256
+      `4c418ccceac01b43b3aee615d89574f590a342da88dd4ad9941522e026b3603b`.
 - [ ] Fixture-Ordner am Zielrechner frei von Fremddateien (macOS legt
       `.DS_Store` an, Finder-Kopien ggf. `._*`-Dateien): Der Inspector ist
       fail-closed und meldet jede unerwartete Datei als Fehler – vorher
@@ -111,21 +112,30 @@ abgleichen (**nicht** ungeprüft übernehmen).
 | 19 | I-11 | ☑ | ☑ |
 | 20 | I-12 | ☑ | ☑ |
 | 21 | I-13 (Alpha/Coverage) | ☑ | ☑ |
-| 22 | G-01 (Gloss min/mittel/max) | ☑ | ☑ |
-| 23 | G-02 (normal/invertiert) | ☑ | ☑ |
-| 24 | G-03 (Stufen + 64…192-Keil) | ☑ | ☑ |
-| 25 | G-04a/b/c (fehlend/Null/voll) | ☑ | ☑ |
-| 26 | G-05 (Gloss 128×256 gegen COLOR 256×256) | ☑ | ☑ |
-| 27 | G-06 (Alpha 0/128/255 × Gloss 128) | ☑ | ☑ |
-| 28 | G-07 (HEIGHT 0/32768/65535 × Gloss 128) | ☑ | ☑ |
-| 29 | G-08 (Registrierung/Schachbrett) | ☑ | ☑ |
+| 22 | I-14 (direkte 256×256-Referenz) | ☑ | ☑ |
+| 23 | I-14 (direkte 128×128-Kontrolle) | ☑ | ☑ |
+| 24 | G-01 (Gloss min/mittel/max) | ☑ | ☑ |
+| 25 | G-02 (normal/invertiert) | ☑ | ☑ |
+| 26 | G-03 (Stufen + 64…192-Keil) | ☑ | ☑ |
+| 27 | G-04a/b/c (fehlend/Null/voll) | ☑ | ☑ |
+| 28 | G-05 (Gloss 128×256 gegen COLOR 256×256) | ☑ | ☑ |
+| 29 | G-06 (Alpha 0/128/255 × Gloss 128) | ☑ | ☑ |
+| 30 | G-07 (HEIGHT 0/32768/65535 × Gloss 128) | ☑ | ☑ |
+| 31 | G-08 (Registrierung/Schachbrett) | ☑ | ☑ |
 
 Die #688-Zeile 21 (I-13) wurde am 2026-09-02 dateivalidiert und zunächst über
 den Bilddialog importiert. Am 2026-09-03 wurde `height_mean_16bit.png` zusätzlich
 im selben `color_alpha_coverage.png`-Objekt nativ über `Customize Texture`
 zugewiesen; `3D` und die drei Alpha-/Farbfelder blieben in der Vorschau sichtbar.
-Die #690-Zeilen 22–24 und 26–29 wurden am 2026-09-02 mit Studio 4.2.2 /
-Editor 1.20.0 abgeschlossen. Zeile 25 (G-04) folgte am 2026-09-03 mit dem
+Die #688-Zeilen 22–23 (I-14) wurden am 2026-09-03 dateivalidiert und in
+Studio 4.2.2 über `Customize Texture` vorgeprüft. Die direkt erzeugten
+16-Bit-Fixtures mit 256×256 und 128×128 Pixeln wurden ohne Warnung akzeptiert;
+beim Ersetzen blieb das Objekt jeweils 90,31×90,31 mm. Nach der Erweiterung
+auf den begrenzten 1/4…3/4-Wertebereich und die feine Kalibrierfläche wurden
+die endgültigen Bytes aller drei Dateien bis 03:00 CEST erneut ohne Warnung
+akzeptiert. Die #690-Zeilen 24–26 und 28–31 wurden am 2026-09-02 mit
+Studio 4.2.2 / Editor 1.20.0 abgeschlossen. Zeile 27 (G-04) folgte am
+2026-09-03 mit dem
 Import der tatsächlichen Null-/Voll-Writer-Assets; G-04a ist mangels
 Gloss-Datei nicht anwendbar. Damit sind die #690-Importzeilen vollständig in
 der Ergebnisakte protokolliert. „Import“ bedeutet weiterhin ausdrücklich den
@@ -162,7 +172,7 @@ der Budgetstand bleibt **0/35**.
 
 ## 4. Phase 2 — Vorschau-Verhalten geprüft, Budget-Startstand notiert
 
-- [x] Alle 27 verpflichtenden Zeilen aus Phase 1 abgeschlossen; I-09 Legacy/
+- [x] Alle 29 verpflichtenden Zeilen aus Phase 1 abgeschlossen; I-09 Legacy/
       aktuell sind gemäß Scope-Entscheid vom 2026-09-03 nicht anwendbar;
       G-04b/c wurden mit den tatsächlichen Writer-Assets abgeschlossen.
 - [x] „Nichts passiert"-Fälle (EM-S03, Spalte in §2) für alle Zeilen
@@ -170,7 +180,7 @@ der Budgetstand bleibt **0/35**.
 - [x] Budget-Startstand notiert (**0 von 35**, 2026-09-03; sonst der
       aus Abschnitt 1 übertragene Vortagesstand).
 
-## 5. Phase 3 — Druck je Variante (12 Stammvarianten + 11 Gloss-Läufe, max. 34 geplante Drucke bei hartem 35er-Limit)
+## 5. Phase 3 — Druck je Variante (13 Stammvarianten + 11 Gloss-Läufe, maximal 35 Drucke)
 
 Nur Zellen, die tatsächlich im Druckprotokoll (§3) stehen. Je Variante:
 Budget prüfen → drucken → vermessen → Foto → Druckprotokoll-Zeile ausfüllen
@@ -186,6 +196,23 @@ und Druckparametern als kombinierter Pixelgrößen-/Resampling-End-to-End-Test
 verglichen. Da I-04 bereits im Fixture-Generator per LANCZOS verkleinert und
 gerundet wird, darf das Ergebnis weder als isolierte Studio-Filterwirkung noch
 dem abweichenden Seitenverhältnis zugerechnet werden.
+
+**I-14 kontrolliert drucken:** Die 256×256-Referenz
+`height_impulse_edge_16bit.png` ist zugleich die I-03-16-Bit-Variante; I-03
+8 Bit verwendet das pixelgleiche `height_impulse_edge_8bit.png`. I-14 fügt
+nur `height_impulse_edge_direct_half_16bit.png` (128×128) als eigenen Druck
+hinzu. Beide I-14-Dateien wurden direkt aus derselben normierten Formel
+erzeugt (Kante bei x=1/2, Impulszentrum bei 1/4, Impulsbreite 1/64), nicht
+auseinander skaliert. Der Wertebereich ist auf 1/4…3/4 begrenzt; im unteren
+Viertel liegen 4096 feine 16-Bit-Sollstufen für den I-03-Präzisionsvergleich.
+Layout W/H und Position, `Customize Texture`,
+`Color Raised`, 2,50 mm, Material und Qualitätsprofil müssen identisch sein.
+Kantenbreite (10–90 %) und Impulsbreite (FWHM) auf der Scanlinie y=1/2,
+Peak-, Plateau- und Basishöhe sowie die Trennbarkeit der feinen Kalibrierstufen
+mit Messunsicherheit erfassen. Eine Verschiebung von 1/4…3/4 auf den vollen
+Höhenbereich als Normalisierung protokollieren. Die Studio-Vorschau getrennt vom physischen
+Druck bewerten. Ohne zugängliches Studio-Ausgaberaster ist ein physischer
+Unterschied dem kombinierten Studio-/Druckpfad zuzurechnen, nicht Studio allein.
 
 **Zusätzlicher #690-Gloss-Preflight:** Ein importiertes „Flat“-Graustufenbild
 ist keine Gloss-Zuweisung. Vor jeder Gloss-Zelle muss der in
@@ -226,19 +253,19 @@ Budgetplatz blockiert.
 `PROTOKOLL-VORLAGEN.md` §3): Nullpunkt/Grundfläche, monotoner Keil,
 mm/DPI-Referenz, Gloss-Polarität. Welche der Varianten unten das im Einzelnen
 sind, ist am Testtag anhand der Kategorien zuzuordnen – nicht vorab
-festgelegt. Nach je einem Erstlauf der 12 Stammvarianten und den elf fest
+festgelegt. Nach je einem Erstlauf der 13 Stammvarianten und den elf fest
 eingeplanten Gloss-Läufen bleiben höchstens elf bereits freigegebene
 Wiederholungen der Stammvarianten. Der ausführbare Plan umfasst daher maximal
-34 Drucke. Im für Stammvarianten vorgesehenen Bereich 1–24 bleibt dadurch
-**Budgetplatz 24** unzugeordnet; die Gloss-Plätze 25–35 bleiben unverändert
-belegt. Deshalb zuerst die Kernaussagen wiederholen, nicht automatisch jede
-Variante zweimal drucken und Platz 24 nicht ohne neue Owner-Freigabe verwenden.
+35 Drucke. Im für Stammvarianten vorgesehenen Bereich 1–24 ist
+**Budgetplatz 24** mit Owner-Freigabe vom 2026-09-03 I-14 zugeordnet; die
+Gloss-Plätze 25–35 bleiben unverändert belegt. Deshalb zuerst die Kernaussagen
+wiederholen und nicht automatisch jede Variante zweimal drucken.
 
 | # | Variante | Lauf 1 | Lauf 2 (max. elf; Kernaussagen zuerst) | Lauf 3+ (nur mit Owner-Freigabe, Vermerk wo/warum) | Fotoreferenz eingetragen | Druckprotokoll-Zeile ausgefüllt |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | I-02 | ☐ | ☐ | | ☐ | ☐ |
-| 2 | I-03 (8 Bit) | ☐ | ☐ | | ☐ | ☐ |
-| 3 | I-03 (16 Bit) | ☐ | ☐ | | ☐ | ☐ |
+| 2 | I-03 (8 Bit, Impuls/Kante) | ☐ | ☐ | | ☐ | ☐ |
+| 3 | I-03 (16 Bit, Impuls/Kante; I-14-Referenz) | ☐ | ☐ | | ☐ | ☐ |
 | 4 | I-04 (halbierte Pixelkante; Referenz I-02) | ☐ | ☐ | | ☐ | ☐ |
 | 5 | I-05 (konsistent) | ☐ | ☐ | | ☐ | ☐ |
 | 6 | I-07 | ☐ | ☐ | | ☐ | ☐ |
@@ -248,6 +275,7 @@ Variante zweimal drucken und Platz 24 nicht ohne neue Owner-Freigabe verwenden.
 | 10 | I-10 (invertiert) | ☐ | ☐ | | ☐ | ☐ |
 | 11 | I-11 | ☐ | ☐ | | ☐ | ☐ |
 | 12 | I-13 (Alpha/Coverage) | ☐ | ☐ | | ☐ | ☐ |
+| 13 | I-14 (direkte 128×128-Kontrolle; Referenz I-03 16 Bit) | ☐ | ☐ | | ☐ | ☐ |
 
 **Fest zugeordnete Gloss-Läufe (Budgetplätze 25–35):**
 
@@ -270,12 +298,11 @@ Zelle in **Lauf 1, Lauf 2 oder Lauf 3+** ist ein physischer Druck und zählt
 mit – auch ein Fehldruck ohne verwertbare Messung (Abschnitt 2), auch ein
 mit Owner-Freigabe genehmigter dritter Lauf. Ohne neue Owner-Freigabe darf die
 Summe über alle drei Spalten der Stammvariantentabelle sowie die elf Zeilen der
-Gloss-Tabelle **34 nicht überschreiten**; das unveränderte harte Limit bleibt
-35. Bei 31/35 oder mehr die Budget-Eskalation aus Abschnitt 2 dieser
+Gloss-Tabelle **35 nicht überschreiten**. Bei 31/35 oder mehr die
+Budget-Eskalation aus Abschnitt 2 dieser
 Checkliste prüfen, bevor weitergedruckt wird. Sobald elf Kästchen in „Lauf 2"
 belegt sind, alle übrigen Kästchen dieser Spalte sichtbar streichen.
-**Budgetplatz 24** wird durch den Wegfall von I-12 nicht automatisch zu einem
-Zusatzlauf; Platz 35 bleibt fest G-08 zugeordnet.
+**Budgetplatz 24** ist I-14 zugeordnet; Platz 35 bleibt fest G-08 zugeordnet.
 Ein wegen fehlendem Preflight ungenutzter Gloss-Platz wird nicht automatisch
 zu einem Zusatz- oder Wiederholungslauf; jede Umwidmung braucht einen
 Owner-Vermerk und erhöht das Gesamtlimit nicht.

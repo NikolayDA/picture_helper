@@ -17,18 +17,22 @@
 | Betriebssystem | macOS 26.6.2 (Build 25G83) |
 | Material/Tinte/Klarlack/Ink-Mode | nativer Studio-Modus `Gloss Varnish` auswählbar; Material/Geräteparameter ausstehend; kein Druck gestartet |
 | Beleuchtung/Messmittel | ausstehend |
-| Fixture-Katalog | Schema 4; 41 Einzel-Fixtures; 7 Exportpakete |
-| Manifest-Vertrauensanker | `8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758` |
-| Pre-Import-Report | 41/41 Fixtures und 7/7 Pakete OK; Report-SHA-256 `8c7264f842395a21a55b93006f2f598b08eb71cc95c528a53b21b5531daf885f` |
+| Fixture-Katalog | Schema 5; 42 Einzel-Fixtures; 7 unveränderte Exportpakete |
+| Manifest-Vertrauensanker | `7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a` |
+| Pre-Import-Report | 42/42 Fixtures und 7/7 Pakete OK; Report-SHA-256 `4c418ccceac01b43b3aee615d89574f590a342da88dd4ad9941522e026b3603b` |
 
 Vor jedem weiteren Studio- oder Drucklauf ist der Report neu zu erzeugen:
 
 ```bash
 .venv/bin/python scripts/eufymake_fixture_inspector.py \
   --fixture-dir tests/fixtures/eufymake_hardware \
-  --expected-manifest-sha256 8e799f245f177947d0401c431feb0d41df0cde9b5007e4243c1add679a8e8758 \
+  --expected-manifest-sha256 7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a \
   --output eufymake-690-pre-import.json
 ```
+
+Schema 5 ergänzt ausschließlich das I-14-HEIGHT-Einzelfixture. Die sieben
+Writer-Pakete und ihre Manifeste bleiben bytegleich zum in Studio geprüften
+Stand; die Gloss-Evidenz wird durch die Katalogerweiterung nicht umgedeutet.
 
 ## 2. Belegter Ausgangsstand
 

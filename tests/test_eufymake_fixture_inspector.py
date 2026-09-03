@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import shutil
 import struct
 import sys
 import zlib
@@ -127,6 +128,32 @@ def test_inspector_detects_missing_bundle_file(tmp_path: Path) -> None:
     assert report["ok"] is False
     assert report["bundle_summary"]["failed"] == 1
     assert bundle["summary"]["missing"] == ["gloss_mask.png"]
+
+
+def test_inspector_rejects_incomplete_bundle_contract(tmp_path: Path) -> None:
+    out_dir = _fixtures(tmp_path)
+    manifest_path = out_dir / gen.MANIFEST_FILENAME
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["bundles"][0]["manifest_contract"] = {}
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="manifest_contract"):
+        inspector.inspect_fixture_dir(out_dir)
+
+
+def test_inspector_rejects_symlinked_bundle_directory(tmp_path: Path) -> None:
+    out_dir = _fixtures(tmp_path)
+    bundle_dir = out_dir / gen.EXPORT_BUNDLE_DIRNAME
+    external_dir = tmp_path / "external-bundle"
+    shutil.copytree(bundle_dir, external_dir)
+    shutil.rmtree(bundle_dir)
+    bundle_dir.symlink_to(external_dir, target_is_directory=True)
+
+    report = inspector.inspect_fixture_dir(out_dir)
+    bundle = report["bundles"][0]
+    assert report["ok"] is False
+    assert bundle["ok"] is False
+    assert "Bundle-Verzeichnis darf kein Symlink sein" in bundle["errors"]
 
 
 def test_inspector_checks_export_manifest_semantics_beyond_catalog_hash(

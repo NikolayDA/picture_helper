@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -57,7 +58,7 @@ def _write(tmp_path: Path, name: str) -> Path:
 
 @pytest.fixture(scope="module")
 def fresh_fixture_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Ein frischer Generatorlauf je Modul (41 Fixtures + 7 Pakete).
+    """Ein frischer Generatorlauf je Modul (42 Fixtures + 7 Pakete).
 
     Die Vergleichstests gegen den eingecheckten Stand lesen ihn nur – ein
     Lauf statt einem je Test (#956-Review).
@@ -166,6 +167,123 @@ def test_generation_overwrites_corrupt_existing_bytes_deterministically(
         assert (dirty / relative).read_bytes() == clean_path.read_bytes(), relative
 
 
+def test_in_place_generation_preserves_frozen_bundle_bytes(tmp_path: Path) -> None:
+    """Schema-Erweiterungen dürfen die in Studio geprüften Pakete nicht ändern."""
+    target = tmp_path / "preserved"
+    shutil.copytree(CHECKED_IN_DIR, target)
+    before = {
+        path.relative_to(target): path.read_bytes()
+        for path in target.glob("export_*/*")
+        if path.is_file()
+    }
+
+    manifest = gen.write_fixtures(
+        gen.generate_all_fixtures(),
+        target,
+        preserve_existing_bundles=True,
+    )
+
+    after = {
+        path.relative_to(target): path.read_bytes()
+        for path in target.glob("export_*/*")
+        if path.is_file()
+    }
+    assert after == before
+    assert manifest["schema"] == gen.SCHEMA_VERSION
+    assert manifest["fixture_count"] == 42
+    assert manifest["bundle_count"] == 7
+    assert (target / "height_impulse_edge_direct_half_16bit.png").is_file()
+
+
+def test_in_place_generation_rejects_corrupt_frozen_bundle(tmp_path: Path) -> None:
+    """Preserve ist fail-closed statt beschädigte Evidenz neu zu verankern."""
+    target = tmp_path / "corrupt"
+    shutil.copytree(CHECKED_IN_DIR, target)
+    package_manifest = target / "export_gloss_zero" / "manifest.json"
+    data = bytearray(package_manifest.read_bytes())
+    data[0] ^= 1
+    package_manifest.write_bytes(data)
+
+    with pytest.raises(ValueError, match="ungültig"):
+        gen.write_fixtures(
+            gen.generate_all_fixtures(),
+            target,
+            preserve_existing_bundles=True,
+        )
+
+
+def test_in_place_generation_rejects_non_file_bundle_entry(tmp_path: Path) -> None:
+    """Unterverzeichnisse dürfen nicht aus der Paketprüfung herausfallen."""
+    target = tmp_path / "unexpected-directory"
+    shutil.copytree(CHECKED_IN_DIR, target)
+    (target / "export_gloss_zero" / "unexpected").mkdir()
+
+    with pytest.raises(ValueError, match="unerwartete Bundle-Dateien"):
+        gen.write_fixtures(
+            gen.generate_all_fixtures(),
+            target,
+            preserve_existing_bundles=True,
+        )
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    [
+        "file_count",
+        "manifest_contract",
+        "empty_manifest_contract",
+        "media_type",
+    ],
+)
+def test_in_place_generation_rejects_corrupt_bundle_metadata(
+    tmp_path: Path,
+    corruption: str,
+) -> None:
+    """Preserve darf kein strukturell ungültiges Paket neu verankern."""
+    target = tmp_path / f"corrupt-{corruption}"
+    shutil.copytree(CHECKED_IN_DIR, target)
+    manifest_path = target / gen.MANIFEST_FILENAME
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    bundle = manifest["bundles"][0]
+
+    if corruption == "file_count":
+        bundle["file_count"] = 0
+    elif corruption == "manifest_contract":
+        del bundle["manifest_contract"]
+    elif corruption == "empty_manifest_contract":
+        bundle["manifest_contract"] = {}
+    else:
+        del bundle["files"][0]["media_type"]
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Bundle"):
+        gen.write_fixtures(
+            gen.generate_all_fixtures(),
+            target,
+            preserve_existing_bundles=True,
+        )
+
+
+def test_in_place_generation_rejects_symlinked_bundle_directory(
+    tmp_path: Path,
+) -> None:
+    """Preserve darf Paketinhalt nicht außerhalb des Fixture-Baums lesen."""
+    target = tmp_path / "symlinked-bundle"
+    shutil.copytree(CHECKED_IN_DIR, target)
+    bundle_dir = target / "export_gloss_zero"
+    external_dir = tmp_path / "external-gloss-zero"
+    shutil.copytree(bundle_dir, external_dir)
+    shutil.rmtree(bundle_dir)
+    bundle_dir.symlink_to(external_dir, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="Symlink"):
+        gen.write_fixtures(
+            gen.generate_all_fixtures(),
+            target,
+            preserve_existing_bundles=True,
+        )
+
+
 def test_gloss_writer_packages_preserve_writer_png_bytes(
     tmp_path: Path,
     monkeypatch,
@@ -231,10 +349,10 @@ def test_fixture_roles_and_counts() -> None:
     for spec in specs:
         by_role[spec.role] = by_role.get(spec.role, 0) + 1
 
-    # 8-Bit + 16-Bit je Muster, plus die I-04-Pixelmaß- und I-12-Seitenverhältnis-
-    # Variante (kein eigenes Muster in _HEIGHT_PATTERNS, siehe die dedizierten
-    # Tests unten).
-    assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2 + 4
+    # 8-Bit + 16-Bit je Muster, plus I-04-Pixelmaß, I-14-Filterkontrolle,
+    # I-12-Seitenverhältnis und die beiden rollenübergreifenden HEIGHT-
+    # Kontrollen (keine eigenen Muster in _HEIGHT_PATTERNS, siehe unten).
+    assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2 + 5
     # mm/DPI no_phys/phys/conflict plus X/Y-DPI, dimensionsgleiche Referenz
     # und Alpha/Coverage-Kontrolle.
     assert by_role["color_motif"] == len(gen.MM_DPI_COMBOS) * 3 + 4
@@ -249,6 +367,7 @@ def test_height_fixtures_cover_8_and_16_bit(tmp_path: Path) -> None:
     manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
     variant_patterns = {
         gen.PIXEL_SIZE_VARIANT_PATTERN,
+        gen.FILTER_CONTROL_PATTERN,
         gen.ASPECT_RATIO_VARIANT_PATTERN,
         gen.REGISTRATION_PATTERN,
         "gloss_height_cross_fields",
@@ -302,6 +421,69 @@ def test_pixel_size_variant_fixture_is_precision_preserving_half_size(
     assert np.array_equal(actual, expected.values)
 
 
+# ── Direkte Filterkontrolle (I-14) ───────────────────────────────────────
+
+def test_filter_control_pair_is_direct_and_not_prefiltered(tmp_path: Path) -> None:
+    """I-14: Beide Auflösungen entstehen direkt mit identischer Geometrie."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    by_name = {entry["filename"]: entry for entry in manifest["fixtures"]}
+    reference = by_name[gen.FILTER_CONTROL_REFERENCE]
+    half = by_name["height_impulse_edge_direct_half_16bit.png"]
+
+    assert reference["pattern"] == "impulse_edge"
+    assert (reference["width"], reference["height"]) == gen.HEIGHT_SIZE
+    assert half["pattern"] == gen.FILTER_CONTROL_PATTERN
+    assert (half["width"], half["height"]) == gen.FILTER_CONTROL_SIZE
+    assert half["params"]["generation_method"] == "direct_formula_no_resampling"
+    assert half["params"]["reference_file"] == gen.FILTER_CONTROL_REFERENCE
+    assert half["params"]["reference_size_px"] == list(gen.HEIGHT_SIZE)
+
+    expected_half = np.rint(
+        gen._pattern_impulse_edge(*gen.FILTER_CONTROL_SIZE) * gen.HEIGHT_MAX_16BIT
+    ).astype(np.uint16)
+    expected_reference = np.rint(
+        gen._pattern_impulse_edge(*gen.HEIGHT_SIZE) * gen.HEIGHT_MAX_16BIT
+    ).astype(np.uint16)
+    with (
+        Image.open(out_dir / half["filename"]) as half_image,
+        Image.open(out_dir / reference["filename"]) as reference_image,
+    ):
+        actual_half = np.array(half_image, dtype=np.uint16)
+        actual_reference = np.array(reference_image, dtype=np.uint16)
+
+    assert np.array_equal(actual_half, expected_half)
+    assert np.array_equal(actual_reference, expected_reference)
+    expanded_half = np.repeat(np.repeat(actual_half, 2, axis=0), 2, axis=1)
+    assert np.array_equal(expanded_half, actual_reference)
+    assert actual_reference.min() == round(
+        gen.FILTER_CONTROL_BASELINE * gen.HEIGHT_MAX_16BIT
+    )
+    assert actual_reference.max() == round(
+        gen.FILTER_CONTROL_PEAK * gen.HEIGHT_MAX_16BIT
+    )
+    assert np.unique(actual_reference).size == 4096
+    assert np.any(actual_reference % 257 != 0)
+
+    with Image.open(out_dir / "height_impulse_edge_8bit.png") as image_8bit:
+        actual_8bit = np.array(image_8bit, dtype=np.uint8)
+    assert actual_8bit.min() == round(gen.FILTER_CONTROL_BASELINE * 255)
+    assert actual_8bit.max() == round(gen.FILTER_CONTROL_PEAK * 255)
+    assert np.unique(actual_8bit).size < np.unique(actual_reference).size
+
+    from bgremover.height_map import HeightField, resize_height_field
+
+    prefiltered = resize_height_field(
+        HeightField(
+            actual_reference,
+            np.full(actual_reference.shape, 255, dtype=np.uint8),
+            gen.HEIGHT_MAX_16BIT,
+        ),
+        *gen.FILTER_CONTROL_SIZE,
+    )
+    assert not np.array_equal(actual_half, prefiltered.values)
+
+
 # ── Seitenverhältnis-Variante (I-12, H-03) ───────────────────────────────
 
 def test_aspect_ratio_variant_fixture_has_genuinely_different_ratio(
@@ -335,7 +517,7 @@ def test_aspect_ratio_variant_fixture_has_genuinely_different_ratio(
 # ── Dimensionsgleiche COLOR/HEIGHT- und Alpha/Coverage-Kontrollen ────────
 
 def test_color_height_reference_matches_canonical_height_dimensions(tmp_path: Path) -> None:
-    """I-02 und die I-08-Registriermap nutzen dieselben Pixelmaße."""
+    """Alle als dimensionsgleich gepaarten HEIGHT-Dateien sind 256×256."""
     out_dir = _write(tmp_path, "run")
     manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
     by_name = {entry["filename"]: entry for entry in manifest["fixtures"]}
@@ -346,8 +528,19 @@ def test_color_height_reference_matches_canonical_height_dimensions(tmp_path: Pa
     assert color["png_mode"] == "RGBA"
     assert (color["width"], color["height"]) == (height["width"], height["height"])
     assert color["params"]["alpha_levels"] == [255]
-    assert "height_wedge_16bit.png" in color["params"]["paired_height_files"]
-    assert "height_registration_16bit.png" in color["params"]["paired_height_files"]
+    paired_height_files = color["params"]["paired_height_files"]
+    assert set(paired_height_files) == {
+        "height_wedge_16bit.png",
+        "height_registration_16bit.png",
+        "height_impulse_edge_16bit.png",
+    }
+    for filename in paired_height_files:
+        paired = by_name[filename]
+        assert (paired["width"], paired["height"]) == (
+            color["width"],
+            color["height"],
+        )
+    assert "height_impulse_edge_direct_half_16bit.png" not in paired_height_files
 
     with Image.open(out_dir / color["filename"]) as image:
         alpha = np.array(image.getchannel("A"), dtype=np.uint8)
