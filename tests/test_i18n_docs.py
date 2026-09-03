@@ -4,7 +4,14 @@ import re
 from pathlib import Path
 
 from bgremover.i18n import _TRANSLATIONS
-from tests._markdown_utils import FENCE_RE, local_target, without_fenced_code
+from tests._markdown_utils import (
+    FENCE_RE,
+    HEADING_LINE_RE,
+    IMAGE_LINK_RE,
+    MARKDOWN_LINK_RE,
+    local_target,
+    without_fenced_code,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 I18N_ROOT = ROOT / "docs" / "i18n"
@@ -49,9 +56,6 @@ ANLEITUNG_3D_FEATURE_MARKERS = {
 # Handbuch nach.
 QUOTED_UI_LABEL_KEYS = ("right_panel.shape.resize_apply", "menu.view.show_3d")
 
-_HEADING_RE = re.compile(r"^(#{1,6})\s+\S", re.MULTILINE)
-_IMAGE_LINK_RE = re.compile(r"!\[[^\]]*]\(([^)]+)\)")
-_MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+]\(([^)]+)\)")
 _TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$")
 _H2_SECTION_RE = re.compile(r"(?ms)^## [^\n]+\n.*?(?=^## |\Z)")
 
@@ -71,7 +75,7 @@ def _h2_sections_containing(text: str, *markers: str) -> list[str]:
 
 
 def _heading_levels(text: str) -> list[int]:
-    return [len(match.group(1)) for match in _HEADING_RE.finditer(without_fenced_code(text))]
+    return [len(match.group(1)) for match in HEADING_LINE_RE.finditer(without_fenced_code(text))]
 
 
 def _count_code_blocks(text: str) -> int:
@@ -134,7 +138,7 @@ def test_i18n_expected_docs_exist() -> None:
 def test_i18n_local_markdown_links_resolve() -> None:
     for path in _translated_doc_paths():
         text = without_fenced_code(_read(path))
-        for match in _MARKDOWN_LINK_RE.finditer(text):
+        for match in MARKDOWN_LINK_RE.finditer(text):
             target = local_target(match.group(1))
             if target is None:
                 continue
@@ -146,7 +150,7 @@ def test_i18n_local_markdown_links_resolve() -> None:
 def test_i18n_markdown_image_links_resolve() -> None:
     for path in _translated_doc_paths():
         text = without_fenced_code(_read(path))
-        for match in _IMAGE_LINK_RE.finditer(text):
+        for match in IMAGE_LINK_RE.finditer(text):
             target = local_target(match.group(1))
             if target is None:
                 continue
@@ -171,7 +175,7 @@ def test_readmes_document_3d_feature_usage_and_screenshot() -> None:
 
         screenshot_links = [
             match.group(1)
-            for match in _IMAGE_LINK_RE.finditer(text)
+            for match in IMAGE_LINK_RE.finditer(text)
             if README_3D_SCREENSHOT in match.group(1)
         ]
         assert len(screenshot_links) == 1, (

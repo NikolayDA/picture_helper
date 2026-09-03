@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections import Counter
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -22,7 +22,7 @@ MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+]\(([^)]+)\)")
 SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
 
 # ATX-Überschrift einer einzelnen Zeile: Rautenfolge, Trenner, Text.
-_HEADING_LINE_RE = re.compile(r"^(#{1,6})[ \t]+(\S.*)$")
+HEADING_LINE_RE = re.compile(r"^(#{1,6})[ \t]+(\S.*)$", re.MULTILINE)
 # Optionale schließende Rautenfolge einer ATX-Überschrift (CommonMark).
 _CLOSING_HASHES_RE = re.compile(r"[ \t]+#+[ \t]*$")
 # Inline-Link/-Bild in einer Überschrift: GitHub bildet den Anker aus dem
@@ -143,7 +143,7 @@ def heading_anchors(text: str) -> dict[str, int]:
     anchors: dict[str, int] = {}
 
     for number, line in iter_content_lines(text):
-        match = _HEADING_LINE_RE.match(line)
+        match = HEADING_LINE_RE.match(line)
         if not match:
             continue
         base = anchor_slug(_CLOSING_HASHES_RE.sub("", match.group(2)).rstrip())
@@ -172,3 +172,49 @@ def iter_link_targets(text: str) -> Iterator[tuple[int, str]]:
     for pattern in (MARKDOWN_LINK_RE, IMAGE_LINK_RE):
         for match in pattern.finditer(masked):
             yield masked.count("\n", 0, match.start()) + 1, match.group(1)
+
+
+def _display(path: Path, root: Path) -> str:
+    """Pfad relativ zu ``root``; außerhalb davon nur der Dateiname."""
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return path.name
+
+
+def broken_anchor_links(paths: Iterable[Path], *, root: Path = ROOT) -> list[str]:
+    """Nicht auflösbare dokumentinterne Anker der übergebenen Dateien.
+
+    Geprüft werden ``#abschnitt`` gegen die Überschriften derselben Datei und
+    ``pfad.md#abschnitt`` gegen die der Zieldatei; Ziele ohne Fragment, mit
+    Schema oder auf Nicht-Markdown bleiben außen vor. Jeder Eintrag nennt
+    Datei, Zeile und den Anker.
+    """
+    anchors_by_file: dict[Path, dict[str, int]] = {}
+
+    def anchors_of(path: Path) -> dict[str, int]:
+        if path not in anchors_by_file:
+            anchors_by_file[path] = heading_anchors(path.read_text(encoding="utf-8"))
+        return anchors_by_file[path]
+
+    broken: list[str] = []
+    for path in paths:
+        for line, raw_target in iter_link_targets(path.read_text(encoding="utf-8")):
+            parts = split_target(raw_target)
+            if parts is None:
+                continue
+            path_part, fragment = parts
+            if not fragment:
+                continue
+
+            target_path = path if not path_part else (path.parent / path_part).resolve()
+            if target_path.suffix.lower() != ".md" or not target_path.is_file():
+                continue
+
+            if fragment not in anchors_of(target_path):
+                where = "" if target_path == path else f" in {_display(target_path, root)}"
+                broken.append(
+                    f"{_display(path, root)}:{line} anchor does not resolve{where}: #{fragment}"
+                )
+
+    return broken

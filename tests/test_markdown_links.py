@@ -8,11 +8,10 @@ from tests._markdown_utils import (
     MARKDOWN_LINK_RE,
     ROOT,
     anchor_slug,
+    broken_anchor_links,
     heading_anchors,
-    iter_link_targets,
     local_target,
     markdown_files,
-    split_target,
     without_fenced_code,
 )
 
@@ -46,32 +45,7 @@ def test_all_markdown_anchor_links_resolve() -> None:
     die Pfadprüfung oben verwirft Fragmente.
     """
 
-    anchors_by_file: dict[Path, dict[str, int]] = {}
-
-    def anchors_of(path: Path) -> dict[str, int]:
-        if path not in anchors_by_file:
-            anchors_by_file[path] = heading_anchors(path.read_text(encoding="utf-8"))
-        return anchors_by_file[path]
-
-    broken: list[str] = []
-    for path in markdown_files():
-        for line, raw_target in iter_link_targets(path.read_text(encoding="utf-8")):
-            parts = split_target(raw_target)
-            if parts is None:
-                continue
-            path_part, fragment = parts
-            if not fragment:
-                continue
-
-            target_path = path if not path_part else (path.parent / path_part).resolve()
-            if target_path.suffix.lower() != ".md" or not target_path.is_file():
-                continue
-
-            if fragment not in anchors_of(target_path):
-                where = "" if target_path == path else f" in {target_path.relative_to(ROOT)}"
-                broken.append(
-                    f"{path.relative_to(ROOT)}:{line} anchor does not resolve{where}: #{fragment}"
-                )
+    broken = broken_anchor_links(markdown_files())
 
     assert not broken, "Broken Markdown anchors:\n" + "\n".join(broken)
 
@@ -140,25 +114,25 @@ def test_heading_anchors_ignore_code_blocks_and_number_duplicates() -> None:
 def test_anchor_guard_checks_fragments_behind_a_file_path(tmp_path: Path) -> None:
     """Auch ``pfad.md#abschnitt`` wird gegen die Zieldatei geprüft.
 
-    Diese Zielform kommt im Bestand derzeit nicht vor; ohne diese Zusicherung
-    bliebe der Zweig ungeprüft.
+    Diese Zielform kommt im Bestand derzeit nicht vor; ohne diesen Fall bliebe
+    der Zweig ungeprüft, der das Ziel auflöst, Nicht-Markdown und fehlende
+    Dateien überspringt und die Zieldatei in der Meldung nennt. Der Test ruft
+    deshalb dieselbe Funktion auf wie der repo-weite Wächter.
     """
 
     (tmp_path / "ziel.md").write_text("# Erster Abschnitt\n", encoding="utf-8")
+    (tmp_path / "kein-markdown.txt").write_text("# Erster Abschnitt\n", encoding="utf-8")
     source = tmp_path / "quelle.md"
     source.write_text(
-        "[gut](ziel.md#erster-abschnitt) und [kaputt](ziel.md#zweiter-abschnitt)\n",
+        "[gut](ziel.md#erster-abschnitt), [kaputt](ziel.md#zweiter-abschnitt),\n"
+        "[kein Markdown](kein-markdown.txt#egal), [fehlende Datei](fehlt.md#egal)\n"
+        "und [extern](https://example.org/#egal)\n",
         encoding="utf-8",
     )
 
-    unresolved = []
-    for line, raw_target in iter_link_targets(source.read_text(encoding="utf-8")):
-        path_part, fragment = split_target(raw_target)
-        target_path = (source.parent / path_part).resolve()
-        if fragment not in heading_anchors(target_path.read_text(encoding="utf-8")):
-            unresolved.append((line, fragment))
-
-    assert unresolved == [(1, "zweiter-abschnitt")]
+    assert broken_anchor_links([source], root=tmp_path) == [
+        "quelle.md:1 anchor does not resolve in ziel.md: #zweiter-abschnitt"
+    ]
 
 
 def test_heading_anchors_resolve_collisions_against_assigned_anchors() -> None:
