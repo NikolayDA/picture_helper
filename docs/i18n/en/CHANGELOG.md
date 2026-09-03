@@ -21,6 +21,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   A previously saved bit depth stays preselected until it is changed in the
   dialog. Contract: [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
 
+### Changed
+
+- **EufyMake print-area warning now uses the confirmed 335 × 420 mm standard
+  flatbed (#687, #689, #971).** `STANDARD_FLATBED_MM` was 330 × 420 mm, a
+  vendor figure backed only by search-engine extraction. The size is now
+  confirmed by the owner and matches the work area shown by eufyMake Studio
+  4.2.2; `PRINT_AREA_EXCEEDED` therefore warns only above 335 mm width, and the
+  warning text no longer calls the figure unverified.
+
 ## [2.9.0] – 2026-08-26
 
 ### Added

@@ -143,6 +143,10 @@ Testprofil: EufyMake Studio 4.2.2, Editor 1.20.0, E1 online, Standard Flatbed
 335×420 mm. Die Firmware-Version wurde in der Sitzung nicht angezeigt und
 deshalb nicht geraten. Es wurde kein Druck ausgelöst.
 
+**Nachtrag 2026-09-03:** Das Flatbed-Maß 335 × 420 mm ist vom Owner bestätigt;
+`STANDARD_FLATBED_MM` folgt seit PR #971 diesem Wert (zuvor 330 × 420 mm aus
+A10/A15, siehe Nachtrag Flatbed-Maß im Annahmeninventar `EUFYMAKE-687-ANNAHMENINVENTAR.md`).
+
 | Eingabe/Aktion | Exakte Studio-Beobachtung |
 | --- | --- |
 | `mm_typisch_no_phys.png`, 1200×1200 px, kein `pHYs` | Warnung wegen Überschreitung der Arbeitsfläche; nach „Originalgröße behalten“ 423,33×423,33 mm bei X/Y −44,17/−1,67 mm. Das entspricht 72 dpi und Zentrierung auf 335×420 mm. |

@@ -48,14 +48,16 @@ EXPORT_PROFILE_VERSION = DEFAULT_TARGET_PROFILE.profile_version
 DEFAULT_BIT_DEPTH = DEFAULT_TARGET_PROFILE.default_height_bit_depth
 _SUPPORTED_BIT_DEPTHS = DEFAULT_TARGET_PROFILE.height_bit_depths
 
-# Druckfläche des eufyMake-E1-Standard-Flachbetts in mm (Breite × Tiefe).
-# **Herstellerquelle, aber nur über Suchmaschinen-Extraktion belegt** (Recherche
-# #687, Grad S: „13 × 16.5 in" ≈ 330 × 420 mm); eine unabhängige Rückrechnung aus
-# der reverse-engineerten ``.empf``-Druckbettgeometrie liegt mit ≈ 333,2 × 418,1 mm
-# in derselben Größenordnung. Vor einem harten Vertrag am Original zu verifizieren
-# (V-01 in #687) – bis dahin nur als Warnschwelle (Severity.WARNING), nicht als
-# blockierender Fehler.
-STANDARD_FLATBED_MM = (330.0, 420.0)
+# Standard-Flatbed des eufyMake E1 in mm (Breite × Tiefe). Seit 2026-09-03 vom
+# Owner bestätigt (#971, Nachtrag im Annahmeninventar #687): 335 × 420 mm – derselbe
+# Wert, den Studio 4.2.2 als Arbeitsfläche „Standard Flatbed“ anzeigt (Zentrierung
+# eines 101,60-mm-Objekts auf X = 116,70 mm, #689) und in dessen Größenordnung die
+# Rückrechnung aus der reverse-engineerten ``.empf``-Geometrie liegt
+# (≈ 333,2 × 418,1 mm). Die frühere Lesart 330 × 420 mm („13 × 16.5 in“,
+# Suchmaschinen-Extraktion, Grad S) ist damit überholt. Weiterhin nur Warnschwelle
+# (Severity.WARNING), kein blockierender Fehler: Ausrichtung, Drehung und
+# Zubehörflächen bleiben gesondert zu behandeln.
+STANDARD_FLATBED_MM = (335.0, 420.0)
 
 # Die px↔mm↔DPI-Geometrie (``MM_PER_INCH``, Ableitungen) lebt seit #376 zentral in
 # :mod:`bgremover.units`; ``MM_PER_INCH`` wird oben re-exportiert, damit bisherige

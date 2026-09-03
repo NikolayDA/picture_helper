@@ -1,0 +1,88 @@
+{
+  "number": 1,
+  "slug": "height_pixelgroesse_i02_i04",
+  "title": "I-02 / I-04 – HEIGHT-Pixelgröße",
+  "budget_slots": [
+    "I-02 Lauf 1",
+    "I-04 Lauf 1"
+  ],
+  "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": null,
+  "carrier": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04_A4_Beschriftung.png",
+  "carrier_sha256": "d5b9aae861a8c10da4504959959da478b05db41b95abcc50385858888afbc344",
+  "preview": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04_NUR_VORSCHAU.png",
+  "notes": [
+    "Beide Objekte unverändert 90,31 × 90,31 mm; keine automatische Größenanpassung."
+  ],
+  "objects": [
+    {
+      "label": "I-02 · 256 px",
+      "role": "COLOR+HEIGHT",
+      "source": "color_height_reference.png",
+      "source_sha256": "f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a",
+      "height_source": "height_wedge_16bit.png",
+      "height_source_sha256": "45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41",
+      "a4_geometry_mm": {
+        "x": 9.69,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 72.19,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
+      "crop": null,
+      "crop_fraction": null,
+      "notes": null
+    },
+    {
+      "label": "I-04 · 128 px",
+      "role": "COLOR+HEIGHT",
+      "source": "color_height_reference.png",
+      "source_sha256": "f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a",
+      "height_source": "height_wedge_16bit_half.png",
+      "height_source_sha256": "17ab1efde6ee96be20cf4fa1de935d52f8dcf1d06d8516adf08e7a72f48a59cf",
+      "a4_geometry_mm": {
+        "x": 110.0,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 172.5,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Color Raised; Customize Texture; 2.50 mm",
+      "crop": null,
+      "crop_fraction": null,
+      "notes": null
+    }
+  ],
+  "project": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04.empf",
+  "project_sha256": "f30933e44d8ab776ace8816cd7954d402c35a528333d1c28cb8dacce3ea600cd",
+  "project_layers": [
+    {
+      "name": "A4 Beschriftung und Eckmarken",
+      "role": "COLOR"
+    },
+    {
+      "name": "I-02 · 256 px",
+      "role": "HEIGHT"
+    },
+    {
+      "name": "I-04 · 128 px",
+      "role": "HEIGHT"
+    }
+  ]
+}

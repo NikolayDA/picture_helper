@@ -1,0 +1,87 @@
+{
+  "number": 10,
+  "slug": "gloss_dimension_g05",
+  "title": "G-05 – abweichende Gloss-Dimension",
+  "budget_slots": [
+    "G-05"
+  ],
+  "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": null,
+  "carrier": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05_A4_Beschriftung.png",
+  "carrier_sha256": "07c0c8009c74649f3482520c1a0f31a1e596b58a6113d900e12a949cd3a2f201",
+  "preview": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05_NUR_VORSCHAU.png",
+  "notes": [
+    "Verbindliche Regel: native 45,16 × 90,31 mm, oben/links bündig; rechte COLOR-Hälfte bleibt ohne Glossobjekt."
+  ],
+  "objects": [
+    {
+      "label": "G-05 · COLOR 256×256",
+      "role": "COLOR",
+      "source": "export_gloss_dimension_mismatch/color_motif.png",
+      "source_sha256": "b772b4bde042fed9f1f6f9f92d72721159ac122e28a08d7be0fc75bf15ede9bf",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 59.845,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 122.345,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Flat / Standard COLOR",
+      "crop": null,
+      "crop_fraction": null,
+      "notes": null
+    },
+    {
+      "label": "G-05 · GLOSS 128×256 auf COLOR 256×256",
+      "role": "GLOSS",
+      "source": "export_gloss_dimension_mismatch/gloss_mask.png",
+      "source_sha256": "9553e045df957630098ad7e12bdfacef5dbd39a38fe74691de68d93b9c33f6b7",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 59.845,
+        "y": 103.345,
+        "width": 45.16,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 122.345,
+        "y": 164.845,
+        "width": 45.16,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "crop_fraction": null,
+      "notes": "Oberkante und linke Kante deckungsgleich mit COLOR; keine Skalierung."
+    }
+  ],
+  "project": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05.empf",
+  "project_sha256": "439af8a2b16cc01ef394cdaf8bb3ff7f53db9950677c4da57d2b658d331739ba",
+  "project_layers": [
+    {
+      "name": "A4 Beschriftung und Eckmarken",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-05 · COLOR 256×256",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-05 · GLOSS 128×256 auf COLOR 256×256",
+      "role": "GLOSS"
+    }
+  ]
+}

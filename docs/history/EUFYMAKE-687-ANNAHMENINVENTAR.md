@@ -902,3 +902,30 @@ Peak-, Plateau- und Basishöhe; die untere Kalibrierfläche prüft die nutzbaren
 Studio-Ausgaberaster belegt eine physische Differenz nur den kombinierten
 Studio-/Druckpfad, nicht Studio allein. Aus I-14 darf außerdem kein Ergebnis
 für den abgelehnten I-12-Seitenverhältnisfall abgeleitet werden.
+
+## Nachtrag Flatbed-Maß (2026-09-03)
+
+**Owner-Entscheidung:** Das Standard-Flatbed des E1 ist 335 mm breit
+(335 × 420 mm). Damit ist die in PR #971 aufgeworfene Frage „335 gegen 330 mm“
+entschieden; `STANDARD_FLATBED_MM` in `bgremover/eufymake_export.py` steht
+seitdem auf `(335.0, 420.0)`.
+
+Einordnung der bisherigen Belege:
+
+- A10/A15 nannten 330 × 420 mm („13 × 16.5 in“, Suchmaschinen-Extraktion,
+  Grad S). Diese Lesart ist überholt; EM-G03 und EM-V05 gelten jetzt für
+  335 × 420 mm.
+- C3 (Rückrechnung aus der reverse-engineerten `.empf`-Geometrie,
+  ≈ 333,2 × 418,1 mm) und die Studio-Beobachtung aus dem #689-Protokoll
+  (Arbeitsfläche „Standard Flatbed“ 335 × 420 mm; 101,60 mm zentriert auf
+  X = 116,70 mm) liegen bei demselben Wert. Die Studio-Arbeitsfläche ist damit
+  kein zweiter, von der Druckfläche verschiedener Wert.
+- Die Zeile „Druckbett | Standard 330×420 mm“ in Abschnitt 3 der
+  Evidenzversion 2 und die Konsequenz 1 in deren Abschnitt 4 sind historisch
+  und werden nicht umgeschrieben.
+
+Folgen: `PRINT_AREA_EXCEEDED` warnt ab 335 mm Breite, der Warnungstext nennt das
+Maß nicht mehr als unbestätigt, der Schweregrad bleibt WARNING. Die A4-Layouts
+in `eufymake_a4_prints/` beziehen ihre Studio-Koordinaten unverändert auf diese
+Fläche (A4-Ursprung X = 62,50 mm, Y = 61,50 mm); der Generator bricht ab, falls
+die Konstante je von der Fläche der gebundenen Projekte abweicht.

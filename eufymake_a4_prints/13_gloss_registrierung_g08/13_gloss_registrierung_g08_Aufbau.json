@@ -1,0 +1,117 @@
+{
+  "number": 13,
+  "slug": "gloss_registrierung_g08",
+  "title": "G-08 – Registrierung und Mindeststruktur",
+  "budget_slots": [
+    "G-08"
+  ],
+  "physical_a4_copies": 1,
+  "print_blocked": null,
+  "substrate": null,
+  "carrier": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08_A4_Beschriftung.png",
+  "carrier_sha256": "418a061972665ddc33d826f7e5246c864dc52f1199c0f07299293734335c535c",
+  "preview": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08_NUR_VORSCHAU.png",
+  "notes": [
+    "Registriermaske deckungsgleich mit der Farbreferenz; Schachbrett als separates natives Glossfeld."
+  ],
+  "objects": [
+    {
+      "label": "G-08 · Registrierung",
+      "role": "COLOR",
+      "source": "color_height_reference.png",
+      "source_sha256": "f59737eca203c74eb301232aa18efabc5a67d5e4ecc496eb3eb3deb87562689a",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 9.69,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 72.19,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Flat / Standard COLOR",
+      "crop": null,
+      "crop_fraction": null,
+      "notes": null
+    },
+    {
+      "label": "G-08 · Registriermaske",
+      "role": "GLOSS",
+      "source": "gloss_registration.png",
+      "source_sha256": "7e3c9734ab47bfbf5771b5c7ca28d6cf3899c44291aab4cc81b024710bab4a63",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 9.69,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 72.19,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "crop_fraction": null,
+      "notes": null
+    },
+    {
+      "label": "G-08 · 16-px-Schachbrett",
+      "role": "GLOSS",
+      "source": "gloss_checkerboard.png",
+      "source_sha256": "b15cd8d2c922053b35d117f3d68d12ad4df828853a3ddc34abb44061a1d70f65",
+      "height_source": null,
+      "height_source_sha256": null,
+      "a4_geometry_mm": {
+        "x": 110.0,
+        "y": 103.345,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "e1_flatbed_geometry_mm": {
+        "x": 172.5,
+        "y": 164.845,
+        "width": 90.31,
+        "height": 90.31,
+        "rotation_degrees": 0
+      },
+      "ink_mode": "Gloss Varnish × 1",
+      "crop": null,
+      "crop_fraction": null,
+      "notes": null
+    }
+  ],
+  "project": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08.empf",
+  "project_sha256": "98fb7dee871a491c3566a6e5144b6c70a9c8a2a2e08f394a6925688ccda71d9b",
+  "project_layers": [
+    {
+      "name": "A4 Beschriftung und Eckmarken",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-08 · Registrierung",
+      "role": "COLOR"
+    },
+    {
+      "name": "G-08 · Registriermaske",
+      "role": "GLOSS"
+    },
+    {
+      "name": "G-08 · 16-px-Schachbrett",
+      "role": "GLOSS"
+    }
+  ]
+}

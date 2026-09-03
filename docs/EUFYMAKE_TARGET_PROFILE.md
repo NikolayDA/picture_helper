@@ -69,12 +69,13 @@ Vertrag dieses Assets.
   beobachtbar verwendet. Manuelle Studio-Maße können diesen Startwert ersetzen.
 - Priorität im vollständigen Rollenverbund, Rundung, Registrierung und
   tatsächliches Druckmaß bleiben bis #689 physisch offen.
-- Das eufyMake-Standard-Flachbett (330 × 420 mm, `STANDARD_FLATBED_MM` in
+- Das eufyMake-Standard-Flatbed (335 × 420 mm, `STANDARD_FLATBED_MM` in
   `bgremover/eufymake_export.py`) ist bewusst **nicht** Teil des Profils: Der
   Validator warnt mit `print_area_exceeded`/`fit_standard_flatbed`, wenn das
-  Motiv es überschreitet (Herstellerquelle nur per Suchmaschinen-Extraktion
-  belegt, Grad S). Das Maß wandert erst mit belegter Quelle in eine
-  Profilversion.
+  Motiv es überschreitet. Das Maß ist seit 2026-09-03 vom Owner bestätigt und
+  deckt sich mit der in Studio 4.2.2 angezeigten Arbeitsfläche (#689, #971);
+  die frühere Lesart 330 × 420 mm aus der Suchmaschinen-Extraktion (Grad S) ist
+  überholt. Die Aufnahme in eine Profilversion bleibt ein eigener Schritt.
 
 ## Validierung und Abhilfe
 
