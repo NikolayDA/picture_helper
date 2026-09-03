@@ -43,6 +43,31 @@ Quelldokumente.
 - [ ] Die drei Protokolltabellen aus `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`
       griffbereit (digital oder ausgedruckt), um sie parallel zu dieser
       Checkliste auszufüllen.
+- [ ] **Firmware-Version des E1** abgelesen (am Gerät bzw. in den
+      Geräteinformationen von Studio/App) und in `PROTOKOLL-VORLAGEN.md`
+      §3.0 sowie in den drei Ergebnisakten eingetragen. „nicht angezeigt"
+      ist ab Phase 3 kein zulässiger Wert mehr; die Testmatrix verlangt die
+      Firmware je Lauf.
+- [ ] **Gerätewarnungen geklärt:** Die in `EUFYMAKE-689-MM-DPI-VERTRAG.md`
+      notierten E1-Hinweise (abgelaufener Scraper, Luftfilter, gelbe Tinte)
+      sind behoben oder mit Begründung als unkritisch protokolliert;
+      Tintenstände aller Kanäle in §3.0 notiert.
+- [ ] **Messmittel je Messgröße festgelegt** (Gerät, Anzeigeauflösung,
+      Messunsicherheit einschließlich Wiederholpräzision) nach
+      `EUFYMAKE-688-HEIGHT-VERTRAG.md` §4.0 und in §3.0
+      eingetragen. Ohne Profilmessmethode bleibt I-14 gesperrt, ohne die
+      vorab festgelegte Auswertungsregel bleibt der I-03-Vergleich gesperrt.
+- [ ] **Substrat festgelegt** (Material, Farbe, Dicke, Charge) und in §3.0
+      eingetragen; für I-13 und G-06 zwingend **nicht-weiß**, weil
+      Weiß-Unterlage und Deckung auf weißem Material unsichtbar bleiben.
+      Innerhalb eines Vergleichs bleibt das Substrat identisch.
+- [ ] **Evidenzablage für die Studio-Phase** angelegt: je Zelle ein
+      Unterordner `…/<Issue>/<Zelle>/studio/` im iCloud-Ordner für
+      Screenshots und gespeicherte Studio-Projekte (Governance §3 und der
+      vorbereitete Nachtrag in Governance Abschnitt 5).
+- [ ] **Owner-Entscheidung I-10/G-02** getroffen und als Freigabe-Vermerk in
+      Governance §4 eingetragen (siehe Abschnitt 5 dieser Checkliste); bis
+      dahin werden die Zeilen 9–10 der Stammvariantentabelle nicht gedruckt.
 
 ## 1. Vor jedem Testtag (auch an Folgetagen erneut)
 
@@ -55,6 +80,10 @@ Ermüdungsfehler-Check in Abschnitt 6):
 - [ ] Bisherigen Budget-Stand aus Abschnitt 5 (Phase 3) übertragen: wie
       viele der insgesamt 35 Drucke sind aus vorherigen Testtagen bereits
       verbraucht?
+- [ ] Tintenstände und Gerätewarnungen erneut geprüft und in
+      `PROTOKOLL-VORLAGEN.md` §3.0 nachgetragen; feste Laufparameter
+      (Substrat, Layoutgröße, Texturhöhe, Ink Mode, Gloss-Pfad) unverändert –
+      sonst beginnt eine neue, getrennt protokollierte Vergleichsreihe.
 
 ## 2. Sicherheits-Abbruchkriterien (Kurzreferenz, gilt jederzeit)
 
@@ -180,12 +209,47 @@ der Budgetstand bleibt **0/35**.
 - [x] Budget-Startstand notiert (**0 von 35**, 2026-09-03; sonst der
       aus Abschnitt 1 übertragene Vortagesstand).
 
+### 4.1 Phase 2b — Vorschau ohne Druck und feste Laufparameter (kein Materialverbrauch)
+
+Erst nach Phase 2 und **vor** dem ersten Druck. Die Vorschau (`Preview`)
+wird nur bis zur Druckvorbereitungsseite geöffnet, `Print` wird nie
+ausgelöst. Ein von der Vorschau selbst gestarteter Gerätevorgang (etwa ein
+Kamerascan des Betts) verbraucht kein Material und zählt nicht gegen das
+Budget; er wird trotzdem nur nach ausdrücklicher Owner-Freigabe ausgelöst,
+weil bisher bewusst weder `Preview` noch `Print` gestartet wurde.
+
+- [ ] Feste Laufparameter in `PROTOKOLL-VORLAGEN.md` §3.0 eingetragen:
+      Tagesparameter einmal, Reihenparameter je Vergleichsreihe (HEIGHT mit
+      `Color Raised`, Gloss mit `Gloss Varnish`, I-08 als Kombination) mit
+      Layoutgröße und Position, Texturmodus/Ink Mode/Texturhöhe,
+      Qualitätsprofil, Gloss-Pfad samt Ursprung, Skalierung, Rotation und
+      Registrierung. Vorgabe für die HEIGHT-Vergleiche:
+      90,31 × 90,31 mm aus dem 72-dpi-Import und 2,50 mm `Color Raised`,
+      solange Zeit- und Tintenschätzung das zulassen; innerhalb eines
+      Vergleichs (I-02/I-04, I-03/I-14, G-01…G-08) identisch.
+- [ ] Für jede Druckvariante aus Abschnitt 5 die Vorschau geöffnet und in
+      `PROTOKOLL-VORLAGEN.md` §3.1 protokolliert: Warnungen, Objektmaße und
+      Position, Ink Mode, Texturhöhe sowie, falls Studio sie anzeigt,
+      geschätzte Druckzeit und Tintenmenge. Eine Warnung in der Vorschau ist
+      ein eigener Befund und sperrt die Variante bis zur Klärung.
+- [ ] Tintenbedarf gegen die Tintenstände geprüft. Grobe Planungsannahme,
+      solange Studio keine Schätzung zeigt: Volumen der Erhebung entspricht
+      etwa dem Tintenvolumen, also rund 10 ml je 90-mm-Keil und bis rund
+      20 ml je Vollfläche bei 2,50 mm, ohne Underbase. Reicht der Vorrat
+      absehbar nicht für die 13 Erstläufe, greift die Budget-Eskalation aus
+      Abschnitt 2 **vor** dem ersten Druck (Layout kleiner oder Texturhöhe
+      geringer festlegen, dann für die ganze Vergleichsreihe).
+- [ ] Gloss-Pfad je Zelle nach `EUFYMAKE-690-GLOSS-VERTRAG.md` §6.1 gewählt
+      und in §3.0 protokolliert; ohne eindeutigen Pfad bleibt die Zelle
+      gesperrt.
+
 ## 5. Phase 3 — Druck je Variante (13 Stammvarianten + 11 Gloss-Läufe, maximal 35 Drucke)
 
 Nur Zellen, die tatsächlich im Druckprotokoll (§3) stehen. Je Variante:
-Budget prüfen → drucken → vermessen → Foto → Druckprotokoll-Zeile ausfüllen
-→ Budget-Zähler fortschreiben. Bei Fehldruck: Abschnitt 2 dieser Checkliste
-anwenden, **nicht** automatisch wiederholen.
+Budget prüfen → Vorschau-Protokoll §3.1 der Variante liegt vor → drucken →
+vermessen → Foto → Screenshots und gespeichertes Studio-Projekt sichern →
+Druckprotokoll-Zeile ausfüllen → Budget-Zähler fortschreiben. Bei Fehldruck:
+Abschnitt 2 dieser Checkliste anwenden, **nicht** automatisch wiederholen.
 
 **I-12 nicht drucken:** Die abweichende Seitenrelation wurde von Studio
 fail-closed abgelehnt; I-12 ist damit ein abgeschlossener Import-Negativtest
@@ -209,10 +273,48 @@ Layout W/H und Position, `Customize Texture`,
 `Color Raised`, 2,50 mm, Material und Qualitätsprofil müssen identisch sein.
 Kantenbreite (10–90 %) und Impulsbreite (FWHM) auf der Scanlinie y=1/2,
 Peak-, Plateau- und Basishöhe sowie die Trennbarkeit der feinen Kalibrierstufen
-mit Messunsicherheit erfassen. Eine Verschiebung von 1/4…3/4 auf den vollen
-Höhenbereich als Normalisierung protokollieren. Die Studio-Vorschau getrennt vom physischen
+mit Messunsicherheit erfassen. Basis und Plateau gegen die aus I-11 und I-07
+interpolierten Sollhöhen für die Digitalwerte 16384 und 49152 prüfen
+(HEIGHT-Akte §4.0); erst eine Verschiebung auf die gemessene Null- bzw.
+Maximalhöhe gilt als Normalisierung, eine bildunabhängig nichtlineare
+Kennlinie nicht. Die Studio-Vorschau getrennt vom physischen
 Druck bewerten. Ohne zugängliches Studio-Ausgaberaster ist ein physischer
 Unterschied dem kombinierten Studio-/Druckpfad zuzurechnen, nicht Studio allein.
+
+**I-08 nach Crop drucken:** Studio koppelt den bestätigten Crop nur an das
+native COLOR/HEIGHT-Objekt (W/H 44,86/90,31 mm, X/Y 167,79/164,84 mm); die
+separate Gloss-Ebene blieb bei 90,31 × 90,31 mm und X/Y 122,34/164,84 mm.
+Für den Druck „nach Crop" bleibt die Gloss-Ebene **unverändert** – weder
+beschnitten noch verschoben. Weil der Crop die rechte Kante des Objekts
+festhielt, liegen ihre Landmarken über der verbliebenen COLOR/HEIGHT-Fläche
+weiterhin an derselben physischen Stelle und prüfen die Registrierung. Der
+Rest der Gloss-Ebene ist reine Maskenfläche ohne COLOR/HEIGHT (Hintergrund
+0, Landmarken 255); ob und wo dort Klarlack liegt, folgt erst aus der in
+G-02 bestimmten Polarität und wird beobachtet und protokolliert, nicht
+vorausgesetzt. Ein manuelles Nachbeschneiden der Gloss-Ebene ist nicht
+zulässig, weil es Bedienfehler mit Studio-Verhalten vermischen würde. Die
+Regel steht in `PROTOKOLL-VORLAGEN.md` §3 und
+`EUFYMAKE-689-MM-DPI-VERTRAG.md`.
+
+**I-10 gegen G-02 (Owner-Entscheidung vor dem ersten Gloss-Druck):** I-10
+normal/invertiert und G-02 verwenden dieselben Dateien `gloss_wedge.png`
+und `gloss_wedge_inverted.png` über denselben Gloss-Pfad; der bisherige Plan
+druckte damit jede Richtung dreimal. Bis zur Entscheidung in Governance §4
+werden die Zeilen 9–10 der Stammvariantentabelle **nicht** gedruckt.
+Vorbereitete Optionen: **(A, empfohlen)** I-10 physisch streichen – die
+Polarität liefert G-02 mit je zwei unabhängigen Läufen je Richtung, die
+Plätze 9–10 bleiben unzugeordnet und werden ohne neue Owner-Freigabe nicht
+umgewidmet; **(B)** I-10 dem in `EUFYMAKE-690-GLOSS-VERTRAG.md` §6.1
+dokumentierten Spot-UV-Zweipass (Pfad 2) zuordnen und G-02 **fest** dem
+nativen `Gloss Varnish`-Pfad (Pfad 1), um Zweipass und nativen Pfad zu
+vergleichen (GL-02); die Pfadwahl je Reihe wird in `PROTOKOLL-VORLAGEN.md`
+§3.0 festgeschrieben, sonst wären beide Zellen erneut redundant. Beide
+Optionen verändern das harte Limit von 35 nicht. Die Sperre ist eine
+Voraussetzung aus Abschnitt 0 dieser Checkliste, die vor Phase 3 erledigt
+sein muss; sie ändert die Governance nicht. Deren Abschnitt 1 führt I-10
+formal weiterhin in der 13-Varianten-Matrix, bis der Freigabe-Vermerk zu
+Option A oder B in Governance §4 vorliegt – erst damit wird die Entscheidung
+Teil der verbindlichen Regeln.
 
 **Zusätzlicher #690-Gloss-Preflight:** Ein importiertes „Flat“-Graustufenbild
 ist keine Gloss-Zuweisung. Vor jeder Gloss-Zelle muss der in
@@ -251,7 +353,9 @@ Budgetplatz blockiert.
 
 **Kernaussage-Zeilen** (mindestens zweimal unabhängig drucken, siehe
 `PROTOKOLL-VORLAGEN.md` §3): Nullpunkt/Grundfläche, monotoner Keil,
-mm/DPI-Referenz, Gloss-Polarität. Welche der Varianten unten das im Einzelnen
+mm/DPI-Referenz, Gloss-Polarität (Letztere ist bei Option A des
+I-10/G-02-Entscheids bereits durch die zwei G-02-Läufe je Richtung
+abgedeckt). Welche der Varianten unten das im Einzelnen
 sind, ist am Testtag anhand der Kategorien zuzuordnen – nicht vorab
 festgelegt. Nach je einem Erstlauf der 13 Stammvarianten und den elf fest
 eingeplanten Gloss-Läufen bleiben höchstens elf bereits freigegebene
@@ -271,8 +375,8 @@ wiederholen und nicht automatisch jede Variante zweimal drucken.
 | 6 | I-07 | ☐ | ☐ | | ☐ | ☐ |
 | 7 | I-08 (vor Crop) | ☐ | ☐ | | ☐ | ☐ |
 | 8 | I-08 (nach Crop) | ☐ | ☐ | | ☐ | ☐ |
-| 9 | I-10 (normal) | ☐ | ☐ | | ☐ | ☐ |
-| 10 | I-10 (invertiert) | ☐ | ☐ | | ☐ | ☐ |
+| 9 | I-10 (normal) – ⛔ gesperrt bis Owner-Entscheidung I-10/G-02 | ☐ | ☐ | | ☐ | ☐ |
+| 10 | I-10 (invertiert) – ⛔ gesperrt bis Owner-Entscheidung I-10/G-02 | ☐ | ☐ | | ☐ | ☐ |
 | 11 | I-11 | ☐ | ☐ | | ☐ | ☐ |
 | 12 | I-13 (Alpha/Coverage) | ☐ | ☐ | | ☐ | ☐ |
 | 13 | I-14 (direkte 128×128-Kontrolle; Referenz I-03 16 Bit) | ☐ | ☐ | | ☐ | ☐ |
@@ -312,6 +416,10 @@ Owner-Vermerk und erhöht das Gesamtlimit nicht.
 - [ ] Gerät in den vom Hersteller empfohlenen Ruhezustand versetzt, nicht
       einfach stromlos geschaltet.
 - [ ] Alle Fotos aus Phase 3 gesichert (iCloud Drive, SHA-256 dokumentiert).
+- [ ] Screenshots und gespeicherte Studio-Projekte je Zelle gesichert
+      (iCloud Drive, SHA-256 in der Spalte „Screenshot-Referenz" des
+      Importprotokolls bzw. in §3.1); Konto- oder Nutzernamen in
+      Studio-Screenshots vorher abgedeckt oder beschnitten.
 - [ ] Protokolltabellen in `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md` mit den
       heutigen Einträgen aktualisiert und committed.
 - [ ] Jede Aussage bereits jetzt oder spätestens beim Zusammenfassen in

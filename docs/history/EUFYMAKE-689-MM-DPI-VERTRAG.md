@@ -22,7 +22,11 @@ Ergebnisdokument für
   Auswahl freigegeben.
 - **Druckmessung:** offen. Es wurde kein Druck ausgelöst. Vor einem Druck sind
   die E1-Warnungen zu abgelaufenem Scraper, Luftfilter und gelber Tinte zu
-  klären und die freigegebene Geräte-/Material-Governance anzuwenden.
+  klären und die freigegebene Geräte-/Material-Governance anzuwenden. Die
+  Firmware-Version ist vor Phase 3 abzulesen; „nicht angezeigt" ist dann kein
+  zulässiger Protokollwert mehr. Messmittel, Substrat und feste Laufparameter
+  werden vorher in `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md` §3.0 eingetragen; die
+  Reihenfolge steht in `EUFYMAKE-687-DRUCK-CHECKLISTE.md` (§0 und Phase 2b).
 - **Kanonischer Produktvertrag:** der Studio-Teil ist vorläufig festgelegt;
   Drucktoleranzen und der vollständige Produktvertrag bleiben bis zu
   freigegebenen, wiederholten Druckmessungen offen.
@@ -96,6 +100,24 @@ COLOR-Marker liegt pixelgenau auf einem HEIGHT-Wert 65535 und einem
 GLOSS-Wert 255; der Hintergrund ist jeweils 0. Asymmetrische horizontale und
 vertikale Marker machen Versatz, Crop, Rotation und Achsenvertauschung
 sichtbar. Generator-Regressionstests vergleichen die drei Masken bitgenau.
+
+### Druckregel I-08 nach Crop
+
+Studio koppelt den bestätigten Crop nur an das native COLOR/HEIGHT-Objekt
+(W/H 44,86/90,31 mm, X/Y 167,79/164,84 mm); die separate Gloss-Ebene blieb
+bei 90,31 × 90,31 mm und X/Y 122,34/164,84 mm. Für die Druckvariante „I-08
+nach Crop" bleibt die Gloss-Ebene unverändert, weder beschnitten noch
+verschoben. Der Crop hielt die rechte Objektkante fest
+(122,34 + 90,31 − 44,86 = 167,79), die Landmarken der Gloss-Ebene liegen über
+der verbliebenen COLOR/HEIGHT-Fläche also an derselben physischen Stelle.
+Gemessen wird die Registrierung nur in dieser Überlappung. Der übrige Teil
+der Gloss-Ebene ist reine Maskenfläche ohne COLOR/HEIGHT (Hintergrundwert 0,
+Landmarken 255); ob und wo dort Klarlack liegt, folgt erst aus der in G-02
+bestimmten Polarität und wird beobachtet und protokolliert, nicht
+vorausgesetzt. Manuelles Nachbeschneiden der Gloss-Ebene ist nicht zulässig, weil es
+Bedienfehler mit Studio-Verhalten vermischen würde. Das Kriterium „dieselbe
+physische Ausdehnung" ist für diese Variante bewusst auf die Überlappung
+beschränkt und wird im Ergebnis so ausgewiesen.
 
 ## Mess- und Rundungsregel
 

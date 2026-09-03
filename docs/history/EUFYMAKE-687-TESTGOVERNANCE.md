@@ -212,3 +212,88 @@ governance-konform. Eine inhaltliche Änderung der Regeln (z. B. bei
 Erweiterung der Testmatrix, siehe Budget-Eskalation in Abschnitt 1) braucht
 erneut eine explizite Owner-Entscheidung und einen aktualisierten
 Freigabe-Vermerk hier.
+
+## 5. Vorbereiteter Nachtrag vom 2026-09-03 (Owner-Freigabe ausstehend)
+
+Dieser Abschnitt ist ein **Vorschlag** aus der Qualitätsprüfung des Epics
+#681 vor den Testdrucken. Er wird erst mit einem Freigabe-Vermerk in
+Abschnitt 4 verbindlich; bis dahin gelten die Abschnitte 1–3 unverändert.
+Die zugehörigen Ablaufschritte stehen bereits in
+[`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](EUFYMAKE-687-DRUCK-CHECKLISTE.md)
+(§0 und Phase 2b), die Felder in
+[`EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md)
+(§3.0 und §3.1).
+
+### 5.1 Voraussetzungen vor Phase 3 (Ergänzung zu Abschnitt 1)
+
+- Ein Druck startet erst, wenn Firmware-Version, Gerätewarnungen (Scraper,
+  Luftfilter, Tinte) samt Tintenständen, Substrat, Messmittel je Messgröße
+  und die festen Laufparameter in Protokoll §3.0 eingetragen sind.
+- Die Vorschau (`Preview`) jeder Druckvariante wird vor dem ersten Druck ohne
+  `Print` geöffnet und in Protokoll §3.1 protokolliert. Ein von der Vorschau
+  ausgelöster Gerätevorgang verbraucht kein Material und zählt nicht gegen
+  das Budget, wird aber nur nach ausdrücklicher Owner-Freigabe ausgelöst.
+- Der Tintenbedarf wird vor dem ersten Druck gegen die Tintenstände geprüft.
+  Planungsannahme, solange Studio keine Schätzung anzeigt: rund 10 ml je
+  90-mm-Keil und bis rund 20 ml je Vollfläche bei 2,50 mm Texturhöhe, ohne
+  Underbase. Reicht der Vorrat absehbar nicht für die 13 Erstläufe, greift
+  die Budget-Eskalation aus Abschnitt 1 vor dem Druck.
+- Ohne Profilmessmittel wird I-14 nicht gedruckt; ohne die vorab festgelegte
+  Auswertungsregel wird der I-03-Vergleich nicht gedruckt
+  (`EUFYMAKE-688-HEIGHT-VERTRAG.md` §4.0).
+
+### 5.2 Screenshots und Studio-Projekte (Ergänzung zu Abschnitt 3)
+
+- Screenshots aus Studio und je Zelle gespeicherte Studio-Projekte gelten
+  als Rohartefakte wie Testfotos: Ablage im nicht geteilten iCloud-Ordner
+  unter `…/<Issue>/<Zelle>/studio/`, SHA-256 je Datei, Referenz in der
+  Spalte „Screenshot-Referenz" des Importprotokolls bzw. in Protokoll §3.1.
+- Konto- oder Nutzernamen und E-Mail-Adressen in Studio-Fenstern werden vor
+  der Ablage abgedeckt oder beschnitten; die Metadaten-, Lizenz- und
+  Aufbewahrungsregeln aus Abschnitt 3 gelten unverändert.
+
+### 5.3 Owner-Entscheidung I-10 gegen G-02
+
+I-10 normal/invertiert und G-02 verwenden dieselben Dateien
+(`gloss_wedge.png`, `gloss_wedge_inverted.png`) über denselben Gloss-Pfad;
+der bisherige Plan druckte jede Richtung dreimal. Vor dem ersten Gloss-Druck
+ist zu entscheiden:
+
+- **Option A (empfohlen):** I-10 physisch streichen. Die Polarität liefert
+  G-02 mit je zwei unabhängigen Läufen je Richtung. Die Plätze 9–10 der
+  Stammvarianten bleiben unzugeordnet und werden ohne neue Owner-Freigabe
+  nicht umgewidmet; die physische Matrix umfasst dann 11 Stammvarianten.
+- **Option B:** I-10 dem in `EUFYMAKE-690-GLOSS-VERTRAG.md` §6.1
+  dokumentierten Spot-UV-Zweipass (Pfad 2) zuordnen und G-02 **fest** dem
+  nativen `Gloss Varnish`-Pfad (Pfad 1), um Zweipass und nativen Pfad zu
+  vergleichen (GL-02). Die Pfadwahl je Reihe wird in Protokoll §3.0
+  festgeschrieben; ohne diese Bindung wären beide Zellen erneut redundant.
+  Die Registrierung zwischen den Durchgängen wird über die G-08-Marken
+  protokolliert.
+
+Beide Optionen lassen das harte Limit von 35 Drucken unverändert. Bis zur
+Entscheidung bleiben die Zeilen 9–10 gesperrt. Diese Sperre wirkt bis zur
+Freigabe ausschließlich als Voraussetzung in §0 der Druck-Checkliste, die vor
+Phase 3 erledigt sein muss; Abschnitt 1 dieser Governance bleibt bis dahin
+unverändert und führt I-10 formal in der 13-Varianten-Matrix. Erst der
+Freigabe-Vermerk in Abschnitt 4 macht die Entscheidung Teil der verbindlichen
+Regeln.
+
+### 5.4 Gloss-Ebene bei I-08 nach Crop
+
+Die separate Gloss-Ebene bleibt unbeschnitten und unverschoben; die
+Registrierung wird nur in der Überlappung mit dem beschnittenen
+COLOR/HEIGHT-Objekt bewertet (Regel in `EUFYMAKE-689-MM-DPI-VERTRAG.md`).
+Das ist Testdesign, keine Budgetänderung, und hier nur zur Vollständigkeit
+verlinkt.
+
+Vorbereiteter Freigabe-Vermerk für Abschnitt 4 (erst nach Entscheidung
+übernehmen):
+
+```
+Aktualisiert: (Datum) – Owner-Entscheidung von NikolayDA: Nachtrag 5.1–5.2
+  übernommen (Voraussetzungen vor Phase 3, Screenshots/Studio-Projekte als
+  Rohartefakte); I-10/G-02 nach Option (A|B) – bei B: I-10 Zweipass, G-02
+  fest nativ; Gloss-Ebene bei I-08 nach Crop bleibt unverändert. Hartes Limit
+  weiterhin 35 Drucke.
+```

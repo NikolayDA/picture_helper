@@ -15,8 +15,8 @@
 | Editor-Version | 1.20.0 |
 | E1/Firmware | E1 im Editor online; Firmware nicht protokolliert |
 | Betriebssystem | macOS 26.6.2 (Build 25G83) |
-| Material/Tinte/Klarlack/Ink-Mode | nativer Studio-Modus `Gloss Varnish` auswählbar; Material/Geräteparameter ausstehend; kein Druck gestartet |
-| Beleuchtung/Messmittel | ausstehend |
+| Material/Tinte/Klarlack/Ink-Mode | nativer Studio-Modus `Gloss Varnish` auswählbar; Material/Geräteparameter ausstehend; Substrat für G-06 zwingend nicht-weiß (Protokoll §3.0); kein Druck gestartet |
+| Beleuchtung/Messmittel | vor Phase 3 in `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md` §3.0 festzulegen: konstante Kameraposition, zwei Beleuchtungswinkel (§6.2) |
 | Fixture-Katalog | Schema 5; 42 Einzel-Fixtures; 7 unveränderte Exportpakete |
 | Manifest-Vertrauensanker | `7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a` |
 | Pre-Import-Report | 42/42 Fixtures und 7/7 Pakete OK; Report-SHA-256 `4c418ccceac01b43b3aee615d89574f590a342da88dd4ad9941522e026b3603b` |
@@ -173,6 +173,29 @@ Underbase, Passzahl und jede weitere HEIGHT-relevante Studio-/Geräteoption
 werden einmal festgelegt und für 0/32768/65535 unverändert protokolliert. Ist
 diese native Zuweisung in der verwendeten Version nicht eindeutig verfügbar,
 bleibt G-07 blockiert; drei gewöhnliche Flat-Graustufenbilder sind kein Ersatz.
+
+**I-10 gegen G-02:** Die Stammvarianten I-10 normal/invertiert verwenden
+dieselben Dateien wie G-02 über denselben Gloss-Pfad; der bisherige Plan
+druckte jede Richtung dreimal. Bis zur Owner-Entscheidung in
+`EUFYMAKE-687-TESTGOVERNANCE.md` §4 (Optionen in Abschnitt 5 dort und in der
+Druck-Checkliste) wird I-10 nicht gedruckt; die Polarität wird in jedem Fall
+über G-02 mit je zwei unabhängigen Läufen je Richtung ermittelt. Bei Option B
+ist G-02 fest dem nativen Pfad 1 und I-10 fest dem Zweipass (Pfad 2)
+zugeordnet; abweichend von der Regel „genau ein Pfad" in Abschnitt 6.1 wird
+die Pfadwahl dann je Reihe in `EUFYMAKE-687-PROTOKOLL-VORLAGEN.md` §3.0
+festgeschrieben, damit beide Zellen nicht erneut redundant werden.
+
+**Substrat für G-06:** Die Alpha-Felder 0/128/255 steuern Deckung und
+Weiß-Unterlage; auf weißem Substrat bleibt beides unsichtbar. G-06 wird
+deshalb nur auf einem nicht-weißen, in Protokoll §3.0 eingetragenen Substrat
+gedruckt, demselben wie I-13.
+
+**Gloss-Ebene bei I-08 nach Crop:** Sie bleibt unbeschnitten und
+unverschoben (Regel in `EUFYMAKE-689-MM-DPI-VERTRAG.md`); die Registrierung
+wird nur in der Überlappung mit dem beschnittenen COLOR/HEIGHT-Objekt
+bewertet. Die Maskenfläche außerhalb der Überlappung trägt Hintergrundwert 0
+und Landmarken 255; welcher Wert Klarlack erhält, ist bis G-02 offen und wird
+dort nur beobachtet.
 
 NikolayDA hat am 2026-09-02 das harte Gesamtbudget auf **35 physische Drucke**
 erhöht. Elf zusätzliche Plätze sind G-01 bis G-08 fest zugeordnet: G-01

@@ -12,13 +12,13 @@
 | --- | --- |
 | EufyMake Studio | 4.2.2 |
 | Editor-Version | 1.20.0 (Versionshinweis im Editor) |
-| E1-Firmware | |
+| E1-Firmware | vor Phase 3 abzulesen (Checkliste §0); Wert: |
 | Hardware/Flatbed | E1 im Editor online; kein Druck gestartet |
 | Betriebssystem | macOS 26.6.2 (Build 25G83) |
-| Material/Tinte/Ink-Mode | |
+| Material/Tinte/Ink-Mode | Substrat vor Phase 3 festzulegen (Protokoll §3.0); Wert: |
 | Texturmodus und Höhenregler | `Customize Texture`; Ink Mode `Color Raised`; Stärke 2,50 mm; Regler nicht verändert |
-| Messmittel | |
-| Geschätzte Messunsicherheit | |
+| Messmittel | vor Phase 3 nach §4.0 festzulegen (Protokoll §3.0); Wert: |
+| Geschätzte Messunsicherheit | je Messgröße aus §4.0; Wert: |
 | Pre-Import-Report | 42/42 Fixtures und 7/7 Exportpakete erfolgreich; Manifest-Schema 5; erwarteter und tatsächlicher Manifest-SHA-256 `7c0b788cb614068c5e1d2a9ea4453929b2278d0e60fd8206d0c5ff5ed213627a`; Report-SHA-256 `4c418ccceac01b43b3aee615d89574f590a342da88dd4ad9941522e026b3603b` |
 | Foto-/Messdatenablage | gemäß `EUFYMAKE-687-TESTGOVERNANCE.md` |
 
@@ -111,6 +111,72 @@ bewerten.
 | 7 | 56173 | | | | | | |
 | 8 (Maximum) | 65535 | | | | | | |
 
+### 4.0 Messmittel, Auflösung und Auswertungsregel (vor Phase 3 festlegen)
+
+Alle Messmittel-Felder dieser Akte bleiben leer, bis sie in
+[`EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md)
+§3.0 eingetragen sind. Die Tabelle setzt die Sollgrößen der Druckvarianten
+(Layout 90,31 mm Kantenlänge, Texturhöhe 2,50 mm) in die Mindestauflösung
+um, die ein Messmittel haben muss, damit die Zelle überhaupt ein Ergebnis
+liefern kann. Maßgeblich ist die **Messunsicherheit** einschließlich
+Wiederholpräzision, nicht die Anzeigeauflösung des Geräts. Laterale und
+vertikale Sollgrößen skalieren unabhängig voneinander:
+
+- **Lateral** mit der Layoutkantenlänge `L` (Vorgabe 90,31 mm): Pixel
+  `L / 256` bzw. `L / 128`, Impulsbreite `L / 64`, Objektbreite nach Crop
+  `L × 44,86 / 90,31`. Die Texturhöhe ändert diese Werte nicht.
+- **Vertikal** mit der Texturhöhe `H` (Vorgabe 2,50 mm): 8-Bit-Stufe
+  `H / 255`, Kalibrierstufe `H / 2 / 4096`, I-11-Stufe `H / 7`, lineare
+  Vorhersage für Basis und Plateau `H / 4` und `3 H / 4`. Die Layoutgröße
+  ändert diese Werte nicht.
+- I-05 (101,60 mm) folgt allein aus dem `pHYs` der Datei, nicht aus dem
+  Layout.
+
+| Messgröße | Zellen | Sollgröße | Mindestanforderung (Messunsicherheit inkl. Wiederholpräzision) | Geeignete Mittel |
+| --- | --- | --- | --- | --- |
+| Reliefhöhe absolut (Stufe, Plateau, Basis) | I-11, I-07, I-02/I-04, I-13 | I-11-Stufe 0,357 mm; Basis/Plateau I-14 0,625/1,875 mm | ≤ 0,05 mm | Messschieber mit Tiefenmaß, Messuhr mit Messstativ |
+| Höhenprofil quer zur Kante (Kantenbreite 10–90 %, FWHM) | I-14, I-03 | Pixel 0,353 mm (256 px) bzw. 0,706 mm (128 px); Impulsbreite 1,41 mm | lateral ≤ 0,1 mm, vertikal ≤ 0,05 mm | Messuhr auf Schlitten oder Kreuztisch; Schnitt quer zur Kante plus Makrofoto mit Maßstab; 3D-Scan |
+| 8-Bit-Höhenstufe | I-03 | 0,0098 mm | ≤ 0,002 mm | mit Handmessmitteln nicht auflösbar; Profilometer oder vergleichbar |
+| 16-Bit-Kalibrierstufe (1,25 mm / 4096) | I-03, I-14 | 0,0003 mm | – | physisch nicht auflösbar |
+| Länge und Breite (mm/DPI) | I-05, I-08 | 101,60 mm bzw. 90,31/44,86 mm | ≤ 0,1 mm | Messschieber mit Messbereich ≥ 150 mm |
+
+**Auswertungsregel I-03 (8 gegen 16 Bit), vorab festgelegt:**
+
+1. Zeigt die untere Kalibrierfläche mit dem eingetragenen Messmittel in der
+   16-Bit-Variante mehr unterscheidbare Höhenstufen als in der 8-Bit-Variante
+   und übersteigt der Unterschied die in §3.0 eingetragene Messunsicherheit,
+   gilt „16-Bit-Nutzung im Druckpfad belegt" (Druckmessung).
+2. Ist keine Differenz messbar und liegt die eingetragene Messunsicherheit
+   einschließlich Wiederholpräzision bei ≤ 0,002 mm, also deutlich unter der
+   8-Bit-Stufe von 0,0098 mm, gilt „Studio-/Druckpfad quantisiert auf
+   8-Bit-Niveau oder gröber" (Druckmessung). Eine Anzeigeauflösung von
+   0,002 mm genügt dafür nicht.
+3. Ist keine Differenz messbar und ist die Messunsicherheit größer, lautet
+   das Ergebnis „nicht entscheidbar": H-01 bleibt offen, Profil v1 bleibt
+   vorläufig, und es wird kein Wiederholungslauf für I-03 angesetzt.
+4. Unabhängig davon wird aus I-03 und I-11 die kleinste physisch
+   unterscheidbare Höhenstufe (Stufenkanten, sichtbare Schichtdicke) als
+   „praktisch nutzbare Tonwertauflösung" protokolliert; sie erfüllt das
+   #688-Kriterium zur Tonwertauflösung auch dann, wenn H-01 unentschieden
+   bleibt.
+
+**Auswertungsregel I-14, vorab festgelegt:** Filterung gilt als belegt, wenn
+die Kantenbreite 10–90 % der 128-px-Variante die der 256-px-Variante um mehr
+als die Messunsicherheit übersteigt. Für Normalisierung gilt: `H / 4` und
+`3 H / 4` sind nur die lineare Vorhersage; die tatsächliche
+Digitalwert→mm-Kennlinie ist unbekannt und kann bildunabhängig nichtlinear
+sein. Sollhöhen für Basis und Plateau sind deshalb die aus der
+I-11-Stufenkennlinie (Vollbereichs-Fixture 0…65535, ergänzt um die
+I-07-Null- und Maximalhöhe) für die Digitalwerte 16384 und 49152
+interpolierten Höhen. Normalisierung gilt als belegt, wenn Basis und Plateau
+von diesen Sollhöhen um mehr als die Messunsicherheit in Richtung der
+gemessenen Null- bzw. Maximalhöhe abweichen; stimmen sie mit der
+I-11-Kennlinie überein, liegt keine Normalisierung vor, auch wenn die
+Kennlinie nichtlinear ist. Voraussetzung ist, dass I-11 und I-07 mit
+demselben Reihenparametersatz (Protokoll §3.0) gedruckt und gemessen wurden.
+Ohne ein in Protokoll §3.0 eingetragenes Profilmessmittel wird I-14 nicht
+gedruckt.
+
 ### 4.1 Kontrollierte Filtermessung I-14
 
 Die I-03-16-Bit-Variante `height_impulse_edge_16bit.png` ist zugleich die
@@ -127,7 +193,8 @@ Dreiviertel enthält die begrenzte Kante/den Impuls; das untere Viertel die
 
 Die Vorschau ist eine eigene Beobachtung und kein Ersatz für die Messwerte.
 Basis und Plateau entsprechen im Fixture 1/4 bzw. 3/4 des Digitalbereichs;
-eine Streckung auf physisches Minimum/Maximum ist als automatische
+ihre Sollhöhen kommen aus der I-11-Kennlinie nach §4.0, und erst eine
+Verschiebung auf die gemessene Null- bzw. Maximalhöhe ist als automatische
 Normalisierung zu werten. Eine Differenz zwischen den beiden Druckzeilen ist dem kombinierten
 Studio-/Druckpfad zuzuordnen. Das Ergebnis darf weder als Studio-only-Filter
 noch als Evidenz zum abgelehnten I-12-Seitenverhältnisfall ausgegeben werden.
