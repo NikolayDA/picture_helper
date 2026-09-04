@@ -21,7 +21,7 @@
 
 **EufyMake #681/#687–#691：** PR #948、#951–#953、#956 与 #959–#961 已合并。Schema 5 包含 42 个单独 fixture 和 7 个未改变的真实导出包。Studio 4.2.2 中全部 29 个必需的无打印导入测试格均已完成。除原生 8/16 位 HEIGHT、COLOR/HEIGHT 联动裁剪和 `Gloss Varnish` 外，还证实：像素尺寸不同但宽高比相同会被接受，而 HEIGHT 宽高比不同会以 `Depth image ratio does not match the original image` 拒绝。I-14 新增了直接生成、未预滤波的 256/128 像素边缘/脉冲对；两个变体均已通过导入预检。I-09（`.empf`）仍不阻塞。仅剩 #688–#690 的 E1 物理测量及 #687 收尾评审。
 
-保持不变并已关闭：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项、v2.7.0 至 v2.9.0 各版本，以及史诗 #741（含其十一个子议题）、史诗 #805（含 #806–#811）、#817 与 #821；自上次同步以来新关闭：#943（PR #944）、#692（PR #947），以及 ANLEITUNG 评审 #963 及其 #964–#966、#968、#969（PR #972）与 #967（PR #973）（详见以往轮次）。
+保持不变并已关闭：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项、v2.7.0 至 v2.9.0 各版本，以及史诗 #741（含其十一个子议题）、史诗 #805（含 #806–#811）、#817 与 #821；自上次同步以来新关闭：#943（PR #944）、#692（PR #947），以及 ANLEITUNG 评审 #963 及其 #964–#966、#968、#969（PR #972）与 #967（PR #973），以及测试套件审计 #949（PR #977）（详见以往轮次）。
 
 未结事项：下方分诊表中每个议题一行。自 #821 起，数量与表行都不再人工维护——`scripts/recommendations_live_check.py --write` 依据 GitHub 实时状态更新全部六个版本，评估列仍是编辑工作。
 
@@ -69,7 +69,7 @@
 | [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] 发布流程：runner、自动化证据、解除 main 冻结 | 🟠 高（发布运维；实现基本完成） | 🟢 低（两项按时间/事件产生的证据） | – （史诗） | 接近完成：尚缺 2026-09-03 04:40 UTC 首次定时 dry-run，以及下一次真实发布中包含 #918 的端到端证据 |
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | 用发布 ref 取代 main 冻结（ADR + fail-closed 保障） | 🟠 高（发布期间 `main` 保持可合并） | 🟢 低（代码、文档与 ruleset 均已就位） | – （无代理；下一次发布运行） | 受阻（外部）：2026-08-31 收尾检查后重新开启；PR #936 与生效的 ruleset 21941216 均有记录，仅差一次发布后验收可证明从 `release/vX.Y.Z` 启动的运行 |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | 运维：自托管 runner（heartbeat 告警通道） | 🟡 中（运维通道，非产品代码） | 🟢 低（仅观察） | – （无代理；仓库 owner） | 长期开启：请勿关闭（`RUNNER_HEARTBEAT_ISSUE`）；2026-08-31 的 FAIL 是计划中的告警通道测试，清理步骤已完成（计划运行 33496675995 通过，x86_64 跳过，Mac 与 Pi 均合格） |
-| [#949](https://github.com/NikolayDA/picture_helper/issues/949) | 测试套件审计 2026-09-02（RESOURCES 漂移、CropOverlay、覆盖率缺口） | 🟡 中（测试质量与防漂移，无生产缺陷） | 🟢 中低（四项范围明确的测试改动，不涉及生产代码） | Sonnet，中 | 可启动 —— 四项改动；基线早于 PR #948–#954 且受环境影响，须连同平台/依赖重新测量 |
+| [#975](https://github.com/NikolayDA/picture_helper/issues/975) | eufymake：重新生成并重新绑定标注载体 04 与 10 | 🟡 中（纸箱上两个测试区域没有标注；不阻塞其余十一个） | 🟢 低（生成器已修正；仅剩数据侧的补齐） | – （无代理；需要装有 Arial 的 macOS） | 已阻塞（外部）—— Linux 下 Liberation Sans 产生不同字节；重新生成、在 Studio 中重新绑定并更新 `projects.json` |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
 | [#958](https://github.com/NikolayDA/picture_helper/issues/958) | Heartbeat：7/14/21 天分级离线升级（邮件提示、移出）及期限守卫 | 🟡 中（Runner 运维与通知，非产品缺陷） | 🟠 高（历史分析、幂等阶段、工作流权限、测试与文档） | Opus，高 + 负责人决策 | 需决策 E1 每日评论、E2 自动/手动移出和 E3 阶段天数；随后以 fail-safe 实现并通过测试议题验收 |
 | [#974](https://github.com/NikolayDA/picture_helper/issues/974) | 用守卫保证 ANLEITUNG.pdf 与 ANLEITUNG.md 同步（守卫缺失） | 🟡 中（随附的手册 PDF 可能过期；#953 已真实发生漂移） | 🟢 低（一个免联网测试加一行文档；无法按字节比较） | Sonnet，中 | 可开始 – 实现基于 git 的共同变更守卫；以 `ac64c3b` 作红色证明，`91b32b4` 与 HEAD 为绿色 |
