@@ -116,6 +116,7 @@ UI-тести взаємодії; workflow ліцензій генерує зв�
 | `actions/upload-artifact@v7` | Завантаження артефактів звіту про ліцензії | MIT |
 | `actions/download-artifact@v8` | Завантаження короткого звіту про ліцензії в окремому job для коментаря | MIT |
 | `actions/github-script@v9` | Коментування короткого звіту про ліцензії в pull request | MIT |
+| `codecov/codecov-action@v5` | Надсилання звіту покриття до Codecov (лише Ubuntu/Python 3.12) | MIT |
 | `pip-licenses` | Сирий dump ліцензій установлених пакетів | MIT |
 | `requirements/constraints.txt` | Відтворюваний dependency snapshot для локальних перевірок, CI, звіту ліцензій та App Bundle | Файл проєкту |
 | Системні бібліотеки Qt через `apt` (Linux) | Headless-середовище виконання Qt: `libegl1`, `libfontconfig1`, `libxkbcommon0`, `libdbus-1-3`, `libxcb-*` | спаковані дистрибутивом, різні пермісивні/copyleft-ліцензії (Mesa, fontconfig, libxkbcommon, libxcb, dbus …) |

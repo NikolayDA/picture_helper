@@ -115,6 +115,7 @@ dependency/license report.
 | `actions/upload-artifact@v7` | Upload license report artifacts | MIT |
 | `actions/download-artifact@v8` | Download the license summary in the separate comment job | MIT |
 | `actions/github-script@v9` | Comment the license summary on pull requests | MIT |
+| `codecov/codecov-action@v5` | Upload the coverage report to Codecov (Ubuntu/Python 3.12 only) | MIT |
 | `pip-licenses` | Raw dump of installed package licenses | MIT |
 | `requirements/constraints.txt` | Reproducible dependency snapshot for local checks, CI, license report, and app bundle | Project file |
 | Qt system libraries via `apt` (Linux) | Headless Qt runtime: `libegl1`, `libfontconfig1`, `libxkbcommon0`, `libdbus-1-3`, `libxcb-*` | distro-packaged, various permissive/copyleft licenses (Mesa, fontconfig, libxkbcommon, libxcb, dbus …) |

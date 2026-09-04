@@ -6,6 +6,12 @@ Verteidigt drei zentrale Geometrie-Regeln:
   Bildrand hinaus gezogen wird (gemeinsamer Skalierungsfaktor).
 - ``set_position`` clampt den Rahmen sicher innerhalb des Bildes.
 - ``boundingRect`` enthält Marge für Eck-Handles und Hinweistext.
+
+Gearbeitet wird ausschließlich über die öffentliche Schnittstelle
+(``set_position``, ``crop_rect``, ``top_left``, ``size``) – also über das,
+was ``canvas_crop.py`` tatsächlich konsumiert. Zugriffe auf ``_cx``/``_cw``
+und Geschwister hätten sich bei jeder Umbenennung gemeldet, ohne dass sich
+Verhalten geändert hätte (#949).
 """
 import pytest
 from PyQt6.QtGui import QImage, QPainter
@@ -16,36 +22,37 @@ from bgremover import CropOverlayItem
 
 def test_resize_preserves_aspect_when_dragged_past_edge(qapp):
     ov = CropOverlayItem(img_w=1000, img_h=600, crop_w=400, crop_h=300)
-    ov._cx = 0.0
-    ov._cy = 0.0
-    aspect = ov._aspect
+    ov.set_position(0.0, 0.0)
     ov.resize_from_corner(corner_idx=3, sx=2000.0, sy=2000.0)
-    assert ov._cw / ov._ch == pytest.approx(aspect, rel=1e-6)
-    assert ov._cw <= ov._iw + 1e-6
-    assert ov._ch <= ov._ih + 1e-6
+
+    width, height = ov.size
+    assert width / height == pytest.approx(400 / 300, rel=1e-6)
+    assert width <= 1000 + 1e-6
+    assert height <= 600 + 1e-6
 
 
 def test_resize_preserves_aspect_on_narrow_image(qapp):
     """Schmales Hochformat-Bild, Querformat-Crop 3:2."""
     ov = CropOverlayItem(img_w=400, img_h=1000, crop_w=300, crop_h=200)
-    ov._cx = 0.0
-    ov._cy = 0.0
-    aspect = ov._aspect
+    ov.set_position(0.0, 0.0)
     ov.resize_from_corner(corner_idx=3, sx=5000.0, sy=5000.0)
-    assert ov._cw / ov._ch == pytest.approx(aspect, rel=1e-6)
-    assert ov._cw <= ov._iw + 1e-6
-    assert ov._ch <= ov._ih + 1e-6
+
+    width, height = ov.size
+    assert width / height == pytest.approx(300 / 200, rel=1e-6)
+    assert width <= 400 + 1e-6
+    assert height <= 1000 + 1e-6
 
 
 def test_resize_minimum_size_enforced(qapp):
     """Sehr kleine Drag-Distanz darf nicht unter MIN_PX (20) gehen."""
     ov = CropOverlayItem(img_w=1000, img_h=1000, crop_w=500, crop_h=500)
-    ov._cx = 100.0
-    ov._cy = 100.0
+    ov.set_position(100.0, 100.0)
     # BR-Ecke fast auf TL ziehen → würde sonst 0×0 ergeben
     ov.resize_from_corner(corner_idx=3, sx=100.5, sy=100.5)
-    assert ov._cw >= 20.0
-    assert ov._ch >= 20.0
+
+    width, height = ov.size
+    assert width >= 20.0
+    assert height >= 20.0
 
 
 # ── set_position Clamp ─────────────────────────────────────────────────
@@ -53,11 +60,11 @@ def test_resize_minimum_size_enforced(qapp):
 def test_set_position_clamps_to_image_bounds(qapp):
     ov = CropOverlayItem(img_w=1000, img_h=800, crop_w=200, crop_h=150)
     ov.set_position(-100.0, -100.0)
-    assert ov._cx == 0.0
-    assert ov._cy == 0.0
+    assert (ov.top_left.x(), ov.top_left.y()) == (0.0, 0.0)
+
     ov.set_position(5000.0, 5000.0)
-    assert ov._cx == pytest.approx(1000 - 200)
-    assert ov._cy == pytest.approx(800 - 150)
+    assert ov.top_left.x() == pytest.approx(1000 - 200)
+    assert ov.top_left.y() == pytest.approx(800 - 150)
 
 
 # ── boundingRect mit Marge ─────────────────────────────────────────────
@@ -67,15 +74,15 @@ def test_bounding_rect_has_margin_for_handles_and_hint(qapp):
     br = ov.boundingRect()
     assert br.x() < 0
     assert br.y() < 0
-    assert br.right() > ov._iw
-    assert br.bottom() > ov._ih
+    assert br.right() > 100
+    assert br.bottom() > 100
 
 
 # ── corner_hit ─────────────────────────────────────────────────────────
 
 def test_corner_hit_returns_index_on_handle(qapp):
     ov = CropOverlayItem(img_w=1000, img_h=1000, crop_w=400, crop_h=400)
-    # Initial zentriert: _cx = 300, _cy = 300
+    # Initial zentriert: top_left liegt bei (300, 300).
     assert ov.corner_hit(300.0, 300.0) == 0  # TL
     assert ov.corner_hit(700.0, 300.0) == 1  # TR
     assert ov.corner_hit(300.0, 700.0) == 2  # BL
@@ -110,27 +117,30 @@ def test_resize_from_corner_tl_anchors_br(qapp):
     ov = CropOverlayItem(img_w=1000, img_h=1000, crop_w=400, crop_h=400)
     ov.resize_from_corner(corner_idx=0, sx=200.0, sy=200.0)
     # BR-Ecke bleibt bei (700, 700).
-    assert ov._cx + ov._cw == pytest.approx(700.0)
-    assert ov._cy + ov._ch == pytest.approx(700.0)
-    assert ov._cw / ov._ch == pytest.approx(ov._aspect, rel=1e-6)
+    width, height = ov.size
+    assert ov.top_left.x() + width == pytest.approx(700.0)
+    assert ov.top_left.y() + height == pytest.approx(700.0)
+    assert width / height == pytest.approx(1.0, rel=1e-6)
 
 
 def test_resize_from_corner_tr_anchors_bl(qapp):
     ov = CropOverlayItem(img_w=1000, img_h=1000, crop_w=400, crop_h=400)
     ov.resize_from_corner(corner_idx=1, sx=800.0, sy=200.0)
     # BL-Ecke bleibt bei (300, 700): linke Kante + untere Kante fix.
-    assert ov._cx == pytest.approx(300.0)
-    assert ov._cy + ov._ch == pytest.approx(700.0)
-    assert ov._cw / ov._ch == pytest.approx(ov._aspect, rel=1e-6)
+    width, height = ov.size
+    assert ov.top_left.x() == pytest.approx(300.0)
+    assert ov.top_left.y() + height == pytest.approx(700.0)
+    assert width / height == pytest.approx(1.0, rel=1e-6)
 
 
 def test_resize_from_corner_bl_anchors_tr(qapp):
     ov = CropOverlayItem(img_w=1000, img_h=1000, crop_w=400, crop_h=400)
     ov.resize_from_corner(corner_idx=2, sx=200.0, sy=800.0)
     # TR-Ecke bleibt bei (700, 300): rechte Kante + obere Kante fix.
-    assert ov._cx + ov._cw == pytest.approx(700.0)
-    assert ov._cy == pytest.approx(300.0)
-    assert ov._cw / ov._ch == pytest.approx(ov._aspect, rel=1e-6)
+    width, height = ov.size
+    assert ov.top_left.x() + width == pytest.approx(700.0)
+    assert ov.top_left.y() == pytest.approx(300.0)
+    assert width / height == pytest.approx(1.0, rel=1e-6)
 
 
 # ── inside ─────────────────────────────────────────────────────────────
@@ -161,9 +171,9 @@ def test_size_property(qapp):
 
 # ── paint: läuft offscreen ohne Fehler durch beide Zweige ──────────────
 
-def _render(ov: CropOverlayItem) -> QImage:
+def _render(ov: CropOverlayItem, img_w: int, img_h: int) -> QImage:
     """Rendert das Overlay in ein Offscreen-``QImage`` (kein Fenster)."""
-    img = QImage(ov._iw, ov._ih, QImage.Format.Format_ARGB32)
+    img = QImage(img_w, img_h, QImage.Format.Format_ARGB32)
     img.fill(0)
     painter = QPainter(img)
     try:
@@ -176,7 +186,7 @@ def _render(ov: CropOverlayItem) -> QImage:
 def test_paint_rectangle_overlay_runs(qapp):
     ov = CropOverlayItem(img_w=120, img_h=80, crop_w=60, crop_h=40,
                          is_circle=False)
-    rendered = _render(ov)
+    rendered = _render(ov, 120, 80)
 
     assert rendered.pixelColor(5, 5).alpha() == 150
     assert rendered.pixelColor(40, 25).alpha() == 0
@@ -185,7 +195,7 @@ def test_paint_rectangle_overlay_runs(qapp):
 def test_paint_circle_overlay_runs(qapp):
     ov = CropOverlayItem(img_w=120, img_h=120, crop_w=80, crop_h=80,
                          is_circle=True)
-    rendered = _render(ov)
+    rendered = _render(ov, 120, 120)
 
     assert rendered.pixelColor(60, 35).alpha() == 0
     assert rendered.pixelColor(30, 30).alpha() == 150
@@ -198,3 +208,29 @@ def test_paint_with_none_painter_is_noop(qapp):
     ov.paint(None, None, None)
 
     assert ov.crop_rect() == before
+
+
+def test_crop_rect_rounds_the_float_frame_for_consumers(qapp):
+    """``crop_rect()`` rundet zur nächsten Ganzzahl, ``.5`` zur geraden.
+
+    ``canvas_crop.py`` schneidet ausschließlich über diesen Rückgabewert zu,
+    während Ziehen und Skalieren intern in Float rechnen. Ohne diese
+    Zusicherung war nirgends festgehalten, wie beide zusammenpassen (#949).
+
+    Der ``.5``-Fall gehört ausdrücklich dazu: ``crop.py`` nutzt Pythons
+    ``round``, also *round-half-to-even* – ``300.5`` wird zu ``300``, nicht
+    zu ``301``. Eindeutige Werte allein könnten kaufmännisches Runden nicht
+    davon unterscheiden.
+    """
+    ov = CropOverlayItem(img_w=800, img_h=600, crop_w=200, crop_h=150)
+
+    ov.set_position(300.6, 225.4)
+    assert (ov.top_left.x(), ov.top_left.y()) == pytest.approx((300.6, 225.4))
+    rect = ov.crop_rect()
+    assert (rect.x(), rect.y(), rect.width(), rect.height()) == (301, 225, 200, 150)
+
+    # Genau auf der Hälfte: beide Koordinaten runden zur geraden Zahl ab.
+    ov.set_position(300.5, 224.5)
+    assert (ov.top_left.x(), ov.top_left.y()) == pytest.approx((300.5, 224.5))
+    rect = ov.crop_rect()
+    assert (rect.x(), rect.y()) == (300, 224)

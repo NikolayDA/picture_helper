@@ -603,3 +603,23 @@ def test_light_palette_matches_prototype_bundle_directly():
     # gliche text3 dem Prototyp irgendwann, gehört sie hier entfernt.
     assert LIGHT.text3 == "#59626f"
     assert light_vars["--text-3"] == "#69727f"
+
+
+def test_expert_mode_label_style_switches_colour_with_state() -> None:
+    """Der Umschalter-Hinweis wechselt zwischen ``text3`` und ``accent_text``.
+
+    Geprüft war bisher nur, dass Umschalten und Tooltip funktionieren – der
+    tatsächliche Farbwechsel dieses Stylesheets blieb offen (#949). In beiden
+    Paletten, damit eine Palette den Wechsel nicht still verliert.
+    """
+    from bgremover.theme import DARK, LIGHT, expert_mode_label_style
+
+    for palette in (LIGHT, DARK):
+        assert palette.accent_text != palette.text3
+
+        active = expert_mode_label_style(palette, active=True)
+        inactive = expert_mode_label_style(palette, active=False)
+
+        assert f"color: {palette.accent_text};" in active
+        assert f"color: {palette.text3};" in inactive
+        assert active != inactive

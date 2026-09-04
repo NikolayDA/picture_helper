@@ -118,6 +118,7 @@ Lizenz-Workflow erzeugt den Dependency-/Lizenzreport.
 | `actions/upload-artifact@v7` | Lizenzreport-Artefakte hochladen | MIT |
 | `actions/download-artifact@v8` | Lizenz-Kurzfassung im separaten Kommentar-Job herunterladen | MIT |
 | `actions/github-script@v9` | Lizenz-Kurzfassung am Pull Request kommentieren | MIT |
+| `codecov/codecov-action@v5` | Coverage-Bericht an Codecov senden (nur Ubuntu/Python 3.12) | MIT |
 | `pip-licenses` | Rohdump der installierten Paketlizenzen | MIT |
 | `requirements/constraints.txt` | Reproduzierbarer Dependency-Snapshot für lokale Checks, CI, Lizenzreport und App-Bundle | Projektdatei |
 | Qt-Systembibliotheken via `apt` (Linux) | Headless-Qt-Laufzeit: `libegl1`, `libfontconfig1`, `libxkbcommon0`, `libdbus-1-3`, `libxcb-*` | distro-paketiert, diverse permissive/Copyleft-Lizenzen (Mesa, fontconfig, libxkbcommon, libxcb, dbus …) |

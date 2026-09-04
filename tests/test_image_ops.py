@@ -383,3 +383,25 @@ def test_ensure_save_extension_uses_preferred_when_filter_unknown() -> None:
     # Kein zuordenbarer Filter → Default-Suffix des (normalisierten) preferred.
     assert ensure_save_extension("/x/y", "Alle (*)", "TIFF") == "/x/y.tif"
     assert ensure_save_extension("/x/y", "Alle (*)", "EXR") == "/x/y.png"
+
+
+def test_crop_image_rectangle_branch_uses_offset_and_size() -> None:
+    """Rechteckiger Zuschnitt mit Versatz – der eigentliche Standardfall.
+
+    Bisher deckte nur ``is_circle=True`` diese Funktion direkt ab; eine
+    Regression in der Offset-/Größenarithmetik des Rechteck-Zweigs wäre im
+    Qt-freien Modultest durchgerutscht (#949).
+    """
+    img = Image.new("RGBA", (10, 8), (0, 0, 0, 255))
+    img.putpixel((4, 3), (255, 0, 0, 255))
+    img.putpixel((6, 5), (0, 255, 0, 255))
+
+    result = crop_image(img, (3, 2, 5, 4), is_circle=False)
+
+    assert result.size == (5, 4)
+    assert result.mode == "RGBA"
+    # (4,3) liegt im Ausschnitt bei (1,1), (6,5) bei (3,3).
+    assert result.getpixel((1, 1)) == (255, 0, 0, 255)
+    assert result.getpixel((3, 3)) == (0, 255, 0, 255)
+    # Ohne Kreismaske bleibt die Deckung überall unangetastet.
+    assert result.getpixel((0, 0)) == (0, 0, 0, 255)
