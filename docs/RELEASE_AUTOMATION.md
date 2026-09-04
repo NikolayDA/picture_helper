@@ -747,6 +747,9 @@ Es ist keine Code-Änderung nötig.
   Dry-Run des Abnahme-Workflows ausführen, bevor ein echtes Release ansteht.
 - Runner, die länger offline sind, entfernt GitHub nach 14 Tagen automatisch –
   dann §2 wiederholen (Schritt für Schritt: [`RUNNER_SETUP.md`](RUNNER_SETUP.md)).
+  Der Heartbeat warnt vorher gestuft im Betriebs-Issue und trägt die
+  Plattform nach der dritten Stufe aus dem erwarteten Bestand aus (§7,
+  *Gestufte Eskalation*); die Reaktivierung steht in `RUNNER_SETUP.md` §4/§5.
 
 ### 6.1 Neustart und Update je Gerät
 
@@ -858,11 +861,106 @@ Repository-Variable `RUNNER_HEARTBEAT_ISSUE` ist Pflicht, die Auswertung
 prüft sie vor jeder Messung und schlägt sonst mit klarer Meldung fehl. Grund
 steht unter *Grenzen*: Im Offline-Fall ist der **Lauf** nicht abgeschlossen,
 und Actions benachrichtigt erst beim Laufabschluss — die Fehlermail bleibt
-also genau dann aus, wenn sie gebraucht würde. Kommentiert wird **nur im
-Fehlerfall**: ein täglicher Erfolgskommentar würde das Betriebs-Issue in
-Rauschen verwandeln, in dem der eine Ausfalltag untergeht. Bericht
-(`heartbeat.json`, Schema 1) und Summary hängen 30 Tage als Artefakt
-`runner-heartbeat` am Lauf.
+also genau dann aus, wenn sie gebraucht würde. Kommentiert wird seit #958
+**nicht mehr täglich**, sondern an den drei Stufen der Eskalation (unten):
+Ein täglicher Kommentar verwandelte das Betriebs-Issue in Rauschen, in dem
+die eine Frist untergeht, die zählt. Der Tageszustand bleibt in Job-Summary
+und Artefakt; Bericht (`heartbeat.json`, Schema 1) und Summary hängen 30 Tage
+als Artefakt `runner-heartbeat` am Lauf. Eingekauft ist damit
+(Owner-Entscheid E1 zu #958): Ein Ausfall **unter** der ersten Stufe erzeugt
+keine Mail – nur den roten bzw. wartenden Lauf in der Actions-Übersicht.
+
+**Gestufte Eskalation (#958).** GitHub entfernt einen Self-hosted Runner
+nach 14 Tagen ohne Verbindung automatisch aus der Registrierung – eine
+Plattformregel, weder verschiebbar noch per API aufschiebbar. Der Heartbeat kann davor nur warnen und danach seinen eigenen
+Bestand bereinigen. Er zählt deshalb je Plattform die Tage ohne bestandenen
+Heartbeat (`offline_since` = erster Lauf der laufenden Episode ohne
+`success`, aus der Laufhistorie dieses Workflows über `actions: read`,
+Rückblick 45 Tage – reicht die Historie nicht bis zu einem bestandenen Lauf,
+heißt es „seit mindestens") und eskaliert in drei Stufen:
+
+| Stufe | Fällig | Aktion | Inhalt |
+|---|---|---|---|
+| 1 | ≥ 7 Tage | Kommentar im Betriebs-Issue mit `@Owner` → E-Mail | Plattform/Job, offline seit, Tage; Restlaufzeit, bis GitHub die Registrierung entfernt; Abhilfe `RUNNER_SETUP.md` §5 (Wiederbeleben) |
+| 2 | ≥ 12 Tage | Kommentar mit Erwähnung → E-Mail | Zweite Warnung **vor** GitHubs Entfernung (noch 2 Tage); Neuregistrierung nach `RUNNER_SETUP.md` §2/§3; Ankündigung der Austragung am Tag 21 |
+| 3 | ≥ 21 Tage | Austragung + Kommentar mit Erwähnung → E-Mail | Plattform aus dem erwarteten Bestand ausgetragen (`RUNNER_<PLATTFORM>_RETIRED_SINCE=<Datum>`); Heartbeat und Abnahme-Matrix führen sie als „ausgetragen seit <Datum>"; Reaktivierungsweg |
+
+Die Stufentage 7/12/21 (Owner-Entscheid E3) legen die zweite Warnung
+bewusst **vor** GitHubs Frist von 14 Tagen ohne Verbindung; mit 7/14/21
+fiele sie mit der Entfernung zusammen und käme für „Wiederbeleben statt neu
+aufsetzen" zu spät. Einzige Quelle der Zahlen sind `OFFLINE_STAGE_DAYS` und
+`GITHUB_RUNNER_REMOVAL_DAYS` in `scripts/runner_heartbeat.py`; der Workflow
+übergibt sie explizit (`--stage-days`, `--removal-days`), die Abhilfetexte
+werden daraus gerendert, und `tests/test_runner_heartbeat_workflow.py` hält
+Workflow und jede Doku-Stelle dagegen – mit Negativkontrolle.
+
+Regeln:
+
+- **E-Mail-Kanal** ist die `@`-Erwähnung des Repository-Owners im Kommentar
+  (`GITHUB_REPOSITORY_OWNER`); sie benachrichtigt unabhängig vom Watch-Status
+  des Threads. Kein SMTP, kein neues Geheimnis.
+- **Genau ein Kommentar je Plattform, Episode und Stufe.** Jeder Kommentar
+  trägt in der ersten Zeile den Marker
+  `runner-heartbeat:<plattform>:offline:<offline_since>:stage-<n>`; der
+  nächste Lauf liest die Kommentare des Issues und postet nur, was fehlt. Ein
+  Wiederanlauf am selben Tag postet nichts. Je Lauf höchstens **eine** Stufe
+  je Plattform – die höchste fällige, noch nicht gepostete; eine dadurch
+  übersprungene niedrigere Stufe wird nicht nachgeholt, ihr Text („noch N
+  Tage bis GitHub …") wäre bereits falsch.
+- **Beide FAIL-Ursachen** werden gestuft – offline (`queued` nach der
+  Annahmefrist) und nicht einsatzbereit (`failure`/`timed_out`/
+  `startup_failure`). Die Texte unterscheiden sie; nur der Offline-Text nennt
+  GitHubs Entfernung, ein verbundener Runner verliert seine Registrierung
+  nicht.
+- **Wartungsfenster** (`RUNNER_HEARTBEAT_PAUSED`): keine Stufenkommentare,
+  die Auswertung läuft nicht. Die Zählung läuft aber real weiter –
+  übersprungene Läufe zählen weder als Ausfall noch als Erfolg und beenden
+  eine begonnene Episode nicht. Nach Pausenende wird je Lauf die höchste
+  fällige Stufe nachgeholt.
+- **Fail-safe** wie der Heartbeat selbst: Ohne lesbare Laufhistorie oder
+  Kommentarliste gibt es keine Stufe, sondern den sichtbaren Hinweis
+  „Stufenauswertung ohne Entscheidung" in Summary und Bericht
+  (`stage_observation`). Nie eine geratene Stufe.
+- **Bericht** additiv (Schema bleibt 1): `offline_stages` je Plattform mit
+  `offline_since`, `days`, `stage_due`, `stages_posted`, `stage_to_post`,
+  `retire`; die Summary rendert Stufe und nächstes Fälligkeitsdatum.
+
+**Austragung (Stufe 3, Owner-Entscheid E2: automatisch).** Der Job `retire`
+setzt die Repository-Variable `RUNNER_<PLATTFORM>_RETIRED_SINCE` auf das
+Datum der Austragung und postet **danach** den Stufe-3-Kommentar – so
+behauptet kein Kommentar eine Austragung, die nicht stattfand. Das Setzen
+einer Variable braucht `actions: write`; dieses Recht trägt im gesamten
+Workflow nur dieser Job, und er nutzt es für nichts anderes – der Heartbeat
+bricht weiterhin nie einen Lauf ab (Nachtrag in
+[`ADR-2026-release-abnahme-automatisierung.md`](history/ADR-2026-release-abnahme-automatisierung.md)).
+Mit gesetzter Variable überspringen **beide** Self-hosted-Workflows die
+Plattform: Der Heartbeat erwartet sie nicht mehr (kein täglicher Fehlalarm,
+kein weiteres Eskalieren), und die Abnahme lässt Preflight und Plattform-Job
+aus; die Abschlussmatrix führt sie als „ausgetragen seit <Datum>" –
+sichtbar, aber **kein Abnahmeergebnis**: Das Plattform-Fazit trägt
+`retired`, der Freigabevertrag verlangt weiterhin `approved`, die Freigabe
+bleibt blockiert. Die GitHub-Registrierung ist zu diesem Zeitpunkt in der
+Regel bereits weg (14-Tage-Regel); die Austragung bereinigt nur den eigenen
+Bestand.
+
+**Reaktivierung** (einmal manuell zu proben, HB-STUFE-07): Gerät nach
+`RUNNER_SETUP.md` §2 bzw. §3 neu registrieren, die Variable entfernen
+(`gh variable delete RUNNER_<PLATTFORM>_RETIRED_SINCE`), den Heartbeat von
+Hand starten (`RUNNER_SETUP.md` §0.2) und grün abwarten – Kommandos in
+`RUNNER_SETUP.md` §4. Eine Austragung beendet die Episode: Fällt die
+reaktivierte Plattform erneut aus, beginnt die Zählung nach dem Datum des
+Stufe-3-Kommentars neu; die alten Marker bleiben wirkungslos, ein zweites,
+stilles Austragen gibt es nicht.
+
+**Mail-Nachweis (HB-STUFE-05).** Per `workflow_dispatch` mit
+`simulate_offline_since` (Datum) **und** `simulate_target_issue`
+(Test-Issue, nie das Betriebs-Issue) lässt sich je Stufe ein Kommentar
+erzeugen, ohne dass etwas ausgetragen wird: Die Simulation ersetzt nur die
+Historie, die Marker werden echt gegen das Test-Issue geprüft, und die
+Austragungsliste entsteht nicht. Eine halbe Angabe bricht ab, ebenso das
+Betriebs-Issue als Ziel. Für alle drei Stufen dreimal dispatchen mit Datum
+= heute − 7, − 12 und − 21 und den E-Mail-Eingang im Test-Issue
+protokollieren.
 
 **Wartungsfenster.** Für geplante Eingriffe pausieren:
 
@@ -876,6 +974,12 @@ Im Regelbetrieb erforderlich:
 | Variable | Wert |
 |---|---|
 | `RUNNER_HEARTBEAT_ISSUE` | Nummer des Betriebs-Issues (Pflicht, s. *Meldeweg*) |
+
+Von der Eskalation gesetzt (Stufe 3), zur Reaktivierung zu entfernen:
+
+| Variable | Wert |
+|---|---|
+| `RUNNER_MACOS_ARM64_RETIRED_SINCE`, `RUNNER_LINUX_ARM64_RETIRED_SINCE`, `RUNNER_LINUX_X86_64_RETIRED_SINCE` | Datum der Austragung, `YYYY-MM-DD` (leer oder fehlend = Plattform aktiv) |
 
 Die Pause ist sichtbar (Warnung und Job-Summary „pausiert") und **befristet**:
 Fehlt das Enddatum, ist es unlesbar oder liegt es in der Vergangenheit, wird
@@ -910,8 +1014,8 @@ Pflichtvariable oben: Dieser Lauf endet dann am Folgetag ebenfalls als
 „cancelled". Auf die Actions-Fehlermail ist im Offline-Fall daher **kein**
 Verlass — sie kommt nur, wenn der Lauf regulär abschließt (alle Runner haben
 den Job angenommen, mindestens einer die Prüfung nicht bestanden). Der
-Issue-Kommentar der Auswertung fällt dagegen zur Annahmefrist, also lange
-bevor der wartende Job überhaupt endet. Kann die
+Stufenkommentar der Auswertung fällt dagegen zur Annahmefrist des jeweiligen
+Stufentags, also lange bevor der wartende Job überhaupt endet. Kann die
 Job-Liste nicht abgefragt werden (API-Fehler), meldet der Heartbeat
 `UNOBSERVED` und schlägt keinen Alarm – ein Monitor ohne Beobachtung darf
 kein Verdikt fällen.

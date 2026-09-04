@@ -1056,13 +1056,41 @@ seit #944 ausschließlich mit `success`: `startup_failure` zählt wie `failure`/
 `UNOBSERVED`-Zweig, statt still als bestanden zu gelten. Fail-safe wie der
 Lauf-Watchdog — ohne **frische** Beobachtung (API-Fehler) gibt es kein
 Verdikt, sonst entwertete jeder Schluckauf den Alarm. Der
-Heartbeat bricht nie einen Lauf ab (kein `actions: write`); gegen auflaufende
-Warteschlangen-Jobs schützt `concurrency: cancel-in-progress`. Genau deshalb
-endet ein Offline-Lauf am Folgetag als **`cancelled`**, nicht als Fehlschlag —
-Actions verschickt dann keine Fehlermail, und der Issue-Kommentar ist der
-einzige Kanal, der rechtzeitig trägt. Ein Workflow-Kommentar behauptete
-zeitweise das Gegenteil und nahm damit der Pflichtvariable ihre Begründung;
-ein Test hält die Aussage jetzt fest.
+Heartbeat bricht nie einen Lauf ab (die Auswertung hat kein
+`actions: write`); gegen auflaufende Warteschlangen-Jobs schützt
+`concurrency: cancel-in-progress`. Genau deshalb endet ein Offline-Lauf am
+Folgetag als **`cancelled`**, nicht als Fehlschlag — Actions verschickt dann
+keine Fehlermail, und der Issue-Kommentar ist der einzige Kanal, der trägt.
+Ein Workflow-Kommentar behauptete zeitweise das Gegenteil und nahm damit der
+Pflichtvariable ihre Begründung; ein Test hält die Aussage jetzt fest.
+
+**Gestufte Eskalation (#958).** Statt eines Tageskommentars (Owner-Entscheid
+E1) zählt die Auswertung je Plattform die Tage ohne bestandenen Heartbeat
+aus der Laufhistorie des Workflows (`actions: read`, Rückblick 45 Tage;
+übersprungene Läufe eines Wartungsfensters zählen weder als Ausfall noch als
+Erfolg) und postet an den Stufen 7/12/21 Tage (E3) je genau **einen**
+Kommentar mit `@`-Erwähnung des Owners – die Erwähnung ist der Mailweg. Die
+zweite Stufe liegt bewusst **vor** GitHubs Entfernung eines seit 14 Tagen
+nicht verbundenen Runners (Plattformregel, nicht konfigurierbar); die
+dritte trägt die Plattform automatisch aus (E2): Der eigene Job `retire`
+setzt `RUNNER_<PLATTFORM>_RETIRED_SINCE` und postet erst danach – er ist
+der einzige Träger von `actions: write` und nutzt es nur dafür. Beide
+Self-hosted-Workflows überspringen eine ausgetragene Plattform; die
+Abschlussmatrix führt sie als „ausgetragen seit <Datum>" (`retired`,
+blockierend, kein Abnahmeergebnis). Marker
+`runner-heartbeat:<plattform>:offline:<offline_since>:stage-<n>` machen
+jeden Lauf idempotent; je Lauf höchstens eine Stufe je Plattform (die
+höchste fällige, noch nicht gepostete); eine Austragung beendet die Episode,
+die Zählung nach einer Reaktivierung beginnt neu. Ohne lesbare Historie oder
+Kommentare gibt es keine Stufe, sondern den Hinweis `stage_observation`.
+`OFFLINE_STAGE_DAYS`/`GITHUB_RUNNER_REMOVAL_DAYS` in
+`scripts/runner_heartbeat.py` sind die einzige Quelle der Zahlen; der
+Workflow übergibt sie explizit, und
+`tests/test_runner_heartbeat_workflow.py` hält Workflow, RELEASE_AUTOMATION
+§6/§7, RUNNER_SETUP §0/§4/§5 und diesen Abschnitt dagegen – mit
+Negativkontrolle. Der Mail-Nachweis läuft per `workflow_dispatch` mit
+`simulate_offline_since` + `simulate_target_issue` (nur gemeinsam wirksam,
+nie gegen das Betriebs-Issue, nie mit Austragung).
 
 Die **Geräte-Härtung** in `abnahme_preflight.run_hardening` prüft zwei
 Lücken, die aus den offiziellen Vorlagen von `actions/runner` stammen:
@@ -1090,7 +1118,8 @@ still stillzulegen. `RUNNER_HEARTBEAT_ISSUE` ist dagegen **Pflicht**: Im
 Offline-Fall bleibt der Lauf unabgeschlossen (der wartende Job hängt bis zu
 24 h) und endet am Folgetag über `cancel-in-progress` als „cancelled" — die
 Actions-Fehlermail bleibt also genau dann aus, wenn sie gebraucht würde. Der
-Issue-Kommentar der Auswertung ist der einzige Kanal, der rechtzeitig trägt. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7;
+Stufenkommentar der Auswertung (7/12/21 Tage, mit Erwähnung) ist der einzige
+Kanal, der trägt. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7;
 Neuaufbau eines Geräts von Null: [`docs/RUNNER_SETUP.md`](docs/RUNNER_SETUP.md)
 (#946, Kochbuch ohne eigene Regelhoheit – bei Widerspruch gilt §2/§6/§7).
 

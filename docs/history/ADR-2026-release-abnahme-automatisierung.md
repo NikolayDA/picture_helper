@@ -198,3 +198,38 @@ Retry-Verhalten und Vertrauensgrenzen sind im
 [Publish-ADR](ADR-2026-release-manifest-publish.md) festgelegt. Der
 `release_tag`-Codepfad in `scripts/release_abnahme.py` bleibt nur als
 diagnostischer Legacy-Helfer erhalten und kann kein Freigabemanifest erzeugen.
+
+## Nachtrag (2026-09-04, #958): `actions: write` für die Austragung im Heartbeat
+
+Das Sicherheitsmodell oben bindet Schreibrechte an den Ort, an dem sie
+unvermeidbar sind: `issues: write` im Aggregations-Job, `actions: write`
+im Runner-Watchdog (#915) für den force-cancel. Der tägliche Heartbeat
+(#921) hatte bewusst **gar kein** Schreibrecht auf Actions – er meldet, er
+bricht nichts ab (`RELEASE_AUTOMATION.md` §7).
+
+Mit der gestuften Eskalation (#958) trägt der Heartbeat eine Plattform nach
+21 Tagen ohne bestandenen Heartbeat automatisch aus dem erwarteten Bestand
+aus (Owner-Entscheid E2), indem er die Repository-Variable
+`RUNNER_<PLATTFORM>_RETIRED_SINCE` setzt. Das Setzen einer Variable braucht
+`actions: write` für den `GITHUB_TOKEN`.
+
+Entscheidung:
+
+- Das Recht trägt ein **eigener Job** `retire` in `runner-heartbeat.yml` –
+  wie beim Watchdog der einzige Träger im gesamten Workflow. Die Auswertung
+  (`watch`) bleibt bei `actions: read`, die Runner-Jobs bei `contents: read`.
+- Der Job nutzt das Recht ausschließlich für `gh variable set`; er bricht
+  keinen Lauf ab. Er setzt die Variable **vor** dem Stufe-3-Kommentar, damit
+  kein Kommentar eine Austragung behauptet, die nicht stattfand, und liest
+  Plattform, Variablenname und Datum aus der vom Skript geschriebenen
+  `retire.tsv` – das Namensschema wird nicht in der Shell nachgebaut.
+- `tests/test_runner_heartbeat_workflow.py` erzwingt: genau dieser Job trägt
+  `actions: write`, `issues: write` liegt nur bei den kommentierenden Jobs,
+  und der Job kennt weder `gh run cancel` noch einen Variablennamen.
+
+Verworfen: eine **manuelle** Austragung nach Anleitung in der Stufe-3-Mail
+(hätte den Heartbeat ohne jedes Schreibrecht auf Actions gelassen, war aber
+nicht der Owner-Entscheid) und ein **PAT mit `Administration`** zum Lesen
+oder Löschen der Runner-Registrierung (bleibt ausgeschlossen, Abwägung in
+`RELEASE_AUTOMATION.md` §7 – GitHubs 14-Tage-Entfernung ist ohnehin nicht
+beeinflussbar, die Austragung bereinigt nur den eigenen Bestand).

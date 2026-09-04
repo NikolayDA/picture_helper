@@ -396,3 +396,51 @@ def test_workflow_supports_optional_update_check_predecessor() -> None:
     assert "--candidate-version" in block
     for script in ("release_abnahme.py", "abnahme_smoke.py", "update_probe_cli.py"):
         assert (ROOT / "scripts" / script).is_file(), f"{script} fehlt"
+
+
+def test_retired_platforms_are_skipped_surfaced_and_not_expected() -> None:
+    """#958 (HB-STUFE-07): Eine per Heartbeat-Eskalation ausgetragene Plattform
+    wird wie der pausierte x86_64-Pfad behandelt – Preflight und
+    Plattform-Job übersprungen, Watchdog und Aggregation informiert, Hinweis
+    sichtbar. Sonst wartete der Lauf auf einen Runner, den es nicht mehr gibt,
+    und die Matrix könnte die Austragung nie zeigen."""
+    yaml = pytest.importorskip("yaml")
+    jobs = yaml.safe_load(_workflow_text())["jobs"]
+    variables = {
+        "macos-arm64": "RUNNER_MACOS_ARM64_RETIRED_SINCE",
+        "linux-arm64": "RUNNER_LINUX_ARM64_RETIRED_SINCE",
+        "linux-x86_64": "RUNNER_LINUX_X86_64_RETIRED_SINCE",
+    }
+    for platform, variable in variables.items():
+        for prefix in ("preflight", "abnahme"):
+            condition = str(jobs[f"{prefix}-{platform}"]["if"])
+            assert f"vars.{variable} == ''" in condition, (prefix, platform, condition)
+    # Watchdog und Aggregation bekommen dieselben Werte – ueber env, nie als
+    # ${{ }} in der Kommandozeile.
+    for job_id, step_name in (
+        ("runner-watchdog", "Preflight-Queue ueberwachen"),
+        ("aggregation", "Abschlussmatrix erzeugen"),
+    ):
+        step = next(s for s in jobs[job_id]["steps"] if s.get("name") == step_name)
+        for platform, variable in variables.items():
+            assert f'--retired-since "{platform}=' in step["run"], (job_id, platform)
+            assert any(variable in str(v) for v in step.get("env", {}).values()), (job_id, variable)
+    # Sichtbar statt still: GitHub-hosted Hinweis-Job, sobald eine Variable gesetzt ist.
+    notice = jobs["hinweis-ausgetragen"]
+    assert notice["runs-on"] == "ubuntu-latest"
+    for variable in variables.values():
+        assert f"vars.{variable} != ''" in str(notice["if"])
+    body = " ".join(str(s.get("run", "")) for s in notice["steps"])
+    assert "::warning title=Plattform ausgetragen" in body and "RUNNER_SETUP.md" in body
+    # Das Namensschema kommt aus dem Heartbeat-Skript.
+    import importlib.util
+    import sys
+
+    spec = importlib.util.spec_from_file_location(
+        "runner_heartbeat_abnahme", ROOT / "scripts" / "runner_heartbeat.py"
+    )
+    assert spec is not None and spec.loader is not None
+    heartbeat = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = heartbeat  # dataclasses brauchen das Modul in sys.modules
+    spec.loader.exec_module(heartbeat)
+    assert {heartbeat.retired_variable(p) for p in variables} == set(variables.values())

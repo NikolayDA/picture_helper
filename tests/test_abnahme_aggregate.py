@@ -456,3 +456,80 @@ def test_main_writes_matrix(tmp_path: Path) -> None:
                    "--commit-sha", "abc123"])
     assert rc == 0
     assert "Abschlussmatrix" in out.read_text(encoding="utf-8")
+
+
+# ── Ausgetragene Plattform (#958) ──────────────────────────────────────
+
+def test_retired_platform_is_visible_and_blocks(tmp_path: Path) -> None:
+    """HB-STUFE-07: „ausgetragen seit <Datum>" analog zu „pausiert" – sichtbar,
+    kein Abnahmeergebnis, Kriterien bleiben fail-closed."""
+    _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
+    e2e, live_gl = _complete_aux("linux-arm64")
+    retired = agg.parse_retired(["macos-arm64=2026-09-01", "linux-arm64=", "linux-x86_64="])
+    assert retired == {"macos-arm64": "2026-09-01"}
+    rows = agg.build_matrix(
+        agg.load_evidence(tmp_path), e2e=e2e, live_gl=live_gl, retired=retired,
+    )
+    by = {r.kriterium: r for r in rows}
+    smoke = by[agg.EXPECTED_PLATFORMS["macos-arm64"]]
+    assert smoke.status == agg.RETIRED_STATUS
+    assert "Ausgetragen seit 2026-09-01" in smoke.hinweis and "#958" in smoke.hinweis
+    assert smoke.datum == "2026-09-01"
+    # Alle drei Pflichtzeilen der Plattform tragen denselben Zustand – keine "fehlt"-Lücke.
+    assert by["macos-arm64: Native 3D-E2E (Projekt→HEIGHT→Undo/Save)"].status == agg.RETIRED_STATUS
+    assert by["macos-arm64: Live-GL-Performance"].status == agg.RETIRED_STATUS
+    assert not any(r.status == "fehlt" for r in rows), [r for r in rows if r.status == "fehlt"]
+    # Die aktive Plattform bleibt normal bewertet.
+    assert by[agg.EXPECTED_PLATFORMS["linux-arm64"]].status == "erfuellt"
+    # Fail-closed: blockierend, Diagnose-Banner, ``retired`` im Fazit.
+    assert agg.has_blocking_gaps(rows) and agg.has_technical_gaps(rows)
+    summary = agg.build_acceptance_summary(rows, commit_sha="abc", retired=retired)
+    assert summary["platforms"] == {
+        "macos-arm64": agg.RETIRED_SUMMARY, "linux-arm64": "approved", "linux-x86_64": "paused",
+    }
+    assert summary["blocking"] is True
+    md = agg.render_markdown(rows, commit_sha="abc")
+    assert "⛔ ausgetragen" in md and "Diagnose – kein Abnahmeergebnis" in md
+    assert "ausgetragene Plattformen (Heartbeat-Eskalation, #958) blockieren" in md
+
+
+def test_retired_x86_64_outranks_its_enabled_flag() -> None:
+    rows = agg.build_matrix({}, x86_64_enabled=True, retired={"linux-x86_64": "2026-09-02"})
+    row = next(r for r in rows if r.kriterium == agg.PAUSED_LABEL)
+    assert row.status == agg.RETIRED_STATUS
+    summary = agg.build_acceptance_summary(
+        rows, commit_sha="abc", x86_64_enabled=True, retired={"linux-x86_64": "2026-09-02"},
+    )
+    assert summary["platforms"]["linux-x86_64"] == agg.RETIRED_SUMMARY
+
+
+def test_retired_summary_is_rejected_by_the_release_contract() -> None:
+    """Der Freigabevertrag kennt ``retired`` nicht als erlaubten Zustand – und
+    soll es auch nicht: ``approved`` bleibt die einzige Freigabe."""
+    import importlib.util
+    import sys
+
+    import pytest
+
+    spec = importlib.util.spec_from_file_location(
+        "release_contract_retired", ROOT / "scripts" / "release_contract.py"
+    )
+    assert spec is not None and spec.loader is not None
+    contract = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = contract  # dataclasses brauchen das Modul in sys.modules
+    spec.loader.exec_module(contract)
+    with pytest.raises(contract.ContractError, match="approved"):
+        contract._validate_platform_statuses({
+            "macos-arm64": agg.RETIRED_SUMMARY, "linux-arm64": "approved", "linux-x86_64": "paused",
+        })
+
+
+def test_cli_rejects_an_unreadable_retirement_date(tmp_path: Path, capsys) -> None:
+    import pytest
+
+    with pytest.raises(SystemExit):
+        agg.main([
+            "--artifacts-dir", str(tmp_path), "--output", str(tmp_path / "m.md"),
+            "--retired-since", "macos-arm64=demnächst",
+        ])
+    assert "kein ISO-Datum" in capsys.readouterr().err

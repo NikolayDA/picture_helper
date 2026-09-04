@@ -29,22 +29,49 @@ on:
     # recommendations-live-check (06:30) und clamav-db-refresh (Mo 03:00).
     - cron: '30 5 * * *'
   workflow_dispatch:
+    inputs:
+      # Einmaliger Mail-Nachweis der gestuften Eskalation (#958, HB-STUFE-05):
+      # simuliert eine Episode ab dem Datum und postet die faellige Stufe in
+      # ein TEST-Issue – nie in das Betriebs-Issue, nie mit Austragung. Beide
+      # Eingaben sind nur GEMEINSAM wirksam; eine halbe Angabe bricht ab.
+      simulate_offline_since:
+        description: >-
+          Simulation (#958): Datum, seit dem die Plattform als offline gilt
+          (YYYY-MM-DD). Nur zusammen mit simulate_target_issue wirksam.
+        type: string
+        default: ''
+      simulate_target_issue:
+        description: >-
+          Simulation (#958): Test-Issue fuer den Stufenkommentar. Muss vom
+          Betriebs-Issue (RUNNER_HEARTBEAT_ISSUE) abweichen.
+        type: string
+        default: ''
+      simulate_platform:
+        description: 'Simulation (#958): Plattform der simulierten Episode.'
+        type: choice
+        options:
+          - linux-arm64
+          - macos-arm64
+          - linux-x86_64
+        default: linux-arm64
 
 permissions:
   contents: read
 
 # Ein wartender Heartbeat-Job bleibt bei einem offline Runner in der
 # Warteschlange, bis GitHub ihn nach 24 h abbricht. Der Heartbeat bricht ihn
-# bewusst nicht selbst ab – er hat dafuer kein Schreibrecht auf Actions und
-# soll es nicht haben; stattdessen raeumt der Lauf
+# bewusst nicht selbst ab – die Auswertung hat dafuer kein Schreibrecht auf
+# Actions, und das einzige actions: write des Workflows (Job "retire", #958)
+# setzt ausschliesslich die Austragungs-Variable; stattdessen raeumt der Lauf
 # des naechsten Tages auf, sodass hoechstens ein wartender Lauf stehen bleibt.
 #
 # Wichtig dabei, und frueher hier falsch behauptet: Der LAUF endet dann als
 # "cancelled", nicht als Fehlschlag – Actions verschickt also gerade im
 # Offline-Fall KEINE Fehlermail. Genau deshalb ist RUNNER_HEARTBEAT_ISSUE
 # Pflicht: Der Issue-Kommentar der Auswertung ist der einzige Kanal, der im
-# Zielszenario rechtzeitig traegt. Er faellt zur Annahmefrist (15 min), lange
-# bevor der wartende Job ueberhaupt endet.
+# Zielszenario traegt. Seit #958 faellt er nicht mehr taeglich, sondern an
+# den drei Stufen der Eskalation (7/12/21 Tage) – mit Erwaehnung des Owners
+# und damit als E-Mail. Der Tageszustand bleibt Job-Summary und Artefakt.
 concurrency:
   group: runner-heartbeat
   cancel-in-progress: true
@@ -92,10 +119,14 @@ jobs:
             cat heartbeat/status.md >> "$GITHUB_STEP_SUMMARY"
           fi
 
+  # Eine ausgetragene Plattform (Stufe 3 der Eskalation, #958) traegt die
+  # Repository-Variable RUNNER_<PLATTFORM>_RETIRED_SINCE und wird uebersprungen
+  # – wie der pausierte x86_64-Pfad. Die Auswertung bekommt dieselben Werte
+  # ueber --retired-since und erwartet den Job dann nicht mehr.
   heartbeat-macos-arm64:
     name: Heartbeat macOS arm64
     needs: status
-    if: needs.status.outputs.paused != 'true'
+    if: needs.status.outputs.paused != 'true' && vars.RUNNER_MACOS_ARM64_RETIRED_SINCE == ''
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 10
     steps:
@@ -108,7 +139,7 @@ jobs:
   heartbeat-linux-arm64:
     name: Heartbeat Linux aarch64
     needs: status
-    if: needs.status.outputs.paused != 'true'
+    if: needs.status.outputs.paused != 'true' && vars.RUNNER_LINUX_ARM64_RETIRED_SINCE == ''
     runs-on: [self-hosted, Linux, ARM64]
     timeout-minutes: 10
     steps:
@@ -124,7 +155,10 @@ jobs:
   heartbeat-linux-x86_64:
     name: Heartbeat Linux x86_64
     needs: status
-    if: needs.status.outputs.paused != 'true' && vars.ABNAHME_X86_64_ENABLED == 'true'
+    if: >-
+      needs.status.outputs.paused != 'true'
+      && vars.ABNAHME_X86_64_ENABLED == 'true'
+      && vars.RUNNER_LINUX_X86_64_RETIRED_SINCE == ''
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 10
     steps:
@@ -152,6 +186,16 @@ jobs:
   # Ein Dauer-Token mit Administrationsrecht im Repository waere ein
   # groesseres Risiko als der Nutzen; die Job-Annahme belegt dasselbe.
   # Abwaegung: RELEASE_AUTOMATION §7.
+  #
+  # Gestufte Eskalation (#958): Ein FAIL-Tag erzeugt keinen Kommentar mehr
+  # (Owner-Entscheid E1 – der Tageszustand bleibt Job-Summary und Artefakt;
+  # ein Ausfall unter der ersten Stufe erzeugt bewusst keine Mail). Die
+  # Auswertung zaehlt je Plattform die Tage ohne bestandenen Heartbeat aus
+  # der Laufhistorie dieses Workflows (actions: read) und postet an genau
+  # drei Stufen einen Kommentar mit Erwaehnung des Owners – die Erwaehnung
+  # ist der E-Mail-Kanal. Stufen 1 und 2 postet dieser Job; Stufe 3 traegt
+  # die Plattform aus und gehoert dem Job "retire" unten, dem einzigen Traeger
+  # von actions: write.
   watch:
     name: Heartbeat-Auswertung
     needs: status
@@ -162,6 +206,9 @@ jobs:
       contents: read
       actions: read
       issues: write
+    outputs:
+      retire: ${{ steps.watch.outputs.retire }}
+      comment_issue: ${{ steps.watch.outputs.comment_issue }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -170,9 +217,10 @@ jobs:
       # Runner-Job in der Warteschlange, ist der LAUF nicht abgeschlossen –
       # Actions benachrichtigt aber erst beim Laufabschluss, und der kommt in
       # diesem Fall erst am naechsten Tag ueber cancel-in-progress, also als
-      # "cancelled" und damit ohne Fehlermeldung. Der Issue-Kommentar aus
-      # diesem Job ist deshalb der einzige Kanal, der im Zielszenario
-      # rechtzeitig traegt; ohne Ziel-Issue gaebe es gar keinen.
+      # "cancelled" und damit ohne Fehlermeldung. Der Stufenkommentar aus
+      # diesem Job (#958: nach 7/12/21 Tagen, mit Erwaehnung) ist deshalb der
+      # einzige Kanal, der im Zielszenario traegt; ohne Ziel-Issue gaebe es
+      # gar keinen.
       - name: Meldeweg pruefen
         env:
           TARGET_ISSUE: ${{ vars.RUNNER_HEARTBEAT_ISSUE }}
@@ -186,11 +234,22 @@ jobs:
             || { echo "::error::RUNNER_HEARTBEAT_ISSUE muss eine positive Issue-Nummer sein."; exit 1; }
           echo "[heartbeat] Meldeweg: Issue #${TARGET_ISSUE}"
 
+      # Die Stufentage und GitHubs 14-Tage-Frist stehen hier explizit, damit
+      # sie im Joblog sichtbar sind; einzige Quelle bleiben die Konstanten im
+      # Skript (OFFLINE_STAGE_DAYS, GITHUB_RUNNER_REMOVAL_DAYS) – der Waechter
+      # in tests/test_runner_heartbeat_workflow.py haelt beide gegeneinander.
       - name: Runner-Annahme beobachten
         id: watch
         env:
           GH_TOKEN: ${{ github.token }}
           X86_64_ENABLED: ${{ vars.ABNAHME_X86_64_ENABLED }}
+          TARGET_ISSUE: ${{ vars.RUNNER_HEARTBEAT_ISSUE }}
+          RETIRED_MACOS_ARM64: ${{ vars.RUNNER_MACOS_ARM64_RETIRED_SINCE }}
+          RETIRED_LINUX_ARM64: ${{ vars.RUNNER_LINUX_ARM64_RETIRED_SINCE }}
+          RETIRED_LINUX_X86_64: ${{ vars.RUNNER_LINUX_X86_64_RETIRED_SINCE }}
+          SIMULATE_OFFLINE_SINCE: ${{ inputs.simulate_offline_since }}
+          SIMULATE_TARGET_ISSUE: ${{ inputs.simulate_target_issue }}
+          SIMULATE_PLATFORM: ${{ inputs.simulate_platform }}
         run: |
           set -euo pipefail
           x86flag=""
@@ -205,6 +264,17 @@ jobs:
             --acceptance-seconds 900 \
             --deadline-seconds 1500 \
             --poll-seconds 20 \
+            --stage-days 7 12 21 \
+            --removal-days 14 \
+            --issue "$TARGET_ISSUE" \
+            --mention "$GITHUB_REPOSITORY_OWNER" \
+            --retired-since "macos-arm64=${RETIRED_MACOS_ARM64:-}" \
+            --retired-since "linux-arm64=${RETIRED_LINUX_ARM64:-}" \
+            --retired-since "linux-x86_64=${RETIRED_LINUX_X86_64:-}" \
+            --comments-dir heartbeat \
+            --simulate-offline-since "${SIMULATE_OFFLINE_SINCE:-}" \
+            --simulate-target-issue "${SIMULATE_TARGET_ISSUE:-}" \
+            --simulate-platform "${SIMULATE_PLATFORM:-linux-arm64}" \
             $x86flag
 
       # Auch (gerade) im Fehlerfall: der Bericht ist die Evidenz.
@@ -227,22 +297,74 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      # Nur im Fehlerfall kommentieren: ein taeglicher Erfolgskommentar
-      # verwandelte das Betriebs-Issue in Rauschen, in dem der eine
-      # Ausfalltag untergeht. Die Variable ist oben bereits als Pflicht
-      # geprueft – hier fehlt sie nur noch, wenn der Schritt selbst nicht
-      # gelaufen ist.
-      - name: Betriebs-Issue benachrichtigen
-        if: failure()
+      # Stufen 1 und 2 (#958): genau ein Kommentar je Plattform, Episode und
+      # Stufe – das Skript hat den Marker bereits gegen die vorhandenen
+      # Kommentare geprueft und schreibt nur, was heute faellig ist. Kein
+      # Tageskommentar mehr (Owner-Entscheid E1). !cancelled() statt
+      # failure(): Der Beobachtungsschritt endet bei einem FAIL mit Exit 1,
+      # genau dann ist eine Stufe faellig. Ziel-Issue ist der Wert, gegen den
+      # das Skript die Marker geprueft hat (in der Simulation das Test-Issue).
+      - name: Stufenkommentar posten
+        if: ${{ !cancelled() && steps.watch.outputs.stage_comments != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          TARGET_ISSUE: ${{ vars.RUNNER_HEARTBEAT_ISSUE }}
+          COMMENT_ISSUE: ${{ steps.watch.outputs.comment_issue }}
+          STAGE_PLATFORMS: ${{ steps.watch.outputs.stage_comments }}
         run: |
           set -euo pipefail
-          report="heartbeat/heartbeat.md"
-          test -f "$report" || { echo "::notice::Kein Bericht zum Kommentieren."; exit 0; }
-          if [ -z "${TARGET_ISSUE:-}" ]; then
-            echo "::warning::RUNNER_HEARTBEAT_ISSUE fehlt – Befund bleibt Job-Summary und Artefakt."
-            exit 0
-          fi
-          gh issue comment "$TARGET_ISSUE" --repo "${GITHUB_REPOSITORY}" --body-file "$report"
+          [[ "$COMMENT_ISSUE" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::Ziel-Issue fuer den Stufenkommentar ist keine Issue-Nummer."; exit 1; }
+          for platform in $STAGE_PLATFORMS; do
+            gh issue comment "$COMMENT_ISSUE" --repo "${GITHUB_REPOSITORY}" \
+              --body-file "heartbeat/stage-comment-${platform}.md"
+            echo "[heartbeat] Stufenkommentar fuer ${platform} in #${COMMENT_ISSUE} gepostet"
+          done
+
+  # Stufe 3 (#958, Owner-Entscheid E2: automatisch): Die Plattform wird aus dem
+  # erwarteten Bestand ausgetragen, indem RUNNER_<PLATTFORM>_RETIRED_SINCE
+  # gesetzt wird. Das Setzen einer Repository-Variable braucht actions: write;
+  # dieses Recht traegt im gesamten Workflow NUR dieser Job (Muster: Watchdog
+  # in release-abnahme.yml), und er nutzt es fuer nichts anderes – er bricht
+  # keinen Lauf ab. Erst NACH dem Setzen der Variable postet er den
+  # Stufe-3-Kommentar, damit der Kommentar nie eine Austragung behauptet, die
+  # nicht stattgefunden hat. Plattform, Variablenname und Datum kommen aus
+  # heartbeat/retire.tsv (Artefakt des Auswertungsjobs) – das Namensschema
+  # wird hier nicht in der Shell nachgebaut.
+  retire:
+    name: Austragung (Stufe 3)
+    needs: watch
+    if: ${{ !cancelled() && needs.watch.outputs.retire != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: runner-heartbeat
+          path: heartbeat
+      - name: Plattform austragen und Stufe 3 melden
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_ISSUE: ${{ needs.watch.outputs.comment_issue }}
+        run: |
+          set -euo pipefail
+          test -f heartbeat/retire.tsv || { echo "::error::heartbeat/retire.tsv fehlt."; exit 1; }
+          [[ "$COMMENT_ISSUE" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::Ziel-Issue fuer den Stufe-3-Kommentar ist keine Issue-Nummer."; exit 1; }
+          while IFS=$'\t' read -r platform variable since; do
+            [ -n "$platform" ] || continue
+            gh variable set "$variable" --repo "${GITHUB_REPOSITORY}" --body "$since"
+            echo "::warning title=Plattform ausgetragen::${platform} seit ${since} (${variable}); Reaktivierung: docs/RUNNER_SETUP.md §4"
+            comment="heartbeat/retire-comment-${platform}.md"
+            if [ -f "$comment" ]; then
+              gh issue comment "$COMMENT_ISSUE" --repo "${GITHUB_REPOSITORY}" --body-file "$comment"
+            else
+              echo "::notice::Stufe 3 fuer ${platform} war bereits gemeldet – nur Variable gesetzt."
+            fi
+          done < heartbeat/retire.tsv

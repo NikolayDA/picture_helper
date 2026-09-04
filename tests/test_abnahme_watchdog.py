@@ -358,3 +358,45 @@ def test_main_requires_token(
     rc = watchdog.main(["--repo", "o/r", "--run-id", "42", "--platforms", "alle"])
     assert rc == 1
     assert "GH_TOKEN" in capsys.readouterr().out
+
+
+def test_retired_platforms_are_not_expected() -> None:
+    """#958: Eine per Heartbeat-Eskalation ausgetragene Plattform ist im
+    Workflow uebersprungen – der Watchdog wartete sonst zehn Minuten auf
+    einen Preflight, den es nicht gibt, und braeche den Lauf ab."""
+    retired = watchdog.parse_retired(["macos-arm64=2026-09-01", "linux-arm64=", "linux-x86_64="])
+    assert retired == ("macos-arm64",)
+    assert watchdog.expected_preflights("alle", x86_enabled=False, retired=retired) == (LINUX,)
+    assert watchdog.expected_acceptance("alle", x86_enabled=True, retired=retired) == (
+        HEAVY_LINUX, watchdog.ACCEPTANCE_JOB_NAMES["linux-x86_64"],
+    )
+    # Ein Einzelplattform-Lauf auf der ausgetragenen Plattform hat nichts zu bewachen.
+    assert watchdog.expected_preflights("macos-arm64", x86_enabled=False, retired=retired) == ()
+    with pytest.raises(ValueError, match="kein ISO-Datum"):
+        watchdog.parse_retired(["macos-arm64=neulich"])
+    with pytest.raises(ValueError, match="erwartet <plattform>=<datum>"):
+        watchdog.parse_retired(["mac"])
+
+
+def test_main_retired_platform_run_is_a_noop(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    rc, cancelled = _run_main(
+        monkeypatch, [_job(MACOS, "queued")], platforms="macos-arm64",
+        extra_args=("--retired-since", "macos-arm64=2026-09-01"),
+    )
+    assert rc == 0
+    assert cancelled == []
+    assert "nichts zu überwachen" in capsys.readouterr().out
+
+
+def test_main_rejects_an_unreadable_retirement_date(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    rc, cancelled = _run_main(
+        monkeypatch, [_job(MACOS, "queued")], platforms="alle",
+        extra_args=("--retired-since", "macos-arm64=bald"),
+    )
+    assert rc == 1
+    assert cancelled == []
+    assert "kein ISO-Datum" in capsys.readouterr().out

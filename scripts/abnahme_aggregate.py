@@ -4,9 +4,11 @@
 Sammelt die von den Plattform-Jobs hochgeladenen Evidenz-Artefakte, validiert
 sie gegen den Vertrag aus #640 und erzeugt eine Abschlussmatrix: je
 Abnahmekriterium der Zustand (erfüllt / fehlgeschlagen / fehlt / pausiert /
-unbewertet) mit Nachweis und GL-Provenance. Der pausierte Linux-x86_64-Pfad
-erscheint explizit als „pausiert", fehlende Artefakte als „fehlt" – keine
-stillen Lücken. Die Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt.
+ausgetragen / unbewertet) mit Nachweis und GL-Provenance. Der pausierte
+Linux-x86_64-Pfad erscheint explizit als „pausiert", eine per
+Heartbeat-Eskalation ausgetragene Plattform (#958) als „ausgetragen seit
+<Datum>", fehlende Artefakte als „fehlt" – keine stillen Lücken. Die
+Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt.
 
 Qt-frei und ohne Netz; die Vision-Vorbewertung (``abnahme_vision_check.py``)
 liefert optionale Screenshot-Verdikte, die hier nur eingebettet werden.
@@ -31,6 +33,13 @@ EXPECTED_PLATFORMS: dict[str, str] = {
 VISION_LABEL = "Screenshots (Vision-Vorbewertung)"
 PAUSED_PLATFORM = "linux-x86_64"
 PAUSED_LABEL = "Linux x86_64: Hardware-Smoke"
+# Per Heartbeat-Eskalation ausgetragene Plattform (#958, Stufe 3): Die
+# Repository-Variable RUNNER_<PLATTFORM>_RETIRED_SINCE laesst Preflight und
+# Plattform-Job im Workflow aus; hier erscheint sie sichtbar als
+# "ausgetragen seit <Datum>" – kein Abnahmeergebnis, die Freigabe bleibt
+# blockiert (release_contract verlangt weiterhin ``approved``).
+RETIRED_STATUS = "ausgetragen"
+RETIRED_SUMMARY = "retired"
 LIVE_GL_SCENARIOS = ("HEIGHT16-1MP", "HEIGHT16-16MP", "HEIGHT16-40MP")
 LIVE_GL_METRICS = (
     "gl_upload_ms", "gl_first_frame_ms", "gl_peak_mb",
@@ -61,7 +70,7 @@ class MatrixRow:
     """Eine Zeile der Abschlussmatrix."""
 
     kriterium: str
-    status: str  # erfuellt | fehlgeschlagen | fehlt | pausiert | unbewertet
+    status: str  # erfuellt | fehlgeschlagen | fehlt | pausiert | ausgetragen | unbewertet
     nachweis: str
     provenance: str
     hinweis: str
@@ -321,6 +330,52 @@ def _status_from_evidence(evidence: dict[str, Any]) -> str:
     return "unbewertet"  # platzhalter o. Ä. → nicht als erfüllt werten
 
 
+def parse_retired(values: list[str]) -> dict[str, str]:
+    """``<plattform>=<datum>``-Angaben (leerer Wert = aktiv) → Plattform → Datum.
+
+    Dieselbe Form wie bei Heartbeat und Watchdog; der Workflow reicht die
+    Repository-Variablen unverändert durch. Ein unlesbares Datum ist ein
+    Befund, kein stiller Rückfall.
+    """
+    known = (*EXPECTED_PLATFORMS, PAUSED_PLATFORM)
+    retired: dict[str, str] = {}
+    for value in values:
+        platform, sep, raw = value.partition("=")
+        platform = platform.strip()
+        if not sep or platform not in known:
+            raise ValueError(
+                f"--retired-since erwartet <plattform>=<datum> mit einer der Plattformen "
+                f"{', '.join(known)}, nicht {value!r}"
+            )
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            retired[platform] = datetime.strptime(raw, "%Y-%m-%d").date().isoformat()
+        except ValueError as exc:
+            raise ValueError(f"{value!r}: {raw!r} ist kein ISO-Datum (YYYY-MM-DD)") from exc
+    return retired
+
+
+def _retired_rows(platform: str, label: str, since: str, *, run_url: str) -> list[MatrixRow]:
+    """Die drei Pflichtzeilen einer ausgetragenen Plattform – sichtbar, nie Lücke."""
+    note = (
+        f"Ausgetragen seit {since} (Heartbeat-Eskalation Stufe 3, #958) – kein "
+        "Abnahmeergebnis; Reaktivierung: RUNNER_SETUP.md §4."
+    )
+    return [
+        MatrixRow(label, RETIRED_STATUS, "—", "—", note, datum=since, nachweis_link=run_url),
+        MatrixRow(
+            f"{platform}: Native 3D-E2E (Projekt→HEIGHT→Undo/Save)", RETIRED_STATUS,
+            "—", "—", note, datum=since, nachweis_link=run_url,
+        ),
+        MatrixRow(
+            f"{platform}: Live-GL-Performance", RETIRED_STATUS, "—", "—", note,
+            datum=since, nachweis_link=run_url,
+        ),
+    ]
+
+
 def build_matrix(
     evidences: dict[str, dict[str, Any]],
     *,
@@ -329,15 +384,24 @@ def build_matrix(
     live_gl: dict[str, dict[str, Any]] | None = None,
     vision: list[dict[str, Any]] | None = None,
     run_url: str = "—",
+    retired: dict[str, str] | None = None,
 ) -> list[MatrixRow]:
     """Abschlussmatrix aus den gesammelten Evidenzen bauen.
 
     ``run_url`` verlinkt jede Zeile auf den erzeugenden Workflow-Lauf (Logs/
     Screenshots liegen dort als Artefakte); "—", wenn kein Lauf bekannt ist
-    (z. B. lokale Aufrufe außerhalb von CI, #685-Review).
+    (z. B. lokale Aufrufe außerhalb von CI, #685-Review). ``retired``
+    (Plattform → ISO-Datum) rendert eine per Heartbeat-Eskalation
+    ausgetragene Plattform (#958) als „ausgetragen seit <Datum>" statt als
+    stumme Lücke; ihre Evidenz wird nicht bewertet, der Workflow erzeugt
+    keine.
     """
+    retired = retired or {}
     rows: list[MatrixRow] = []
     for platform, kriterium in EXPECTED_PLATFORMS.items():
+        if platform in retired:
+            rows.extend(_retired_rows(platform, kriterium, retired[platform], run_url=run_url))
+            continue
         ev = evidences.get(platform)
         if ev is None:
             rows.append(MatrixRow(
@@ -361,7 +425,11 @@ def build_matrix(
 
     # Pausierter x86_64-Pfad: explizit sichtbar, nie stille Lücke.
     px = evidences.get(PAUSED_PLATFORM)
-    if x86_64_enabled:
+    if x86_64_enabled and PAUSED_PLATFORM in retired:
+        rows.extend(
+            _retired_rows(PAUSED_PLATFORM, PAUSED_LABEL, retired[PAUSED_PLATFORM], run_url=run_url)
+        )
+    elif x86_64_enabled:
         if px is None:
             rows.append(MatrixRow(
                 PAUSED_LABEL, "fehlt", "—", "—", "Kein Evidenz-Artefakt.",
@@ -388,8 +456,8 @@ def build_matrix(
             nachweis_link=run_url,
         ))
 
-    active_platforms = [*EXPECTED_PLATFORMS]
-    if x86_64_enabled:
+    active_platforms = [platform for platform in EXPECTED_PLATFORMS if platform not in retired]
+    if x86_64_enabled and PAUSED_PLATFORM not in retired:
         active_platforms.append(PAUSED_PLATFORM)
     e2e = e2e or {}
     live_gl = live_gl or {}
@@ -475,7 +543,7 @@ def build_matrix(
 def has_blocking_gaps(rows: list[MatrixRow]) -> bool:
     """Blockierende Lücken; nur die beratende Vision darf unbewertet bleiben."""
     return any(
-        r.status in ("fehlgeschlagen", "fehlt")
+        r.status in ("fehlgeschlagen", "fehlt", RETIRED_STATUS)
         or (
             r.status == "unbewertet"
             and r.kriterium != VISION_LABEL
@@ -495,7 +563,7 @@ def has_technical_gaps(rows: list[MatrixRow]) -> bool:
     Matrix-Banner und tatsächlich erzeugtes Manifest.
     """
     return any(
-        r.status in ("fehlgeschlagen", "fehlt", "unbewertet")
+        r.status in ("fehlgeschlagen", "fehlt", "unbewertet", RETIRED_STATUS)
         and r.kriterium != VISION_LABEL
         for r in rows
     )
@@ -503,17 +571,24 @@ def has_technical_gaps(rows: list[MatrixRow]) -> bool:
 
 def build_acceptance_summary(
     rows: list[MatrixRow], *, commit_sha: str, x86_64_enabled: bool = False,
+    retired: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Maschinenlesbare Plattformentscheidung fuer das Freigabemanifest (#744).
 
     Nur die drei technischen Pflichtzeilen je aktiver Plattform zaehlen. Die
     Vision-Vorbewertung bleibt wie im ADR festgelegt beratend. Linux x86_64
     ist in Policy-Version 1 explizit pausiert; eine spaetere Reaktivierung
-    braucht bewusst einen Policy-Sprung im Freigabevertrag.
+    braucht bewusst einen Policy-Sprung im Freigabevertrag. Eine ausgetragene
+    Plattform (#958) traegt ``retired`` und **blockiert** – anders als
+    ``paused`` ist das kein vertraglich erlaubter Zustand, nur ein benannter.
     """
+    retired = retired or {}
     by_criterion = {row.kriterium: row for row in rows}
     platforms: dict[str, str] = {}
     for platform, smoke_label in EXPECTED_PLATFORMS.items():
+        if platform in retired:
+            platforms[platform] = RETIRED_SUMMARY
+            continue
         required = (
             smoke_label,
             f"{platform}: Native 3D-E2E (Projekt→HEIGHT→Undo/Save)",
@@ -528,7 +603,9 @@ def build_acceptance_summary(
             )
             else "blocked"
         )
-    if x86_64_enabled:
+    if x86_64_enabled and PAUSED_PLATFORM in retired:
+        platforms[PAUSED_PLATFORM] = RETIRED_SUMMARY
+    elif x86_64_enabled:
         required = (
             PAUSED_LABEL,
             f"{PAUSED_PLATFORM}: Native 3D-E2E (Projekt→HEIGHT→Undo/Save)",
@@ -550,7 +627,7 @@ def build_acceptance_summary(
         "kind": "release-acceptance-summary",
         "commit_sha": commit_sha,
         "platforms": platforms,
-        "blocking": any(status == "blocked" for status in platforms.values()),
+        "blocking": any(status in ("blocked", RETIRED_SUMMARY) for status in platforms.values()),
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
 
@@ -569,7 +646,7 @@ def render_markdown(rows: list[MatrixRow], *, commit_sha: str = "unbekannt") -> 
     """
     icon = {
         "erfuellt": "✅", "fehlgeschlagen": "❌", "fehlt": "⚠️",
-        "pausiert": "⏸️", "unbewertet": "❓",
+        "pausiert": "⏸️", RETIRED_STATUS: "⛔", "unbewertet": "❓",
     }
     diagnose = has_technical_gaps(rows)
     title = "## Release-Abnahme – Abschlussmatrix"
@@ -602,7 +679,9 @@ def render_markdown(rows: list[MatrixRow], *, commit_sha: str = "unbekannt") -> 
     lines += [
         "",
         "> Go/No-Go entscheidet ein Mensch auf Basis dieser Matrix. "
-        "Pausierte Kriterien gelten als **offen deklariert**, nicht erfüllt.",
+        "Pausierte Kriterien gelten als **offen deklariert**, nicht erfüllt; "
+        "ausgetragene Plattformen (Heartbeat-Eskalation, #958) blockieren die "
+        "Freigabe bis zur Reaktivierung.",
         "",
     ]
     return "\n".join(lines)
@@ -616,6 +695,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--commit-sha", default="unbekannt")
     parser.add_argument("--x86-64-enabled", action="store_true")
     parser.add_argument(
+        "--retired-since", action="append", default=[], metavar="PLATTFORM=DATUM",
+        help="Ausgetragene Plattform (#958, RUNNER_<PLATTFORM>_RETIRED_SINCE); leer = aktiv.",
+    )
+    parser.add_argument(
         "--run-url", default="—",
         help="Link auf den erzeugenden Workflow-Lauf (Logs/Screenshots als Artefakte dort).",
     )
@@ -624,6 +707,10 @@ def main(argv: list[str] | None = None) -> int:
         help="Optionales maschinenlesbares Plattform-Fazit fuer #744.",
     )
     args = parser.parse_args(argv)
+    try:
+        retired = parse_retired(args.retired_since)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     evidences = load_evidence(args.artifacts_dir)
     e2e = load_e2e(args.artifacts_dir)
@@ -631,13 +718,14 @@ def main(argv: list[str] | None = None) -> int:
     vision = load_vision(args.artifacts_dir)
     rows = build_matrix(
         evidences, x86_64_enabled=args.x86_64_enabled, e2e=e2e,
-        live_gl=live_gl, vision=vision, run_url=args.run_url,
+        live_gl=live_gl, vision=vision, run_url=args.run_url, retired=retired,
     )
     markdown = render_markdown(rows, commit_sha=args.commit_sha)
     args.output.write_text(markdown, encoding="utf-8")
     if args.summary_output is not None:
         summary = build_acceptance_summary(
             rows, commit_sha=args.commit_sha, x86_64_enabled=args.x86_64_enabled,
+            retired=retired,
         )
         args.summary_output.write_text(
             json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n",

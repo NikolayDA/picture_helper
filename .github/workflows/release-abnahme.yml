@@ -159,9 +159,16 @@ jobs:
   # Sekunden statt Minuten. Ersetzt den frueher noetigen manuellen Probelauf
   # vor der bindenden Abnahme. Der Runner-Watchdog unten bricht den Lauf ab,
   # wenn ein Preflight mangels Online-Runner in der Queue haengen bleibt.
+  # Eine per Heartbeat-Eskalation ausgetragene Plattform (#958, Variable
+  # RUNNER_<PLATTFORM>_RETIRED_SINCE) wird wie der pausierte x86_64-Pfad
+  # uebersprungen – Preflight und Plattform-Job. Sonst wartete der Lauf auf
+  # einen Runner, den es nicht mehr gibt, und der Watchdog braeche ihn ab,
+  # bevor die Matrix die Austragung sichtbar machen kann.
   preflight-macos-arm64:
     name: Preflight macOS arm64
-    if: inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64'
+    if: >-
+      (inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64')
+      && vars.RUNNER_MACOS_ARM64_RETIRED_SINCE == ''
     runs-on: [self-hosted, macOS, ARM64]
     # 10 statt 5 Minuten seit #934: Der echte Qt-/GL-Probeaufruf baut seine
     # schlanke Runtime einmal je Pin-Stand (Qt-Wheels ~100 MB). Danach kostet
@@ -176,7 +183,9 @@ jobs:
 
   preflight-linux-arm64:
     name: Preflight Linux aarch64
-    if: inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64'
+    if: >-
+      (inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64')
+      && vars.RUNNER_LINUX_ARM64_RETIRED_SINCE == ''
     runs-on: [self-hosted, Linux, ARM64]
     # 10 statt 5 Minuten seit #934 (einmaliger Bau der Qt-Probe-Runtime).
     timeout-minutes: 10
@@ -192,6 +201,7 @@ jobs:
     if: >-
       (inputs.platforms == 'alle' || inputs.platforms == 'linux-x86_64')
       && vars.ABNAHME_X86_64_ENABLED == 'true'
+      && vars.RUNNER_LINUX_X86_64_RETIRED_SINCE == ''
     runs-on: [self-hosted, Linux, X64]
     # 10 statt 5 Minuten seit #934 (einmaliger Bau der Qt-Probe-Runtime).
     timeout-minutes: 10
@@ -230,11 +240,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PLATFORMS: ${{ inputs.platforms }}
+          RETIRED_MACOS_ARM64: ${{ vars.RUNNER_MACOS_ARM64_RETIRED_SINCE }}
+          RETIRED_LINUX_ARM64: ${{ vars.RUNNER_LINUX_ARM64_RETIRED_SINCE }}
+          RETIRED_LINUX_X86_64: ${{ vars.RUNNER_LINUX_X86_64_RETIRED_SINCE }}
         run: |
           set -euo pipefail
           # Erwartete Preflight-Menge aus den Dispatch-Eingaben ableiten
           # (Review PR #924): eine direkt nach Laufstart unvollstaendige
-          # Jobliste darf den Waechter nicht vorzeitig beenden.
+          # Jobliste darf den Waechter nicht vorzeitig beenden. Ausgetragene
+          # Plattformen (#958) sind uebersprungen und werden nicht erwartet.
           x86flag=""
           [ "${{ vars.ABNAHME_X86_64_ENABLED }}" = "true" ] && x86flag="--x86-64-enabled"
           python3 scripts/abnahme_watchdog.py \
@@ -244,12 +258,17 @@ jobs:
             --deadline-seconds 600 \
             --acceptance-deadline-seconds 1500 \
             --poll-seconds 20 \
+            --retired-since "macos-arm64=${RETIRED_MACOS_ARM64:-}" \
+            --retired-since "linux-arm64=${RETIRED_LINUX_ARM64:-}" \
+            --retired-since "linux-x86_64=${RETIRED_LINUX_X86_64:-}" \
             $x86flag
 
   abnahme-macos-arm64:
     name: Abnahme macOS arm64
     needs: [candidate-source, preflight-macos-arm64]
-    if: inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64'
+    if: >-
+      (inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64')
+      && vars.RUNNER_MACOS_ARM64_RETIRED_SINCE == ''
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
@@ -356,7 +375,9 @@ jobs:
   abnahme-linux-arm64:
     name: Abnahme Linux aarch64
     needs: [candidate-source, preflight-linux-arm64]
-    if: inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64'
+    if: >-
+      (inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64')
+      && vars.RUNNER_LINUX_ARM64_RETIRED_SINCE == ''
     runs-on: [self-hosted, Linux, ARM64]
     timeout-minutes: 30
     steps:
@@ -463,6 +484,7 @@ jobs:
     if: >-
       (inputs.platforms == 'alle' || inputs.platforms == 'linux-x86_64')
       && vars.ABNAHME_X86_64_ENABLED == 'true'
+      && vars.RUNNER_LINUX_X86_64_RETIRED_SINCE == ''
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 30
     steps:
@@ -546,6 +568,34 @@ jobs:
         run: |
           echo "::notice title=Linux x86_64 pausiert::Der x86_64-Hardware-Smoke ist pausiert (kein GPU-Zugang, Entscheidung 2026-07-20). Reaktivierung: docs/RELEASE_AUTOMATION.md §5 – ABNAHME_X86_64_ENABLED=true setzen."
 
+  # Sichtbarer Hinweis, wenn eine Plattform per Heartbeat-Eskalation
+  # ausgetragen ist (#958) – GitHub-hosted, weil der Runner gerade fehlt.
+  # Dasselbe ADR-Prinzip wie beim pausierten x86_64-Pfad: ausgetragen, nicht
+  # erfuellt statt unsichtbar. Die Abschlussmatrix fuehrt die Plattform
+  # zusaetzlich als "ausgetragen seit <Datum>"; dieser Job traegt auch bei
+  # dry_run, wo keine Matrix entsteht.
+  hinweis-ausgetragen:
+    name: Hinweis ausgetragene Plattform
+    if: >-
+      vars.RUNNER_MACOS_ARM64_RETIRED_SINCE != ''
+      || vars.RUNNER_LINUX_ARM64_RETIRED_SINCE != ''
+      || vars.RUNNER_LINUX_X86_64_RETIRED_SINCE != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      RETIRED_MACOS_ARM64: ${{ vars.RUNNER_MACOS_ARM64_RETIRED_SINCE }}
+      RETIRED_LINUX_ARM64: ${{ vars.RUNNER_LINUX_ARM64_RETIRED_SINCE }}
+      RETIRED_LINUX_X86_64: ${{ vars.RUNNER_LINUX_X86_64_RETIRED_SINCE }}
+    steps:
+      - name: Austragung protokollieren
+        run: |
+          set -euo pipefail
+          for entry in "macos-arm64=${RETIRED_MACOS_ARM64:-}" "linux-arm64=${RETIRED_LINUX_ARM64:-}" "linux-x86_64=${RETIRED_LINUX_X86_64:-}"; do
+            platform="${entry%%=*}"; since="${entry#*=}"
+            [ -n "$since" ] || continue
+            echo "::warning title=Plattform ausgetragen::${platform} ist seit ${since} aus dem erwarteten Bestand ausgetragen (Heartbeat-Eskalation Stufe 3, #958); Preflight und Abnahme-Job laufen nicht, die Freigabe bleibt blockiert. Reaktivierung: docs/RUNNER_SETUP.md §4."
+          done
+
   # Aggregation: sammelt alle Evidenzen, bewertet Screenshots (Vision, fail-safe)
   # und postet die Abschlussmatrix als Kommentar. Schreibrechte NUR hier; die
   # Smoke-Jobs bleiben read-only (Sicherheitsmodell #640). Go/No-Go bleibt
@@ -624,16 +674,25 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
       - name: Abschlussmatrix erzeugen
+        env:
+          RETIRED_MACOS_ARM64: ${{ vars.RUNNER_MACOS_ARM64_RETIRED_SINCE }}
+          RETIRED_LINUX_ARM64: ${{ vars.RUNNER_LINUX_ARM64_RETIRED_SINCE }}
+          RETIRED_LINUX_X86_64: ${{ vars.RUNNER_LINUX_X86_64_RETIRED_SINCE }}
         run: |
           set -euo pipefail
           x86flag=""
           [ "${{ vars.ABNAHME_X86_64_ENABLED }}" = "true" ] && x86flag="--x86-64-enabled"
+          # Ausgetragene Plattformen (#958) erscheinen als "ausgetragen seit
+          # <Datum>" statt als stumme Luecke – sichtbar, kein Abnahmeergebnis.
           python3 scripts/abnahme_aggregate.py \
             --artifacts-dir "${RUNNER_TEMP}/abnahme-evidenz" \
             --output "${RUNNER_TEMP}/abschlussmatrix.md" \
             --summary-output "${RUNNER_TEMP}/acceptance-summary.json" \
             --commit-sha "${{ needs.candidate-source.outputs.head_sha }}" \
             --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --retired-since "macos-arm64=${RETIRED_MACOS_ARM64:-}" \
+            --retired-since "linux-arm64=${RETIRED_LINUX_ARM64:-}" \
+            --retired-since "linux-x86_64=${RETIRED_LINUX_X86_64:-}" \
             $x86flag
       - uses: actions/upload-artifact@v6
         with:

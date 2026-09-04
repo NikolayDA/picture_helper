@@ -60,6 +60,11 @@ Einordnung:
   einen Runner automatisch, der **mehr als 14 Tage** nicht verbunden war
   (offizielle GitHub-Doku,
   [remove-runners](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/remove-runners)).
+  Der Heartbeat warnt vorher gestuft im Betriebs-Issue (nach 7 und 12 Tagen
+  ohne bestandenen Heartbeat, mit Erwähnung = E-Mail) und trägt die
+  Plattform nach 21 Tagen aus dem erwarteten Bestand aus –
+  Reaktivierung in §4 ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §7,
+  *Gestufte Eskalation*).
 - `status=online` sagt nur „verbunden", **nicht** „einsatzbereit" – die
   eigentliche Bereitschaft belegt erst der Heartbeat (0.2) bzw. der
   Preflight auf dem Gerät (0.3).
@@ -493,6 +498,27 @@ gh variable delete RUNNER_HEARTBEAT_PAUSED --repo "$REPO"
 gh variable delete RUNNER_HEARTBEAT_PAUSED_UNTIL --repo "$REPO"
 ```
 
+**Ausgetragene Plattform reaktivieren.** Nach Stufe 3 (21 Tage) der
+Heartbeat-Eskalation ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §7)
+trägt die Repository-Variable `RUNNER_<PLATTFORM>_RETIRED_SINCE` das Datum
+der Austragung, und beide Self-hosted-Workflows überspringen die Plattform
+(Heartbeat erwartet sie nicht, Abnahme-Matrix führt sie als „ausgetragen").
+Erst das Gerät neu registrieren (§2 bzw. §3, bei einem `not_ready`-Befund
+die Härtung §2.3/§3.4 nachziehen), dann die Variable entfernen und den
+Heartbeat von Hand starten:
+
+```sh
+REPO=NikolayDA/picture_helper
+gh variable list --repo "$REPO" | grep RETIRED_SINCE            # was ist ausgetragen?
+gh variable delete RUNNER_LINUX_ARM64_RETIRED_SINCE --repo "$REPO"   # bzw. RUNNER_MACOS_ARM64_RETIRED_SINCE
+gh workflow run runner-heartbeat.yml --repo "$REPO"             # Erst-Heartbeat, Beobachtung wie in §0.2
+```
+
+Grün = reaktiviert. Die Zählung der Eskalation beginnt danach neu; die
+alten Marker im Betriebs-Issue bleiben wirkungslos. Solange die Variable
+gesetzt ist, läuft der Runner-Job nicht – ein Erst-Heartbeat *vor* dem
+Entfernen der Variable ist deshalb nicht möglich.
+
 ---
 
 ## 5. Wiederbeleben statt neu aufsetzen
@@ -510,11 +536,16 @@ Bevor ein „offline"-Runner neu registriert wird
 | Heartbeat rot: `sleep-schutz`, obwohl `caffeinate` läuft | Der Wrapper muss **beide** Schlafarten halten (`caffeinate -dimsu`, nicht nur `-i`) und selbst der Assertion-Eigentümer sein |
 | Heartbeat rot: `sleep-schutz`/`dienst-neustart` | §2.3 bzw. §3.4 erneut anwenden – `KeepAlive` überlebt kein `svc.sh install` |
 | Runner aus der GitHub-Liste verschwunden | Mehr als 14 Tage offline, von GitHub entfernt → Registrierung und Dienst (§2/§3) komplett wiederholen |
+| Heartbeat-Kommentar „Stufe 3": Plattform ausgetragen (Stufe 3, 21 Tage) | Neu registrieren (§2/§3), Variable `RUNNER_<PLATTFORM>_RETIRED_SINCE` entfernen, Heartbeat starten – Kommandos in §4 |
 
-Ein FAIL-Kommentar im Betriebs-Issue
+Ein Stufenkommentar im Betriebs-Issue
 [#939](https://github.com/NikolayDA/picture_helper/issues/939) ist nie
 Rauschen, aber der Text unterscheidet: „mit einem anderen Lauf belegt"
 während einer laufenden Abnahme ist kein Ausfall
 ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §7); jeden anderen Befund
-für `Mac` oder `raspberrypi` zeitnah behandeln – der Heartbeat kommentiert
-nur im Fehlerfall.
+für `Mac` oder `raspberrypi` zeitnah behandeln. Der Heartbeat kommentiert
+seit #958 nicht mehr täglich, sondern nach 7, 12 und 21 Tagen ohne
+bestandenen Heartbeat (mit Erwähnung des Owners, also per E-Mail); davor
+zeigt nur die Actions-Übersicht den roten bzw. wartenden Lauf. Die
+Stufe-1-Mail kommt noch vor GitHubs 14-Tage-Entfernung – dann reicht diese
+Tabelle; ab Stufe 2 ist die Neuregistrierung (§2/§3) einzuplanen.
