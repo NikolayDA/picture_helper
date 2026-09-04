@@ -63,3 +63,20 @@ def test_saturation_zero_yields_grayscale_with_alpha_kept() -> None:
     assert np.array_equal(out[:, :, 0], out[:, :, 1])   # R==G==B → Graustufe
     assert np.array_equal(out[:, :, 1], out[:, :, 2])
     assert np.all(out[:, :, 3] == 123)                  # Alpha unverändert
+
+
+def test_adjust_color_converts_non_rgba_input() -> None:
+    """RGB- und L-Eingaben laufen über den ``convert("RGBA")``-Zweig.
+
+    Alle übrigen Fälle reichen bereits RGBA hinein; die Konvertierung war
+    dadurch ungeprüft (#949).
+    """
+    rgb = adjust_color(Image.new("RGB", (4, 4), (100, 100, 100)), brightness=1.5)
+    assert rgb.mode == "RGBA"
+    assert rgb.size == (4, 4)
+    # RGB trägt kein Alpha – die Konvertierung setzt volle Deckung.
+    assert rgb.getpixel((0, 0)) == (150, 150, 150, 255)
+
+    grey = adjust_color(Image.new("L", (4, 4), 100), brightness=1.5)
+    assert grey.mode == "RGBA"
+    assert grey.getpixel((0, 0)) == (150, 150, 150, 255)

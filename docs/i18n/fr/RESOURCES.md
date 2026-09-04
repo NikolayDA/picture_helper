@@ -116,6 +116,7 @@ workflow de licences génère le rapport dépendances/licences.
 | `actions/upload-artifact@v7` | Téléverser les artefacts du rapport de licences | MIT |
 | `actions/download-artifact@v8` | Télécharger le résumé des licences dans le job de commentaire séparé | MIT |
 | `actions/github-script@v9` | Commenter le résumé des licences sur les pull requests | MIT |
+| `codecov/codecov-action@v5` | Envoyer le rapport de couverture à Codecov (Ubuntu/Python 3.12 uniquement) | MIT |
 | `pip-licenses` | Dump brut des licences des paquets installés | MIT |
 | `requirements/constraints.txt` | Snapshot reproductible des dépendances pour checks locaux, CI, rapport de licences et App Bundle | Fichier du projet |
 | Bibliothèques système Qt via `apt` (Linux) | Exécution Qt headless : `libegl1`, `libfontconfig1`, `libxkbcommon0`, `libdbus-1-3`, `libxcb-*` | empaquetées par la distribution, diverses licences permissives/copyleft (Mesa, fontconfig, libxkbcommon, libxcb, dbus …) |
