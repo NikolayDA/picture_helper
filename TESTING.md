@@ -405,9 +405,14 @@ bewusst niemand: Das bräuchte Netzzugang und gehört nicht ins Standard-Gate.
 
 `ANLEITUNG.pdf` wird von Hand erzeugt und lässt sich nicht über Bytes
 prüfen — der Bau ist nicht deterministisch. Der Wächter prüft deshalb die
-Mitänderung in der Git-Historie; erreicht ein flacher Klon die betreffenden
-Commits nicht, überspringt er mit Begründung. Die PR-CI checkt mit
-`fetch-depth: 0` aus und prüft dort immer.
+Mitänderung in der Git-Historie. Trägt die Historie keine Aussage, wird mit
+Begründung übersprungen: In einem flachen Klon ist der Grenzcommit
+elternlos und gilt `git log` als Hinzufüger jeder Datei, sodass beide Pfade
+auf denselben Commit auflösen — das sähe wie „synchron" aus, ohne es zu
+sein. Ein flacher Klon genügt aber, solange die letzten Commits beider
+Dateien innerhalb seiner Tiefe liegen. Die PR-CI checkt mit
+`fetch-depth: 0` aus und prüft dort immer; `coverage.yml` und
+`ui-nightly.yml` laufen mit Tiefe 1 und überspringen sichtbar.
 
 ## GitHub-Tests bei PR, manuell oder Release
 

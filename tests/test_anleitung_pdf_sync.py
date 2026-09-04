@@ -22,6 +22,11 @@ zuletzt die Quelle berührt hat, muss auch das PDF berühren – oder älter sei
 als der letzte PDF-Commit. Das genügt, weil jede Änderung an der Quelle das
 gerenderte PDF verändert. Nur die deutsche Fassung ist betroffen; die fünf
 Übersetzungen unter ``docs/i18n/`` haben kein PDF.
+
+In einem flachen Klon ist der Grenzcommit elternlos und gilt ``git log``
+als Hinzufüger jeder Datei; beide Pfade lösen dann auf denselben Commit
+auf. Das sähe wie „synchron" aus, ist aber keine Aussage – solche Stände
+werden deshalb ausdrücklich als nicht prüfbar übersprungen.
 """
 from __future__ import annotations
 
@@ -68,30 +73,49 @@ def stale_pdf(repo: Path, commitish: str = "HEAD") -> tuple[str, str] | None:
     return None if newer.returncode == 0 else (source, pdf)
 
 
-def _history_reaches_the_manual() -> bool:
-    """Deckt die lokale Historie beide Dateien ab?
+def _shallow_boundary(repo: Path) -> set[str]:
+    """Die Grenz-Commits eines flachen Klons.
 
-    Bewusste Entscheidung statt eines stillen Übergehens (#974): Ein Klon,
-    dessen Historie die Dateien nicht erreicht, kann die Frage nicht
-    beantworten – dort wird mit Begründung übersprungen statt fälschlich
-    Alarm zu schlagen. Die PR-CI checkt mit ``fetch-depth: 0`` aus, der
-    Wächter läuft dort also immer. Ein flacher Klon genügt, solange er die
-    beiden letzten Commits noch enthält; deshalb wird die Reichweite geprüft
-    und nicht das Shallow-Flag.
+    Der Grenzcommit ist dort elternlos; ``git log`` behandelt ihn deshalb so,
+    als füge er **jede** Datei des Trees hinzu. Ein Treffer darauf sieht aus
+    wie „beide Dateien zuletzt gemeinsam geändert" und beantwortet die Frage
+    in Wahrheit gar nicht. In einem vollständigen Klon ist ein elternloser
+    Commit dagegen eine echte Wurzel und bleibt aussagekräftig – deshalb
+    zählt das Shallow-Flag hier mit.
     """
-    return bool(
-        _last_commit(ROOT, SOURCE, "HEAD") and _last_commit(ROOT, PDF, "HEAD")
-    )
+    if _git(repo, "rev-parse", "--is-shallow-repository") != "true":
+        return set()
+    return set(_git(repo, "rev-list", "--max-parents=0", "HEAD").split())
+
+
+def unresolved_history(repo: Path, commitish: str = "HEAD") -> str | None:
+    """Grund, warum die Historie die Frage nicht beantworten kann; sonst ``None``.
+
+    Bewusste Entscheidung statt eines stillen Übergehens (#974): Wo die
+    Historie keine Aussage trägt, wird mit Begründung übersprungen – aber
+    eben nur dort. Ein flacher Klon genügt, solange die letzten Commits
+    beider Dateien innerhalb seiner Tiefe liegen.
+    """
+    source = _last_commit(repo, SOURCE, commitish)
+    pdf = _last_commit(repo, PDF, commitish)
+    if not source or not pdf:
+        return f"Die Historie erreicht {SOURCE}/{PDF} nicht."
+
+    boundary = _shallow_boundary(repo)
+    if source in boundary or pdf in boundary:
+        return (
+            "Flacher Klon: Der letzte Commit mindestens einer der beiden "
+            "Dateien liegt auf der Grenze der Historie und ist damit nicht "
+            "aussagekräftig."
+        )
+    return None
 
 
 def test_anleitung_pdf_is_not_behind_its_source() -> None:
     """Das committete PDF muss aus dem aktuellen Markdown stammen."""
-    if not _history_reaches_the_manual():
-        pytest.skip(
-            "Git-Historie erreicht ANLEITUNG.md/ANLEITUNG.pdf nicht "
-            "(flacher Klon ohne die betreffenden Commits) – die PR-CI checkt "
-            "mit fetch-depth: 0 aus und prüft dort."
-        )
+    reason = unresolved_history(ROOT)
+    if reason is not None:
+        pytest.skip(f"{reason} Die PR-CI checkt mit fetch-depth: 0 aus und prüft dort.")
 
     stale = stale_pdf(ROOT)
 
@@ -166,3 +190,34 @@ def test_stale_pdf_accepts_a_later_pdf_commit(tmp_path: Path) -> None:
     _commit(repo, {PDF: "PDF-zwei"}, "PDF nachgezogen")
 
     assert stale_pdf(repo) is None
+
+
+def test_shallow_clone_is_reported_as_unresolved_not_as_synchron(tmp_path: Path) -> None:
+    """Ein Tiefe-1-Klon darf nicht „synchron" melden, sondern „nicht prüfbar".
+
+    Review-Befund zu PR #979: Im flachen Klon ist der Grenzcommit elternlos,
+    ``git log -1 -- <pfad>`` liefert ihn deshalb für **beide** Dateien. Ohne
+    die Grenzerkennung fielen sie über ``source == pdf`` in den Zweig
+    „synchron" – der Wächter hätte ein nachweislich veraltetes PDF still
+    durchgewinkt. Betroffen sind alle Checkouts ohne ``fetch-depth``
+    (``coverage.yml``, ``ui-nightly.yml``), nicht die PR-CI.
+    """
+    full = _repo(tmp_path)
+    _commit(full, {SOURCE: "eins", PDF: "PDF-eins"}, "beides")
+    _commit(full, {SOURCE: "zwei"}, "nur die Quelle")
+
+    # Im vollständigen Klon ist der Befund eindeutig.
+    assert unresolved_history(full) is None
+    assert stale_pdf(full) is not None
+
+    shallow = tmp_path / "flach"
+    subprocess.run(
+        ["git", "clone", "-q", "--depth", "1", f"file://{full}", str(shallow)],
+        check=True,
+        capture_output=True,
+    )
+
+    # Dort melden beide Dateien denselben Grenzcommit – das ist keine Aussage.
+    assert _last_commit(shallow, SOURCE, "HEAD") == _last_commit(shallow, PDF, "HEAD")
+    reason = unresolved_history(shallow)
+    assert reason is not None and "Flacher Klon" in reason
