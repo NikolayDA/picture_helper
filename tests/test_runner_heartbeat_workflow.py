@@ -152,7 +152,14 @@ def test_heartbeat_runs_on_a_schedule_and_on_demand_only() -> None:
 
 
 def test_heartbeat_is_least_privilege() -> None:
-    """Schreibrechte nur dort, wo tatsächlich geschrieben wird."""
+    """Schreibrechte nur dort, wo tatsächlich geschrieben wird (HB-STUFE-08).
+
+    Der Heartbeat trägt **kein** ``actions: write`` – er bricht nie einen Lauf
+    ab, er meldet. Auch die Austragung (#958) kommt ohne aus: Sie ist ein
+    Label am Betriebs-Issue und braucht nur ``issues: write``, dasselbe Recht
+    wie der Kommentar (der Variablen-Entwurf scheiterte daran, dass
+    ``GITHUB_TOKEN`` keine Repository-Variable setzen kann; Review PR #981).
+    """
     doc = _load(HEARTBEAT)
     assert doc["permissions"] == {"contents": "read"}
     text = _text()
@@ -160,18 +167,27 @@ def test_heartbeat_is_least_privilege() -> None:
     assert "actions: write" not in text, (
         "der Heartbeat bricht nie einen Lauf ab – er meldet nur"
     )
+    jobs = _jobs(HEARTBEAT)
+    assert jobs["watch"]["permissions"]["actions"] == "read"
+    assert jobs["status"]["permissions"] == {"contents": "read", "issues": "read"}
     commenting = [
-        name for name, job in _jobs(HEARTBEAT).items()
+        name for name, job in jobs.items()
         if any("gh issue comment" in str(step.get("run", "")) for step in job.get("steps", []))
     ]
     writing = [
-        name for name, job in _jobs(HEARTBEAT).items()
+        name for name, job in jobs.items()
         if (job.get("permissions") or {}).get("issues") == "write"
     ]
-    assert commenting == writing, (
+    assert commenting == writing == ["watch", "retire"], (
         f"issues: write und Kommentarschritt driften auseinander: "
         f"{writing} vs. {commenting}"
     )
+    # Kein Job kennt gh variable oder einen Run-Abbruch als Kommando (das
+    # Wort "cancelled" in einer Fehlermeldung ist keiner).
+    for name, job in jobs.items():
+        body = " ".join(str(step.get("run", "")) for step in job.get("steps", []))
+        assert "gh variable" not in body, name
+        assert not re.search(r"\bgh run\b|\bgh api\b[^\n]*cancel", body), name
 
 
 def test_every_self_hosted_heartbeat_job_is_gated_and_bounded() -> None:
@@ -367,3 +383,249 @@ def test_repository_variables_never_reach_the_shell_as_code() -> None:
         for step in job.get("steps", []):
             run = str(step.get("run", ""))
             assert not re.search(r"\$\{\{\s*vars\.", run), run
+
+
+# ── Gestufte Eskalation (#958) ─────────────────────────────────────────
+
+RUNNER_SETUP = ROOT / "docs" / "RUNNER_SETUP.md"
+CLAUDE_MD = ROOT / "CLAUDE.md"
+PLATFORMS = ("macos-arm64", "linux-arm64", "linux-x86_64")
+
+
+def _setup_section(number: str) -> str:
+    """Text eines ``## <number>.``-Abschnitts von RUNNER_SETUP.md."""
+    text = RUNNER_SETUP.read_text(encoding="utf-8")
+    head = re.search(rf"(?m)^## {re.escape(number)}\. ", text)
+    assert head is not None, f"Abschnitt {number} fehlt in RUNNER_SETUP.md"
+    rest = text[head.start() :]
+    following = re.search(r"(?m)^## ", rest[1:])
+    return rest[: following.start() + 1] if following else rest
+
+
+def _claude_heartbeat_section() -> str:
+    text = CLAUDE_MD.read_text(encoding="utf-8")
+    head = text.index("### Runner-Heartbeat und Geräte-Härtung")
+    tail = text.index("\n### ", head + 1)
+    return text[head:tail]
+
+
+def _stage_sources() -> dict[str, str]:
+    """Alle Kopien der Fristen: Workflow-Argumente und jede Doku-Stelle."""
+    return {
+        "workflow": _text(),
+        "RELEASE_AUTOMATION §6": _automation_section("6"),
+        "RELEASE_AUTOMATION §7": _automation_section("7"),
+        "RUNNER_SETUP §0": _setup_section("0"),
+        "RUNNER_SETUP §4": _setup_section("4"),
+        "RUNNER_SETUP §5": _setup_section("5"),
+        "CLAUDE.md": _claude_heartbeat_section(),
+    }
+
+
+def stage_drift(
+    sources: dict[str, str], *, stages: tuple[int, ...], removal: int,
+) -> list[str]:
+    """Jede Kopie muss die Zahlen aus dem Skript wörtlich tragen.
+
+    Reine Funktion, damit die Negativkontrolle unten dieselbe Prüfung mit
+    einem verfälschten Text füttern kann – ein Wächter, der nie rot war,
+    beweist nichts.
+    """
+    s1, s2, s3 = stages
+    required = {
+        "workflow": (f"--stage-days {s1} {s2} {s3}", f"--removal-days {removal}"),
+        "RELEASE_AUTOMATION §6": (f"entfernt GitHub nach {removal} Tagen automatisch",),
+        "RELEASE_AUTOMATION §7": (
+            f"| 1 | ≥ {s1} Tage |", f"| 2 | ≥ {s2} Tage |", f"| 3 | ≥ {s3} Tage |",
+            f"nach {removal} Tagen ohne Verbindung",
+        ),
+        "RUNNER_SETUP §0": (f"**mehr als {removal} Tage** nicht verbunden",),
+        "RUNNER_SETUP §4": (f"Stufe 3 ({s3} Tage)", "runner-retired:<plattform>:<datum>"),
+        "RUNNER_SETUP §5": (
+            f"Mehr als {removal} Tage offline, von GitHub entfernt",
+            f"ausgetragen (Stufe 3, {s3} Tage)",
+        ),
+        "CLAUDE.md": (f"{s1}/{s2}/{s3}", f"{removal} Tagen"),
+    }
+    drift: list[str] = []
+    for label, phrases in required.items():
+        text = sources[label]
+        for phrase in phrases:
+            if phrase not in text:
+                drift.append(f"{label}: {phrase!r} fehlt")
+    return drift
+
+
+def test_offline_stages_and_removal_days_agree_across_code_workflow_and_docs() -> None:
+    """HB-STUFE-01/02: **eine** Aussage über die Fristen, nicht sieben.
+
+    Vor #958 stand GitHubs 14-Tage-Frist an vier handgepflegten Stellen ohne
+    Wächter (``grep -rn "14 Tage" tests/`` war leer). Jetzt sind die Konstanten
+    im Skript die einzige Quelle; Workflow und jede Doku-Stelle werden
+    dagegen gehalten.
+    """
+    stages = heartbeat.OFFLINE_STAGE_DAYS
+    removal = heartbeat.GITHUB_RUNNER_REMOVAL_DAYS
+    assert stages == (7, 12, 21), "Owner-Entscheid E3 (#958)"
+    assert list(stages) == sorted(set(stages)) and stages[0] > 0
+    # Die zweite Warnung liegt vor GitHubs Entfernung, die dritte danach.
+    assert stages[1] < removal < stages[2], (stages, removal)
+    # Und das Historienfenster reicht bis hinter die letzte Stufe.
+    assert stages[-1] < heartbeat.HISTORY_WINDOW_DAYS
+    assert HEARTBEAT.name == heartbeat.WORKFLOW_FILE
+
+    assert stage_drift(_stage_sources(), stages=stages, removal=removal) == []
+
+
+def test_the_stage_guard_turns_red_on_a_drifted_copy() -> None:
+    """Negativkontrolle (HB-STUFE-02): ein abweichender Wert in einer Kopie
+    schlägt nachweislich an – und nur dort."""
+    stages = heartbeat.OFFLINE_STAGE_DAYS
+    removal = heartbeat.GITHUB_RUNNER_REMOVAL_DAYS
+    sources = _stage_sources()
+
+    drifted = dict(sources)
+    drifted["workflow"] = sources["workflow"].replace(
+        f"--stage-days {stages[0]} {stages[1]} {stages[2]}", "--stage-days 7 14 21",
+    )
+    findings = stage_drift(drifted, stages=stages, removal=removal)
+    assert findings == [f"workflow: '--stage-days {stages[0]} {stages[1]} {stages[2]}' fehlt"]
+
+    drifted = dict(sources)
+    drifted["RUNNER_SETUP §0"] = sources["RUNNER_SETUP §0"].replace(
+        f"**mehr als {removal} Tage**", "**mehr als 30 Tage**",
+    )
+    findings = stage_drift(drifted, stages=stages, removal=removal)
+    assert findings == [f"RUNNER_SETUP §0: '**mehr als {removal} Tage** nicht verbunden' fehlt"]
+
+    drifted = dict(sources)
+    drifted["RELEASE_AUTOMATION §7"] = sources["RELEASE_AUTOMATION §7"].replace(
+        f"| 2 | ≥ {stages[1]} Tage |", "| 2 | ≥ 14 Tage |",
+    )
+    assert stage_drift(drifted, stages=stages, removal=removal) == [
+        f"RELEASE_AUTOMATION §7: '| 2 | ≥ {stages[1]} Tage |' fehlt"
+    ]
+
+
+def test_the_script_renders_deadline_texts_from_the_constants_only() -> None:
+    """HB-STUFE-01: kein Stringliteral im Skript trägt eine der Fristen als
+    Zahl – die Texte entstehen aus ``OFFLINE_STAGE_DAYS`` und
+    ``GITHUB_RUNNER_REMOVAL_DAYS``. Kommentare sind ausgenommen."""
+    import io
+    import tokenize
+
+    source = (ROOT / "scripts" / "runner_heartbeat.py").read_text(encoding="utf-8")
+    numbers = {*heartbeat.OFFLINE_STAGE_DAYS, heartbeat.GITHUB_RUNNER_REMOVAL_DAYS}
+    pattern = re.compile(r"\b(" + "|".join(str(n) for n in sorted(numbers)) + r")[ -]Tage")
+    offenders = [
+        f"Zeile {token.start[0]}: {token.string[:60]!r}"
+        for token in tokenize.generate_tokens(io.StringIO(source).readline)
+        if token.type == tokenize.STRING and pattern.search(token.string)
+    ]
+    assert offenders == [], offenders
+
+
+def test_retired_platforms_are_skipped_and_not_expected() -> None:
+    """HB-STUFE-07: Nach Stufe 3 erwartet der Heartbeat die Plattform nicht mehr.
+
+    Der Bestand kommt aus den Labels des Betriebs-Issues (``retired-status``
+    im Job ``status``, ``issues: read``). Beide Hälften müssen passen: Der
+    Runner-Job wird über den Output übersprungen, **und** die Auswertung
+    bekommt denselben Wert – sonst meldete sie täglich einen Ausfall, den es
+    nicht gibt (Muster x86_64).
+    """
+    jobs = _jobs(HEARTBEAT)
+    status = jobs["status"]
+    status_body = " ".join(str(step.get("run", "")) for step in status["steps"])
+    assert "scripts/runner_heartbeat.py retired-status" in status_body
+    assert "RUNNER_HEARTBEAT_ISSUE" in str(status["steps"])
+    by_platform = {
+        "macos-arm64": "heartbeat-macos-arm64",
+        "linux-arm64": "heartbeat-linux-arm64",
+        "linux-x86_64": "heartbeat-linux-x86_64",
+    }
+    watch_body = " ".join(str(step.get("run", "")) for step in jobs["watch"]["steps"])
+    watch_env = str(next(s for s in jobs["watch"]["steps"] if s.get("id") == "watch")["env"])
+    for platform, job_id in by_platform.items():
+        output = heartbeat.retired_output_name(platform)
+        assert output in status["outputs"], output
+        assert f"needs.status.outputs.{output} == ''" in str(jobs[job_id]["if"]), (
+            platform, jobs[job_id]["if"],
+        )
+        assert f'--retired-since "{platform}=' in watch_body, platform
+        assert f"needs.status.outputs.{output}" in watch_env, platform
+    # Kein Rest des Variablen-Entwurfs.
+    assert "RETIRED_SINCE" not in _text()
+
+
+def test_the_retire_job_sets_the_label_before_it_comments() -> None:
+    """E2 (automatisch): eigener Job mit ``issues: write`` (und nichts weiter),
+    Label erst setzen, dann kommentieren – ein Kommentar darf nie eine
+    Austragung behaupten, die nicht stattfand. Plattform, Label und Datum
+    kommen aus ``retire.tsv``, das Namensschema wird nicht in der Shell
+    nachgebaut."""
+    jobs = _jobs(HEARTBEAT)
+    retire = jobs["retire"]
+    assert retire["needs"] == "watch"
+    assert "needs.watch.outputs.retire != ''" in str(retire["if"])
+    assert "!cancelled()" in str(retire["if"]), "watch endet bei FAIL mit Exit 1"
+    assert retire["runs-on"] == "ubuntu-latest"
+    assert retire["permissions"] == {"contents": "read", "issues": "write"}
+    uses = [str(step.get("uses", "")) for step in retire["steps"]]
+    assert any(u.startswith("actions/download-artifact@") for u in uses)
+    body = " ".join(str(step.get("run", "")) for step in retire["steps"])
+    assert "heartbeat/retire.tsv" in body
+    assert body.index("gh label create") < body.index("gh issue edit") < body.index("gh issue comment")
+    assert "--force" in body, "Wiederanlauf am selben Tag legt kein zweites Label an"
+    assert "--add-label" in body
+    assert "retire-comment-${platform}.md" in body
+    assert "runner-retired" not in body, "das Label kommt aus der TSV, nicht aus der Shell"
+    # Die Auswertung reicht genau diese beiden Outputs weiter.
+    assert set(jobs["watch"]["outputs"]) == {"retire", "comment_issue"}
+
+
+def test_no_daily_comment_remains_only_stage_comments() -> None:
+    """E1: kein Tageskommentar mehr. Der Kommentarschritt der Auswertung
+    postet ausschließlich Stufendateien, gesteuert vom Skript-Output, und
+    läuft über ``!cancelled()`` – bei FAIL endet der Beobachtungsschritt mit
+    Exit 1, und genau dann ist eine Stufe fällig."""
+    steps = _jobs(HEARTBEAT)["watch"]["steps"]
+    commenting = [step for step in steps if "gh issue comment" in str(step.get("run", ""))]
+    assert [step["name"] for step in commenting] == [
+        "Stufenkommentar posten", "Simulationskommentar posten",
+    ]
+    step, simulation = commenting
+    assert "!cancelled()" in str(step["if"]) and "stage_comments != ''" in str(step["if"])
+    assert "failure()" not in str(step["if"])
+    assert "stage-comment-${platform}.md" in step["run"]
+    assert "heartbeat.md" not in step["run"], "der Tagesbericht wird nicht mehr gepostet"
+    assert "--body-file" in step["run"]
+    # Die Simulation (Review PR #981) laeuft zusaetzlich, mit eigenem Ziel und
+    # eigenen Dateien – sie verdraengt die echte Eskalation nicht.
+    assert "simulation_comments != ''" in str(simulation["if"])
+    assert "simulation-comment-${platform}.md" in simulation["run"]
+    assert "steps.watch.outputs.simulation_issue" in str(simulation["env"].values())
+    assert "COMMENT_ISSUE" not in simulation["run"]
+    # Die Erwähnung des Owners – der Mailweg – kommt aus dem Repository-Kontext.
+    watch = next(s for s in steps if s.get("id") == "watch")
+    assert '--mention "$GITHUB_REPOSITORY_OWNER"' in watch["run"]
+    assert '--issue "$TARGET_ISSUE"' in watch["run"]
+
+
+def test_simulation_inputs_reach_the_script_together() -> None:
+    """HB-STUFE-05: Die drei Dispatch-Eingaben gehen gemeinsam ans Skript, das
+    ihre Kopplung prüft (nur gemeinsam wirksam, nie gegen das Betriebs-Issue).
+    Die Austragung läuft in der Simulation nie – das Skript schreibt dann
+    keine ``retire.tsv``, und ohne ``retire``-Output startet der Job nicht."""
+    doc = _load(HEARTBEAT)
+    triggers = doc[True] if True in doc else doc["on"]
+    inputs = triggers["workflow_dispatch"]["inputs"]
+    assert set(inputs) == {"simulate_offline_since", "simulate_target_issue", "simulate_platform"}
+    assert inputs["simulate_offline_since"]["default"] == ""
+    assert inputs["simulate_target_issue"]["default"] == ""
+    assert set(inputs["simulate_platform"]["options"]) == set(PLATFORMS)
+    watch = next(s for s in _jobs(HEARTBEAT)["watch"]["steps"] if s.get("id") == "watch")
+    for flag in ("--simulate-offline-since", "--simulate-target-issue", "--simulate-platform"):
+        assert flag in watch["run"], flag
+    for name in ("SIMULATE_OFFLINE_SINCE", "SIMULATE_TARGET_ISSUE", "SIMULATE_PLATFORM"):
+        assert name in watch["env"], name

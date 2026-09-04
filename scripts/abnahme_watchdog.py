@@ -38,8 +38,9 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
+from datetime import date
 from typing import Any
 
 JOB_NAME_PREFIX = "Preflight "
@@ -70,12 +71,17 @@ ACCEPTANCE_JOB_NAMES: dict[str, str] = {
 }
 
 
-def _expected_platforms(platforms: str, *, x86_enabled: bool) -> tuple[str, ...]:
+def _expected_platforms(
+    platforms: str, *, x86_enabled: bool, retired: Iterable[str] = (),
+) -> tuple[str, ...]:
     """Aktive Plattformen eines Laufs; spiegelt die ``if``-Bedingungen der Jobs.
 
     ``alle`` umfasst macOS und Linux arm64, x86_64 nur bei gesetzter
     Repository-Variable (sonst sind die Jobs übersprungen und dürfen nicht
-    erwartet werden).
+    erwartet werden). Eine **ausgetragene** Plattform (Heartbeat-Eskalation
+    Stufe 3, #958: ``RUNNER_<PLATTFORM>_RETIRED_SINCE`` gesetzt) ist ebenso
+    übersprungen – der Watchdog wartete sonst zehn Minuten auf einen
+    Preflight, den der Workflow gar nicht erzeugt, und bräche den Lauf ab.
     """
     if platforms == "alle":
         wanted = ["macos-arm64", "linux-arm64"]
@@ -85,22 +91,54 @@ def _expected_platforms(platforms: str, *, x86_enabled: bool) -> tuple[str, ...]
         wanted = []
     else:
         wanted = [platforms]
-    return tuple(wanted)
+    excluded = set(retired)
+    return tuple(platform for platform in wanted if platform not in excluded)
 
 
-def expected_preflights(platforms: str, *, x86_enabled: bool) -> tuple[str, ...]:
+def parse_retired(values: Iterable[str]) -> tuple[str, ...]:
+    """``<plattform>=<datum>``-Angaben (leerer Wert = aktiv) zu Plattformen.
+
+    Dieselbe Form wie beim Heartbeat, damit der Workflow beiden Skripten
+    dieselben Repository-Variablen unveraendert durchreicht. Das Datum
+    braucht der Watchdog nicht, ein unlesbares ist trotzdem ein Befund.
+    """
+    retired: list[str] = []
+    for value in values:
+        platform, sep, raw = value.partition("=")
+        platform = platform.strip()
+        if not sep or platform not in PREFLIGHT_JOB_NAMES:
+            raise ValueError(
+                f"--retired-since erwartet <plattform>=<datum> mit einer der Plattformen "
+                f"{', '.join(PREFLIGHT_JOB_NAMES)}, nicht {value!r}"
+            )
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            date.fromisoformat(raw)
+        except ValueError as exc:
+            raise ValueError(f"{value!r}: {raw!r} ist kein ISO-Datum (YYYY-MM-DD)") from exc
+        retired.append(platform)
+    return tuple(retired)
+
+
+def expected_preflights(
+    platforms: str, *, x86_enabled: bool, retired: Iterable[str] = (),
+) -> tuple[str, ...]:
     """Erwartete Preflight-Jobnamen eines Laufs aus den Dispatch-Eingaben."""
     return tuple(
         PREFLIGHT_JOB_NAMES[platform]
-        for platform in _expected_platforms(platforms, x86_enabled=x86_enabled)
+        for platform in _expected_platforms(platforms, x86_enabled=x86_enabled, retired=retired)
     )
 
 
-def expected_acceptance(platforms: str, *, x86_enabled: bool) -> tuple[str, ...]:
+def expected_acceptance(
+    platforms: str, *, x86_enabled: bool, retired: Iterable[str] = (),
+) -> tuple[str, ...]:
     """Erwartete Abnahme-Jobnamen (schwere Plattform-Jobs) desselben Laufs."""
     return tuple(
         ACCEPTANCE_JOB_NAMES[platform]
-        for platform in _expected_platforms(platforms, x86_enabled=x86_enabled)
+        for platform in _expected_platforms(platforms, x86_enabled=x86_enabled, retired=retired)
     )
 
 
@@ -297,6 +335,10 @@ def main(argv: list[str] | None = None) -> int:
         help="platforms-Dispatch-Eingabe des Laufs (bestimmt die erwarteten Jobs)",
     )
     parser.add_argument("--x86-64-enabled", action="store_true")
+    parser.add_argument(
+        "--retired-since", action="append", default=[], metavar="PLATTFORM=DATUM",
+        help="Ausgetragene Plattform (#958, RUNNER_<PLATTFORM>_RETIRED_SINCE); leer = aktiv.",
+    )
     parser.add_argument("--deadline-seconds", type=float, default=DEFAULT_DEADLINE_S)
     parser.add_argument(
         "--acceptance-deadline-seconds", type=float,
@@ -314,12 +356,21 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     api_url = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
 
-    expected_pre = expected_preflights(args.platforms, x86_enabled=args.x86_64_enabled)
-    expected_heavy = expected_acceptance(args.platforms, x86_enabled=args.x86_64_enabled)
+    try:
+        retired = parse_retired(args.retired_since)
+    except ValueError as exc:
+        print(f"::error::Watchdog: {exc}")
+        return 1
+    expected_pre = expected_preflights(
+        args.platforms, x86_enabled=args.x86_64_enabled, retired=retired,
+    )
+    expected_heavy = expected_acceptance(
+        args.platforms, x86_enabled=args.x86_64_enabled, retired=retired,
+    )
     if not expected_pre:
         print(
             f"[watchdog] Für platforms={args.platforms!r} läuft kein Preflight "
-            "(x86_64 pausiert) – nichts zu überwachen."
+            "(pausiert oder ausgetragen) – nichts zu überwachen."
         )
         return 0
 
