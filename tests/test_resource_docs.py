@@ -16,9 +16,10 @@ RESOURCE_DOCS = [
 ]
 
 
-#: Die Workflows, die RESOURCES.md als Test-/Qualitaets-CI fuehrt. Welche der
-#: 17 Workflows das Dokument aufnimmt, ist eine redaktionelle Entscheidung und
-#: bleibt deshalb literal; die Action-Pins darunter werden daraus abgeleitet.
+#: Die Workflows, die die RESOURCES-Dokumente als Test-/Qualitäts-CI führen.
+#: Welche der 17 Workflows sie aufnehmen, ist eine redaktionelle Entscheidung
+#: und bleibt deshalb literal; die Action-Pins darunter werden daraus
+#: abgeleitet (#949).
 CI_WORKFLOWS = (
     ".github/workflows/pr-ci.yml",
     ".github/workflows/ci.yml",
@@ -26,38 +27,45 @@ CI_WORKFLOWS = (
     ".github/workflows/license-check.yml",
 )
 
-# ``uses:`` steht mal als eigener Schluessel, mal als erster Schluessel
-# eines Listeneintrags (``- uses: ...``). Ohne den optionalen Strich
-# faehrt die Suche an ``checkout`` und ``setup-python`` vorbei.
+# ``uses:`` steht mal als eigener Schlüssel, mal als erster Schlüssel eines
+# Listeneintrags (``- uses: …``). Ohne den optionalen Strich fährt die Suche
+# an ``checkout`` und ``setup-python`` vorbei.
 _USES_RE = re.compile(r"^\s*(?:-\s*)?uses:\s*([^\s#]+)", re.MULTILINE)
-# Erlaubt sind ``@v5`` und ``@v6.1.0``; die Hauptversion traegt den
-# Vergleich mit RESOURCES.md.
-_ACTION_RE = re.compile(r"^(?P<name>[^@]+)@v(?P<major>\d+)(?:\.\d+)*$")
+#: Prüfbare Pin-Form: ``owner/action@v5`` oder ``owner/action@v6.1.0``.
+_ACTION_RE = re.compile(r"^[^@\s]+@v\d+(?:\.\d+)*$")
+#: Dieselbe Form, wie sie in den RESOURCES-Tabellen steht.
+_DOCUMENTED_PIN_RE = re.compile(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+@v\d+(?:\.\d+)*")
 _PYTHON_MATRIX_RE = re.compile(r"python-version:\s*\[([^\]]+)\]")
 
 
-def _used_actions() -> dict[str, int]:
-    """Action-Name -> hoechste in den CI-Workflows verwendete Hauptversion."""
-    used: dict[str, int] = {}
+def _used_pins() -> set[str]:
+    """Die exakten Action-Pins der CI-Workflows.
+
+    Bewusst die vollständigen Pins statt nur der Hauptversion: Nur so fällt
+    auf, wenn zwei Workflows während einer Migration verschiedene Stände
+    fahren – ein ``max()`` über die Hauptversionen hätte den älteren, real
+    laufenden Pin als „abgelöst" abgestempelt (#949).
+    """
+    pins: set[str] = set()
     for relative in CI_WORKFLOWS:
-        text = (ROOT / relative).read_text(encoding="utf-8")
-        for reference in _USES_RE.findall(text):
+        path = ROOT / relative
+        assert path.is_file(), f"{relative} does not exist"
+        for reference in _USES_RE.findall(path.read_text(encoding="utf-8")):
             if reference.startswith("./"):
                 continue  # lokaler bzw. wiederverwendbarer Workflow, kein Pin
-            match = _ACTION_RE.match(reference)
-            if match is None:
+            if not _ACTION_RE.match(reference):
                 # Fail-closed: SHA-Pins, Branch-/Tag-Referenzen und andere
-                # Formen liessen sich nicht gegen RESOURCES.md pruefen. Sie
-                # stillschweigend zu verwerfen brachte genau die
-                # Untererfassung zurueck, die #949 abstellen soll.
+                # Formen ließen sich nicht gegen die Doku prüfen. Sie still
+                # zu verwerfen brächte genau die Untererfassung zurück, die
+                # #949 abstellen soll.
                 pytest.fail(
-                    f"{relative}: uses-Form nicht pruefbar gegen RESOURCES.md "
-                    f"- Regel bewusst erweitern statt still ueberspringen: {reference}"
+                    f"{relative}: uses-Form nicht prüfbar gegen die "
+                    f"RESOURCES-Dokumente – Regel bewusst erweitern statt "
+                    f"still überspringen: {reference}"
                 )
-            name, major = match["name"], int(match["major"])
-            used[name] = max(used.get(name, 0), major)
-    assert used, "no pinned actions found in the CI workflows"
-    return used
+            pins.add(reference)
+    assert pins, "no pinned actions found in the CI workflows"
+    return pins
 
 
 def _python_matrix() -> list[str]:
@@ -89,47 +97,51 @@ def test_resource_docs_track_constraints_snapshot() -> None:
         assert "requirements/constraints.txt" in text
 
 
-def test_root_resource_doc_tracks_current_ci_workflows() -> None:
-    """Die dokumentierten Action-Pins muessen den Workflows entsprechen.
+def test_resource_docs_track_current_ci_workflows() -> None:
+    """Die dokumentierten Action-Pins müssen den Workflows entsprechen.
 
-    Frueher stand hier eine handgeschriebene Literal-Menge. Sie konnte
-    gemeinsam mit der Doku veralten, ohne dass der Test es bemerkt (#949);
-    genau das war passiert - ``codecov/codecov-action`` lief in ``ci.yml``,
-    stand aber in keiner Fassung von RESOURCES.md. Seither wird die
-    Soll-Menge aus den echten ``uses:``-Zeilen abgeleitet.
+    Früher stand hier eine handgeschriebene Literal-Menge, geprüft nur gegen
+    die deutsche Fassung. Sie konnte gemeinsam mit der Doku veralten, ohne
+    dass der Test es bemerkt (#949) – und genau das war passiert:
+    ``codecov/codecov-action`` lief in ``ci.yml``, stand aber in keiner der
+    sechs Fassungen. Verglichen wird jetzt in **beide** Richtungen und über
+    alle sechs Dokumente.
     """
-    text = _read(ROOT / "RESOURCES.md")
+    used = _used_pins()
 
-    for relative in CI_WORKFLOWS:
-        assert relative in text, f"RESOURCES.md documents no {relative}"
-        assert (ROOT / relative).is_file(), f"{relative} does not exist"
+    for path in RESOURCE_DOCS:
+        text = _read(path)
+        where = path.relative_to(ROOT)
 
-    used = _used_actions()
-    missing = sorted(f"{name}@v{major}" for name, major in used.items() if f"{name}@v{major}" not in text)
-    assert not missing, "RESOURCES.md documents no pin for: " + ", ".join(missing)
+        for relative in CI_WORKFLOWS:
+            assert relative in text, f"{where} documents no {relative}"
 
-    # Ein abgeloester Vorgaenger darf nicht zurueckkehren (#312). Die Regel
-    # kommt aus den aktuellen Hauptversionen selbst, nicht aus einer zweiten
-    # Literal-Liste, die ihrerseits veralten koennte.
-    stale = sorted(
-        f"{name}@v{older}"
-        for name, major in used.items()
-        for older in range(1, major)
-        if f"{name}@v{older}" in text
-    )
-    assert not stale, "RESOURCES.md still documents superseded pins: " + ", ".join(stale)
+        documented = set(_DOCUMENTED_PIN_RE.findall(text))
+
+        missing = sorted(used - documented)
+        assert not missing, f"{where} documents no pin for: " + ", ".join(missing)
+
+        # Die Gegenrichtung: ein Eintrag, den kein Workflow mehr fährt. Das
+        # deckt sowohl abgelöste Vorgänger (#312) als auch eine vollständig
+        # entfernte Action ab, die sonst für immer stehen bliebe.
+        superfluous = sorted(documented - used)
+        assert not superfluous, (
+            f"{where} documents pins no CI workflow uses: " + ", ".join(superfluous)
+        )
 
 
-def test_root_resource_doc_tracks_current_python_matrix() -> None:
+def test_resource_docs_track_current_python_matrix() -> None:
     """Die dokumentierte Voll-Matrix muss zur ``ci.yml`` passen.
 
-    Die Spanne wird aus der echten Matrix abgeleitet; das fruehere Literal
-    ``3.10-3.13`` haette eine Matrixaenderung stillschweigend ueberlebt. Der
-    ebenfalls entfallene Negativtest auf ``3.10/3.12`` ist damit redundant -
-    eine veraltete Angabe enthaelt die abgeleitete Spanne schlicht nicht.
+    Die Spanne wird aus der echten Matrix abgeleitet; das frühere Literal
+    ``3.10–3.13`` hätte eine Matrixänderung stillschweigend überlebt. Der
+    ebenfalls entfallene Negativtest auf ``3.10/3.12`` ist damit redundant –
+    eine veraltete Angabe enthält die abgeleitete Spanne schlicht nicht.
     """
     versions = _python_matrix()
     expected = f"{versions[0]}–{versions[-1]}"  # Halbgeviertstrich wie im Dokument
 
-    text = _read(ROOT / "RESOURCES.md")
-    assert expected in text, f"RESOURCES.md does not document the matrix {expected}"
+    for path in RESOURCE_DOCS:
+        assert expected in _read(path), (
+            f"{path.relative_to(ROOT)} does not document the matrix {expected}"
+        )

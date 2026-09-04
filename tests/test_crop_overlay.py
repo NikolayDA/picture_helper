@@ -211,16 +211,26 @@ def test_paint_with_none_painter_is_noop(qapp):
 
 
 def test_crop_rect_rounds_the_float_frame_for_consumers(qapp):
-    """``crop_rect()`` rundet die Float-Geometrie kaufmaennisch auf Pixel.
+    """``crop_rect()`` rundet zur nächsten Ganzzahl, ``.5`` zur geraden.
 
-    ``canvas_crop.py`` schneidet ausschliesslich ueber diesen Rueckgabewert
-    zu, waehrend Ziehen und Skalieren intern in Float rechnen. Ohne diese
+    ``canvas_crop.py`` schneidet ausschließlich über diesen Rückgabewert zu,
+    während Ziehen und Skalieren intern in Float rechnen. Ohne diese
     Zusicherung war nirgends festgehalten, wie beide zusammenpassen (#949).
+
+    Der ``.5``-Fall gehört ausdrücklich dazu: ``crop.py`` nutzt Pythons
+    ``round``, also *round-half-to-even* – ``300.5`` wird zu ``300``, nicht
+    zu ``301``. Eindeutige Werte allein könnten kaufmännisches Runden nicht
+    davon unterscheiden.
     """
     ov = CropOverlayItem(img_w=800, img_h=600, crop_w=200, crop_h=150)
+
     ov.set_position(300.6, 225.4)
-
     assert (ov.top_left.x(), ov.top_left.y()) == pytest.approx((300.6, 225.4))
-
     rect = ov.crop_rect()
     assert (rect.x(), rect.y(), rect.width(), rect.height()) == (301, 225, 200, 150)
+
+    # Genau auf der Hälfte: beide Koordinaten runden zur geraden Zahl ab.
+    ov.set_position(300.5, 224.5)
+    assert (ov.top_left.x(), ov.top_left.y()) == pytest.approx((300.5, 224.5))
+    rect = ov.crop_rect()
+    assert (rect.x(), rect.y()) == (300, 224)
