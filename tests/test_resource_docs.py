@@ -3,6 +3,8 @@
 import re
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 RESOURCE_DOCS = [
     ROOT / "RESOURCES.md",
@@ -28,7 +30,9 @@ CI_WORKFLOWS = (
 # eines Listeneintrags (``- uses: ...``). Ohne den optionalen Strich
 # faehrt die Suche an ``checkout`` und ``setup-python`` vorbei.
 _USES_RE = re.compile(r"^\s*(?:-\s*)?uses:\s*([^\s#]+)", re.MULTILINE)
-_ACTION_RE = re.compile(r"^(?P<name>[^@]+)@v(?P<major>\d+)$")
+# Erlaubt sind ``@v5`` und ``@v6.1.0``; die Hauptversion traegt den
+# Vergleich mit RESOURCES.md.
+_ACTION_RE = re.compile(r"^(?P<name>[^@]+)@v(?P<major>\d+)(?:\.\d+)*$")
 _PYTHON_MATRIX_RE = re.compile(r"python-version:\s*\[([^\]]+)\]")
 
 
@@ -38,9 +42,18 @@ def _used_actions() -> dict[str, int]:
     for relative in CI_WORKFLOWS:
         text = (ROOT / relative).read_text(encoding="utf-8")
         for reference in _USES_RE.findall(text):
+            if reference.startswith("./"):
+                continue  # lokaler bzw. wiederverwendbarer Workflow, kein Pin
             match = _ACTION_RE.match(reference)
             if match is None:
-                continue  # lokaler oder wiederverwendbarer Workflow, kein Pin
+                # Fail-closed: SHA-Pins, Branch-/Tag-Referenzen und andere
+                # Formen liessen sich nicht gegen RESOURCES.md pruefen. Sie
+                # stillschweigend zu verwerfen brachte genau die
+                # Untererfassung zurueck, die #949 abstellen soll.
+                pytest.fail(
+                    f"{relative}: uses-Form nicht pruefbar gegen RESOURCES.md "
+                    f"- Regel bewusst erweitern statt still ueberspringen: {reference}"
+                )
             name, major = match["name"], int(match["major"])
             used[name] = max(used.get(name, 0), major)
     assert used, "no pinned actions found in the CI workflows"
