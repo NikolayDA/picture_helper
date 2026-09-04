@@ -154,22 +154,22 @@ def test_heartbeat_runs_on_a_schedule_and_on_demand_only() -> None:
 def test_heartbeat_is_least_privilege() -> None:
     """Schreibrechte nur dort, wo tatsächlich geschrieben wird (HB-STUFE-08).
 
-    ``actions: write`` trägt seit #958 genau **ein** Job – die Austragung –
-    und nutzt es nur zum Setzen der Repository-Variable. Die Auswertung
-    selbst bleibt bei ``actions: read``: Der Heartbeat bricht nie einen Lauf
-    ab, er meldet.
+    Der Heartbeat trägt **kein** ``actions: write`` – er bricht nie einen Lauf
+    ab, er meldet. Auch die Austragung (#958) kommt ohne aus: Sie ist ein
+    Label am Betriebs-Issue und braucht nur ``issues: write``, dasselbe Recht
+    wie der Kommentar (der Variablen-Entwurf scheiterte daran, dass
+    ``GITHUB_TOKEN`` keine Repository-Variable setzen kann; Review PR #981).
     """
     doc = _load(HEARTBEAT)
     assert doc["permissions"] == {"contents": "read"}
     text = _text()
     assert "contents: write" not in text
+    assert "actions: write" not in text, (
+        "der Heartbeat bricht nie einen Lauf ab – er meldet nur"
+    )
     jobs = _jobs(HEARTBEAT)
-    actions_writers = [
-        name for name, job in jobs.items()
-        if (job.get("permissions") or {}).get("actions") == "write"
-    ]
-    assert actions_writers == ["retire"], actions_writers
     assert jobs["watch"]["permissions"]["actions"] == "read"
+    assert jobs["status"]["permissions"] == {"contents": "read", "issues": "read"}
     commenting = [
         name for name, job in jobs.items()
         if any("gh issue comment" in str(step.get("run", "")) for step in job.get("steps", []))
@@ -182,10 +182,12 @@ def test_heartbeat_is_least_privilege() -> None:
         f"issues: write und Kommentarschritt driften auseinander: "
         f"{writing} vs. {commenting}"
     )
-    # Und der einzige Zweck des Schreibrechts: die Variable. Kein Run-Abbruch.
-    retire_body = " ".join(str(step.get("run", "")) for step in jobs["retire"]["steps"])
-    assert "gh variable set" in retire_body
-    assert "cancel" not in retire_body and "gh run" not in retire_body
+    # Kein Job kennt gh variable oder einen Run-Abbruch als Kommando (das
+    # Wort "cancelled" in einer Fehlermeldung ist keiner).
+    for name, job in jobs.items():
+        body = " ".join(str(step.get("run", "")) for step in job.get("steps", []))
+        assert "gh variable" not in body, name
+        assert not re.search(r"\bgh run\b|\bgh api\b[^\n]*cancel", body), name
 
 
 def test_every_self_hosted_heartbeat_job_is_gated_and_bounded() -> None:
@@ -438,7 +440,7 @@ def stage_drift(
             f"nach {removal} Tagen ohne Verbindung",
         ),
         "RUNNER_SETUP §0": (f"**mehr als {removal} Tage** nicht verbunden",),
-        "RUNNER_SETUP §4": (f"Stufe 3 ({s3} Tage)", "RUNNER_<PLATTFORM>_RETIRED_SINCE"),
+        "RUNNER_SETUP §4": (f"Stufe 3 ({s3} Tage)", "runner-retired:<plattform>:<datum>"),
         "RUNNER_SETUP §5": (
             f"Mehr als {removal} Tage offline, von GitHub entfernt",
             f"ausgetragen (Stufe 3, {s3} Tage)",
@@ -526,50 +528,58 @@ def test_the_script_renders_deadline_texts_from_the_constants_only() -> None:
 def test_retired_platforms_are_skipped_and_not_expected() -> None:
     """HB-STUFE-07: Nach Stufe 3 erwartet der Heartbeat die Plattform nicht mehr.
 
-    Beide Hälften müssen passen: Der Runner-Job wird per Variable
-    übersprungen, **und** die Auswertung bekommt dieselbe Variable – sonst
-    meldete sie täglich einen Ausfall, den es nicht gibt (Muster x86_64).
+    Der Bestand kommt aus den Labels des Betriebs-Issues (``retired-status``
+    im Job ``status``, ``issues: read``). Beide Hälften müssen passen: Der
+    Runner-Job wird über den Output übersprungen, **und** die Auswertung
+    bekommt denselben Wert – sonst meldete sie täglich einen Ausfall, den es
+    nicht gibt (Muster x86_64).
     """
     jobs = _jobs(HEARTBEAT)
+    status = jobs["status"]
+    status_body = " ".join(str(step.get("run", "")) for step in status["steps"])
+    assert "scripts/runner_heartbeat.py retired-status" in status_body
+    assert "RUNNER_HEARTBEAT_ISSUE" in str(status["steps"])
     by_platform = {
         "macos-arm64": "heartbeat-macos-arm64",
         "linux-arm64": "heartbeat-linux-arm64",
         "linux-x86_64": "heartbeat-linux-x86_64",
     }
     watch_body = " ".join(str(step.get("run", "")) for step in jobs["watch"]["steps"])
+    watch_env = str(next(s for s in jobs["watch"]["steps"] if s.get("id") == "watch")["env"])
     for platform, job_id in by_platform.items():
-        variable = heartbeat.retired_variable(platform)
-        assert f"vars.{variable} == ''" in str(jobs[job_id]["if"]), (platform, jobs[job_id]["if"])
+        output = heartbeat.retired_output_name(platform)
+        assert output in status["outputs"], output
+        assert f"needs.status.outputs.{output} == ''" in str(jobs[job_id]["if"]), (
+            platform, jobs[job_id]["if"],
+        )
         assert f'--retired-since "{platform}=' in watch_body, platform
-        # Der Wert erreicht die Shell über env, nie als ${{ }} in der Kommandozeile.
-        assert variable in str(jobs["watch"]["steps"])
-    # Jede RETIRED_SINCE-Variable des Workflows kommt aus dem Namensschema des Skripts.
-    used = set(re.findall(r"vars\.(RUNNER_[A-Z0-9_]+_RETIRED_SINCE)", _text()))
-    assert used == {heartbeat.retired_variable(platform) for platform in PLATFORMS}
+        assert f"needs.status.outputs.{output}" in watch_env, platform
+    # Kein Rest des Variablen-Entwurfs.
+    assert "RETIRED_SINCE" not in _text()
 
 
-def test_the_retire_job_sets_the_variable_before_it_comments() -> None:
-    """E2 (automatisch): eigener Job, ``actions: write`` nur dort, Kommentar
-    erst **nach** dem Setzen der Variable – ein Kommentar darf nie eine
-    Austragung behaupten, die nicht stattfand. Plattform, Variablenname und
-    Datum kommen aus ``retire.tsv``, das Namensschema wird nicht in der
-    Shell nachgebaut."""
+def test_the_retire_job_sets_the_label_before_it_comments() -> None:
+    """E2 (automatisch): eigener Job mit ``issues: write`` (und nichts weiter),
+    Label erst setzen, dann kommentieren – ein Kommentar darf nie eine
+    Austragung behaupten, die nicht stattfand. Plattform, Label und Datum
+    kommen aus ``retire.tsv``, das Namensschema wird nicht in der Shell
+    nachgebaut."""
     jobs = _jobs(HEARTBEAT)
     retire = jobs["retire"]
     assert retire["needs"] == "watch"
     assert "needs.watch.outputs.retire != ''" in str(retire["if"])
     assert "!cancelled()" in str(retire["if"]), "watch endet bei FAIL mit Exit 1"
     assert retire["runs-on"] == "ubuntu-latest"
-    assert retire["permissions"] == {"contents": "read", "actions": "write", "issues": "write"}
+    assert retire["permissions"] == {"contents": "read", "issues": "write"}
     uses = [str(step.get("uses", "")) for step in retire["steps"]]
     assert any(u.startswith("actions/download-artifact@") for u in uses)
     body = " ".join(str(step.get("run", "")) for step in retire["steps"])
     assert "heartbeat/retire.tsv" in body
-    assert body.index("gh variable set") < body.index("gh issue comment")
+    assert body.index("gh label create") < body.index("gh issue edit") < body.index("gh issue comment")
+    assert "--force" in body, "Wiederanlauf am selben Tag legt kein zweites Label an"
+    assert "--add-label" in body
     assert "retire-comment-${platform}.md" in body
-    assert not re.search(r"RUNNER_[A-Z0-9_]*RETIRED|tr 'a-z", body), (
-        "Variablenname kommt aus der TSV, nicht aus der Shell"
-    )
+    assert "runner-retired" not in body, "das Label kommt aus der TSV, nicht aus der Shell"
     # Die Auswertung reicht genau diese beiden Outputs weiter.
     assert set(jobs["watch"]["outputs"]) == {"retire", "comment_issue"}
 

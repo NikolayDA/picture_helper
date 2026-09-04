@@ -500,24 +500,27 @@ gh variable delete RUNNER_HEARTBEAT_PAUSED_UNTIL --repo "$REPO"
 
 **Ausgetragene Plattform reaktivieren.** Nach Stufe 3 (21 Tage) der
 Heartbeat-Eskalation ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §7)
-trägt die Repository-Variable `RUNNER_<PLATTFORM>_RETIRED_SINCE` das Datum
-der Austragung, und beide Self-hosted-Workflows überspringen die Plattform
-(Heartbeat erwartet sie nicht, Abnahme-Matrix führt sie als „ausgetragen").
-Erst das Gerät neu registrieren (§2 bzw. §3, bei einem `not_ready`-Befund
-die Härtung §2.3/§3.4 nachziehen), dann die Variable entfernen und den
-Heartbeat von Hand starten:
+trägt das Betriebs-Issue #939 das Label `runner-retired:<plattform>:<datum>`
+(nicht eine Repository-Variable – `GITHUB_TOKEN` kann keine setzen), und
+beide Self-hosted-Workflows überspringen die Plattform (Heartbeat erwartet
+sie nicht, Abnahme-Matrix führt sie als „ausgetragen"). Erst das Gerät neu
+registrieren (§2 bzw. §3, bei einem `not_ready`-Befund die Härtung
+§2.3/§3.4 nachziehen), dann das Label entfernen – im Issue unter *Labels*
+oder per CLI – und den Heartbeat von Hand starten:
 
 ```sh
 REPO=NikolayDA/picture_helper
-gh variable list --repo "$REPO" | grep RETIRED_SINCE            # was ist ausgetragen?
-gh variable delete RUNNER_LINUX_ARM64_RETIRED_SINCE --repo "$REPO"   # bzw. RUNNER_MACOS_ARM64_RETIRED_SINCE
+gh issue view 939 --repo "$REPO" --json labels --jq '.labels[].name' | grep runner-retired   # was ist ausgetragen?
+gh issue edit 939 --repo "$REPO" --remove-label 'runner-retired:linux-arm64:2026-09-18'     # Label aus der Ausgabe oben
 gh workflow run runner-heartbeat.yml --repo "$REPO"             # Erst-Heartbeat, Beobachtung wie in §0.2
 ```
 
 Grün = reaktiviert. Die Zählung der Eskalation beginnt danach neu; die
-alten Marker im Betriebs-Issue bleiben wirkungslos. Solange die Variable
-gesetzt ist, läuft der Runner-Job nicht – ein Erst-Heartbeat *vor* dem
-Entfernen der Variable ist deshalb nicht möglich.
+alten Marker im Betriebs-Issue bleiben wirkungslos. Solange das Label am
+Issue hängt, läuft der Runner-Job nicht – ein Erst-Heartbeat *vor* dem
+Entfernen des Labels ist deshalb nicht möglich. Die Label-Definition selbst
+darf im Repository bleiben (sie schadet nicht) oder mit
+`gh label delete` weg.
 
 ---
 
@@ -536,7 +539,7 @@ Bevor ein „offline"-Runner neu registriert wird
 | Heartbeat rot: `sleep-schutz`, obwohl `caffeinate` läuft | Der Wrapper muss **beide** Schlafarten halten (`caffeinate -dimsu`, nicht nur `-i`) und selbst der Assertion-Eigentümer sein |
 | Heartbeat rot: `sleep-schutz`/`dienst-neustart` | §2.3 bzw. §3.4 erneut anwenden – `KeepAlive` überlebt kein `svc.sh install` |
 | Runner aus der GitHub-Liste verschwunden | Mehr als 14 Tage offline, von GitHub entfernt → Registrierung und Dienst (§2/§3) komplett wiederholen |
-| Heartbeat-Kommentar „Stufe 3": Plattform ausgetragen (Stufe 3, 21 Tage) | Neu registrieren (§2/§3), Variable `RUNNER_<PLATTFORM>_RETIRED_SINCE` entfernen, Heartbeat starten – Kommandos in §4 |
+| Heartbeat-Kommentar „Stufe 3": Plattform ausgetragen (Stufe 3, 21 Tage) | Neu registrieren (§2/§3), Label `runner-retired:<plattform>:<datum>` vom Betriebs-Issue entfernen, Heartbeat starten – Kommandos in §4 |
 
 Ein Stufenkommentar im Betriebs-Issue
 [#939](https://github.com/NikolayDA/picture_helper/issues/939) ist nie

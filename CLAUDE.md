@@ -1073,11 +1073,17 @@ Kommentar mit `@`-Erwähnung des Owners – die Erwähnung ist der Mailweg. Die
 zweite Stufe liegt bewusst **vor** GitHubs Entfernung eines seit 14 Tagen
 nicht verbundenen Runners (Plattformregel, nicht konfigurierbar); die
 dritte trägt die Plattform automatisch aus (E2): Der eigene Job `retire`
-setzt `RUNNER_<PLATTFORM>_RETIRED_SINCE` und postet erst danach – er ist
-der einzige Träger von `actions: write` und nutzt es nur dafür. Beide
-Self-hosted-Workflows überspringen eine ausgetragene Plattform; die
-Abschlussmatrix führt sie als „ausgetragen seit <Datum>" (`retired`,
-blockierend, kein Abnahmeergebnis). Marker
+setzt das Label `runner-retired:<plattform>:<datum>` auf das Betriebs-Issue
+und postet erst danach – mit `issues: write`, ohne neues Schreibrecht. Eine
+Repository-Variable war die erste Wahl: `GITHUB_TOKEN` kann keine setzen,
+die Variablen-API verlangt die eigene Berechtigung „Variables", die der
+`permissions:`-Block nicht kennt (Review PR #981). Das Unterkommando
+`retired-status` liest die Labels und liefert beiden Self-hosted-Workflows
+je Plattform einen Output für ihre `if`-Bedingungen (Heartbeat: Job
+`status`, Abnahme: Job `retirement-status`, jeweils `issues: read`,
+fail-closed ohne lesbares Issue). Beide Workflows überspringen eine
+ausgetragene Plattform; die Abschlussmatrix führt sie als „ausgetragen seit
+<Datum>" (`retired`, blockierend, kein Abnahmeergebnis). Marker
 `runner-heartbeat:<plattform>:offline:<offline_since>:stage-<n>` machen
 jeden Lauf idempotent; je Lauf höchstens eine Stufe je Plattform (die
 höchste fällige, noch nicht gepostete); eine Austragung beendet die Episode,

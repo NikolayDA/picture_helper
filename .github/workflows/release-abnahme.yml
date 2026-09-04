@@ -159,16 +159,47 @@ jobs:
   # Sekunden statt Minuten. Ersetzt den frueher noetigen manuellen Probelauf
   # vor der bindenden Abnahme. Der Runner-Watchdog unten bricht den Lauf ab,
   # wenn ein Preflight mangels Online-Runner in der Queue haengen bleibt.
-  # Eine per Heartbeat-Eskalation ausgetragene Plattform (#958, Variable
-  # RUNNER_<PLATTFORM>_RETIRED_SINCE) wird wie der pausierte x86_64-Pfad
-  # uebersprungen – Preflight und Plattform-Job. Sonst wartete der Lauf auf
-  # einen Runner, den es nicht mehr gibt, und der Watchdog braeche ihn ab,
-  # bevor die Matrix die Austragung sichtbar machen kann.
+  # Eine per Heartbeat-Eskalation ausgetragene Plattform (#958) traegt das
+  # Label runner-retired:<plattform>:<datum> am Betriebs-Issue und wird wie
+  # der pausierte x86_64-Pfad uebersprungen – ihr Preflight, und damit auch
+  # ihr Plattform-Job. Sonst wartete der Lauf auf einen Runner, den es nicht
+  # mehr gibt, und der Watchdog braeche ihn ab, bevor die Matrix die
+  # Austragung sichtbar machen kann. Dieser GitHub-hosted Job liest die
+  # Labels (issues: read) einmal fuer alle; fail-closed – ohne lesbares Issue
+  # startet kein Preflight.
+  retirement-status:
+    name: Austragungsbestand
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      retired: ${{ steps.retired.outputs.retired }}
+      retired_macos_arm64: ${{ steps.retired.outputs.retired_macos_arm64 }}
+      retired_linux_arm64: ${{ steps.retired.outputs.retired_linux_arm64 }}
+      retired_linux_x86_64: ${{ steps.retired.outputs.retired_linux_x86_64 }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Austragungen lesen
+        id: retired
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ISSUE: ${{ vars.RUNNER_HEARTBEAT_ISSUE }}
+        run: |
+          set -euo pipefail
+          python3 scripts/runner_heartbeat.py retired-status \
+            --repo "$GITHUB_REPOSITORY" \
+            --issue "${TARGET_ISSUE:-}"
+
   preflight-macos-arm64:
     name: Preflight macOS arm64
+    needs: retirement-status
     if: >-
       (inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64')
-      && vars.RUNNER_MACOS_ARM64_RETIRED_SINCE == ''
+      && needs.retirement-status.outputs.retired_macos_arm64 == ''
     runs-on: [self-hosted, macOS, ARM64]
     # 10 statt 5 Minuten seit #934: Der echte Qt-/GL-Probeaufruf baut seine
     # schlanke Runtime einmal je Pin-Stand (Qt-Wheels ~100 MB). Danach kostet
@@ -183,9 +214,10 @@ jobs:
 
   preflight-linux-arm64:
     name: Preflight Linux aarch64
+    needs: retirement-status
     if: >-
       (inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64')
-      && vars.RUNNER_LINUX_ARM64_RETIRED_SINCE == ''
+      && needs.retirement-status.outputs.retired_linux_arm64 == ''
     runs-on: [self-hosted, Linux, ARM64]
     # 10 statt 5 Minuten seit #934 (einmaliger Bau der Qt-Probe-Runtime).
     timeout-minutes: 10
@@ -198,10 +230,11 @@ jobs:
 
   preflight-linux-x86_64:
     name: Preflight Linux x86_64
+    needs: retirement-status
     if: >-
       (inputs.platforms == 'alle' || inputs.platforms == 'linux-x86_64')
       && vars.ABNAHME_X86_64_ENABLED == 'true'
-      && vars.RUNNER_LINUX_X86_64_RETIRED_SINCE == ''
+      && needs.retirement-status.outputs.retired_linux_x86_64 == ''
     runs-on: [self-hosted, Linux, X64]
     # 10 statt 5 Minuten seit #934 (einmaliger Bau der Qt-Probe-Runtime).
     timeout-minutes: 10
@@ -227,6 +260,9 @@ jobs:
   # der Watchdog bewusst nichts ab (fail-safe, scripts/abnahme_watchdog.py).
   runner-watchdog:
     name: Runner-Watchdog (Queue-Abbruch)
+    # needs nur fuer die Austragungs-Outputs (#958); der Bestand ist in
+    # Sekunden gelesen, die Phase-1-Frist zaehlt ab Start dieses Jobs.
+    needs: retirement-status
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -240,9 +276,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PLATFORMS: ${{ inputs.platforms }}
-          RETIRED_MACOS_ARM64: ${{ vars.RUNNER_MACOS_ARM64_RETIRED_SINCE }}
-          RETIRED_LINUX_ARM64: ${{ vars.RUNNER_LINUX_ARM64_RETIRED_SINCE }}
-          RETIRED_LINUX_X86_64: ${{ vars.RUNNER_LINUX_X86_64_RETIRED_SINCE }}
+          RETIRED_MACOS_ARM64: ${{ needs.retirement-status.outputs.retired_macos_arm64 }}
+          RETIRED_LINUX_ARM64: ${{ needs.retirement-status.outputs.retired_linux_arm64 }}
+          RETIRED_LINUX_X86_64: ${{ needs.retirement-status.outputs.retired_linux_x86_64 }}
         run: |
           set -euo pipefail
           # Erwartete Preflight-Menge aus den Dispatch-Eingaben ableiten
@@ -263,12 +299,12 @@ jobs:
             --retired-since "linux-x86_64=${RETIRED_LINUX_X86_64:-}" \
             $x86flag
 
+  # Eine ausgetragene Plattform (#958) faellt hier ueber ihren uebersprungenen
+  # Preflight weg – ein uebersprungener needs-Job ueberspringt diesen Job.
   abnahme-macos-arm64:
     name: Abnahme macOS arm64
     needs: [candidate-source, preflight-macos-arm64]
-    if: >-
-      (inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64')
-      && vars.RUNNER_MACOS_ARM64_RETIRED_SINCE == ''
+    if: inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64'
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
@@ -375,9 +411,7 @@ jobs:
   abnahme-linux-arm64:
     name: Abnahme Linux aarch64
     needs: [candidate-source, preflight-linux-arm64]
-    if: >-
-      (inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64')
-      && vars.RUNNER_LINUX_ARM64_RETIRED_SINCE == ''
+    if: inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64'
     runs-on: [self-hosted, Linux, ARM64]
     timeout-minutes: 30
     steps:
@@ -484,7 +518,6 @@ jobs:
     if: >-
       (inputs.platforms == 'alle' || inputs.platforms == 'linux-x86_64')
       && vars.ABNAHME_X86_64_ENABLED == 'true'
-      && vars.RUNNER_LINUX_X86_64_RETIRED_SINCE == ''
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 30
     steps:
@@ -576,18 +609,16 @@ jobs:
   # dry_run, wo keine Matrix entsteht.
   hinweis-ausgetragen:
     name: Hinweis ausgetragene Plattform
-    if: >-
-      vars.RUNNER_MACOS_ARM64_RETIRED_SINCE != ''
-      || vars.RUNNER_LINUX_ARM64_RETIRED_SINCE != ''
-      || vars.RUNNER_LINUX_X86_64_RETIRED_SINCE != ''
+    needs: retirement-status
+    if: needs.retirement-status.outputs.retired != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      RETIRED_MACOS_ARM64: ${{ vars.RUNNER_MACOS_ARM64_RETIRED_SINCE }}
-      RETIRED_LINUX_ARM64: ${{ vars.RUNNER_LINUX_ARM64_RETIRED_SINCE }}
-      RETIRED_LINUX_X86_64: ${{ vars.RUNNER_LINUX_X86_64_RETIRED_SINCE }}
     steps:
       - name: Austragung protokollieren
+        env:
+          RETIRED_MACOS_ARM64: ${{ needs.retirement-status.outputs.retired_macos_arm64 }}
+          RETIRED_LINUX_ARM64: ${{ needs.retirement-status.outputs.retired_linux_arm64 }}
+          RETIRED_LINUX_X86_64: ${{ needs.retirement-status.outputs.retired_linux_x86_64 }}
         run: |
           set -euo pipefail
           for entry in "macos-arm64=${RETIRED_MACOS_ARM64:-}" "linux-arm64=${RETIRED_LINUX_ARM64:-}" "linux-x86_64=${RETIRED_LINUX_X86_64:-}"; do
@@ -602,7 +633,7 @@ jobs:
   # menschlich (#646).
   aggregation:
     name: Abschlussmatrix
-    needs: [candidate-source, abnahme-macos-arm64, abnahme-linux-arm64, abnahme-linux-x86_64]
+    needs: [retirement-status, candidate-source, abnahme-macos-arm64, abnahme-linux-arm64, abnahme-linux-x86_64]
     # !cancelled() statt always() (#915): Ein abgebrochener Lauf postet keine
     # als Abnahmeergebnis lesbare Matrix mehr (Lauf 33071408111 brauchte dafuer
     # eine manuelle Klarstellung im Release-Issue). Bei fehlgeschlagenen, aber
@@ -675,9 +706,9 @@ jobs:
           retention-days: 90
       - name: Abschlussmatrix erzeugen
         env:
-          RETIRED_MACOS_ARM64: ${{ vars.RUNNER_MACOS_ARM64_RETIRED_SINCE }}
-          RETIRED_LINUX_ARM64: ${{ vars.RUNNER_LINUX_ARM64_RETIRED_SINCE }}
-          RETIRED_LINUX_X86_64: ${{ vars.RUNNER_LINUX_X86_64_RETIRED_SINCE }}
+          RETIRED_MACOS_ARM64: ${{ needs.retirement-status.outputs.retired_macos_arm64 }}
+          RETIRED_LINUX_ARM64: ${{ needs.retirement-status.outputs.retired_linux_arm64 }}
+          RETIRED_LINUX_X86_64: ${{ needs.retirement-status.outputs.retired_linux_x86_64 }}
         run: |
           set -euo pipefail
           x86flag=""

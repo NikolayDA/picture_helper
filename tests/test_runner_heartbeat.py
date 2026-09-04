@@ -789,15 +789,20 @@ def test_stage_two_names_githubs_removal_and_announces_retirement() -> None:
     assert f"| Ohne bestandenen Heartbeat seit | {since.isoformat()} (12 Tage" in body
     assert "(**noch 2 Tage**)" in body and "Danach genügt Wiederbeleben nicht mehr" in body
     assert f"Stufe 3 am {(since + timedelta(days=21)).isoformat()} (21 Tage): Austragung" in body
-    assert "`RUNNER_LINUX_ARM64_RETIRED_SINCE`" in body
+    assert "`runner-retired:linux-arm64:<datum>` am Betriebs-Issue" in body
 
 
 def test_stage_three_names_retirement_and_the_way_back() -> None:
-    body = hb.render_stage_comment(_decision(21), mention="o", run_url="", today=TODAY, repo="o/r")
+    body = hb.render_stage_comment(
+        _decision(21), mention="o", run_url="", today=TODAY, repo="o/r", issue="939",
+    )
     assert "Stufe 3/3" in body and "ausgetragen" in body.splitlines()[1]
-    assert f"`RUNNER_LINUX_ARM64_RETIRED_SINCE={TODAY.isoformat()}`" in body
+    label = hb.retired_label("linux-arm64", TODAY)
+    assert label == f"runner-retired:linux-arm64:{TODAY.isoformat()}"
+    assert f"Plattform ausgetragen (Label `{label}` am Betriebs-Issue)" in body
     assert "**Reaktivierung:**" in body
-    assert "gh variable delete RUNNER_LINUX_ARM64_RETIRED_SINCE --repo o/r" in body
+    # Der Reaktivierungsweg nennt das konkrete Label und das konkrete Issue.
+    assert f"gh issue edit 939 --repo o/r --remove-label '{label}'" in body
     assert f"„ausgetragen seit {TODAY.isoformat()}\"" in body
     # GitHubs Frist ist zu diesem Zeitpunkt überschritten – und der Text sagt es.
     assert "**entfernt**" in body and "Neuregistrierung nötig" in body
@@ -878,7 +883,7 @@ def test_stage_files_route_stage_three_to_the_retire_job(tmp_path: Path) -> None
     assert (stage_platforms, retire) == ([], ["linux-arm64"])
     assert (tmp_path / "retire-comment-linux-arm64.md").is_file()
     assert (tmp_path / "retire.tsv").read_text(encoding="utf-8") == (
-        f"linux-arm64\tRUNNER_LINUX_ARM64_RETIRED_SINCE\t{TODAY.isoformat()}\n"
+        f"linux-arm64\trunner-retired:linux-arm64:{TODAY.isoformat()}\t{TODAY.isoformat()}\n"
     )
     # Simulation: Stufe 3 wird nur kommentiert, nie ausgetragen.
     sim_dir = tmp_path / "sim"
@@ -913,7 +918,8 @@ def test_report_and_summary_carry_the_stage_decision(tmp_path: Path) -> None:
     summary = (tmp_path / "s.md").read_text(encoding="utf-8")
     assert "### Eskalation (#958)" in summary
     assert "| 12 | 2 (≥ 12 Tage) | Stufe 2 heute gepostet in #939; nächste Stufe 3 nach 21 Tagen |" in summary
-    assert "`macos-arm64` ist seit" in summary and "RUNNER_MACOS_ARM64_RETIRED_SINCE" in summary
+    assert "`macos-arm64` ist seit" in summary
+    assert f"runner-retired:macos-arm64:{(TODAY - timedelta(days=2)).isoformat()}" in summary
     # Die Abhilfe wird aus den Konstanten gerendert – kein handgepflegtes "14 Tage".
     assert f"länger als {hb.GITHUB_RUNNER_REMOVAL_DAYS} Tage ohne Verbindung" in summary
     assert "meldet nach 7/12/21 Tagen" in summary
@@ -934,8 +940,8 @@ def test_an_unreadable_history_yields_a_visible_hint_instead_of_a_stage(tmp_path
 
 
 def test_retired_platforms_are_not_expected() -> None:
-    assert hb.retired_variable("linux-arm64") == "RUNNER_LINUX_ARM64_RETIRED_SINCE"
-    assert hb.retired_variable("linux-x86_64") == "RUNNER_LINUX_X86_64_RETIRED_SINCE"
+    assert hb.retired_output_name("linux-arm64") == "retired_linux_arm64"
+    assert hb.retired_output_name("linux-x86_64") == "retired_linux_x86_64"
     retired = hb.parse_retired(["macos-arm64=", "linux-arm64=2026-08-20", "linux-x86_64="])
     assert retired == {"linux-arm64": date(2026, 8, 20)}
     assert hb.expected_jobs(x86_enabled=False, retired=retired) == (MACOS,)
@@ -1072,6 +1078,9 @@ def test_a_simulation_runs_alongside_the_real_escalation(tmp_path: Path, monkeyp
     sim = (tmp_path / "hb" / "simulation-comment-linux-arm64.md").read_text(encoding="utf-8")
     assert "Stufe 1/3" in real and "Simulation" not in real
     assert "Stufe 3/3" in sim and "**Simulation**" in sim
+    # Der simulierte Stufe-3-Text behauptet keine Austragung, die nicht stattfand.
+    assert "in der Simulation unterblieben" in sim and "Reaktivierung (im Ernstfall)" in sim
+    assert "Plattform ausgetragen (" not in sim
     assert not (tmp_path / "hb" / "retire.tsv").exists()
     payload = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
     assert payload["offline_stages"][0]["stage_to_post"] == 1
@@ -1080,3 +1089,71 @@ def test_a_simulation_runs_alongside_the_real_escalation(tmp_path: Path, monkeyp
     summary = (tmp_path / "s.md").read_text(encoding="utf-8")
     assert "🧪 Simulation (#958, HB-STUFE-05) gegen #12" in summary
     assert "### Eskalation (#958)" in summary
+
+
+# ── Austragung als Label am Betriebs-Issue (Review PR #981) ────────────
+
+def test_retirement_labels_carry_platform_and_date() -> None:
+    """``GITHUB_TOKEN`` kann keine Repository-Variable setzen – der Zustand
+    ist ein Label ``runner-retired:<plattform>:<datum>``. Ein Lese-Aufruf
+    liefert Bestand und Datum; fremde Labels stören nicht, ein kaputtes
+    Austragungs-Label ist ein Befund."""
+    assert hb.retired_label("macos-arm64", date(2026, 9, 18)) == "runner-retired:macos-arm64:2026-09-18"
+    labels = ["bug", "runner-retired:linux-arm64:2026-09-18", "enhancement"]
+    assert hb.parse_retired_labels(labels) == {"linux-arm64": date(2026, 9, 18)}
+    assert hb.parse_retired_labels(["ci", "testing"]) == {}
+    # Zwei Labels derselben Plattform: das jüngste Datum gilt.
+    twice = ["runner-retired:linux-arm64:2026-08-01", "runner-retired:linux-arm64:2026-09-18"]
+    assert hb.parse_retired_labels(twice) == {"linux-arm64": date(2026, 9, 18)}
+    with pytest.raises(ValueError, match="unbekannte Plattform"):
+        hb.parse_retired_labels(["runner-retired:pi:2026-09-18"])
+    with pytest.raises(ValueError, match="passt nicht"):
+        hb.parse_retired_labels(["runner-retired:linux-arm64"])
+    with pytest.raises(ValueError, match="kein gueltiges Datum"):
+        hb.parse_retired_labels(["runner-retired:linux-arm64:2026-13-40"])
+
+
+def test_retired_status_command_emits_one_output_per_platform(tmp_path: Path, monkeypatch, capsys) -> None:
+    """Beide Self-hosted-Workflows lesen ``retired_<plattform>`` in ihren
+    ``if``-Bedingungen – jede Plattform bekommt einen Output, auch die aktiven
+    (leer), damit ``== ''`` immer definiert ist."""
+    monkeypatch.setenv("GH_TOKEN", "t")
+    monkeypatch.setenv("GITHUB_OUTPUT", str(tmp_path / "out.txt"))
+    seen: dict = {}
+
+    def labels(repo, issue, token, *, api_url, **_):
+        seen.update(repo=repo, issue=issue)
+        return ["ci", "runner-retired:macos-arm64:2026-09-01"]
+
+    monkeypatch.setattr(hb, "fetch_issue_labels", labels)
+    assert hb.main(["retired-status", "--repo", "o/r", "--issue", "939"]) == 0
+    assert seen == {"repo": "o/r", "issue": "939"}
+    outputs = (tmp_path / "out.txt").read_text(encoding="utf-8")
+    assert "retired_macos_arm64=2026-09-01\n" in outputs
+    assert "retired_linux_arm64=\n" in outputs and "retired_linux_x86_64=\n" in outputs
+    assert "retired=macos-arm64=2026-09-01\n" in outputs
+    assert "::warning title=Plattform ausgetragen::macos-arm64 seit 2026-09-01" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("issue", "failure", "expected"),
+    [
+        ("", None, "Kein Meldeweg"),
+        ("abc", None, "Kein Meldeweg"),
+        ("939", OSError("api down"), "Austragungsbestand nicht lesbar"),
+        ("939", ["runner-retired:pi:2026-09-01"], "unbekannte Plattform"),
+    ],
+)
+def test_retired_status_fails_closed(monkeypatch, capsys, issue, failure, expected) -> None:
+    """Ohne lesbaren Bestand bricht der Lauf ab – nie eine ausgetragene
+    Plattform still wieder erwarten, nie eine aktive still austragen."""
+    monkeypatch.setenv("GH_TOKEN", "t")
+
+    def labels(*a, **k):
+        if isinstance(failure, Exception):
+            raise failure
+        return failure or []
+
+    monkeypatch.setattr(hb, "fetch_issue_labels", labels)
+    assert hb.main(["retired-status", "--repo", "o/r", "--issue", issue]) == 1
+    assert expected in capsys.readouterr().out

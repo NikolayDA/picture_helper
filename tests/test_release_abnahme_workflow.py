@@ -50,7 +50,7 @@ def test_aggregation_job_scoped_and_posts() -> None:
 
     assert "aggregation:" in text
     assert (
-        "needs: [candidate-source, abnahme-macos-arm64, abnahme-linux-arm64, "
+        "needs: [retirement-status, candidate-source, abnahme-macos-arm64, abnahme-linux-arm64, "
         "abnahme-linux-x86_64]" in text
     )
     # !cancelled() statt always() (#915): ein abgebrochener Lauf postet keine
@@ -400,39 +400,55 @@ def test_workflow_supports_optional_update_check_predecessor() -> None:
 
 def test_retired_platforms_are_skipped_surfaced_and_not_expected() -> None:
     """#958 (HB-STUFE-07): Eine per Heartbeat-Eskalation ausgetragene Plattform
-    wird wie der pausierte x86_64-Pfad behandelt – Preflight und
-    Plattform-Job übersprungen, Watchdog und Aggregation informiert, Hinweis
-    sichtbar. Sonst wartete der Lauf auf einen Runner, den es nicht mehr gibt,
-    und die Matrix könnte die Austragung nie zeigen."""
+    wird wie der pausierte x86_64-Pfad behandelt – ihr Preflight (und damit
+    der Plattform-Job) übersprungen, Watchdog und Aggregation informiert,
+    Hinweis sichtbar. Der Bestand kommt aus den Labels des Betriebs-Issues
+    (``retired-status``, ``issues: read``), nicht aus Repository-Variablen –
+    ``GITHUB_TOKEN`` kann keine setzen (Review PR #981)."""
     yaml = pytest.importorskip("yaml")
     jobs = yaml.safe_load(_workflow_text())["jobs"]
-    variables = {
-        "macos-arm64": "RUNNER_MACOS_ARM64_RETIRED_SINCE",
-        "linux-arm64": "RUNNER_LINUX_ARM64_RETIRED_SINCE",
-        "linux-x86_64": "RUNNER_LINUX_X86_64_RETIRED_SINCE",
+    status = jobs["retirement-status"]
+    assert status["runs-on"] == "ubuntu-latest"
+    assert status["permissions"] == {"contents": "read", "issues": "read"}
+    status_body = " ".join(str(s.get("run", "")) for s in status["steps"])
+    assert "scripts/runner_heartbeat.py retired-status" in status_body
+    assert "RUNNER_HEARTBEAT_ISSUE" in str(status["steps"])
+    outputs = {
+        "macos-arm64": "retired_macos_arm64",
+        "linux-arm64": "retired_linux_arm64",
+        "linux-x86_64": "retired_linux_x86_64",
     }
-    for platform, variable in variables.items():
-        for prefix in ("preflight", "abnahme"):
-            condition = str(jobs[f"{prefix}-{platform}"]["if"])
-            assert f"vars.{variable} == ''" in condition, (prefix, platform, condition)
+    for platform, output in outputs.items():
+        assert output in status["outputs"], output
+        preflight = jobs[f"preflight-{platform}"]
+        assert preflight["needs"] == "retirement-status", platform
+        assert f"needs.retirement-status.outputs.{output} == ''" in str(preflight["if"]), (
+            platform, preflight["if"],
+        )
     # Watchdog und Aggregation bekommen dieselben Werte – ueber env, nie als
     # ${{ }} in der Kommandozeile.
     for job_id, step_name in (
         ("runner-watchdog", "Preflight-Queue ueberwachen"),
         ("aggregation", "Abschlussmatrix erzeugen"),
     ):
+        assert "retirement-status" in str(jobs[job_id]["needs"]), job_id
         step = next(s for s in jobs[job_id]["steps"] if s.get("name") == step_name)
-        for platform, variable in variables.items():
+        for platform, output in outputs.items():
             assert f'--retired-since "{platform}=' in step["run"], (job_id, platform)
-            assert any(variable in str(v) for v in step.get("env", {}).values()), (job_id, variable)
-    # Sichtbar statt still: GitHub-hosted Hinweis-Job, sobald eine Variable gesetzt ist.
+            assert any(
+                f"needs.retirement-status.outputs.{output}" in str(v)
+                for v in step.get("env", {}).values()
+            ), (job_id, output)
+    # Sichtbar statt still: GitHub-hosted Hinweis-Job, sobald etwas ausgetragen ist.
     notice = jobs["hinweis-ausgetragen"]
     assert notice["runs-on"] == "ubuntu-latest"
-    for variable in variables.values():
-        assert f"vars.{variable} != ''" in str(notice["if"])
+    assert notice["needs"] == "retirement-status"
+    assert "needs.retirement-status.outputs.retired != ''" in str(notice["if"])
     body = " ".join(str(s.get("run", "")) for s in notice["steps"])
     assert "::warning title=Plattform ausgetragen" in body and "RUNNER_SETUP.md" in body
-    # Das Namensschema kommt aus dem Heartbeat-Skript.
+    # Kein Rest des Variablen-Entwurfs.
+    assert "RETIRED_SINCE" not in _workflow_text()
+    # Die Output-Namen kommen aus dem Heartbeat-Skript.
     import importlib.util
     import sys
 
@@ -443,4 +459,4 @@ def test_retired_platforms_are_skipped_surfaced_and_not_expected() -> None:
     heartbeat = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = heartbeat  # dataclasses brauchen das Modul in sys.modules
     spec.loader.exec_module(heartbeat)
-    assert {heartbeat.retired_variable(p) for p in variables} == set(variables.values())
+    assert {heartbeat.retired_output_name(p) for p in outputs} == set(outputs.values())

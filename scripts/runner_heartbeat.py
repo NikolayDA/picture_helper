@@ -47,10 +47,16 @@ aus der Laufhistorie desselben Workflows und postet an genau drei Stufen
 Erwähnung ist der E-Mail-Kanal, ohne SMTP und ohne neues Geheimnis. Jeder
 Stufenkommentar trägt einen deterministischen Marker je Plattform, Episode
 und Stufe; ein Wiederanlauf am selben Tag findet ihn und postet nichts. Die
-dritte Stufe trägt die Plattform aus dem erwarteten Bestand aus
-(Repository-Variable ``RUNNER_<PLATTFORM>_RETIRED_SINCE``, gesetzt vom
-eigenen ``retire``-Job des Workflows, dem einzigen Träger von
-``actions: write``). Ohne lesbare Historie oder Kommentarliste gibt es keine
+dritte Stufe trägt die Plattform aus dem erwarteten Bestand aus: Der
+``retire``-Job des Workflows setzt das Label
+``runner-retired:<plattform>:<datum>`` auf das Betriebs-Issue – mit
+``issues: write``, das die kommentierenden Jobs ohnehin tragen. Eine
+Repository-Variable war die erste Wahl und ist es nicht mehr: ``GITHUB_TOKEN``
+kann keine Variable setzen (die Variablen-API verlangt die eigene
+Berechtigung „Variables", die der ``permissions:``-Block eines Workflows
+nicht kennt; Review PR #981). Das Unterkommando ``retired-status`` liest die
+Labels und liefert beiden Self-hosted-Workflows die ausgetragenen
+Plattformen. Ohne lesbare Historie oder Kommentarliste gibt es keine
 Stufenentscheidung, sondern einen sichtbaren Hinweis – nie eine geratene
 Stufe.
 """
@@ -148,15 +154,60 @@ OUTCOME_NO_SUCCESS: Final = "no_success"
 OUTCOME_NEUTRAL: Final = "neutral"
 
 
-def retired_variable(platform: str) -> str:
-    """Repository-Variable, die eine Plattform aus dem Bestand austraegt.
+#: Praefix des Austragungs-Labels am Betriebs-Issue:
+#: ``runner-retired:<plattform>:<datum>``. Das Datum steckt im Namen, damit
+#: ein einziger Lese-Aufruf (die Labels des Issues) Bestand **und** Datum
+#: liefert; Reaktivierung heisst: das Label vom Issue entfernen.
+RETIRED_LABEL_PREFIX: Final = "runner-retired"
+_RETIRED_LABEL_RE = re.compile(
+    rf"^{re.escape(RETIRED_LABEL_PREFIX)}:([a-z0-9_-]+):(\d{{4}}-\d{{2}}-\d{{2}})$"
+)
 
-    ``RUNNER_<PLATTFORM>_RETIRED_SINCE`` traegt das Datum der Austragung
-    (Stufe 3). Einzige Quelle des Namensschemas – die ``if``-Bedingungen
-    beider Self-hosted-Workflows und die Doku nennen die Namen woertlich und
-    werden dagegen gehalten.
+
+def retired_label(platform: str, day: date) -> str:
+    """Label, das eine Plattform seit ``day`` aus dem Bestand austraegt.
+
+    Einzige Quelle des Namensschemas – ``retire.tsv``, Kommentartexte,
+    Doku und der Wächter werden dagegen gehalten.
     """
-    return f"RUNNER_{platform.upper().replace('-', '_')}_RETIRED_SINCE"
+    return f"{RETIRED_LABEL_PREFIX}:{platform}:{day.isoformat()}"
+
+
+def parse_retired_labels(names: Iterable[str]) -> dict[str, date]:
+    """Ausgetragene Plattformen aus den Label-Namen eines Issues.
+
+    Fremde Labels werden ignoriert; ein Austragungs-Label mit unbekannter
+    Plattform oder unlesbarem Datum ist ein Befund (fail-closed – es wuerde
+    sonst je nach Lesart still austragen oder still ignoriert). Tragen
+    mehrere Labels dieselbe Plattform, gilt das juengste Datum.
+    """
+    retired: dict[str, date] = {}
+    for name in names:
+        if not name.startswith(f"{RETIRED_LABEL_PREFIX}:"):
+            continue
+        match = _RETIRED_LABEL_RE.match(name)
+        if match is None:
+            raise ValueError(
+                f"Label {name!r} passt nicht auf {RETIRED_LABEL_PREFIX}:<plattform>:<YYYY-MM-DD>"
+            )
+        platform, raw = match.group(1), match.group(2)
+        if platform not in HEARTBEAT_JOB_NAMES:
+            raise ValueError(
+                f"Label {name!r} nennt eine unbekannte Plattform – erwartet eine von "
+                f"{', '.join(HEARTBEAT_JOB_NAMES)}"
+            )
+        try:
+            day = date.fromisoformat(raw)
+        except ValueError as exc:
+            raise ValueError(f"Label {name!r}: {raw!r} ist kein gueltiges Datum") from exc
+        retired[platform] = max(retired.get(platform, day), day)
+    return retired
+
+
+def retired_output_name(platform: str) -> str:
+    """Step-Output je Plattform (``retired_macos_arm64`` …) – die Workflows
+    lesen ihn ueber ``needs.<job>.outputs`` in ihren ``if``-Bedingungen."""
+    return f"retired_{platform.replace('-', '_')}"
 
 
 def parse_retired(values: Iterable[str]) -> dict[str, date]:
@@ -182,7 +233,7 @@ def parse_retired(values: Iterable[str]) -> dict[str, date]:
             retired[platform] = date.fromisoformat(raw)
         except ValueError as exc:
             raise ValueError(
-                f"{retired_variable(platform)}={raw!r} ist kein ISO-Datum (YYYY-MM-DD)"
+                f"--retired-since {platform}={raw!r}: kein ISO-Datum (YYYY-MM-DD)"
             ) from exc
     return retired
 
@@ -935,36 +986,44 @@ def _registration_line(decision: StageDecision) -> str:
     )
 
 
-def _next_stage_line(decision: StageDecision, *, today: date) -> str:
+def _next_stage_line(decision: StageDecision, *, today: date, simulated: bool = False) -> str:
     stages = decision.stages
-    variable = retired_variable(decision.platform)
+    label = retired_label(decision.platform, today)
     if decision.stage_to_post >= len(stages):
-        return (
-            f"keine – Plattform ausgetragen (`{variable}={today.isoformat()}`)"
-        )
+        if simulated:
+            return (
+                f"keine – im Ernstfall Austragung (Label `{label}` am Betriebs-Issue), "
+                "in der Simulation unterblieben"
+            )
+        return f"keine – Plattform ausgetragen (Label `{label}` am Betriebs-Issue)"
     index = decision.stage_to_post  # naechste Stufe ist 1-basiert index+1
     due_day = decision.since + timedelta(days=stages[index])
     text = f"Stufe {index + 1} am {due_day.isoformat()} ({stages[index]} Tage)"
     if index + 1 == len(stages):
         text += (
-            ": Austragung aus dem erwarteten Bestand – Repository-Variable "
-            f"`{variable}`; Heartbeat und Abnahme-Matrix führen die Plattform dann "
-            "als „ausgetragen\""
+            ": Austragung aus dem erwarteten Bestand – Label "
+            f"`{RETIRED_LABEL_PREFIX}:{decision.platform}:<datum>` am Betriebs-Issue; "
+            "Heartbeat und Abnahme-Matrix führen die Plattform dann als „ausgetragen\""
         )
     return text
 
 
-def _remedy_line(decision: StageDecision, *, today: date, repo: str) -> str:
-    variable = retired_variable(decision.platform)
+def _remedy_line(
+    decision: StageDecision, *, today: date, repo: str, issue: str, simulated: bool = False,
+) -> str:
+    label = retired_label(decision.platform, today)
     setup = "`docs/RUNNER_SETUP.md`"
     if decision.stage_to_post >= len(decision.stages):
+        where = f"#{issue}" if issue else "dem Betriebs-Issue"
         return (
-            f"**Reaktivierung:** Gerät nach {setup} §2 (macOS) bzw. §3 (Pi) neu "
+            ("**Reaktivierung (im Ernstfall):** " if simulated else "**Reaktivierung:** ")
+            + f"Gerät nach {setup} §2 (macOS) bzw. §3 (Pi) neu "
             "registrieren"
             + (" und die Härtung nachziehen (§2.3/§3.4)" if decision.cause == CAUSE_NOT_READY else "")
-            + f", dann die Variable entfernen (`gh variable delete {variable} --repo {repo}`) "
-            "und den Heartbeat von Hand starten (Kommandos in §4). Bis dahin erwartet der Heartbeat "
-            "die Plattform nicht, und die Abnahme-Matrix führt sie als „ausgetragen seit "
+            + f", dann das Label von {where} entfernen (`gh issue edit {issue or '<issue>'} "
+            f"--repo {repo} --remove-label '{label}'`) und den Heartbeat von Hand starten "
+            "(Kommandos in §4). Bis dahin erwartet der Heartbeat die Plattform nicht, und "
+            "die Abnahme-Matrix führt sie als „ausgetragen seit "
             f"{today.isoformat()}\" (kein Abnahmeergebnis, Freigabe bleibt blockiert)."
         )
     if decision.cause == CAUSE_OFFLINE:
@@ -992,6 +1051,7 @@ def render_stage_comment(
     run_url: str,
     today: date,
     repo: str,
+    issue: str = "",
     simulated: bool = False,
 ) -> str:
     """Stufenkommentar fuer das Betriebs-Issue.
@@ -1037,9 +1097,9 @@ def render_stage_comment(
         f"| Ohne bestandenen Heartbeat seit | {since_text} ({days_text} Tage, Stand {today.isoformat()}) |",
         f"| Befund heute | {_cause_line(decision)} |",
         f"| GitHub-Registrierung | {_registration_line(decision)} |",
-        f"| Nächste Stufe | {_next_stage_line(decision, today=today)} |",
+        f"| Nächste Stufe | {_next_stage_line(decision, today=today, simulated=simulated)} |",
         "",
-        _remedy_line(decision, today=today, repo=repo),
+        _remedy_line(decision, today=today, repo=repo, issue=issue, simulated=simulated),
         "",
     ]
     if run_url:
@@ -1161,9 +1221,9 @@ def render_summary(report: dict[str, Any]) -> str:
     if isinstance(retired, dict) and retired:
         for platform, since in sorted(retired.items()):
             lines.append(
-                f"⛔ `{platform}` ist seit {since} ausgetragen "
-                f"(`{retired_variable(str(platform))}`) und wird nicht erwartet – "
-                "Reaktivierung: `docs/RUNNER_SETUP.md` §4."
+                f"⛔ `{platform}` ist seit {since} ausgetragen (Label "
+                f"`{RETIRED_LABEL_PREFIX}:{platform}:{since}` am Betriebs-Issue) und wird "
+                "nicht erwartet – Reaktivierung: `docs/RUNNER_SETUP.md` §4."
             )
         lines.append("")
     stages = tuple(int(day) for day in report.get("stage_days") or OFFLINE_STAGE_DAYS)
@@ -1255,7 +1315,7 @@ def _render_stage_section(report: dict[str, Any], *, stages: tuple[int, ...]) ->
         if next_index < len(stages):
             comment += f"; nächste Stufe {next_index + 1} nach {stages[next_index]} Tagen"
         if entry.get("retire"):
-            comment += f" – **Austragung** (`{retired_variable(str(entry.get('platform')))}`)"
+            comment += f" – **Austragung** (Label `{RETIRED_LABEL_PREFIX}:{entry.get('platform')}:…`)"
         lines.append(
             f"| {entry.get('job')} (`{entry.get('platform')}`) | {since} | {days_text} | "
             f"{due_text} | {comment} |"
@@ -1396,6 +1456,7 @@ def write_stage_files(
     today: date,
     repo: str,
     simulated: bool,
+    issue: str = "",
 ) -> tuple[list[str], list[str]]:
     """Kommentardateien und Austragungsliste fuer den Workflow schreiben.
 
@@ -1404,8 +1465,8 @@ def write_stage_files(
     ``retire``-Job **nach** dem Setzen der Variable
     (``retire-comment-<plattform>.md``), damit der Kommentar nie eine
     Austragung behauptet, die nicht stattgefunden hat. ``retire.tsv`` nennt
-    je Zeile Plattform, Variablenname und Datum – der Variablenname kommt
-    von hier, damit das Namensschema nicht in der Shell nachgebaut wird.
+    je Zeile Plattform, Label und Datum – das Label kommt von hier, damit das
+    Namensschema nicht in der Shell nachgebaut wird.
     In der Simulation gibt es nur ``simulation-comment-<plattform>.md`` – ein
     eigener Dateiname und ein eigenes Ziel-Issue, damit ein Simulationslauf
     die echte Eskalation desselben Tages weder verdraengt noch mit ihr
@@ -1419,7 +1480,7 @@ def write_stage_files(
         if decision.stage_to_post:
             body = render_stage_comment(
                 decision, mention=mention, run_url=run_url, today=today, repo=repo,
-                simulated=simulated,
+                issue=issue, simulated=simulated,
             )
             if simulated:
                 path = directory / f"simulation-comment-{decision.platform}.md"
@@ -1434,13 +1495,79 @@ def write_stage_files(
         if decision.retire and not simulated:
             retire_platforms.append(decision.platform)
             retire_rows.append(
-                f"{decision.platform}\t{retired_variable(decision.platform)}\t{today.isoformat()}"
+                f"{decision.platform}\t{retired_label(decision.platform, today)}\t{today.isoformat()}"
             )
     if retire_rows:
         target = directory / "retire.tsv"
         target.write_text("\n".join(retire_rows) + "\n", encoding="utf-8")
         print(f">> Austragungsliste geschrieben: {target}")
     return stage_platforms, retire_platforms
+
+
+def fetch_issue_labels(
+    repo: str,
+    issue: str,
+    token: str,
+    *,
+    api_url: str,
+    opener: Callable[..., Any] = urllib.request.urlopen,
+) -> list[str]:
+    """Label-Namen eines Issues – ein einziger Aufruf, ``issues: read`` genuegt."""
+    url = f"{api_url}/repos/{repo}/issues/{issue}"
+    with opener(_request(url, token), timeout=REQUEST_TIMEOUT_S) as response:
+        payload = json.load(response)
+    labels = payload.get("labels") if isinstance(payload, dict) else None
+    if not isinstance(labels, list):
+        raise ValueError("Issue-Antwort ohne Label-Liste")
+    return [
+        str(entry.get("name") or "") if isinstance(entry, dict) else str(entry)
+        for entry in labels
+    ]
+
+
+def _cmd_retired_status(args: argparse.Namespace) -> int:
+    """Ausgetragene Plattformen aus den Labels des Betriebs-Issues (#958).
+
+    Liefert je Plattform einen Step-Output (Datum oder leer), den beide
+    Self-hosted-Workflows in ihren ``if``-Bedingungen lesen. Fail-closed:
+    Ohne lesbares Issue gibt es keinen Bestand – der Lauf bricht mit
+    Begruendung ab, statt eine ausgetragene Plattform still wieder zu
+    erwarten oder eine aktive still auszutragen.
+    """
+    issue = args.issue.strip()
+    if not re.fullmatch(r"[1-9][0-9]*", issue):
+        print(
+            "::error title=Kein Meldeweg::RUNNER_HEARTBEAT_ISSUE fehlt oder ist keine "
+            "positive Issue-Nummer – ohne Betriebs-Issue ist der Austragungsbestand "
+            "nicht lesbar (RELEASE_AUTOMATION §7)."
+        )
+        return 1
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or ""
+    if not token:
+        print("::error::Kein GH_TOKEN/GITHUB_TOKEN gesetzt (issues: read noetig).")
+        return 2
+    api_url = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
+    try:
+        retired = parse_retired_labels(fetch_issue_labels(args.repo, issue, token, api_url=api_url))
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        print(f"::error title=Austragungsbestand nicht lesbar::Labels von #{issue}: {exc}")
+        return 1
+    for platform in HEARTBEAT_JOB_NAMES:
+        day = retired.get(platform)
+        append_github_output(retired_output_name(platform), day.isoformat() if day else "")
+    append_github_output(
+        "retired", " ".join(f"{p}={d.isoformat()}" for p, d in sorted(retired.items()))
+    )
+    if retired:
+        for platform, day in sorted(retired.items()):
+            print(
+                f"::warning title=Plattform ausgetragen::{platform} seit {day.isoformat()} "
+                f"(Label {retired_label(platform, day)} an #{issue}); Reaktivierung: "
+                "docs/RUNNER_SETUP.md §4"
+            )
+    else:
+        print(f"[heartbeat] Keine ausgetragene Plattform (Labels von #{issue}).")
+    return 0
 
 
 def _cmd_watch(args: argparse.Namespace) -> int:
@@ -1537,11 +1664,11 @@ def _cmd_watch(args: argparse.Namespace) -> int:
                 )
     stage_platforms, retire_platforms = write_stage_files(
         decisions, directory=args.comments_dir, mention=args.mention, run_url=args.run_url,
-        today=today, repo=args.repo, simulated=False,
+        today=today, repo=args.repo, simulated=False, issue=comment_issue,
     )
     simulation_platforms, _never = write_stage_files(
         simulated, directory=args.comments_dir, mention=args.mention, run_url=args.run_url,
-        today=today, repo=args.repo, simulated=True,
+        today=today, repo=args.repo, simulated=True, issue=comment_issue,
     )
     append_github_output("stage_comments", " ".join(stage_platforms))
     append_github_output("retire", " ".join(retire_platforms))
@@ -1590,6 +1717,13 @@ def main(argv: list[str] | None = None) -> int:
     pause.add_argument("--today", default="", help="ISO-Datum (nur für Tests)")
     pause.set_defaults(func=_cmd_pause_status)
 
+    retired_cmd = sub.add_parser(
+        "retired-status", help="Ausgetragene Plattformen aus den Labels des Betriebs-Issues",
+    )
+    retired_cmd.add_argument("--repo", required=True)
+    retired_cmd.add_argument("--issue", default="", help="Wert von RUNNER_HEARTBEAT_ISSUE")
+    retired_cmd.set_defaults(func=_cmd_retired_status)
+
     watch_cmd = sub.add_parser("watch", help="Heartbeat-Jobs bis zur Zuweisung beobachten")
     watch_cmd.add_argument("--repo", required=True)
     watch_cmd.add_argument("--run-id", required=True)
@@ -1622,7 +1756,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     watch_cmd.add_argument(
         "--retired-since", action="append", default=[], metavar="PLATTFORM=DATUM",
-        help=f"Ausgetragene Plattform (Wert von {retired_variable('<plattform>')}); leer = aktiv.",
+        help="Ausgetragene Plattform (Output von retired-status); leer = aktiv.",
     )
     watch_cmd.add_argument(
         "--comments-dir", type=Path, default=Path("heartbeat"),

@@ -60,9 +60,8 @@ permissions:
 
 # Ein wartender Heartbeat-Job bleibt bei einem offline Runner in der
 # Warteschlange, bis GitHub ihn nach 24 h abbricht. Der Heartbeat bricht ihn
-# bewusst nicht selbst ab – die Auswertung hat dafuer kein Schreibrecht auf
-# Actions, und das einzige actions: write des Workflows (Job "retire", #958)
-# setzt ausschliesslich die Austragungs-Variable; stattdessen raeumt der Lauf
+# bewusst nicht selbst ab – er hat dafuer kein Schreibrecht auf Actions und
+# soll es nicht haben; stattdessen raeumt der Lauf
 # des naechsten Tages auf, sodass hoechstens ein wartender Lauf stehen bleibt.
 #
 # Wichtig dabei, und frueher hier falsch behauptet: Der LAUF endet dann als
@@ -85,12 +84,37 @@ jobs:
     name: Heartbeat-Status
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
     outputs:
       paused: ${{ steps.pause.outputs.paused }}
+      retired: ${{ steps.retired.outputs.retired }}
+      retired_macos_arm64: ${{ steps.retired.outputs.retired_macos_arm64 }}
+      retired_linux_arm64: ${{ steps.retired.outputs.retired_linux_arm64 }}
+      retired_linux_x86_64: ${{ steps.retired.outputs.retired_linux_x86_64 }}
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+      # Ausgetragene Plattformen (#958, Stufe 3) stehen als Label
+      # runner-retired:<plattform>:<datum> am Betriebs-Issue – nicht als
+      # Repository-Variable: GITHUB_TOKEN kann keine Variable setzen (die
+      # Variablen-API verlangt die eigene Berechtigung "Variables", die der
+      # permissions-Block nicht kennt; Review PR #981). Ein Lese-Aufruf liefert
+      # Bestand und Datum; die Runner-Jobs unten und die Auswertung lesen die
+      # Outputs. Ohne lesbares Issue bricht der Lauf ab – fail-closed, statt
+      # eine ausgetragene Plattform still wieder zu erwarten.
+      - name: Austragungen lesen
+        id: retired
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ISSUE: ${{ vars.RUNNER_HEARTBEAT_ISSUE }}
+        run: |
+          set -euo pipefail
+          python3 scripts/runner_heartbeat.py retired-status \
+            --repo "$GITHUB_REPOSITORY" \
+            --issue "${TARGET_ISSUE:-}"
       # Repository-Variablen ueber ``env`` statt per ``${{ }}`` in die
       # Kommandozeile: ein Wert wie ``"; rm -rf …`` wuerde sonst als Shell-Text
       # eingesetzt. Sie sind zwar nur von Maintainern setzbar, aber dieser
@@ -119,14 +143,14 @@ jobs:
             cat heartbeat/status.md >> "$GITHUB_STEP_SUMMARY"
           fi
 
-  # Eine ausgetragene Plattform (Stufe 3 der Eskalation, #958) traegt die
-  # Repository-Variable RUNNER_<PLATTFORM>_RETIRED_SINCE und wird uebersprungen
-  # – wie der pausierte x86_64-Pfad. Die Auswertung bekommt dieselben Werte
-  # ueber --retired-since und erwartet den Job dann nicht mehr.
+  # Eine ausgetragene Plattform (Stufe 3 der Eskalation, #958) traegt ein
+  # Label am Betriebs-Issue und wird uebersprungen – wie der pausierte
+  # x86_64-Pfad. Die Auswertung bekommt dieselben Werte ueber --retired-since
+  # und erwartet den Job dann nicht mehr.
   heartbeat-macos-arm64:
     name: Heartbeat macOS arm64
     needs: status
-    if: needs.status.outputs.paused != 'true' && vars.RUNNER_MACOS_ARM64_RETIRED_SINCE == ''
+    if: needs.status.outputs.paused != 'true' && needs.status.outputs.retired_macos_arm64 == ''
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 10
     steps:
@@ -139,7 +163,7 @@ jobs:
   heartbeat-linux-arm64:
     name: Heartbeat Linux aarch64
     needs: status
-    if: needs.status.outputs.paused != 'true' && vars.RUNNER_LINUX_ARM64_RETIRED_SINCE == ''
+    if: needs.status.outputs.paused != 'true' && needs.status.outputs.retired_linux_arm64 == ''
     runs-on: [self-hosted, Linux, ARM64]
     timeout-minutes: 10
     steps:
@@ -158,7 +182,7 @@ jobs:
     if: >-
       needs.status.outputs.paused != 'true'
       && vars.ABNAHME_X86_64_ENABLED == 'true'
-      && vars.RUNNER_LINUX_X86_64_RETIRED_SINCE == ''
+      && needs.status.outputs.retired_linux_x86_64 == ''
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 10
     steps:
@@ -194,8 +218,7 @@ jobs:
   # der Laufhistorie dieses Workflows (actions: read) und postet an genau
   # drei Stufen einen Kommentar mit Erwaehnung des Owners – die Erwaehnung
   # ist der E-Mail-Kanal. Stufen 1 und 2 postet dieser Job; Stufe 3 traegt
-  # die Plattform aus und gehoert dem Job "retire" unten, dem einzigen Traeger
-  # von actions: write.
+  # die Plattform aus und gehoert dem Job "retire" unten.
   watch:
     name: Heartbeat-Auswertung
     needs: status
@@ -244,9 +267,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           X86_64_ENABLED: ${{ vars.ABNAHME_X86_64_ENABLED }}
           TARGET_ISSUE: ${{ vars.RUNNER_HEARTBEAT_ISSUE }}
-          RETIRED_MACOS_ARM64: ${{ vars.RUNNER_MACOS_ARM64_RETIRED_SINCE }}
-          RETIRED_LINUX_ARM64: ${{ vars.RUNNER_LINUX_ARM64_RETIRED_SINCE }}
-          RETIRED_LINUX_X86_64: ${{ vars.RUNNER_LINUX_X86_64_RETIRED_SINCE }}
+          RETIRED_MACOS_ARM64: ${{ needs.status.outputs.retired_macos_arm64 }}
+          RETIRED_LINUX_ARM64: ${{ needs.status.outputs.retired_linux_arm64 }}
+          RETIRED_LINUX_X86_64: ${{ needs.status.outputs.retired_linux_x86_64 }}
           SIMULATE_OFFLINE_SINCE: ${{ inputs.simulate_offline_since }}
           SIMULATE_TARGET_ISSUE: ${{ inputs.simulate_target_issue }}
           SIMULATE_PLATFORM: ${{ inputs.simulate_platform }}
@@ -341,15 +364,16 @@ jobs:
           done
 
   # Stufe 3 (#958, Owner-Entscheid E2: automatisch): Die Plattform wird aus dem
-  # erwarteten Bestand ausgetragen, indem RUNNER_<PLATTFORM>_RETIRED_SINCE
-  # gesetzt wird. Das Setzen einer Repository-Variable braucht actions: write;
-  # dieses Recht traegt im gesamten Workflow NUR dieser Job (Muster: Watchdog
-  # in release-abnahme.yml), und er nutzt es fuer nichts anderes – er bricht
-  # keinen Lauf ab. Erst NACH dem Setzen der Variable postet er den
-  # Stufe-3-Kommentar, damit der Kommentar nie eine Austragung behauptet, die
-  # nicht stattgefunden hat. Plattform, Variablenname und Datum kommen aus
-  # heartbeat/retire.tsv (Artefakt des Auswertungsjobs) – das Namensschema
-  # wird hier nicht in der Shell nachgebaut.
+  # erwarteten Bestand ausgetragen, indem das Label
+  # runner-retired:<plattform>:<datum> auf das Betriebs-Issue gesetzt wird.
+  # Das braucht nur issues: write – dasselbe Recht wie der Kommentar; der
+  # Heartbeat bekommt damit KEIN neues Schreibrecht (eine Repository-Variable
+  # war die erste Wahl, aber GITHUB_TOKEN kann keine setzen; Review PR #981).
+  # Erst NACH dem Setzen des Labels postet er den Stufe-3-Kommentar, damit der
+  # Kommentar nie eine Austragung behauptet, die nicht stattgefunden hat.
+  # Plattform, Label und Datum kommen aus heartbeat/retire.tsv (Artefakt des
+  # Auswertungsjobs) – das Namensschema wird hier nicht in der Shell
+  # nachgebaut. Reaktivierung: das Label vom Issue entfernen (RUNNER_SETUP §4).
   retire:
     name: Austragung (Stufe 3)
     needs: watch
@@ -358,7 +382,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      actions: write
       issues: write
     steps:
       - uses: actions/checkout@v5
@@ -377,10 +400,14 @@ jobs:
           test -f heartbeat/retire.tsv || { echo "::error::heartbeat/retire.tsv fehlt."; exit 1; }
           [[ "$COMMENT_ISSUE" =~ ^[1-9][0-9]*$ ]] \
             || { echo "::error::Ziel-Issue fuer den Stufe-3-Kommentar ist keine Issue-Nummer."; exit 1; }
-          while IFS=$'\t' read -r platform variable since; do
+          while IFS=$'\t' read -r platform label since; do
             [ -n "$platform" ] || continue
-            gh variable set "$variable" --repo "${GITHUB_REPOSITORY}" --body "$since"
-            echo "::warning title=Plattform ausgetragen::${platform} seit ${since} (${variable}); Reaktivierung: docs/RUNNER_SETUP.md §4"
+            # --force: idempotent, ein Wiederanlauf am selben Tag legt kein zweites Label an.
+            gh label create "$label" --repo "${GITHUB_REPOSITORY}" --force \
+              --color B60205 \
+              --description "Runner ${platform} seit ${since} ausgetragen (Heartbeat-Eskalation #958); Label entfernen = reaktivieren"
+            gh issue edit "$COMMENT_ISSUE" --repo "${GITHUB_REPOSITORY}" --add-label "$label"
+            echo "::warning title=Plattform ausgetragen::${platform} seit ${since} (Label ${label} an #${COMMENT_ISSUE}); Reaktivierung: docs/RUNNER_SETUP.md §4"
             comment="heartbeat/retire-comment-${platform}.md"
             if [ -f "$comment" ]; then
               gh issue comment "$COMMENT_ISSUE" --repo "${GITHUB_REPOSITORY}" --body-file "$comment"

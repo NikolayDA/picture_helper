@@ -883,7 +883,7 @@ heißt es „seit mindestens") und eskaliert in drei Stufen:
 |---|---|---|---|
 | 1 | ≥ 7 Tage | Kommentar im Betriebs-Issue mit `@Owner` → E-Mail | Plattform/Job, offline seit, Tage; Restlaufzeit, bis GitHub die Registrierung entfernt; Abhilfe `RUNNER_SETUP.md` §5 (Wiederbeleben) |
 | 2 | ≥ 12 Tage | Kommentar mit Erwähnung → E-Mail | Zweite Warnung **vor** GitHubs Entfernung (noch 2 Tage); Neuregistrierung nach `RUNNER_SETUP.md` §2/§3; Ankündigung der Austragung am Tag 21 |
-| 3 | ≥ 21 Tage | Austragung + Kommentar mit Erwähnung → E-Mail | Plattform aus dem erwarteten Bestand ausgetragen (`RUNNER_<PLATTFORM>_RETIRED_SINCE=<Datum>`); Heartbeat und Abnahme-Matrix führen sie als „ausgetragen seit <Datum>"; Reaktivierungsweg |
+| 3 | ≥ 21 Tage | Austragung + Kommentar mit Erwähnung → E-Mail | Plattform aus dem erwarteten Bestand ausgetragen (Label `runner-retired:<plattform>:<datum>` am Betriebs-Issue); Heartbeat und Abnahme-Matrix führen sie als „ausgetragen seit <Datum>"; Reaktivierungsweg |
 
 Die Stufentage 7/12/21 (Owner-Entscheid E3) legen die zweite Warnung
 bewusst **vor** GitHubs Frist von 14 Tagen ohne Verbindung; mit 7/14/21
@@ -926,31 +926,42 @@ Regeln:
   `retire`; die Summary rendert Stufe und nächstes Fälligkeitsdatum.
 
 **Austragung (Stufe 3, Owner-Entscheid E2: automatisch).** Der Job `retire`
-setzt die Repository-Variable `RUNNER_<PLATTFORM>_RETIRED_SINCE` auf das
-Datum der Austragung und postet **danach** den Stufe-3-Kommentar – so
-behauptet kein Kommentar eine Austragung, die nicht stattfand. Das Setzen
-einer Variable braucht `actions: write`; dieses Recht trägt im gesamten
-Workflow nur dieser Job, und er nutzt es für nichts anderes – der Heartbeat
-bricht weiterhin nie einen Lauf ab (Nachtrag in
+setzt das Label `runner-retired:<plattform>:<datum>` auf das Betriebs-Issue
+(`gh label create --force` + `gh issue edit --add-label`) und postet
+**danach** den Stufe-3-Kommentar – so behauptet kein Kommentar eine
+Austragung, die nicht stattfand. Das braucht nur `issues: write`, dasselbe
+Recht wie der Kommentar; der Heartbeat bekommt damit **kein** neues
+Schreibrecht und bricht weiterhin nie einen Lauf ab. Eine
+Repository-Variable war die erste Wahl und ist es nicht mehr: `GITHUB_TOKEN`
+kann keine Variable setzen – die Variablen-API verlangt die eigene
+Berechtigung „Variables (write)", die der `permissions:`-Block eines
+Workflows nicht kennt (Review PR #981; Nachtrag in
 [`ADR-2026-release-abnahme-automatisierung.md`](history/ADR-2026-release-abnahme-automatisierung.md)).
-Mit gesetzter Variable überspringen **beide** Self-hosted-Workflows die
-Plattform: Der Heartbeat erwartet sie nicht mehr (kein täglicher Fehlalarm,
-kein weiteres Eskalieren), und die Abnahme lässt Preflight und Plattform-Job
-aus; die Abschlussmatrix führt sie als „ausgetragen seit <Datum>" –
-sichtbar, aber **kein Abnahmeergebnis**: Das Plattform-Fazit trägt
-`retired`, der Freigabevertrag verlangt weiterhin `approved`, die Freigabe
-bleibt blockiert. Die GitHub-Registrierung ist zu diesem Zeitpunkt in der
-Regel bereits weg (14-Tage-Regel); die Austragung bereinigt nur den eigenen
-Bestand.
+Das Datum steckt im Label-Namen, damit ein einziger Lese-Aufruf Bestand
+**und** Datum liefert: Das Unterkommando `retired-status` liest die Labels
+des Betriebs-Issues und gibt je Plattform einen Output (`retired_macos_arm64`
+…) aus, den die `if`-Bedingungen der Runner-Jobs lesen – im Heartbeat im
+Job `status`, in der Abnahme im Job `retirement-status`. Ohne lesbares Issue
+bricht der Lauf ab (fail-closed), statt eine ausgetragene Plattform still
+wieder zu erwarten. Mit gesetztem Label überspringen **beide**
+Self-hosted-Workflows die Plattform: Der Heartbeat erwartet sie nicht mehr
+(kein täglicher Fehlalarm, kein weiteres Eskalieren), und die Abnahme lässt
+ihren Preflight und damit den Plattform-Job aus; die Abschlussmatrix führt
+sie als „ausgetragen seit <Datum>" – sichtbar, aber **kein
+Abnahmeergebnis**: Das Plattform-Fazit trägt `retired`, der Freigabevertrag
+verlangt weiterhin `approved`, die Freigabe bleibt blockiert. Die
+GitHub-Registrierung ist zu diesem Zeitpunkt in der Regel bereits weg
+(14-Tage-Regel); die Austragung bereinigt nur den eigenen Bestand.
 
 **Reaktivierung** (einmal manuell zu proben, HB-STUFE-07): Gerät nach
-`RUNNER_SETUP.md` §2 bzw. §3 neu registrieren, die Variable entfernen
-(`gh variable delete RUNNER_<PLATTFORM>_RETIRED_SINCE`), den Heartbeat von
-Hand starten (`RUNNER_SETUP.md` §0.2) und grün abwarten – Kommandos in
-`RUNNER_SETUP.md` §4. Eine Austragung beendet die Episode: Fällt die
-reaktivierte Plattform erneut aus, beginnt die Zählung nach dem Datum des
-Stufe-3-Kommentars neu; die alten Marker bleiben wirkungslos, ein zweites,
-stilles Austragen gibt es nicht.
+`RUNNER_SETUP.md` §2 bzw. §3 neu registrieren, das Label vom Betriebs-Issue
+entfernen (im Issue unter *Labels* oder
+`gh issue edit <issue> --remove-label 'runner-retired:<plattform>:<datum>'`),
+den Heartbeat von Hand starten (`RUNNER_SETUP.md` §0.2) und grün abwarten –
+Kommandos in `RUNNER_SETUP.md` §4. Eine Austragung beendet die Episode:
+Fällt die reaktivierte Plattform erneut aus, beginnt die Zählung nach dem
+Datum des Stufe-3-Kommentars neu; die alten Marker bleiben wirkungslos, ein
+zweites, stilles Austragen gibt es nicht.
 
 **Mail-Nachweis (HB-STUFE-05).** Per `workflow_dispatch` mit
 `simulate_offline_since` (Datum) **und** `simulate_target_issue`
@@ -975,11 +986,12 @@ Im Regelbetrieb erforderlich:
 |---|---|
 | `RUNNER_HEARTBEAT_ISSUE` | Nummer des Betriebs-Issues (Pflicht, s. *Meldeweg*) |
 
-Von der Eskalation gesetzt (Stufe 3), zur Reaktivierung zu entfernen:
+Von der Eskalation gesetzt (Stufe 3), zur Reaktivierung zu entfernen –
+kein Variable, sondern ein **Label am Betriebs-Issue**:
 
-| Variable | Wert |
+| Label | Bedeutung |
 |---|---|
-| `RUNNER_MACOS_ARM64_RETIRED_SINCE`, `RUNNER_LINUX_ARM64_RETIRED_SINCE`, `RUNNER_LINUX_X86_64_RETIRED_SINCE` | Datum der Austragung, `YYYY-MM-DD` (leer oder fehlend = Plattform aktiv) |
+| `runner-retired:<plattform>:<YYYY-MM-DD>` | Plattform (`macos-arm64`, `linux-arm64`, `linux-x86_64`) seit dem Datum ausgetragen; kein solches Label = Plattform aktiv |
 
 Die Pause ist sichtbar (Warnung und Job-Summary „pausiert") und **befristet**:
 Fehlt das Enddatum, ist es unlesbar oder liegt es in der Vergangenheit, wird

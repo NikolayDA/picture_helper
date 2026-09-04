@@ -199,37 +199,49 @@ Retry-Verhalten und Vertrauensgrenzen sind im
 `release_tag`-Codepfad in `scripts/release_abnahme.py` bleibt nur als
 diagnostischer Legacy-Helfer erhalten und kann kein Freigabemanifest erzeugen.
 
-## Nachtrag (2026-09-04, #958): `actions: write` für die Austragung im Heartbeat
+## Nachtrag (2026-09-04, #958): Austragung einer Plattform ohne neues Schreibrecht
 
 Das Sicherheitsmodell oben bindet Schreibrechte an den Ort, an dem sie
 unvermeidbar sind: `issues: write` im Aggregations-Job, `actions: write`
 im Runner-Watchdog (#915) für den force-cancel. Der tägliche Heartbeat
-(#921) hatte bewusst **gar kein** Schreibrecht auf Actions – er meldet, er
+(#921) hat bewusst **gar kein** Schreibrecht auf Actions – er meldet, er
 bricht nichts ab (`RELEASE_AUTOMATION.md` §7).
 
 Mit der gestuften Eskalation (#958) trägt der Heartbeat eine Plattform nach
 21 Tagen ohne bestandenen Heartbeat automatisch aus dem erwarteten Bestand
-aus (Owner-Entscheid E2), indem er die Repository-Variable
-`RUNNER_<PLATTFORM>_RETIRED_SINCE` setzt. Das Setzen einer Variable braucht
-`actions: write` für den `GITHUB_TOKEN`.
+aus (Owner-Entscheid E2). Der erste Entwurf setzte dafür eine
+Repository-Variable `RUNNER_<PLATTFORM>_RETIRED_SINCE` und gab dem
+Austragungs-Job `actions: write`. Das Review zu PR #981 hat das gekippt:
+`GITHUB_TOKEN` kann keine Repository-Variable setzen – die Variablen-API
+verlangt die eigene Fine-grained-Berechtigung „Variables (write)", die der
+`permissions:`-Block eines Workflows nicht kennt; `actions: write` deckt
+Läufe, Artefakte und Caches ab, nicht Variablen.
 
-Entscheidung:
+Entscheidung (Owner, 2026-09-04): Der Austragungszustand ist ein **Label am
+Betriebs-Issue**, `runner-retired:<plattform>:<datum>`.
 
-- Das Recht trägt ein **eigener Job** `retire` in `runner-heartbeat.yml` –
-  wie beim Watchdog der einzige Träger im gesamten Workflow. Die Auswertung
-  (`watch`) bleibt bei `actions: read`, die Runner-Jobs bei `contents: read`.
-- Der Job nutzt das Recht ausschließlich für `gh variable set`; er bricht
-  keinen Lauf ab. Er setzt die Variable **vor** dem Stufe-3-Kommentar, damit
-  kein Kommentar eine Austragung behauptet, die nicht stattfand, und liest
-  Plattform, Variablenname und Datum aus der vom Skript geschriebenen
-  `retire.tsv` – das Namensschema wird nicht in der Shell nachgebaut.
-- `tests/test_runner_heartbeat_workflow.py` erzwingt: genau dieser Job trägt
-  `actions: write`, `issues: write` liegt nur bei den kommentierenden Jobs,
-  und der Job kennt weder `gh run cancel` noch einen Variablennamen.
+- Setzen braucht `issues: write` – dasselbe Recht, das der kommentierende
+  Job ohnehin trägt. Der Heartbeat bekommt damit **kein** neues Schreibrecht;
+  `actions: write` kommt in `runner-heartbeat.yml` nicht vor, und
+  `tests/test_runner_heartbeat_workflow.py` hält das fest.
+- Das Datum steckt im Label-Namen, damit ein einziger Lese-Aufruf
+  (`GET /repos/{o}/{r}/issues/{n}`, `issues: read`) Bestand **und** Datum
+  liefert. Das Unterkommando `retired-status` in `scripts/runner_heartbeat.py`
+  liest ihn für beide Self-hosted-Workflows und gibt je Plattform einen
+  Output aus; ohne lesbares Issue bricht der Lauf ab – fail-closed, statt
+  eine ausgetragene Plattform still wieder zu erwarten.
+- Der Job setzt das Label **vor** dem Stufe-3-Kommentar, damit kein
+  Kommentar eine Austragung behauptet, die nicht stattfand; Plattform,
+  Label und Datum kommen aus der vom Skript geschriebenen `retire.tsv`.
+- Reaktivierung heißt: das Label vom Issue entfernen (UI oder
+  `gh issue edit --remove-label`) – ein Handgriff, keine Variable.
 
-Verworfen: eine **manuelle** Austragung nach Anleitung in der Stufe-3-Mail
-(hätte den Heartbeat ohne jedes Schreibrecht auf Actions gelassen, war aber
-nicht der Owner-Entscheid) und ein **PAT mit `Administration`** zum Lesen
-oder Löschen der Runner-Registrierung (bleibt ausgeschlossen, Abwägung in
-`RELEASE_AUTOMATION.md` §7 – GitHubs 14-Tage-Entfernung ist ohnehin nicht
-beeinflussbar, die Austragung bereinigt nur den eigenen Bestand).
+Verworfen: ein **GitHub-App-Token** mit „Variables: write" je Lauf (hätte
+den Variablen-Entwurf gerettet, aber ein Dauergeheimnis – den App-Private-Key
+– ins Repository gebracht, gegen die Zusicherung „kein zusätzliches
+Dauergeheimnis" in `RELEASE_AUTOMATION.md` §7); eine **halb-automatische**
+Austragung per Kommando in der Stufe-3-Mail (widerspricht dem
+E2-Entscheid); ein **PAT mit `Administration`** zum Lesen oder Löschen der
+Runner-Registrierung (bleibt ausgeschlossen – GitHubs 14-Tage-Entfernung
+ist ohnehin nicht beeinflussbar, die Austragung bereinigt nur den eigenen
+Bestand).
