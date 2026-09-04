@@ -645,8 +645,11 @@ def posted_stages(comments: Iterable[tuple[date, str]], platform: str, since: da
     return tuple(sorted(found))
 
 
-def last_retirement(comments: Iterable[tuple[date, str]], platform: str) -> date | None:
-    """Tag des juengsten Stufe-3-Kommentars dieser Plattform.
+def last_retirement(
+    comments: Iterable[tuple[date, str]], platform: str, *,
+    stages: tuple[int, ...] = OFFLINE_STAGE_DAYS,
+) -> date | None:
+    """Tag des juengsten Austragungs-Kommentars (letzte Stufe) dieser Plattform.
 
     Eine Austragung **beendet** die Episode: Wird die Plattform spaeter
     reaktiviert (Variable entfernt) und faellt erneut aus, beginnt die
@@ -658,7 +661,7 @@ def last_retirement(comments: Iterable[tuple[date, str]], platform: str) -> date
         day
         for day, body in comments
         if any(
-            match.group(1) == platform and match.group(3) == str(len(OFFLINE_STAGE_DAYS))
+            match.group(1) == platform and match.group(3) == str(len(stages))
             for match in _MARKER_RE.finditer(body)
         )
     ]
@@ -743,11 +746,15 @@ def decide_stage(
     """Reine Stufenentscheidung einer Plattform aus Historie und Kommentaren."""
     comments = list(comments)
     job = HEARTBEAT_JOB_NAMES[platform]
-    retired_on = last_retirement(comments, platform)
+    retired_on = last_retirement(comments, platform, stages=stages)
     history = [
         record for record in records if retired_on is None or record.day > retired_on
     ]
     episode = offline_episode(history, job, today=today)
+    if retired_on is not None and episode.at_least:
+        # Die Austragung begrenzt die Episode nach hinten exakt – „seit
+        # mindestens" waere hier eine falsche Unschaerfe (Review PR #981).
+        episode = Episode(since=episode.since, at_least=False)
     days = (today - episode.since).days
     due = offline_stage(days, stages)
     posted = posted_stages(comments, platform, episode.since)
@@ -1058,7 +1065,7 @@ def build_report(
     decisions: Iterable[StageDecision] = (),
     stage_observation: tuple[bool, str] = (True, ""),
     comment_issue: str = "",
-    simulated: bool = False,
+    simulation: tuple[str, StageDecision] | None = None,
 ) -> dict[str, Any]:
     """Bericht (Schema 1). Die Eskalationsfelder sind seit #958 additiv:
     ``offline_stages`` je Plattform mit belegtem FAIL, ``stage_observation``
@@ -1097,7 +1104,11 @@ def build_report(
             "observed": stage_observation[0], "detail": stage_observation[1],
         },
         "comment_issue": comment_issue,
-        "simulated": simulated,
+        "simulation": (
+            {"issue": simulation[0], "decision": simulation[1].as_dict()}
+            if simulation is not None
+            else None
+        ),
     }
 
 
@@ -1197,12 +1208,24 @@ def _render_stage_section(report: dict[str, Any], *, stages: tuple[int, ...]) ->
             f"{observation.get('detail') or 'Historie oder Kommentare nicht lesbar.'}",
             "",
         ]
+    simulation = report.get("simulation")
+    if isinstance(simulation, dict) and isinstance(simulation.get("decision"), dict):
+        sim = simulation["decision"]
+        sim_posted = int(sim.get("stage_to_post") or 0)
+        lines += [
+            f"🧪 Simulation (#958, HB-STUFE-05) gegen #{simulation.get('issue')}: "
+            f"`{sim.get('platform')}` seit {sim.get('offline_since')} ({sim.get('days')} Tage), "
+            f"Stufe {sim.get('stage_due')} fällig – "
+            + (f"Stufe {sim_posted} gepostet." if sim_posted else "bereits gepostet, nichts neu.")
+            + " Keine Austragung, echte Auswertung unberührt.",
+            "",
+        ]
     if not decisions:
         return lines
     issue = str(report.get("comment_issue") or "")
     where = f" in #{issue}" if issue else ""
     lines += [
-        "### Eskalation (#958)" + (" – Simulation" if report.get("simulated") else ""),
+        "### Eskalation (#958)",
         "",
         "| Plattform | Ohne bestandenen Heartbeat seit | Tage | Stufe fällig | Kommentar |",
         "| --- | --- | --- | --- | --- |",
@@ -1383,7 +1406,10 @@ def write_stage_files(
     Austragung behauptet, die nicht stattgefunden hat. ``retire.tsv`` nennt
     je Zeile Plattform, Variablenname und Datum – der Variablenname kommt
     von hier, damit das Namensschema nicht in der Shell nachgebaut wird.
-    In der Simulation gibt es nur Kommentardateien und nie ``retire.tsv``.
+    In der Simulation gibt es nur ``simulation-comment-<plattform>.md`` – ein
+    eigener Dateiname und ein eigenes Ziel-Issue, damit ein Simulationslauf
+    die echte Eskalation desselben Tages weder verdraengt noch mit ihr
+    vermischt (Review PR #981) – und nie ``retire.tsv``.
     """
     directory.mkdir(parents=True, exist_ok=True)
     stage_platforms: list[str] = []
@@ -1395,7 +1421,10 @@ def write_stage_files(
                 decision, mention=mention, run_url=run_url, today=today, repo=repo,
                 simulated=simulated,
             )
-            if decision.stage_to_post >= len(decision.stages) and not simulated:
+            if simulated:
+                path = directory / f"simulation-comment-{decision.platform}.md"
+                stage_platforms.append(decision.platform)
+            elif decision.stage_to_post >= len(decision.stages):
                 path = directory / f"retire-comment-{decision.platform}.md"
             else:
                 path = directory / f"stage-comment-{decision.platform}.md"
@@ -1433,7 +1462,7 @@ def _cmd_watch(args: argparse.Namespace) -> int:
         return 2
     today = date.fromisoformat(args.today) if args.today else datetime.now(timezone.utc).date()
     expected = expected_jobs(x86_enabled=args.x86_64_enabled, retired=retired)
-    comment_issue = simulation.issue if simulation else args.issue.strip()
+    comment_issue = args.issue.strip()
     if not expected:
         # Ein leerer Bestand darf nie als "alle bestanden" durchgehen.
         detail = (
@@ -1468,21 +1497,24 @@ def _cmd_watch(args: argparse.Namespace) -> int:
 
     # Eskalation (#958): nur fuer belegte FAILs, nur mit Meldeweg, und nur
     # auf frischer Grundlage – Historie und Kommentarliste muessen lesbar sein.
+    # Die Simulation laeuft **zusaetzlich**, nie statt der echten Auswertung
+    # (Review PR #981): eigenes Ziel-Issue, eigene Dateien, keine Austragung.
     decisions: list[StageDecision] = []
     stage_observation = (True, "")
+    simulated: list[StageDecision] = []
     if simulation is not None:
         try:
             comments = fetch_issue_comments(args.repo, simulation.issue, token, api_url=api_url)
         except (urllib.error.URLError, OSError, ValueError) as exc:
             stage_observation = (False, f"Kommentare von #{simulation.issue} nicht lesbar ({exc}).")
         else:
-            decisions = [
+            simulated = [
                 simulated_decision(
                     simulation, comments=comments, today=today, stages=stages,
                     removal_days=args.removal_days,
                 )
             ]
-    elif verdict == VERDICT_FAIL and failing_platforms(state):
+    if verdict == VERDICT_FAIL and failing_platforms(state):
         if not comment_issue:
             stage_observation = (False, "Kein Betriebs-Issue (--issue) uebergeben.")
         else:
@@ -1505,11 +1537,17 @@ def _cmd_watch(args: argparse.Namespace) -> int:
                 )
     stage_platforms, retire_platforms = write_stage_files(
         decisions, directory=args.comments_dir, mention=args.mention, run_url=args.run_url,
-        today=today, repo=args.repo, simulated=simulation is not None,
+        today=today, repo=args.repo, simulated=False,
+    )
+    simulation_platforms, _never = write_stage_files(
+        simulated, directory=args.comments_dir, mention=args.mention, run_url=args.run_url,
+        today=today, repo=args.repo, simulated=True,
     )
     append_github_output("stage_comments", " ".join(stage_platforms))
     append_github_output("retire", " ".join(retire_platforms))
     append_github_output("comment_issue", comment_issue)
+    append_github_output("simulation_comments", " ".join(simulation_platforms))
+    append_github_output("simulation_issue", simulation.issue if simulation else "")
 
     report = build_report(
         verdict=verdict, detail=detail, expected=expected, state=state,
@@ -1517,17 +1555,17 @@ def _cmd_watch(args: argparse.Namespace) -> int:
         deadline_s=args.deadline_seconds, run_url=args.run_url,
         stages=stages, removal_days=args.removal_days, retired=retired,
         decisions=decisions, stage_observation=stage_observation,
-        comment_issue=comment_issue, simulated=simulation is not None,
+        comment_issue=comment_issue,
+        simulation=(simulation.issue, simulated[0]) if simulation and simulated else None,
     )
     write_outputs(report, report_path=args.report, summary_path=args.summary)
     if not stage_observation[0]:
         print(f"::warning title=Stufenauswertung ohne Entscheidung::{stage_observation[1]}")
-    for decision in decisions:
+    for decision, label in [(d, "") for d in decisions] + [(d, " – Simulation") for d in simulated]:
         if decision.stage_to_post:
             print(
                 f"[heartbeat] Stufe {decision.stage_to_post} fuer {decision.platform} "
-                f"faellig (seit {decision.since.isoformat()}, {decision.days} Tage)"
-                + (" – Simulation" if simulation else "")
+                f"faellig (seit {decision.since.isoformat()}, {decision.days} Tage){label}"
             )
     if verdict == VERDICT_FAIL:
         print(f"::error title=Self-hosted Runner offline::{detail}")

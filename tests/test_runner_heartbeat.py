@@ -725,6 +725,10 @@ def test_a_retirement_ends_the_episode() -> None:
     )
     assert decision.since == TODAY - timedelta(days=3)
     assert (decision.days, decision.stage_due, decision.retire) == (3, 0, False)
+    # Die Austragung begrenzt die Episode exakt – kein "seit mindestens",
+    # obwohl die gefilterte Historie keinen bestandenen Lauf mehr enthaelt
+    # (Review PR #981).
+    assert decision.at_least is False
     # Ohne den Austragungskommentar hinge sie an der alten Episode.
     (naive,) = hb.decide_stages(_failing_today(), records=history, comments=[], today=TODAY)
     assert naive.since == old_since and naive.retire is True
@@ -884,7 +888,10 @@ def test_stage_files_route_stage_three_to_the_retire_job(tmp_path: Path) -> None
     )
     assert (stage_platforms, retire) == (["linux-arm64"], [])
     assert not (sim_dir / "retire.tsv").exists()
-    assert "**Simulation**" in (sim_dir / "stage-comment-linux-arm64.md").read_text(encoding="utf-8")
+    # Eigener Dateiname: Ein Simulationslauf darf die echte Stufendatei
+    # derselben Plattform nicht ueberschreiben (Review PR #981).
+    assert not (sim_dir / "stage-comment-linux-arm64.md").exists()
+    assert "**Simulation**" in (sim_dir / "simulation-comment-linux-arm64.md").read_text(encoding="utf-8")
 
 
 def test_report_and_summary_carry_the_stage_decision(tmp_path: Path) -> None:
@@ -1023,3 +1030,53 @@ def test_watch_end_to_end_writes_stage_files_and_outputs(tmp_path: Path, monkeyp
     payload = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
     assert payload["offline_stages"][0]["stage_to_post"] == 1
     assert payload["stage_observation"]["observed"] is True
+
+
+def test_last_retirement_follows_the_configured_stage_count() -> None:
+    """Review PR #981: Die Austragung ist die **letzte** der übergebenen
+    Stufen, nicht fest „3" – sonst erkennt eine abweichende Konfiguration
+    ihre eigenen Austragungsmarker nicht mehr und beendet keine Episode."""
+    day = TODAY - timedelta(days=5)
+    comments = [(day, f"<!-- {hb.stage_marker('linux-arm64', TODAY - timedelta(days=30), 4)} -->")]
+    assert hb.last_retirement(comments, "linux-arm64") is None
+    assert hb.last_retirement(comments, "linux-arm64", stages=(3, 7, 12, 21)) == day
+
+
+def test_a_simulation_runs_alongside_the_real_escalation(tmp_path: Path, monkeypatch) -> None:
+    """Review PR #981: Der Mail-Nachweis verdrängt die echte Eskalation nicht.
+
+    Linux steht real an Stufe 1 (Betriebs-Issue), gleichzeitig wird eine
+    Stufe-3-Episode gegen ein Test-Issue simuliert: beide Kommentardateien
+    entstehen unter verschiedenen Namen, die Outputs nennen beide Ziele, und
+    nur die echte Seite dürfte austragen (hier: Stufe 1, also nicht).
+    """
+    monkeypatch.setenv("GH_TOKEN", "t")
+    monkeypatch.setenv("GITHUB_OUTPUT", str(tmp_path / "out.txt"))
+    monkeypatch.setattr(hb, "fetch_jobs", lambda *a, **k: _jobs("ok", "queued"))
+    monkeypatch.setattr(hb, "fetch_issue_comments", lambda *a, **k: [])
+    monkeypatch.setattr(hb, "fetch_run_history", lambda *a, **k: _episode_of(7))
+    code = hb.main([
+        "--report", str(tmp_path / "r.json"), "--summary", str(tmp_path / "s.md"),
+        "watch", "--repo", "o/r", "--run-id", "42", "--issue", "939", "--mention", "owner",
+        "--acceptance-seconds", "0.5", "--deadline-seconds", "5", "--poll-seconds", "1",
+        "--comments-dir", str(tmp_path / "hb"), "--today", TODAY.isoformat(),
+        "--simulate-offline-since", (TODAY - timedelta(days=21)).isoformat(),
+        "--simulate-target-issue", "12", "--simulate-platform", "linux-arm64",
+    ])
+    assert code == 1
+    outputs = (tmp_path / "out.txt").read_text(encoding="utf-8")
+    assert "stage_comments=linux-arm64\n" in outputs and "comment_issue=939\n" in outputs
+    assert "simulation_comments=linux-arm64\n" in outputs and "simulation_issue=12\n" in outputs
+    assert "retire=\n" in outputs
+    real = (tmp_path / "hb" / "stage-comment-linux-arm64.md").read_text(encoding="utf-8")
+    sim = (tmp_path / "hb" / "simulation-comment-linux-arm64.md").read_text(encoding="utf-8")
+    assert "Stufe 1/3" in real and "Simulation" not in real
+    assert "Stufe 3/3" in sim and "**Simulation**" in sim
+    assert not (tmp_path / "hb" / "retire.tsv").exists()
+    payload = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
+    assert payload["offline_stages"][0]["stage_to_post"] == 1
+    assert payload["simulation"] == {"issue": "12", "decision": payload["simulation"]["decision"]}
+    assert payload["simulation"]["decision"]["stage_to_post"] == 3
+    summary = (tmp_path / "s.md").read_text(encoding="utf-8")
+    assert "🧪 Simulation (#958, HB-STUFE-05) gegen #12" in summary
+    assert "### Eskalation (#958)" in summary

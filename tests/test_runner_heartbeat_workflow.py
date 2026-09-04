@@ -581,14 +581,21 @@ def test_no_daily_comment_remains_only_stage_comments() -> None:
     Exit 1, und genau dann ist eine Stufe fällig."""
     steps = _jobs(HEARTBEAT)["watch"]["steps"]
     commenting = [step for step in steps if "gh issue comment" in str(step.get("run", ""))]
-    assert len(commenting) == 1
-    (step,) = commenting
-    assert step["name"] == "Stufenkommentar posten"
+    assert [step["name"] for step in commenting] == [
+        "Stufenkommentar posten", "Simulationskommentar posten",
+    ]
+    step, simulation = commenting
     assert "!cancelled()" in str(step["if"]) and "stage_comments != ''" in str(step["if"])
     assert "failure()" not in str(step["if"])
     assert "stage-comment-${platform}.md" in step["run"]
     assert "heartbeat.md" not in step["run"], "der Tagesbericht wird nicht mehr gepostet"
     assert "--body-file" in step["run"]
+    # Die Simulation (Review PR #981) laeuft zusaetzlich, mit eigenem Ziel und
+    # eigenen Dateien – sie verdraengt die echte Eskalation nicht.
+    assert "simulation_comments != ''" in str(simulation["if"])
+    assert "simulation-comment-${platform}.md" in simulation["run"]
+    assert "steps.watch.outputs.simulation_issue" in str(simulation["env"].values())
+    assert "COMMENT_ISSUE" not in simulation["run"]
     # Die Erwähnung des Owners – der Mailweg – kommt aus dem Repository-Kontext.
     watch = next(s for s in steps if s.get("id") == "watch")
     assert '--mention "$GITHUB_REPOSITORY_OWNER"' in watch["run"]

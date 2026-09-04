@@ -303,7 +303,7 @@ jobs:
       # Tageskommentar mehr (Owner-Entscheid E1). !cancelled() statt
       # failure(): Der Beobachtungsschritt endet bei einem FAIL mit Exit 1,
       # genau dann ist eine Stufe faellig. Ziel-Issue ist der Wert, gegen den
-      # das Skript die Marker geprueft hat (in der Simulation das Test-Issue).
+      # das Skript die Marker geprueft hat (das Betriebs-Issue).
       - name: Stufenkommentar posten
         if: ${{ !cancelled() && steps.watch.outputs.stage_comments != '' }}
         env:
@@ -318,6 +318,26 @@ jobs:
             gh issue comment "$COMMENT_ISSUE" --repo "${GITHUB_REPOSITORY}" \
               --body-file "heartbeat/stage-comment-${platform}.md"
             echo "[heartbeat] Stufenkommentar fuer ${platform} in #${COMMENT_ISSUE} gepostet"
+          done
+
+      # Mail-Nachweis (#958, HB-STUFE-05): Die Simulation laeuft ZUSAETZLICH zur
+      # echten Auswertung, nie statt ihrer (Review PR #981) – eigenes
+      # Ziel-Issue (nie das Betriebs-Issue, das prueft das Skript), eigene
+      # Dateien, keine Austragung.
+      - name: Simulationskommentar posten
+        if: ${{ !cancelled() && steps.watch.outputs.simulation_comments != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SIMULATION_ISSUE: ${{ steps.watch.outputs.simulation_issue }}
+          SIMULATION_PLATFORMS: ${{ steps.watch.outputs.simulation_comments }}
+        run: |
+          set -euo pipefail
+          [[ "$SIMULATION_ISSUE" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::Test-Issue der Simulation ist keine Issue-Nummer."; exit 1; }
+          for platform in $SIMULATION_PLATFORMS; do
+            gh issue comment "$SIMULATION_ISSUE" --repo "${GITHUB_REPOSITORY}" \
+              --body-file "heartbeat/simulation-comment-${platform}.md"
+            echo "[heartbeat] Simulationskommentar fuer ${platform} in #${SIMULATION_ISSUE} gepostet"
           done
 
   # Stufe 3 (#958, Owner-Entscheid E2: automatisch): Die Plattform wird aus dem
