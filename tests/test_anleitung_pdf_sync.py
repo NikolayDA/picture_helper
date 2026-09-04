@@ -20,8 +20,17 @@ DejaVu-Schriften) in einen CI-Pfad – gegen die bewusste Ausnahme in
 Geprüft wird deshalb die **Disziplin statt des Inhalts**: Der Commit, der
 zuletzt die Quelle berührt hat, muss auch das PDF berühren – oder älter sein
 als der letzte PDF-Commit. Das genügt, weil jede Änderung an der Quelle das
-gerenderte PDF verändert. Nur die deutsche Fassung ist betroffen; die fünf
-Übersetzungen unter ``docs/i18n/`` haben kein PDF.
+gerenderte PDF verändert. Mitgeprüft wird ``scripts/generate_anleitung_pdf.py``
+selbst: ``build_pdf`` setzt das Markdown mit ``_css()`` zusammen, eine reine
+Layout-/Schriftänderung dort ändert das PDF also ebenso.
+
+Die eingebetteten Screenshots sind nur **mittelbar** gedeckt: Ihr
+Satzverzeichnis trägt einen Zeitstempel, ein neuer Satz fasst deshalb
+ohnehin die Links in ``ANLEITUNG.md`` an. Würde das je auf einen stabilen
+Pfad umgestellt, fiele diese Deckung weg.
+
+Nur die deutsche Fassung ist betroffen; die fünf Übersetzungen unter
+``docs/i18n/`` haben kein PDF.
 
 In einem flachen Klon ist der Grenzcommit elternlos und gilt ``git log``
 als Hinzufüger jeder Datei; beide Pfade lösen dann auf denselben Commit
@@ -38,7 +47,13 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 
 SOURCE = "ANLEITUNG.md"
+GENERATOR = "scripts/generate_anleitung_pdf.py"
 PDF = "ANLEITUNG.pdf"
+#: Alles, was in das gerenderte PDF eingeht. Der Generator zählt mit, weil
+#: ``build_pdf`` das Markdown mit ``_css()`` zusammensetzt – eine reine
+#: Layout-/Schriftänderung dort ändert das PDF genauso wie eine
+#: Textänderung (Review-Befund zu PR #979).
+SOURCES = (SOURCE, GENERATOR)
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -53,24 +68,32 @@ def _last_commit(repo: Path, relative: str, commitish: str) -> str:
     return _git(repo, "log", "-1", "--format=%H", commitish, "--", relative)
 
 
-def stale_pdf(repo: Path, commitish: str = "HEAD") -> tuple[str, str] | None:
-    """``(Quell-Commit, PDF-Commit)``, wenn das PDF hinter der Quelle liegt.
+def stale_pdf(repo: Path, commitish: str = "HEAD") -> dict[str, tuple[str, str]] | None:
+    """Quellen, die neuer sind als das PDF – ``None``, wenn keine.
 
-    ``None`` heißt synchron – derselbe Commit, oder der PDF-Commit ist ein
-    Nachfahre des Quell-Commits (das PDF wurde später noch einmal erzeugt).
+    Je Eintrag ``Quelle -> (Quell-Commit, PDF-Commit)``. Synchron heißt:
+    derselbe Commit, oder der PDF-Commit ist ein Nachfahre des Quell-Commits
+    (das PDF wurde später noch einmal erzeugt).
     """
-    source = _last_commit(repo, SOURCE, commitish)
     pdf = _last_commit(repo, PDF, commitish)
-    if not source or not pdf or source == pdf:
+    if not pdf:
         return None
 
-    # Ist der Quell-Commit ein Vorfahre des PDF-Commits, wurde das PDF danach
-    # geschrieben – dann ist nichts offen.
-    newer = subprocess.run(
-        ["git", "-C", str(repo), "merge-base", "--is-ancestor", source, pdf],
-        capture_output=True,
-    )
-    return None if newer.returncode == 0 else (source, pdf)
+    behind: dict[str, tuple[str, str]] = {}
+    for relative in SOURCES:
+        source = _last_commit(repo, relative, commitish)
+        if not source or source == pdf:
+            continue
+        # Ist der Quell-Commit ein Vorfahre des PDF-Commits, wurde das PDF
+        # danach geschrieben – dann ist nichts offen.
+        newer = subprocess.run(
+            ["git", "-C", str(repo), "merge-base", "--is-ancestor", source, pdf],
+            capture_output=True,
+        )
+        if newer.returncode != 0:
+            behind[relative] = (source, pdf)
+
+    return behind or None
 
 
 def _shallow_boundary(repo: Path) -> set[str]:
@@ -96,16 +119,16 @@ def unresolved_history(repo: Path, commitish: str = "HEAD") -> str | None:
     eben nur dort. Ein flacher Klon genügt, solange die letzten Commits
     beider Dateien innerhalb seiner Tiefe liegen.
     """
-    source = _last_commit(repo, SOURCE, commitish)
-    pdf = _last_commit(repo, PDF, commitish)
-    if not source or not pdf:
-        return f"Die Historie erreicht {SOURCE}/{PDF} nicht."
+    commits = {name: _last_commit(repo, name, commitish) for name in (*SOURCES, PDF)}
+    missing = sorted(name for name, commit in commits.items() if not commit)
+    if missing:
+        return "Die Historie erreicht " + ", ".join(missing) + " nicht."
 
     boundary = _shallow_boundary(repo)
-    if source in boundary or pdf in boundary:
+    if boundary & set(commits.values()):
         return (
-            "Flacher Klon: Der letzte Commit mindestens einer der beiden "
-            "Dateien liegt auf der Grenze der Historie und ist damit nicht "
+            "Flacher Klon: Der letzte Commit mindestens einer beteiligten "
+            "Datei liegt auf der Grenze der Historie und ist damit nicht "
             "aussagekräftig."
         )
     return None
@@ -120,10 +143,12 @@ def test_anleitung_pdf_is_not_behind_its_source() -> None:
     stale = stale_pdf(ROOT)
 
     if stale is not None:
-        source_commit, pdf_commit = stale
+        details = "; ".join(
+            f"{name} zuletzt geändert in {source}, {PDF} in {pdf}"
+            for name, (source, pdf) in sorted(stale.items())
+        )
         pytest.fail(
-            f"ANLEITUNG.pdf ist nicht nachgezogen: {SOURCE} zuletzt geändert in "
-            f"{source_commit}, {PDF} in {pdf_commit}. Neu erzeugen mit "
+            f"ANLEITUNG.pdf ist nicht nachgezogen: {details}. Neu erzeugen mit "
             '`pip install -e ".[docs]"` und '
             "`python scripts/generate_anleitung_pdf.py`."
         )
@@ -149,7 +174,9 @@ def _repo(tmp_path: Path) -> Path:
 
 def _commit(repo: Path, files: dict[str, str], message: str) -> str:
     for name, text in files.items():
-        (repo / name).write_text(text, encoding="utf-8")
+        target = repo / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
     subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True, capture_output=True)
     subprocess.run(
         ["git", "-C", str(repo), "commit", "-q", "-m", message],
@@ -162,7 +189,7 @@ def _commit(repo: Path, files: dict[str, str], message: str) -> str:
 def test_stale_pdf_accepts_a_joint_commit(tmp_path: Path) -> None:
     """Quelle und PDF im selben Commit – der Normalfall."""
     repo = _repo(tmp_path)
-    _commit(repo, {SOURCE: "eins", PDF: "PDF-eins"}, "beides")
+    _commit(repo, {SOURCE: "eins", GENERATOR: "css-eins", PDF: "PDF-eins"}, "alles")
 
     assert stale_pdf(repo) is None
 
@@ -170,20 +197,20 @@ def test_stale_pdf_accepts_a_joint_commit(tmp_path: Path) -> None:
 def test_stale_pdf_flags_a_source_change_without_the_pdf(tmp_path: Path) -> None:
     """Genau der Fall aus ``ac64c3b``: Quelle geändert, PDF nicht."""
     repo = _repo(tmp_path)
-    _commit(repo, {SOURCE: "eins", PDF: "PDF-eins"}, "beides")
+    _commit(repo, {SOURCE: "eins", GENERATOR: "css-eins", PDF: "PDF-eins"}, "alles")
     source_only = _commit(repo, {SOURCE: "zwei"}, "nur die Quelle")
 
     stale = stale_pdf(repo)
 
     assert stale is not None
-    assert stale[0] == source_only
-    assert stale[0] != stale[1]
+    assert set(stale) == {SOURCE}
+    assert stale[SOURCE][0] == source_only
 
 
 def test_stale_pdf_accepts_a_later_pdf_commit(tmp_path: Path) -> None:
     """Ein nachgereichtes PDF löst den Befund wieder auf (``91b32b4``)."""
     repo = _repo(tmp_path)
-    _commit(repo, {SOURCE: "eins", PDF: "PDF-eins"}, "beides")
+    _commit(repo, {SOURCE: "eins", GENERATOR: "css-eins", PDF: "PDF-eins"}, "alles")
     _commit(repo, {SOURCE: "zwei"}, "nur die Quelle")
     assert stale_pdf(repo) is not None
 
@@ -203,7 +230,7 @@ def test_shallow_clone_is_reported_as_unresolved_not_as_synchron(tmp_path: Path)
     (``coverage.yml``, ``ui-nightly.yml``), nicht die PR-CI.
     """
     full = _repo(tmp_path)
-    _commit(full, {SOURCE: "eins", PDF: "PDF-eins"}, "beides")
+    _commit(full, {SOURCE: "eins", GENERATOR: "css-eins", PDF: "PDF-eins"}, "alles")
     _commit(full, {SOURCE: "zwei"}, "nur die Quelle")
 
     # Im vollständigen Klon ist der Befund eindeutig.
@@ -221,3 +248,22 @@ def test_shallow_clone_is_reported_as_unresolved_not_as_synchron(tmp_path: Path)
     assert _last_commit(shallow, SOURCE, "HEAD") == _last_commit(shallow, PDF, "HEAD")
     reason = unresolved_history(shallow)
     assert reason is not None and "Flacher Klon" in reason
+
+
+def test_stale_pdf_flags_a_generator_change_without_the_pdf(tmp_path: Path) -> None:
+    """Auch eine reine Layout-Änderung am Generator macht das PDF veraltet.
+
+    Review-Befund zu PR #979: ``build_pdf`` setzt das Markdown mit ``_css()``
+    zusammen. Wer dort Schrift oder Abstände ändert, ohne das PDF neu zu
+    erzeugen, hinterlässt denselben Zustand, den dieser Wächter verhindern
+    soll – nur ohne dass die Quelle angefasst wurde.
+    """
+    repo = _repo(tmp_path)
+    _commit(repo, {SOURCE: "eins", GENERATOR: "css-eins", PDF: "PDF-eins"}, "alles")
+    generator_only = _commit(repo, {GENERATOR: "css-zwei"}, "nur das Layout")
+
+    stale = stale_pdf(repo)
+
+    assert stale is not None
+    assert set(stale) == {GENERATOR}
+    assert stale[GENERATOR][0] == generator_only
