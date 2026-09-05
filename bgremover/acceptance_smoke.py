@@ -10,14 +10,16 @@ schließt genau diese Lücke, analog zu ``screenshot3d.py``/
 ``BGREMOVER_SCREENSHOT_3D`` für den 3D-Nachweis: läuft aus dem **laufenden,
 gepackten Prozess** heraus (AppImage/.deb/.app), nicht aus dem Checkout.
 
-Fünf Prüfungen, alle ohne externe Testdaten aus dem Paket selbst:
+Fünf Prüfungen aus dem gepackten Prozess selbst; nur die 2.7.0-Projekt-Fixture
+(Prüfung 2) kommt als Datei aus dem Source-Checkout, der verarbeitende Code
+stammt aus dem Paket:
 
 0. **Sichtbare Produktversion** – vergleicht die im Fenstertitel angezeigte
    Version mit dem Sollwert aus dem Artefaktdateinamen (#686). Läuft zuerst
    und unabhängig vom Projektzustand.
-1. **EufyMake-Export-Smoke** – erzeugt ein Beispielbild, generiert eine
-   Höhenkarte und schreibt das Importpaket über den echten
-   ``bgremover.eufymake_writer.write_export``-Pfad.
+1. **EufyMake-Export-Smoke** – schreibt das Importpaket aus dem zuvor
+   geöffneten 2.7.0-Projekt (spart ein separates Beispielbild) über den
+   echten ``bgremover.eufymake_writer.write_export``-Pfad.
 2. **2.7.0-Projekt-Öffnen** – lädt eine echte, mit dem tatsächlichen
    v2.7.0-Release-Code gebaute ``.bgrproj``-Datei (Pfad kommt aus dem
    Source-Checkout, der ohnehin im selben Abnahme-Job liegt – nur der

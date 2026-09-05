@@ -314,7 +314,7 @@ def check_export(
 
 
 def format_finding(finding: Finding) -> str:
-    """Qt-freie, lokalisierte Klartextmeldung eines Befunds (de/en über ``tr``).
+    """Qt-freie, lokalisierte Klartextmeldung eines Befunds (über ``tr``).
 
     Nutzt je Code einen **literalen** i18n-Key, damit die zentrale Coverage-Prüfung
     jede Meldung als referenziert erkennt.
