@@ -165,7 +165,10 @@ Aus [`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §1/§3 und
   `python3-venv`).
 - ≥ 2 GB freier Speicher im Runner-Arbeitsverzeichnis; das Verzeichnis liegt
   **nicht** in einem synchronisierten Ordner (iCloud/Nextcloud o. Ä.).
-- Netzzugang zu `api.github.com`/`github.com`.
+- Netzzugang zu `api.github.com`/`github.com`. Läuft der Runner hinter einer
+  Heim-IP, die `codeload.github.com` mit 429 ratenlimitiert, hilft der
+  rein lesende Action-Archiv-Cache
+  ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §2.3, empfohlen).
 - Laufende **grafische Sitzung** (macOS: angemeldeter Benutzer; Pi:
   Desktop-Session mit Autologin) – ein „Idle"-Runner ohne Sitzung fällt im
   Preflight, nicht erst in der Abnahme.

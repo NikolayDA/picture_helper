@@ -195,6 +195,89 @@ zusätzlich Pflicht. Die nativen Workflow-Schritte entfernen außerdem bewusst
 ein eventuell geerbtes `QT_QPA_PLATFORM`, damit Qt das Backend dieser Sitzung
 wählt.
 
+### 2.3 Action-Archiv-Cache gegen codeload-Rate-Limits (empfohlen)
+
+**Auslöser (2026-08-17, Lauf
+[32036618118](https://github.com/NikolayDA/picture_helper/actions/runs/32036618118)):**
+Der Post-Release-Update-Nachweis (§4.2; damals `UPDATE-01`, seit #917 geteilt in
+`UPDATE-LINUX-ARM-01`/`UPDATE-MACOS-ARM-01`) scheiterte auf dem Pi-Runner drei
+Versuche in Folge identisch am allerersten Schritt – `actions/checkout@v5`
+konnte nicht geladen werden:
+
+```
+Failed to download action 'https://codeload.github.com/actions/checkout/tar.gz/<sha>'.
+Error: Response status code does not indicate success: 429 (Too Many Requests).
+```
+
+Die GitHub-hosted Jobs **desselben Laufs** luden dieselbe Action zur gleichen
+Zeit problemlos – das Limit hängt also an der **Heim-IP-Adresse** des
+Self-hosted Runners, nicht am Repository oder Token. Da macOS- und
+Linux-Runner in der Praxis oft hinter derselben Heim-IP sitzen, betrifft das
+Risiko potenziell beide Geräte gleichermaßen – und seit #921 auch den
+täglichen Heartbeat, der dieselbe Action lädt.
+
+**Mechanismus.** Der Runner selbst unterstützt einen lokalen,
+**rein lesenden** Archiv-Cache (`src/Runner.Worker/ActionManager.cs` in
+[`actions/runner`](https://github.com/actions/runner), Variablennamen in
+`src/Runner.Common/Constants.cs`): Ist die Umgebungsvariable
+`ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE` auf ein existierendes Verzeichnis gesetzt,
+sucht der Runner dort zuerst nach
+`<Verzeichnis>/<owner>_<repo>/<aufgelöste-SHA>.tar.gz` (macOS/Linux) bzw. `.zip`
+(Windows), kopiert einen Treffer an die Stelle des Downloads und entpackt ihn
+lokal, **ohne** `codeload.github.com` überhaupt anzufragen. Fehlt der Treffer,
+greift automatisch der normale Download – kein Risiko, kein Blockieren. Der
+Runner **schreibt** den Cache nie selbst; er muss einmalig von Hand befüllt
+werden. Persistiert wird die Variable über die vom Runner beim Start
+automatisch geladene Datei `.env` im Runner-Wurzelverzeichnis (neben
+`run.sh`/`svc.sh`, `src/Runner.Listener/Program.cs::LoadAndSetEnv`) –
+schlichtes `SCHLÜSSEL=WERT` pro Zeile, kein Eingriff in systemd bzw. launchd
+nötig.
+
+**Betroffene Actions.** In den Self-hosted-Jobs von
+[`release-abnahme.yml`](../.github/workflows/release-abnahme.yml) und
+[`runner-heartbeat.yml`](../.github/workflows/runner-heartbeat.yml) laufen
+genau zwei `uses:`-Actions: `actions/checkout@v5` (alle Jobs, erster Schritt)
+und `actions/upload-artifact@v6` (nur die Abnahme-Jobs). Der Cache lohnt für
+beide; das Vorgehen ist identisch, unten am Beispiel von `actions/checkout`.
+
+**Einrichtung je betroffener Action:**
+
+1. Auf einem **anderen** Rechner (nicht dem ratenlimitierten Runner) die
+   aufgelöste SHA aus einem Job-Log ablesen (Zeile
+   `Download action repository '...@v5' (SHA:<sha>)`) und den Archiv-Tarball
+   nachbauen – ein einzelnes Wurzelverzeichnis wie im codeload-Tarball:
+
+   ```sh
+   git clone --depth 1 https://github.com/actions/checkout /tmp/checkout-src
+   cd /tmp/checkout-src && git fetch --depth 1 origin <sha>
+   git archive --format=tar --prefix="checkout-<sha>/" <sha> | gzip -9 > <sha>.tar.gz
+   ```
+
+2. Auf **jedem** Self-hosted Runner (Pi **und** Mac), als Runner-Benutzer:
+
+   ```sh
+   mkdir -p ~/actions-archive-cache/actions_checkout
+   cp <sha>.tar.gz ~/actions-archive-cache/actions_checkout/
+   echo 'ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE=<absoluter Pfad zu ~/actions-archive-cache>' >> <RUNNER_ROOT>/.env
+   ./svc.sh stop && ./svc.sh start   # Pi mit sudo, siehe §2.2
+   ```
+
+   Der Pfad muss absolut sein (`/home/<user>/…` auf dem Pi,
+   `/Users/<user>/…` auf dem Mac); `~` wird in `.env` nicht expandiert. Ob der
+   Cache greift, steht im Runner-Diagnoselog (`_diag/Worker_*.log` im
+   Runner-Wurzelverzeichnis) als `Found action archive '…' in cache
+   directory` – im Joblog selbst entfällt lediglich die Download-Zeile.
+
+**Wartung.** Der Cache trifft nur die exakt eingetragene SHA. Sobald GitHub
+den `v5`-Tag von `actions/checkout` auf einen neuen Commit verschiebt (Patch-
+Release der Action), verfehlt der Cache wieder und Schritt 1–2 muss mit der
+neuen SHA wiederholt werden – das ist eine Entlastung für diesen wiederkehrenden
+Fehlerfall, keine dauerhafte Abschaltung von codeload-Zugriffen. Optional
+beschleunigt `ACTIONS_RUNNER_SYMLINK_CACHED_ACTIONS=true` (dieselbe `.env`)
+zusätzlich per Symlink statt Kopie, verlangt dafür aber ein schon entpacktes
+Verzeichnis `<owner>_<repo>/<SHA>/` statt der `.tar.gz`-Datei – für dieses
+eine Wiederanlauf-Szenario nicht nötig.
+
 ## 3. Sicherheits-Checkliste (vor Inbetriebnahme, je Runner)
 
 - [ ] Runner ist **nur für dieses Repository** registriert (kein Org-Sharing).
