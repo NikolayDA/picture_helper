@@ -30,8 +30,9 @@ def adjust_color(
 
     Jeder Faktor ist multiplikativ um den Neutralwert ``1.0`` herum
     (``> 1.0`` verstärkt, ``< 1.0`` schwächt); am Extrem ``0.0`` entsättigt
-    ``saturation`` vollständig zu Graustufen, während ``brightness``/``contrast``
-    dort Schwarz bzw. neutrales Grau liefern. Angewandt wird die Pillow-Kette
+    ``saturation`` vollständig zu Graustufen, ``brightness`` liefert Schwarz und
+    ``contrast`` eine Fläche in der mittleren Luminanz des (bereits per
+    ``brightness`` angepassten) Bilds. Angewandt wird die Pillow-Kette
     ``Brightness → Contrast → Color`` – deterministisch und in plausibler
     Richtung.
 

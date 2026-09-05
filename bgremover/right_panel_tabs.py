@@ -96,7 +96,8 @@ def _wrap_to_width(text: str, font: QFont, max_width: int) -> str:
     """Bricht ``text`` wortweise um, sodass keine Zeile ``max_width`` überschreitet.
 
     Reine Fontmetrik-Messung (keine hartkodierten Sprach-Umbrüche) – funktioniert
-    unverändert für alle Laufzeitsprachen.
+    für alle leerzeichengetrennten Laufzeitsprachen. Sprachen ohne Wortgrenzen
+    (``zh``) liefern ein einziges „Wort" und bleiben ungebrochen.
     """
     fm = QFontMetrics(font)
     words = text.split(" ")
