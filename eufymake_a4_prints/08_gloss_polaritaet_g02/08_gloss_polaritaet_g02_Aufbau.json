@@ -10,7 +10,7 @@
   "print_blocked": null,
   "substrate": null,
   "carrier": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02_A4_Beschriftung.png",
-  "carrier_sha256": "b37fe04027e1a4e6cdd69566aeddd072899039618011f7d789b92bc76a665feb",
+  "carrier_sha256": "b5035b2ea2d3616d910f2bb7e262102b2ad87c499fd3fb57dad5eb58039f7865",
   "preview": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02_NUR_VORSCHAU.png",
   "notes": [
     "Zwei unabhängige A4-Kartons; nicht zweimal auf denselben Karton drucken."
@@ -70,7 +70,7 @@
     }
   ],
   "project": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02.empf",
-  "project_sha256": "dc01ca8acac58d1751306a5e51e693dec8b2ff1ad15ca102426c5bddffa6489a",
+  "project_sha256": "92743ba1282949013904045859b47d9dc58b6b0215860cc564dfff6c47862ef8",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",

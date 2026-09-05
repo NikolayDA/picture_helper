@@ -34,17 +34,27 @@
     "Vorschau-PNGs sind Platzierungshilfen und ersetzen KEINE nativen Fixture-Objekte.",
     "HEIGHT- oder GLOSS-Objekte nicht reduzieren.",
     "Beim bloßen Vorbereiten oder Prüfen weder Preview noch Print auslösen.",
-    "Layouts mit print_blocked werden bis zum Freigabe-Vermerk nicht gedruckt."
+    "Layouts mit print_blocked werden nicht gedruckt; I-10 entfällt gemäß Option A.",
+    "Druckfreigabe aller aktiven Layouts offen: Gerät, Gloss-Material und Messmittel klären (docs/history/EUFYMAKE-681-VORBEREITUNG-2026-09-05.md)."
   ],
   "project_format": {
-    "container": "encrypted eufyMake EMPF",
+    "container": "native eufyMake EMPF (ZIP-compatible project, Studio 4.2.2 import verified 2026-09-05)",
     "canvas_version": "5.3.0",
     "editor_compatibility_checked": "eufyMake Editor v1.20.0 / Studio 4.2.2",
-    "native_samples_opened_without_preview_or_print": [
+    "studio_canvas_mm": [
+      335,
+      420
+    ],
+    "e1_printable_area_mm": [
+      335,
+      420
+    ],
+    "geometry_evidence": "Standard-Flatbed 335×420 mm, Owner-Entscheidung 2026-09-03 (#971), am 2026-09-05 in Studio 4.2.2 erneut angezeigt.",
+    "repaired_samples_opened_in_studio": [
       4,
-      5,
-      6
-    ]
+      10
+    ],
+    "verification": "Native Container aller 13 Projekte automatisch geprüft; Studio-Import der reparierten Projekte 04 und 10 am 2026-09-05."
   },
   "layouts": [
     {
@@ -59,7 +69,7 @@
       "print_blocked": null,
       "substrate": null,
       "carrier": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04_A4_Beschriftung.png",
-      "carrier_sha256": "d5b9aae861a8c10da4504959959da478b05db41b95abcc50385858888afbc344",
+      "carrier_sha256": "a87c884519268338138c2cd3b6d2f0984933806e82e15e4d4daf30247ff386ac",
       "preview": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04_NUR_VORSCHAU.png",
       "notes": [
         "Beide Objekte unverändert 90,31 × 90,31 mm; keine automatische Größenanpassung."
@@ -119,7 +129,7 @@
         }
       ],
       "project": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04.empf",
-      "project_sha256": "f30933e44d8ab776ace8816cd7954d402c35a528333d1c28cb8dacce3ea600cd",
+      "project_sha256": "748d245c9fdb5ae0f6b11205ff0f2fee08a73bcf7fd791f5e94640c9c77384bc",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -148,7 +158,7 @@
       "print_blocked": null,
       "substrate": null,
       "carrier": "eufymake_a4_prints/02_height_bittiefe_filter_i03_i14/02_height_bittiefe_filter_i03_i14_A4_Beschriftung.png",
-      "carrier_sha256": "37f8954b0bf32ceeb471d303f3e75c5f2b376637bebf87f0883ff7022f8830b8",
+      "carrier_sha256": "33ef70a1324e54e5aebfdcb6c3179ff1dd71d3aea5ef009e056bd195e07946d7",
       "preview": "eufymake_a4_prints/02_height_bittiefe_filter_i03_i14/02_height_bittiefe_filter_i03_i14_NUR_VORSCHAU.png",
       "notes": [
         "Alle drei COLOR-Objekte und alle HEIGHT-Parameter identisch; nur die bezeichnete HEIGHT-Datei wechselt."
@@ -234,7 +244,7 @@
         }
       ],
       "project": "eufymake_a4_prints/02_height_bittiefe_filter_i03_i14/02_height_bittiefe_filter_i03_i14.empf",
-      "project_sha256": "9332a28ef6ecbf3cb417d75d0df00240b94528c7c98dcbb8c6b23233ad7a739c",
+      "project_sha256": "cc619f1f652ef2f1b5d983efa966a40b694ae4ed02898d0cfbf01c079f1e1a98",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -267,7 +277,7 @@
       "print_blocked": null,
       "substrate": "nicht-weiß (Druck-Checkliste §0: Deckung und Weiß-Unterlage bleiben auf weißem Material unsichtbar); dasselbe in Protokoll §3.0 eingetragene Substrat für Karton 03 (I-13) und Karton 11 (G-06)",
       "carrier": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13_A4_Beschriftung.png",
-      "carrier_sha256": "357f4ed9300e3a36e7849c9383537ade23d0b2034925c749d4f703514634feb7",
+      "carrier_sha256": "fbe960a1ba3e9fdc9ffa542511b2f87660d87de8d455ec3ddf3dd633b3696df1",
       "preview": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13_NUR_VORSCHAU.png",
       "notes": [
         "I-07 bleibt eine Budgetvariante mit zwei Messfeldern (Null und Maximum).",
@@ -380,7 +390,7 @@
         }
       ],
       "project": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13.empf",
-      "project_sha256": "00f101637a342bd88dcb4391b29ba39f8d389489d504d1dd66c390c1f0f3879c",
+      "project_sha256": "184995cdffa1e3e337c82625ca585c74f66377a19f8872928d516aeffbb213d3",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -416,7 +426,7 @@
       "print_blocked": null,
       "substrate": null,
       "carrier": "eufymake_a4_prints/04_registrierung_crop_i08/04_registrierung_crop_i08_A4_Beschriftung.png",
-      "carrier_sha256": "b88c38553a90ccd8e0c790b8c706330a89f33a1f968f283d686a984c5d266b15",
+      "carrier_sha256": "30526d74d3f3288bf199cf8cb85f825883e28328c972151a6fa2f8f0d8f47792",
       "preview": "eufymake_a4_prints/04_registrierung_crop_i08/04_registrierung_crop_i08_NUR_VORSCHAU.png",
       "notes": [
         "Nach-Crop-COLOR/HEIGHT rechtsbündig im unveränderten 90,31-mm-Glossfeld; X-Versatz 45,45 mm."
@@ -533,7 +543,7 @@
         }
       ],
       "project": "eufymake_a4_prints/04_registrierung_crop_i08/04_registrierung_crop_i08.empf",
-      "project_sha256": "9e246ad5687556941734be5b11d061ab18834437418333763e82b57f185013ef",
+      "project_sha256": "d6ba1003d3645ad0dc59006ea5925a8941f1c2609d5ac11a41433aae293af045",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -561,18 +571,15 @@
       "number": 5,
       "slug": "gloss_polaritaet_i10",
       "title": "I-10 – Gloss-Polarität",
-      "budget_slots": [
-        "I-10 normal Lauf 1",
-        "I-10 invertiert Lauf 1"
-      ],
-      "physical_a4_copies": 1,
-      "print_blocked": "Owner-Entscheidung I-10 gegen G-02 steht aus (TESTGOVERNANCE §5.3, Druck-Checkliste §0): Option A streicht I-10 physisch; Option B verlangt den Spot-UV-Zweipass (Pfad 2) statt des hier gebauten nativen Gloss-Varnish-Pfads. Nicht drucken, bis der Freigabe-Vermerk in Governance §4 vorliegt.",
+      "budget_slots": [],
+      "physical_a4_copies": 0,
+      "print_blocked": "Option A im delegierten Owner-Auftrag vom 2026-09-05 (TESTGOVERNANCE): I-10 entfällt physisch; G-02 prüft beide Polaritäten mit je zwei unabhängigen Läufen. Projekt 05 bleibt gesperrt; Budgetplätze 9–10 bleiben unzugeordnet.",
       "substrate": null,
       "carrier": "eufymake_a4_prints/05_gloss_polaritaet_i10/05_gloss_polaritaet_i10_A4_Beschriftung.png",
-      "carrier_sha256": "98433d9b75ba2a39ccd2589698f1ebb28ca24dff682d77d2592e949cc41431a1",
+      "carrier_sha256": "11d8726c4b49058dd3dac5b74165b45774ac088c17c859eb3e4cc806b7fdc468",
       "preview": "eufymake_a4_prints/05_gloss_polaritaet_i10/05_gloss_polaritaet_i10_NUR_VORSCHAU.png",
       "notes": [
-        "Gesperrt: Projekt 05 nutzt den nativen Gloss-Varnish-Pfad; unter Option B wäre I-10 dem Zweipass zuzuordnen und das Projekt neu aufzubauen."
+        "Option A vom 2026-09-05: I-10 entfällt physisch; dieses historische Projekt nicht drucken."
       ],
       "objects": [
         {
@@ -629,7 +636,7 @@
         }
       ],
       "project": "eufymake_a4_prints/05_gloss_polaritaet_i10/05_gloss_polaritaet_i10.empf",
-      "project_sha256": "c510f1dce903511ec957f86ef94721eb500875eee932219c9cdfa3b7af2b5f54",
+      "project_sha256": "f71ab397d13f3f824abe850a86c91948b10f98d680d644f4a2d432199833f688",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -656,7 +663,7 @@
       "print_blocked": null,
       "substrate": null,
       "carrier": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05_A4_Beschriftung.png",
-      "carrier_sha256": "821839b19a2182c1fe28bcdabe0a5e57314e02e9aa8d38264b441e6410dbc76d",
+      "carrier_sha256": "9a2bb65e91f68fa4f3fed333ce76884da1de20bdd2a375502da47b8442c5c14d",
       "preview": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05_NUR_VORSCHAU.png",
       "notes": [
         "Native Studio-Ausdehnung 101,60 × 101,60 mm beibehalten."
@@ -690,7 +697,7 @@
         }
       ],
       "project": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05.empf",
-      "project_sha256": "a8542743bffd1dfd8b0f563fb1e6bba0e7747f888d7fa903f6c097ac8aa7d9e8",
+      "project_sha256": "f75cd29f63f957768d3d38ab1e8ce3bb607b6a2759479be3bda2bfd6c5aa69b0",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -714,7 +721,7 @@
       "print_blocked": null,
       "substrate": null,
       "carrier": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03_A4_Beschriftung.png",
-      "carrier_sha256": "5e018f747e191146efab25cb4a818994c8bd5f4b964cc3a865ea1c37e5414aea",
+      "carrier_sha256": "0638405c8dd3434f5a0c808b13fb947748b0826c4a2cf8603bb9e0bccd9506e2",
       "preview": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03_NUR_VORSCHAU.png",
       "notes": [
         "Alle fünf Felder mit identischem nativen Gloss-Varnish-Modus und identischer Passzahl."
@@ -852,7 +859,7 @@
         }
       ],
       "project": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03.empf",
-      "project_sha256": "67df0aa85a73788551d95ad6be5983768b0b74aaf930bbc8bea5a07b4984ab95",
+      "project_sha256": "32d922db36f37fb6ab6899125812c459dcbdd6f0085ac3fadb41d945b7bc21cd",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -892,7 +899,7 @@
       "print_blocked": null,
       "substrate": null,
       "carrier": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02_A4_Beschriftung.png",
-      "carrier_sha256": "b37fe04027e1a4e6cdd69566aeddd072899039618011f7d789b92bc76a665feb",
+      "carrier_sha256": "b5035b2ea2d3616d910f2bb7e262102b2ad87c499fd3fb57dad5eb58039f7865",
       "preview": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02_NUR_VORSCHAU.png",
       "notes": [
         "Zwei unabhängige A4-Kartons; nicht zweimal auf denselben Karton drucken."
@@ -952,7 +959,7 @@
         }
       ],
       "project": "eufymake_a4_prints/08_gloss_polaritaet_g02/08_gloss_polaritaet_g02.empf",
-      "project_sha256": "dc01ca8acac58d1751306a5e51e693dec8b2ff1ad15ca102426c5bddffa6489a",
+      "project_sha256": "92743ba1282949013904045859b47d9dc58b6b0215860cc564dfff6c47862ef8",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -979,7 +986,7 @@
       "print_blocked": null,
       "substrate": null,
       "carrier": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04_A4_Beschriftung.png",
-      "carrier_sha256": "5f9031509a6df8fb15bf53c14783630249100810f5b651e97fdb6af736bb4fa3",
+      "carrier_sha256": "f30a66276db5e00c1a0e2fbaf7580593f284a98fba8d35d478130a044ab8911e",
       "preview": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04_NUR_VORSCHAU.png",
       "notes": [
         "G-04a enthält bewusst kein Gloss-Objekt; Schwarz/Weiß nicht semantisch umbenennen, bevor der Druck ausgewertet ist."
@@ -1117,7 +1124,7 @@
         }
       ],
       "project": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04.empf",
-      "project_sha256": "965f7a39794d3aaed05d0ffd0967fab6d27641a69aa5ff70fe71760565c8538d",
+      "project_sha256": "2b360f56d9812b9ada7c1db32916ad24de0ffd62b6e09f53e770825e7184ea7a",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -1156,7 +1163,7 @@
       "print_blocked": null,
       "substrate": null,
       "carrier": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05_A4_Beschriftung.png",
-      "carrier_sha256": "07c0c8009c74649f3482520c1a0f31a1e596b58a6113d900e12a949cd3a2f201",
+      "carrier_sha256": "36927826eaa496c8f52317c37d8e8587e41e3f7a983ec6821cc490a46b94891c",
       "preview": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05_NUR_VORSCHAU.png",
       "notes": [
         "Verbindliche Regel: native 45,16 × 90,31 mm, oben/links bündig; rechte COLOR-Hälfte bleibt ohne Glossobjekt."
@@ -1216,7 +1223,7 @@
         }
       ],
       "project": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05.empf",
-      "project_sha256": "439af8a2b16cc01ef394cdaf8bb3ff7f53db9950677c4da57d2b658d331739ba",
+      "project_sha256": "84073c92504c8f7c31f91c051b0982885ad26b29b15b66b6ccfb9478999b30ef",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -1243,7 +1250,7 @@
       "print_blocked": null,
       "substrate": "nicht-weiß (Druck-Checkliste §0: Deckung und Weiß-Unterlage bleiben auf weißem Material unsichtbar); dasselbe in Protokoll §3.0 eingetragene Substrat für Karton 03 (I-13) und Karton 11 (G-06)",
       "carrier": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06_A4_Beschriftung.png",
-      "carrier_sha256": "180c0690c9bc1563eda8c0026d8540e4e3c445895cb5b3c3eb4120311da61303",
+      "carrier_sha256": "a1353bc711eb17bdad118abbe3bb1db42b078618f835f5c9aa90d16a7a41f498",
       "preview": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06_NUR_VORSCHAU.png",
       "notes": [
         "COLOR/HEIGHT-Basis und konstante Glossmaske exakt deckungsgleich."
@@ -1303,7 +1310,7 @@
         }
       ],
       "project": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06.empf",
-      "project_sha256": "7dcf6f06e695ff298d18fed31bcfb3272cb415de0c3c82bf6d227de8234a8f56",
+      "project_sha256": "8af830ac0418ee827e048fbe11588f2191921176d546f9e81cbbf62b686ab7e5",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -1330,7 +1337,7 @@
       "print_blocked": null,
       "substrate": null,
       "carrier": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07_A4_Beschriftung.png",
-      "carrier_sha256": "79a92b197b64da8844b08d891f1ede42597586264f9098600a573da5580cfafa",
+      "carrier_sha256": "1501c995dcdd540a16aef72d3ced3824fa7b8f70a366cecda8c2d8df7099010b",
       "preview": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07_NUR_VORSCHAU.png",
       "notes": [
         "Color Raised 2,50 mm und Gloss Varnish × 1; beide Objekte exakt deckungsgleich."
@@ -1390,7 +1397,7 @@
         }
       ],
       "project": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07.empf",
-      "project_sha256": "7ea3b7d310336af469543ead6c2430ee25385e82d407b30d732a495f72801752",
+      "project_sha256": "79f78c3b88c82a321aaa2b570e42196be0b6b93c0a9c63a7b1089a54710ae079",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",
@@ -1417,7 +1424,7 @@
       "print_blocked": null,
       "substrate": null,
       "carrier": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08_A4_Beschriftung.png",
-      "carrier_sha256": "418a061972665ddc33d826f7e5246c864dc52f1199c0f07299293734335c535c",
+      "carrier_sha256": "fb0f134653b1e76a6113d05cc41f0b0b6ba3495eb7cdeee7def9d477799aa917",
       "preview": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08_NUR_VORSCHAU.png",
       "notes": [
         "Registriermaske deckungsgleich mit der Farbreferenz; Schachbrett als separates natives Glossfeld."
@@ -1503,7 +1510,7 @@
         }
       ],
       "project": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08.empf",
-      "project_sha256": "98fb7dee871a491c3566a6e5144b6c70a9c8a2a2e08f394a6925688ccda71d9b",
+      "project_sha256": "3fd347a980c729e7be100976ac7547c6117f9e6870f143eab4f26b3b51d72890",
       "project_layers": [
         {
           "name": "A4 Beschriftung und Eckmarken",

@@ -9,7 +9,7 @@
   "print_blocked": null,
   "substrate": "nicht-weiß (Druck-Checkliste §0: Deckung und Weiß-Unterlage bleiben auf weißem Material unsichtbar); dasselbe in Protokoll §3.0 eingetragene Substrat für Karton 03 (I-13) und Karton 11 (G-06)",
   "carrier": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06_A4_Beschriftung.png",
-  "carrier_sha256": "180c0690c9bc1563eda8c0026d8540e4e3c445895cb5b3c3eb4120311da61303",
+  "carrier_sha256": "a1353bc711eb17bdad118abbe3bb1db42b078618f835f5c9aa90d16a7a41f498",
   "preview": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06_NUR_VORSCHAU.png",
   "notes": [
     "COLOR/HEIGHT-Basis und konstante Glossmaske exakt deckungsgleich."
@@ -69,7 +69,7 @@
     }
   ],
   "project": "eufymake_a4_prints/11_gloss_alpha_g06/11_gloss_alpha_g06.empf",
-  "project_sha256": "7dcf6f06e695ff298d18fed31bcfb3272cb415de0c3c82bf6d227de8234a8f56",
+  "project_sha256": "8af830ac0418ee827e048fbe11588f2191921176d546f9e81cbbf62b686ab7e5",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",

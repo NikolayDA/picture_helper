@@ -9,7 +9,7 @@
   "print_blocked": null,
   "substrate": null,
   "carrier": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04_A4_Beschriftung.png",
-  "carrier_sha256": "5f9031509a6df8fb15bf53c14783630249100810f5b651e97fdb6af736bb4fa3",
+  "carrier_sha256": "f30a66276db5e00c1a0e2fbaf7580593f284a98fba8d35d478130a044ab8911e",
   "preview": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04_NUR_VORSCHAU.png",
   "notes": [
     "G-04a enthält bewusst kein Gloss-Objekt; Schwarz/Weiß nicht semantisch umbenennen, bevor der Druck ausgewertet ist."
@@ -147,7 +147,7 @@
     }
   ],
   "project": "eufymake_a4_prints/09_gloss_optionalitaet_g04/09_gloss_optionalitaet_g04.empf",
-  "project_sha256": "965f7a39794d3aaed05d0ffd0967fab6d27641a69aa5ff70fe71760565c8538d",
+  "project_sha256": "2b360f56d9812b9ada7c1db32916ad24de0ffd62b6e09f53e770825e7184ea7a",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",

@@ -11,7 +11,7 @@
   "print_blocked": null,
   "substrate": "nicht-weiß (Druck-Checkliste §0: Deckung und Weiß-Unterlage bleiben auf weißem Material unsichtbar); dasselbe in Protokoll §3.0 eingetragene Substrat für Karton 03 (I-13) und Karton 11 (G-06)",
   "carrier": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13_A4_Beschriftung.png",
-  "carrier_sha256": "357f4ed9300e3a36e7849c9383537ade23d0b2034925c749d4f703514634feb7",
+  "carrier_sha256": "fbe960a1ba3e9fdc9ffa542511b2f87660d87de8d455ec3ddf3dd633b3696df1",
   "preview": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13_NUR_VORSCHAU.png",
   "notes": [
     "I-07 bleibt eine Budgetvariante mit zwei Messfeldern (Null und Maximum).",
@@ -124,7 +124,7 @@
     }
   ],
   "project": "eufymake_a4_prints/03_height_grenzen_stufen_alpha_i07_i11_i13/03_height_grenzen_stufen_alpha_i07_i11_i13.empf",
-  "project_sha256": "00f101637a342bd88dcb4391b29ba39f8d389489d504d1dd66c390c1f0f3879c",
+  "project_sha256": "184995cdffa1e3e337c82625ca585c74f66377a19f8872928d516aeffbb213d3",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",

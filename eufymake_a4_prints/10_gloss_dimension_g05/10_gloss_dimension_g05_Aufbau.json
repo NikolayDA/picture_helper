@@ -9,7 +9,7 @@
   "print_blocked": null,
   "substrate": null,
   "carrier": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05_A4_Beschriftung.png",
-  "carrier_sha256": "07c0c8009c74649f3482520c1a0f31a1e596b58a6113d900e12a949cd3a2f201",
+  "carrier_sha256": "36927826eaa496c8f52317c37d8e8587e41e3f7a983ec6821cc490a46b94891c",
   "preview": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05_NUR_VORSCHAU.png",
   "notes": [
     "Verbindliche Regel: native 45,16 × 90,31 mm, oben/links bündig; rechte COLOR-Hälfte bleibt ohne Glossobjekt."
@@ -69,7 +69,7 @@
     }
   ],
   "project": "eufymake_a4_prints/10_gloss_dimension_g05/10_gloss_dimension_g05.empf",
-  "project_sha256": "439af8a2b16cc01ef394cdaf8bb3ff7f53db9950677c4da57d2b658d331739ba",
+  "project_sha256": "84073c92504c8f7c31f91c051b0982885ad26b29b15b66b6ccfb9478999b30ef",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",
