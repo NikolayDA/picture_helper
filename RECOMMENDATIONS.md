@@ -87,7 +87,7 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] Release-Governance um den Store-Kanal erweitern | 🟠 Hoch (verhindert einen Kanal neben dem fail-closed Vertrag) | 🟠 Hoch (Runbook, Checkliste, Vertrag, Path-Policy, sechs CHANGELOGs) | Opus, hoch | Blocked – begleitet #898/#899; vor Einreichung alle Governance-Verträge und Tests auf sechs Artefakte heben |
 | [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] Ersteinreichung und Review-Runde | 🟠 Hoch (manuelles Veröffentlichungs-Gate) | 🔴 Hoch (viele Abhängigkeiten, Restrisiken, Apple-Kommunikation) | – (kein Agent; Release-Owner) | Blocked (extern) – nach #896/#897/#899/#901–#905 inklusive App-Downloadvalidierung vorprüfen, einreichen und Ergebnis/Folge-Issues protokollieren |
 | [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] Betriebskonzept für Renewal, Updates und Kanäle | 🟡 Mittel-Hoch (langfristige Verfügbarkeit und Kanaltrennung) | 🟡 Mittel (Runbook, Verantwortungen, Erinnerungen, Kanalmatrix) | Opus, hoch + Owner | Blocked – Konzept vorab möglich, final nach #906; Renewal-/Update-/Webseiten-Routinen verbindlich verankern |
-| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] Release-Prozess: Runner, automatisierte Nachweise, main-Freeze | 🟠 Hoch (Release-Betrieb; Implementierung weitgehend erledigt) | 🟢 Niedrig (zwei zeit-/ereignisgebundene Nachweise) | – (Epic) | Fast fertig – erster regulärer Dry-Run am 2026-09-03 04:40 UTC und beim nächsten echten Release End-to-End-Beleg inklusive #918 fehlen |
+| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] Release-Prozess: Runner, automatisierte Nachweise, main-Freeze | 🟠 Hoch (Release-Betrieb; Implementierung weitgehend erledigt) | 🟢 Niedrig (ein ereignisgebundener Nachweis) | – (Epic) | Fast fertig – erster regulärer Dry-Run am 2026-09-03 erfolgreich gelaufen (Run 33737226157); offen bleibt nur noch der End-to-End-Beleg beim nächsten echten Release inklusive #918 |
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Release-Ref statt main-Freeze (ADR + fail-closed Absicherung) | 🟠 Hoch (`main` bleibt während eines Releases mergebar) | 🟢 Niedrig (Code, Doku und Ruleset stehen) | – (kein Agent; nächster Release-Lauf) | Blocked (extern) – am 2026-08-31 nach der Abschlussprüfung wiedereröffnet; PR #936 und der aktive Ruleset 21941216 sind belegt, offen ist nur ein Lauf, dessen Post-Release-Abnahme nachweislich auf `release/vX.Y.Z` startete |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Betrieb: Self-hosted-Runner (Heartbeat-Alarmkanal) | 🟡 Mittel (Betriebskanal, kein Produktcode) | 🟢 Niedrig (reine Beobachtung) | – (kein Agent; Repo-Owner) | Dauerhaft offen – nicht schließen (`RUNNER_HEARTBEAT_ISSUE`); der FAIL vom 2026-08-31 war der geplante Meldeweg-Test, der Aufräumschritt ist erledigt (planmäßiger Lauf 33496675995 grün, x86_64 übersprungen, Mac und Pi bestanden) |
 | [#975](https://github.com/NikolayDA/picture_helper/issues/975) | eufymake: Beschriftungsträger 04 und 10 neu erzeugen und binden | 🟡 Mittel (zwei Testfelder auf dem Karton unbeschriftet; kein Blocker für die übrigen elf) | 🟢 Niedrig (Generator ist korrigiert; offen ist nur der Datennachzug) | – (kein Agent; macOS mit Arial nötig) | Blocked (extern) – unter Linux erzeugt Liberation Sans andere Bytes; Träger neu bauen, in Studio neu binden, `projects.json` nachziehen |
@@ -97,11 +97,9 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 
 1. **#693** (Qt-freier Kern) – der ADR #692 ist verabschiedet; danach folgen
    #694, #695 und #696 in dieser Reihenfolge.
-2. **#949** – vier kleine, klar umrissene Teständerungen; danach Baseline auf
-   aktuellem `main` samt Plattform und optionalen Abhängigkeiten neu erfassen.
-3. **#883** – Qt-/Code-Lizenz entscheiden und die Rechte/Provenienz des konkreten
+2. **#883** – Qt-/Code-Lizenz entscheiden und die Rechte/Provenienz des konkreten
    `u2net.onnx` belegen oder ein eindeutig lizenzierbares Ersatzmodell wählen.
-4. Nach Geräte-/Materialfreigabe die offenen physischen Messungen aus **#689**
+3. Nach Geräte-/Materialfreigabe die offenen physischen Messungen aus **#689**
    zusammen mit #687 (Rest), #688 und #690 durchführen; native HEIGHT-/Gloss-
    Pfade und I-08 sind vorgeprüft. Danach #691
    abschließen: Profil v1 hochstufen oder bei Widerspruch v2 anlegen.

@@ -86,7 +86,7 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] Extend release governance for the store channel | 🟠 High (prevents a channel outside the fail-closed contract) | 🟠 High (runbook, checklist, contract, path policy, six changelogs) | Opus, high | Blocked – accompanies #898/#899; raise all governance contracts/tests to six artifacts before submission |
 | [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] Initial submission and review round | 🟠 High (manual publication gate) | 🔴 High (many dependencies, residual risks, Apple communication) | – (no agent; release owner) | Blocked (external) – after #896/#897/#899/#901–#905 preflight including app-download validation, submit, and record results/follow-ups |
 | [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] Operations plan for renewal, updates, and channels | 🟡 Medium-high (long-term availability and channel separation) | 🟡 Medium (runbook, ownership, reminders, channel matrix) | Opus, high + owner | Blocked – draft early, finalize after #906; bind renewal/update/web routines into operations |
-| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] Release process: runners, automated evidence, main freeze | 🟠 High (release operations; implementation largely done) | 🟢 Low (two time/event-bound proofs) | – (epic) | Almost done – the first scheduled dry run at 2026-09-03 04:40 UTC and an end-to-end proof including #918 at the next real release remain |
+| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] Release process: runners, automated evidence, main freeze | 🟠 High (release operations; implementation largely done) | 🟢 Low (one event-bound proof) | – (epic) | Almost done – the first scheduled dry run on 2026-09-03 completed successfully (run 33737226157); only the end-to-end proof including #918 at the next real release remains |
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Release ref instead of a main freeze (ADR + fail-closed safeguards) | 🟠 High (`main` stays mergeable during a release) | 🟢 Low (code, docs, and ruleset are in place) | – (no agent; next release run) | Blocked (external) – reopened on 2026-08-31 after its completion check; PR #936 and the active ruleset 21941216 are documented, only a run whose post-release acceptance demonstrably started on `release/vX.Y.Z` is missing |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Operations: self-hosted runners (heartbeat alert channel) | 🟡 Medium (operations channel, no product code) | 🟢 Low (observation only) | – (no agent; repo owner) | Permanently open – do not close (`RUNNER_HEARTBEAT_ISSUE`); the FAIL of 2026-08-31 was the planned alert-path test, and the cleanup step is done (scheduled run 33496675995 green, x86_64 skipped, Mac and Pi passed) |
 | [#975](https://github.com/NikolayDA/picture_helper/issues/975) | eufymake: rebuild and rebind label carriers 04 and 10 | 🟡 Medium (two test fields unlabelled on the carton; no blocker for the other eleven) | 🟢 Low (the generator is already fixed; only the data follow-up is open) | – (no agent; needs macOS with Arial) | Blocked (external) – Liberation Sans produces different bytes on Linux; rebuild carriers, rebind in Studio, update `projects.json` |
@@ -95,10 +95,9 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 ### Recommended Next
 
 1. **#693** (Qt-free core) – ADR #692 is approved; #694, #695, and #696 follow in that order.
-2. **#949** – make the four changes, then recapture the baseline with platform and optional dependencies.
-3. **#883** – decide Qt/code licensing and prove rights/provenance for the exact `u2net.onnx`,
+2. **#883** – decide Qt/code licensing and prove rights/provenance for the exact `u2net.onnx`,
    or choose a clearly licensed replacement model.
-4. After device/material approval, perform the remaining physical measurements for **#689**
+3. After device/material approval, perform the remaining physical measurements for **#689**
    together with the remainder of #687, #688, and #690; native HEIGHT/Gloss paths and I-08 are preflighted. Then close out #691:
    promote profile v1, or create v2 if the results contradict it.
 

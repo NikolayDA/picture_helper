@@ -66,7 +66,7 @@
 | [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] 扩展发布治理 | 🟠 高（防止渠道绕过 fail-closed 契约） | 🟠 高（runbook、checklist、契约、policy、六份 changelog） | Opus，高 | 阻塞 —— 与 #898/#899 同步；提交前将契约/测试提升到六产物 |
 | [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] 首次提交与审核 | 🟠 高（人工发布关卡） | 🔴 高（多项依赖、残余风险、Apple 沟通） | –（无需 Agent；Release Owner） | 阻塞 —— #896/#897/#899/#901–#905 后预检（含下载验证）、提交并记录结果/后续议题 |
 | [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] 续费、更新与渠道运营方案 | 🟡 中高（长期可用性与渠道分离） | 🟡 中（runbook、责任人、提醒、矩阵） | Opus，高 + 负责人 | 阻塞 —— 可提前起草，#906 后定稿；固化续费/更新/网站维护流程 |
-| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] 发布流程：runner、自动化证据、解除 main 冻结 | 🟠 高（发布运维；实现基本完成） | 🟢 低（两项按时间/事件产生的证据） | – （史诗） | 接近完成：尚缺 2026-09-03 04:40 UTC 首次定时 dry-run，以及下一次真实发布中包含 #918 的端到端证据 |
+| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] 发布流程：runner、自动化证据、解除 main 冻结 | 🟠 高（发布运维；实现基本完成） | 🟢 低（一项按事件产生的证据） | – （史诗） | 接近完成：2026-09-03 首次定时 dry-run 已成功运行（run 33737226157）；仅剩下一次真实发布中包含 #918 的端到端证据 |
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | 用发布 ref 取代 main 冻结（ADR + fail-closed 保障） | 🟠 高（发布期间 `main` 保持可合并） | 🟢 低（代码、文档与 ruleset 均已就位） | – （无代理；下一次发布运行） | 受阻（外部）：2026-08-31 收尾检查后重新开启；PR #936 与生效的 ruleset 21941216 均有记录，仅差一次发布后验收可证明从 `release/vX.Y.Z` 启动的运行 |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | 运维：自托管 runner（heartbeat 告警通道） | 🟡 中（运维通道，非产品代码） | 🟢 低（仅观察） | – （无代理；仓库 owner） | 长期开启：请勿关闭（`RUNNER_HEARTBEAT_ISSUE`）；2026-08-31 的 FAIL 是计划中的告警通道测试，清理步骤已完成（计划运行 33496675995 通过，x86_64 跳过，Mac 与 Pi 均合格） |
 | [#975](https://github.com/NikolayDA/picture_helper/issues/975) | eufymake：重新生成并重新绑定标注载体 04 与 10 | 🟡 中（纸箱上两个测试区域没有标注；不阻塞其余十一个） | 🟢 低（生成器已修正；仅剩数据侧的补齐） | – （无代理；需要装有 Arial 的 macOS） | 已阻塞（外部）—— Linux 下 Liberation Sans 产生不同字节；重新生成、在 Studio 中重新绑定并更新 `projects.json` |
@@ -75,9 +75,8 @@
 ### 接下来推荐
 
 1. **#693**：ADR #692 已批准；随后依次进行 #694、#695、#696。
-2. **#949**：完成四项改动，随后连同平台及可选依赖重新测量基线。
-3. **#883**：决定 Qt/代码许可，并证明 `u2net.onnx` 的权利/来源，或选择许可明确的替代模型。
-4. 在设备/材料获批后，与 #687 的剩余部分、#688 和 #690 一并完成 **#689** 的物理
+2. **#883**：决定 Qt/代码许可，并证明 `u2net.onnx` 的权利/来源，或选择许可明确的替代模型。
+3. 在设备/材料获批后，与 #687 的剩余部分、#688 和 #690 一并完成 **#689** 的物理
    测量；原生 HEIGHT/Gloss 路径和 I-08 已预检。之后收尾 #691：升级配置文件 v1，或在结果矛盾时创建 v2。
 
 ## 以往轮次

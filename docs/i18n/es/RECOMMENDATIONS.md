@@ -86,7 +86,7 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] Extender la gobernanza de release | 🟠 Alta (evita canal fuera del contrato fail-closed) | 🟠 Alta (runbook, checklist, contrato, policy, seis changelogs) | Opus, alto | Bloqueada – acompaña #898/#899; llevar contratos/pruebas a seis artefactos |
 | [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] Primer envío y ronda de review | 🟠 Alta (puerta manual de publicación) | 🔴 Alta (dependencias, riesgos, comunicación Apple) | – (sin agente; release owner) | Bloqueada – tras #896/#897/#899/#901–#905 prevalidar incluida la descarga, enviar y registrar resultado/issues |
 | [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] Operación: renovación, actualizaciones y canales | 🟡 Media-alta (disponibilidad y separación a largo plazo) | 🟡 Media (runbook, responsables, recordatorios, matriz) | Opus, alto + owner | Bloqueada – adelantar concepto y cerrar tras #906; fijar rutinas de renovación/updates/web |
-| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Épica] Proceso de publicación: runners, evidencias automatizadas, congelación de main | 🟠 Alto (operación; implementación casi lista) | 🟢 Bajo (dos pruebas temporales/eventuales) | – (épica) | Casi terminada: faltan el primer dry-run programado del 2026-09-03 04:40 UTC y la evidencia E2E con #918 en el próximo release real |
+| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Épica] Proceso de publicación: runners, evidencias automatizadas, congelación de main | 🟠 Alto (operación; implementación casi lista) | 🟢 Bajo (una prueba eventual) | – (épica) | Casi terminada: el primer dry-run programado del 2026-09-03 se ejecutó con éxito (run 33737226157); solo falta la evidencia E2E con #918 en el próximo release real |
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Referencia de publicación en lugar de congelar main (ADR + salvaguardas fail-closed) | 🟠 Alto (`main` sigue fusionable durante una publicación) | 🟢 Bajo (código, documentación y ruleset están listos) | – (sin agente; próxima publicación) | Bloqueado (externo): reabierto el 2026-08-31 tras su comprobación final; el PR #936 y el ruleset activo 21941216 están documentados, solo falta una ejecución cuya aceptación posterior arrancara demostrablemente en `release/vX.Y.Z` |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Operación: runners autoalojados (canal de alerta del heartbeat) | 🟡 Medio (canal operativo, sin código de producto) | 🟢 Bajo (solo observación) | – (sin agente; owner del repositorio) | Permanentemente abierto: no cerrar (`RUNNER_HEARTBEAT_ISSUE`); el FAIL del 2026-08-31 fue la prueba planificada del canal y el paso de limpieza está hecho (ejecución programada 33496675995 en verde, x86_64 omitido, Mac y Pi superados) |
 | [#975](https://github.com/NikolayDA/picture_helper/issues/975) | eufymake: regenerar y volver a vincular los portaetiquetas 04 y 10 | 🟡 Media (dos campos de prueba sin etiqueta en el cartón; no bloquea los otros once) | 🟢 Baja (el generador ya está corregido; solo queda el seguimiento de datos) | – (sin agente; requiere macOS con Arial) | Bloqueado (externo) – en Linux Liberation Sans genera bytes distintos; regenerar, volver a vincular en Studio y actualizar `projects.json` |
@@ -95,10 +95,9 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 ### Recomendado a continuación
 
 1. **#693**: ADR #692 está aprobado; después siguen #694, #695 y #696.
-2. **#949**: hacer los cuatro cambios y medir la baseline con plataforma y dependencias opcionales.
-3. **#883**: decidir licencia Qt/código y probar derechos/procedencia de `u2net.onnx`, o elegir
+2. **#883**: decidir licencia Qt/código y probar derechos/procedencia de `u2net.onnx`, o elegir
    un modelo sustituto con licencia clara.
-4. Tras aprobar dispositivo y material, realizar las mediciones físicas pendientes de **#689**
+3. Tras aprobar dispositivo y material, realizar las mediciones físicas pendientes de **#689**
    junto con el resto de #687, #688 y #690; las rutas nativas HEIGHT/Gloss e I-08 están precomprobadas. Después cerrar #691:
    promover el perfil v1 o crear v2 si los resultados lo contradicen.
 
