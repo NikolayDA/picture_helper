@@ -328,6 +328,18 @@ def test_recovery_matrix_records_that_main_no_longer_burns_the_candidate() -> No
     assert "nachschieben" in matrix.lower()
 
 
+def _same_sha_after_repo_fix(rows: list[str]) -> list[str]:
+    """Liefert Matrixzeilen, deren zulaessiger Wiederanlauf Same-SHA und Repo-Fix koppelt."""
+    offending = []
+    for row in rows:
+        cells = row.strip().strip("|").split("|")
+        assert len(cells) == 3, f"keine dreispaltige Matrixzeile: {row}"
+        allowed = cells[1]
+        if "demselben SHA" in allowed and "per PR" in allowed:
+            offending.append(row)
+    return offending
+
+
 def test_recovery_matrix_never_pairs_same_sha_restart_with_repo_fix() -> None:
     """Ein per PR gemergter Fix wirkt auf dem unveraenderten Kandidaten-SHA nicht:
     Jeder Dispatch fuehrt die Workflow-Definition des Release-Refs aus (#918).
@@ -340,14 +352,17 @@ def test_recovery_matrix_never_pairs_same_sha_restart_with_repo_fix() -> None:
     assert "außerhalb des Repositorys" in matrix
     assert "$RELEASE_REF" in matrix
     rows = [line for line in matrix.splitlines() if line.startswith("| ") and "---" not in line]
+    assert rows[0].startswith("| Störung |")
     assert len(rows) > 10
-    for row in rows[1:]:
-        allowed = row.strip().strip("|").split("|")[1]
-        if "demselben SHA" in allowed:
-            assert "per PR" not in allowed, f"Same-SHA-Wiederanlauf nach Repo-Fix: {row}"
-    # Negativkontrolle: die frühere Zeile zu #944 wäre durch den Wächter gefallen.
-    stale = "| Ursache in Werkzeug oder Runner-Umgebung per PR beheben, danach Kandidatenlauf ab Schritt 3 auf demselben SHA |"
-    assert "per PR" in stale and "demselben SHA" in stale
+    assert not _same_sha_after_repo_fix(rows[1:])
+    # Negativkontrolle ueber denselben Helfer: die fruehere Zeile zu #944 faellt durch.
+    stale_row = (
+        "| Artefakt lässt sich im Security-Scan nicht entpacken (#944) "
+        "| Ursache in Werkzeug oder Runner-Umgebung per PR beheben, danach "
+        "Kandidatenlauf ab Schritt 3 auf demselben SHA "
+        "| den `--logs-only`-Ersatzbericht als Scan-Ergebnis werten |"
+    )
+    assert _same_sha_after_repo_fix([stale_row]) == [stale_row]
 
 
 def test_secondary_docs_only_point_to_canonical_release_sources() -> None:

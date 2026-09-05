@@ -366,8 +366,9 @@ Verlegenheitslösung für eine unverstandene Meldung.
 **Output/Evidenz:** Links auf Lauf, Build-Artefaktcontainer, Provenienz, `security-scan-<platform_tag>` je Leg und Security-Entscheidung.
 **Erwartetes Ergebnis:** erwartete Build-Container, gebundene Provenienz und kein Malware-Fund; die formale Dateiprüfung folgt in Schritt 5.
 **Fehler/Wiederanlauf:** Bei Artefakt- oder Provenienzfehler Kandidatenlauf verwerfen und Ursache per PR beheben
-(neuer Kandidat ab Schritt 1). Nur wenn die Ursache nachweislich außerhalb des Repositorys liegt, sieht die
-Wiederanlaufmatrix den Kandidatenlauf ab Schritt 3 auf demselben SHA vor.
+(neuer Kandidat ab Schritt 1). Nur wenn die Behebung nachweislich außerhalb des ausgeführten Kandidatenstands
+liegt (Runner-Umgebung, Build-Infrastruktur, Signaturcache), sieht die Wiederanlaufmatrix den Kandidatenlauf ab
+Schritt 3 auf demselben SHA vor.
 Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdrücklich erlaubten Waiver.
 Ist ein Build-Leg schon vor dem Artefaktscan gefallen, trägt ein eigener Schritt die Anomalie-Durchsicht der
 Phasen-Logs nach (`--logs-only`, Verdikt `UNAVAILABLE`) – die Abschnitte 3 und 4 der Summary stehen also auch
@@ -816,11 +817,16 @@ Ablauf; ältere Tag-basierte oder manuelle Veröffentlichungswege sind ungültig
 ## Wiederanlaufmatrix
 
 Ein Wiederanlauf „auf demselben SHA" trägt nur, solange die Behebung außerhalb des
-Repositorys liegt (Runner-Umgebung, Build-Infrastruktur, Signaturcache): Jeder Dispatch
-führt die Workflow-Definition aus `$RELEASE_REF` aus (#918), ein per PR gemergter Fix
-ist auf dem unveränderten Kandidaten-Commit also nicht enthalten, und der Wiederanlauf
-wiederholte den ursprünglichen Fehler. Braucht die Ursache einen Repo-Commit — Workflow,
-Packaging-Skript, Scanner, Policy —, gilt immer „neuer Kandidat ab Schritt 1".
+ausgeführten Kandidatenstands liegt — typisch außerhalb des Repositorys (Runner-Umgebung,
+Build-Infrastruktur, Signaturcache). Jeder Dispatch führt die Workflow-Definition aus
+`$RELEASE_REF` aus (#918), ein per PR gemergter Fix ist auf dem unveränderten
+Kandidaten-Commit also nicht enthalten, und der Wiederanlauf wiederholte den ursprünglichen
+Fehler. Das tragende Kriterium ist deshalb nicht „braucht einen Repo-Commit", sondern:
+**Muss die Behebung in der ausgeführten Definition oder in den Build-Eingaben des Kandidaten
+wirksam werden?** Wenn ja — Workflow-Logik, Packaging-Skript, Scanner, Policy —, gilt „neuer
+Kandidat ab Schritt 1". Ein Repo-Commit, der den ausgeführten Stand nicht berührt (etwa die
+Wiederherstellung einer Workflow-Datei auf `main`, damit `workflow_dispatch` überhaupt
+auslöst), lässt den Kandidaten gültig — siehe die entsprechende Zeile unten.
 
 | Störung | Zulässiger Wiederanlauf | Unzulässig |
 |---|---|---|
@@ -875,7 +881,7 @@ nur per PR zusammen mit Checklisten-/Workflow-Tests.
 
 | Datum | Änderung | Referenz |
 |---|---|---|
-| 2026-09-05 | Wiederanlaufmatrix: „auf demselben SHA" nur für Behebungen außerhalb des Repositorys; nach einem per PR gemergten Fix immer neuer Kandidat ab Schritt 1 (der Lauf führt die Definition des Release-Refs aus); Zeile zu nicht entpackbaren Artefakten (#944) entsprechend geteilt, Schritt 4 verweist darauf | #987 (Codex-Review zu #985) |
+| 2026-09-05 | Wiederanlaufmatrix: „auf demselben SHA" nur, solange die Behebung nicht im ausgeführten Kandidatenstand wirksam werden muss; sonst neuer Kandidat ab Schritt 1 (der Lauf führt die Definition des Release-Refs aus, ein gemergter Fix ist dort nicht enthalten); Zeile zu nicht entpackbaren Artefakten (#944) entsprechend geteilt, Schritt 4 verweist darauf | #987 (Codex-Review zu #985) |
 | 2026-08-31 | Tag-Anlage (`create_tag`), Post-Release-Update-Dispatch und Release-Instanz laufen im Publish- bzw. im davon ausgelösten Abnahme-Lauf; Schritt 9 ist Prüfen und Protokollieren, die Handprozeduren bleiben Rückfallwege | #919 |
 | 2026-08-30 | Release läuft auf dem unveränderlichen `release/vX.Y.Z`-Ref statt auf `main`; `MAIN_SHA`-Gleichheitsprüfung durch `verify-release-ref` ersetzt, `main` bleibt mergebar; Ref-Anlage anlege-only, Ruleset-Prüfung maschinell, Default-Branch-Voraussetzung von `workflow_dispatch` dokumentiert | #918 |
 | 2026-08-30 | `UPDATE-01` in `UPDATE-LINUX-ARM-01`/`UPDATE-MACOS-ARM-01` geteilt; macOS-Nachweis über den In-Prozess-Hook, `platforms`-Wahl in Schritt 9 beschrieben (Checkliste 2.0.0) | #917 |
