@@ -375,7 +375,11 @@ Phasen-Logs nach (`--logs-only`, Verdikt `UNAVAILABLE`) – die Abschnitte 3 und
 dort zur Verfügung, um die bekannte kosmetische Meldung vom eigentlichen Fehler zu trennen.
 Lässt sich ein Artefakt nicht entpacken (fehlendes `dpkg-deb`/`hdiutil`, nicht ausführbare AppImage,
 unlesbare Datei), ist das seit #944 ein harter Befund je Artefakt: Der Bericht entsteht mit Verdikt `FAIL`
-und nennt Artefakt und Ursache – Ursache per PR beheben, Kandidatenlauf ab Schritt 3 neu starten.
+und nennt Artefakt und Ursache. Der Wiederanlauf folgt der Zuordnung aus der Wiederanlaufmatrix: Liegt die
+Behebung außerhalb des ausgeführten Kandidatenstands (Runner-Image, fehlendes Werkzeug auf dem Runner,
+transienter Werkzeugfehler), Kandidatenlauf ab Schritt 3 auf demselben SHA; braucht sie einen Commit, der im
+ausgeführten Stand wirksam werden muss (Workflow-Schritt, Packaging-Skript, Scanner), Fix-PR und neuer
+Kandidat ab Schritt 1.
 
 ### 5. Abnahme auf echter Hardware durchführen
 
