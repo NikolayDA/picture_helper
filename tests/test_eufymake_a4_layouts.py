@@ -357,3 +357,92 @@ def test_native_project_rejects_corrupted_geometry_and_roles(tmp_path: Path, mut
             output.writestr(name, data)
     with pytest.raises(ValueError, match="Ursprung|Geometrie|Gloss"):
         gen.verify_native_project(changed, layout, binding, hashes)
+
+
+@pytest.mark.parametrize(
+    ("number", "index", "changes", "message"),
+    [
+        pytest.param(4, 3, {"cropX": 0}, "Crop", id="crop-wrong-half"),
+        pytest.param(4, 3, {"cropY": 1}, "Crop", id="crop-y-offset"),
+        pytest.param(4, 3, {"cropX": float("nan")}, "Crop", id="crop-nan"),
+        pytest.param(4, 3, {"cropX": None}, "Crop", id="crop-null"),
+        pytest.param(4, 1, {"cropX": 1}, "Crop", id="unexpected-height-crop"),
+        pytest.param(10, 0, {"cropY": 1}, "Crop", id="unexpected-carrier-crop"),
+        pytest.param(10, 1, {"subPrintModel": 2}, "COLOR-Rolle", id="color-as-gloss"),
+        pytest.param(4, 1, {"subPrintModel": 2}, "HEIGHT-Rolle", id="height-as-gloss"),
+        pytest.param(4, 1, {"subPrintModel": 0}, "HEIGHT-Rolle", id="height-as-color"),
+        pytest.param(10, 0, {"subPrintModel": 2}, "COLOR-Rolle", id="carrier-as-gloss"),
+        pytest.param(10, 1, {"_isCustomizeTexture": True}, "COLOR-Rolle", id="color-texture"),
+        pytest.param(4, 1, {"_isCustomizeTexture": False}, "HEIGHT-Rolle", id="height-flat"),
+        pytest.param(4, 2, {"varnishLayerNum": 2}, "Gloss-Passzahl", id="gloss-two-passes"),
+        pytest.param(4, 2, {"varnishLayerNum": 0}, "Gloss-Passzahl", id="gloss-zero-passes"),
+        pytest.param(4, 2, {"varnishLayerNum": None}, "Gloss-Passzahl", id="gloss-null-passes"),
+        pytest.param(4, 2, {"varnishLayerNum": True}, "Gloss-Passzahl", id="gloss-bool-passes"),
+        pytest.param(4, 1, {"visible": False}, "Sichtbarkeit", id="hidden-height"),
+        pytest.param(4, 2, {"visible": False}, "Sichtbarkeit", id="hidden-gloss"),
+        pytest.param(10, 0, {"visible": False}, "Sichtbarkeit", id="hidden-carrier"),
+        pytest.param(10, 1, {"opacity": 0}, "Deckkraft", id="transparent-color"),
+        pytest.param(4, 1, {"opacity": 0}, "Deckkraft", id="transparent-height"),
+        pytest.param(4, 2, {"opacity": 0.5}, "Deckkraft", id="dimmed-gloss"),
+        pytest.param(4, 2, {"opacity": float("nan")}, "Deckkraft", id="nan-opacity"),
+        pytest.param(4, 2, {"opacity": None}, "Deckkraft", id="null-opacity"),
+    ],
+)
+def test_rehashed_native_rendering_drift_blocks_writes(
+    tmp_path: Path, number: int, index: int, changes: dict, message: str
+) -> None:
+    """Auch mit nachgezogenem äußerem Hash darf ein falscher Druckinhalt nicht passieren."""
+    copy = tmp_path / "eufymake_a4_prints"
+    shutil.copytree(OUT, copy)
+    layout = next(item for item in gen.layouts() if item.number == number)
+    project_path = gen.project_path_for(layout, copy)
+    with zipfile.ZipFile(project_path) as archive:
+        entries = {name: archive.read(name) for name in archive.namelist()}
+    canvas = next(name for name in entries if name.startswith("Asset/project_file/canvas_"))
+    document = json.loads(entries[canvas])
+    document["objects"][index].update(changes)
+    entries[canvas] = json.dumps(document).encode()
+    with zipfile.ZipFile(project_path, "w") as archive:
+        for name, data in entries.items():
+            archive.writestr(name, data)
+    bindings_path = copy / gen.PROJECTS_FILENAME
+    bindings = gen.load_json(bindings_path)
+    binding = next(item for item in bindings["projects"] if item["number"] == number)
+    binding["project_sha256"] = gen.sha256_file(project_path)
+    bindings_path.write_text(json.dumps(bindings), encoding="utf-8")
+    before = {
+        path.relative_to(copy): gen.sha256_file(path) for path in copy.rglob("*") if path.is_file()
+    }
+    with pytest.raises(gen.PreparationError, match=message):
+        gen.run(out_dir=copy, mode="write", log=lambda *_: None)
+    after = {
+        path.relative_to(copy): gen.sha256_file(path) for path in copy.rglob("*") if path.is_file()
+    }
+    assert after == before, "Vor dem Abbruch dürfen keine Ableitungen geschrieben werden"
+
+
+def test_native_crop_extent_cannot_be_hidden_by_rescaling() -> None:
+    layout = gen.layouts()[3]
+    with zipfile.ZipFile(gen.project_path_for(layout, OUT)) as archive:
+        canvas = next(
+            name for name in archive.namelist() if name.startswith("Asset/project_file/canvas_")
+        )
+        native = json.loads(archive.read(canvas))["objects"][3]
+    native["width"] /= 2
+    native["scaleX"] *= 2  # Die angezeigte mm-Breite bleibt trotzdem gleich.
+    with pytest.raises(ValueError, match="Crop"):
+        gen.verify_native_rendering(native, layout.objects[2])
+
+
+def test_gloss_pass_count_follows_declared_ink_mode() -> None:
+    layout = gen.layouts()[3]
+    with zipfile.ZipFile(gen.project_path_for(layout, OUT)) as archive:
+        canvas = next(
+            name for name in archive.namelist() if name.startswith("Asset/project_file/canvas_")
+        )
+        native = json.loads(archive.read(canvas))["objects"][2]
+    two_passes = replace(layout.objects[1], ink_mode="Gloss Varnish × 2")
+    with pytest.raises(ValueError, match="Gloss-Passzahl"):
+        gen.verify_native_rendering(native, two_passes)
+    native["varnishLayerNum"] = 2
+    gen.verify_native_rendering(native, two_passes)

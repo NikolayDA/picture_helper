@@ -245,14 +245,14 @@ weil bisher bewusst weder `Preview` noch `Print` gestartet wurde.
       solange Studio keine Schätzung zeigt: Volumen der Erhebung entspricht
       etwa dem Tintenvolumen, also rund 10 ml je 90-mm-Keil und bis rund
       20 ml je Vollfläche bei 2,50 mm, ohne Underbase. Reicht der Vorrat
-      absehbar nicht für die 13 Erstläufe, greift die Budget-Eskalation aus
+      absehbar nicht für die 11 aktiven Stamm-Erstläufe und 11 Gloss-Läufe, greift die Budget-Eskalation aus
       Abschnitt 2 **vor** dem ersten Druck (Layout kleiner oder Texturhöhe
       geringer festlegen, dann für die ganze Vergleichsreihe).
 - [ ] Gloss-Pfad je Zelle nach `EUFYMAKE-690-GLOSS-VERTRAG.md` §6.1 gewählt
       und in §3.0 protokolliert; ohne eindeutigen Pfad bleibt die Zelle
       gesperrt.
 
-## 5. Phase 3 — Druck je Variante (13 Stammvarianten + 11 Gloss-Läufe, maximal 35 Drucke)
+## 5. Phase 3 — Druck je Variante (11 Stammvarianten + 11 Gloss-Läufe, aktiver Plan maximal 33 Drucke)
 
 Nur Zellen, die tatsächlich im Druckprotokoll (§3) stehen. Je Variante:
 Budget prüfen → Vorschau-Protokoll §3.1 der Variante liegt vor → drucken →
@@ -305,25 +305,13 @@ zulässig, weil es Bedienfehler mit Studio-Verhalten vermischen würde. Die
 Regel steht in `PROTOKOLL-VORLAGEN.md` §3 und
 `EUFYMAKE-689-MM-DPI-VERTRAG.md`.
 
-**I-10 gegen G-02 (Owner-Entscheidung vor dem ersten Gloss-Druck):** I-10
-normal/invertiert und G-02 verwenden dieselben Dateien `gloss_wedge.png`
-und `gloss_wedge_inverted.png` über denselben Gloss-Pfad; der bisherige Plan
-druckte damit jede Richtung dreimal. Bis zur Entscheidung in Governance §4
-werden die Zeilen 9–10 der Stammvariantentabelle **nicht** gedruckt.
-Vorbereitete Optionen: **(A, empfohlen)** I-10 physisch streichen – die
-Polarität liefert G-02 mit je zwei unabhängigen Läufen je Richtung, die
-Plätze 9–10 bleiben unzugeordnet und werden ohne neue Owner-Freigabe nicht
-umgewidmet; **(B)** I-10 dem in `EUFYMAKE-690-GLOSS-VERTRAG.md` §6.1
-dokumentierten Spot-UV-Zweipass (Pfad 2) zuordnen und G-02 **fest** dem
-nativen `Gloss Varnish`-Pfad (Pfad 1), um Zweipass und nativen Pfad zu
-vergleichen (GL-02); die Pfadwahl je Reihe wird in `PROTOKOLL-VORLAGEN.md`
-§3.0 festgeschrieben, sonst wären beide Zellen erneut redundant. Beide
-Optionen verändern das harte Limit von 35 nicht. Die Sperre ist eine
-Voraussetzung aus Abschnitt 0 dieser Checkliste, die vor Phase 3 erledigt
-sein muss; sie ändert die Governance nicht. Deren Abschnitt 1 führt I-10
-formal weiterhin in der 13-Varianten-Matrix, bis der Freigabe-Vermerk zu
-Option A oder B in Governance §4 vorliegt – erst damit wird die Entscheidung
-Teil der verbindlichen Regeln.
+**I-10 gegen G-02 (Option A, beschlossen am 2026-09-05):** I-10 entfällt
+physisch. G-02 liefert die Polarität mit je zwei unabhängigen Läufen pro
+Richtung. Die Zeilen und Budgetplätze 9–10 bleiben unzugeordnet und werden
+ohne neue Owner-Freigabe nicht umgewidmet. Die frühere Alternative B
+(Spot-UV-Zweipass für I-10) bleibt in Governance §5.3 historisch dokumentiert;
+sie gehört nicht zum aktiven Druckplan. Der Freigabe-Nachtrag vom 2026-09-05
+in Governance §4 ist verbindlich. Das harte Gesamtlimit bleibt 35.
 
 **Zusätzlicher #690-Gloss-Preflight:** Ein importiertes „Flat“-Graustufenbild
 ist keine Gloss-Zuweisung. Vor jeder Gloss-Zelle muss der in
@@ -366,10 +354,12 @@ mm/DPI-Referenz, Gloss-Polarität (Letztere ist bei Option A des
 I-10/G-02-Entscheids bereits durch die zwei G-02-Läufe je Richtung
 abgedeckt). Welche der Varianten unten das im Einzelnen
 sind, ist am Testtag anhand der Kategorien zuzuordnen – nicht vorab
-festgelegt. Nach je einem Erstlauf der 13 Stammvarianten und den elf fest
+festgelegt. Nach je einem Erstlauf der 11 aktiven Stammvarianten und den elf fest
 eingeplanten Gloss-Läufen bleiben höchstens elf bereits freigegebene
 Wiederholungen der Stammvarianten. Der ausführbare Plan umfasst daher maximal
-35 Drucke. Im für Stammvarianten vorgesehenen Bereich 1–24 ist
+33 Drucke (11 Erstläufe + höchstens 11 Wiederholungen + 11 Gloss-Läufe).
+Die Plätze 9–10 bleiben unzugeordnet; das harte Gesamtlimit bleibt 35.
+Im für Stammvarianten vorgesehenen Bereich 1–24 ist
 **Budgetplatz 24** mit Owner-Freigabe vom 2026-09-03 I-14 zugeordnet; die
 Gloss-Plätze 25–35 bleiben unverändert belegt. Deshalb zuerst die Kernaussagen
 wiederholen und nicht automatisch jede Variante zweimal drucken.
@@ -411,7 +401,9 @@ Zelle in **Lauf 1, Lauf 2 oder Lauf 3+** ist ein physischer Druck und zählt
 mit – auch ein Fehldruck ohne verwertbare Messung (Abschnitt 2), auch ein
 mit Owner-Freigabe genehmigter dritter Lauf. Ohne neue Owner-Freigabe darf die
 Summe über alle drei Spalten der Stammvariantentabelle sowie die elf Zeilen der
-Gloss-Tabelle **35 nicht überschreiten**. Bei 31/35 oder mehr die
+Gloss-Tabelle im aktiven Plan **33 nicht überschreiten**; die zwei freien
+Plätze 9–10 sind keine automatische Reserve. Das harte Limit bleibt auch mit
+neuer Freigabe **35**. Bei 31/35 oder mehr die
 Budget-Eskalation aus Abschnitt 2 dieser
 Checkliste prüfen, bevor weitergedruckt wird. Sobald elf Kästchen in „Lauf 2"
 belegt sind, alle übrigen Kästchen dieser Spalte sichtbar streichen.

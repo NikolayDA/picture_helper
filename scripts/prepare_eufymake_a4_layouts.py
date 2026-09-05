@@ -966,6 +966,55 @@ def verify_bindings(
     return errors
 
 
+def verify_native_rendering(native: dict[str, Any], item: Obj | None) -> None:
+    """Den gerenderten Ausschnitt und Druckmodus jeder Ebene gegen das Layout prüfen.
+
+    None bezeichnet den unbeschnittenen COLOR-Beschriftungsträger. Die Rollenwerte
+    stammen aus den gebundenen Studio-4.2.2-Projekten: COLOR = 0, HEIGHT = leer
+    mit Customize Texture, GLOSS = 2. Alpha der Quelldatei bleibt unberührt;
+    die zusätzliche Objekt-Deckkraft muss dagegen vollständig erhalten sein.
+    """
+    opacity = native.get("opacity")
+    if native.get("visible") is not True or type(opacity) not in (int, float) or opacity != 1:
+        raise ValueError("Native Sichtbarkeit oder Deckkraft weicht ab")
+    role = item.studio_layer_role if item is not None else "COLOR"
+    model = native.get("subPrintModel")
+    expected_model = {"COLOR": 0, "HEIGHT": "", "GLOSS": 2}[role]
+    if type(model) is not type(expected_model) or model != expected_model:
+        raise ValueError(f"Native {role}-Rolle (Gloss-/Farb-/Höhenmodus) weicht ab")
+    if native.get("_isCustomizeTexture", False) is not (role == "HEIGHT"):
+        raise ValueError(f"Native {role}-Rolle (Customize Texture) weicht ab")
+    if role == "GLOSS":
+        assert item is not None
+        passes = re.fullmatch(r"Gloss Varnish × ([1-9][0-9]*)", item.ink_mode)
+        native_passes = native.get("varnishLayerNum")
+        if passes is None or type(native_passes) is not int or native_passes != int(passes[1]):
+            raise ValueError("Native Gloss-Passzahl weicht vom Ink Mode ab")
+
+    if native.get("type") != "image":
+        raise ValueError("Nativer Crop braucht eine Bildebene")
+    source = base64.b64decode(native["src"].split(";base64,", 1)[1], validate=True)
+    with Image.open(io.BytesIO(source)) as image:
+        source_width, source_height = image.size
+    left, top, right, bottom = (
+        item.crop_fraction if item is not None and item.crop_fraction else (0, 0, 1, 1)
+    )
+    expected_crop = (
+        left * source_width,
+        top * source_height,
+        (right - left) * source_width,
+        (bottom - top) * source_height,
+    )
+    actual_crop = [native.get(key) for key in ("cropX", "cropY", "width", "height")]
+    if any(
+        type(actual) not in (int, float)
+        or not math.isfinite(actual)
+        or abs(actual - expected) > 1e-6
+        for actual, expected in zip(actual_crop, expected_crop, strict=True)
+    ):
+        raise ValueError("Nativer Crop-Ausschnitt weicht vom Layout ab")
+
+
 def verify_native_project(
     path: Path, layout: Layout, binding: ProjectBinding, source_hashes: dict[str, str]
 ) -> None:
@@ -1010,6 +1059,7 @@ def verify_native_project(
         if sha256_bytes(archive.read("Asset/images/thumbnail.png")) != binding.thumbnail_sha256:
             raise ValueError("Native Vorschau weicht ab")
         for index, native in enumerate(objects):
+            verify_native_rendering(native, layout.objects[index - 1] if index else None)
             if native.get("originX") not in ("left", "center", "right") or native.get(
                 "originY"
             ) not in ("top", "center", "bottom"):
@@ -1065,8 +1115,6 @@ def verify_native_project(
                     item.width_mm,
                     item.height_mm,
                 )
-                if item.role == "GLOSS" and native.get("subPrintModel") != 2:
-                    raise ValueError("Native Gloss-Zuweisung fehlt")
                 if item.height_source and (
                     not native.get("_isCustomizeTexture") or native.get("thickness") != 2.5
                 ):
