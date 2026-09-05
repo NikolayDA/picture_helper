@@ -112,6 +112,8 @@ flowchart TD
     DA3["Befund N6: alle sechs Dateien angleichen<br/>ci.yml, pr-ci.yml, ui-nightly.yml, benchmark.yml, coverage.yml, session-start.sh"]
     DQ4{"ANLEITUNG.md oder scripts/generate_anleitung_pdf.py geändert?"}
     DA4["ANLEITUNG.pdf im selben Commit neu erzeugen<br/>pip install -e '.[docs]' · python scripts/generate_anleitung_pdf.py<br/>Wächter tests/test_anleitung_pdf_sync.py prüft die Git-Mitänderung"]
+    DQ5{"Neuer Pfad, den release/path-policy.json nicht kennt?"}
+    DA5["Pfadpolicy im selben PR nachziehen<br/>Eintrag ergänzen (release-neutral nur eng begründet), policy_version anheben, Versionszeile im aktuellen Freeze-Dokument nachziehen<br/>unbekannte Pfade blockieren fail-closed in release-freeze-check (make pr-check, PR-CI) — make check sieht sie nicht"]
   end
 
   subgraph GATE["Partition: Standard-Gate · make check"]
@@ -138,8 +140,10 @@ flowchart TD
   DQ2 -->|"nein"| DQ3
   DQ3 -->|"ja"| DA3 --> DQ4
   DQ3 -->|"nein"| DQ4
-  DQ4 -->|"ja"| DA4 --> G1
-  DQ4 -->|"nein"| G1
+  DQ4 -->|"ja"| DA4 --> DQ5
+  DQ4 -->|"nein"| DQ5
+  DQ5 -->|"ja"| DA5 --> G1
+  DQ5 -->|"nein"| G1
   G1 --> G2 --> G3 --> GQ
   GQ -->|"nein · Lint, Typ oder Test rot"| D7 --> G1
   GQ -->|"ja"| GQ2
@@ -174,7 +178,16 @@ flowchart TD
   PR-CI mit `fetch-depth: 0`, ein flacher Klon überspringt sichtbar. Das
   `docs`-Extra ist bewusst in keinem CI-Pfad installiert — die Regeneration
   bleibt ein manueller Schritt außerhalb der `make`-Ziele.
-
+- Die Pfadpolicy (`release/path-policy.json`, #742/#743) ist eine Drift-Pflicht
+  mit versetztem Wächter: Ein Pfad, den sie nicht kennt, ist kandidatenrelevant
+  und blockiert `release-freeze-check` fail-closed (`unclassified-path`) — das
+  läuft in `make pr-check` und in der PR-CI, nicht in `make check`. Wer eine
+  neue Datei außerhalb der bekannten Muster anlegt (zuletzt #986 mit einem
+  Protokoll unter `docs/history/`), ergänzt im selben PR den Eintrag, hebt
+  `policy_version` an und zieht die Versionszeile im aktuellen
+  Freeze-Dokument nach (`policy-version-mismatch` wirft sonst). Der
+  Regelfall ist die kandidatenrelevante Klasse; `release-neutral` bleibt eng
+  begründeten Einträgen vorbehalten.
 ---
 
 ## 2. Pull Request erstellen
@@ -453,7 +466,7 @@ flowchart TD
     SQ1{"Freeze konsistent?"}
     S2F["Pfadklassifikation oder Doku per PR korrigieren<br/>zurück zu Schritt 1, nicht taggen"]
     S3R["Runner-Umgebung oder Infrastruktur außerhalb des Repos beheben<br/>Kandidatenlauf ab Schritt 3 auf demselben SHA; muss der Fix im ausgeführten Kandidatenstand wirksam werden, entsteht ein neuer Kandidat ab Schritt 1"]
-    H5R["Reinen Runnerfehler beheben<br/>Runner offline, Watchdog-Abbruch (#915) oder Action-Download mit 429 hinter der Heim-IP (Archiv-Cache, RELEASE_AUTOMATION §2.3)<br/>Behebung liegt außerhalb des Kandidatenstands: Abnahme mit derselben Kandidaten-Run-ID wiederholen, keine Plattform als PASS markieren"]
+    H5R["Reinen Runnerfehler beheben<br/>Runner offline, Watchdog-Abbruch (#915) oder Action-Download mit 429 hinter der Heim-IP — erster Schritt jedes Self-hosted-Jobs, noch vor dem Preflight (Archiv-Cache, RELEASE_AUTOMATION §2.3)<br/>Behebung liegt außerhalb des Kandidatenstands: Abnahme mit derselben Kandidaten-Run-ID wiederholen, keine Plattform als PASS markieren"]
     S3["Schritt 3 · Kandidatenbau starten<br/>verify-release-ref, dann gh workflow run release-linux.yml --ref RELEASE_REF -f with_ai=true"]
     S4["Schritt 4 · Kandidatenartefakte und Sicherheitsbefunde vorprüfen<br/>Build-Container, Freeze-Provenienz und Logs; noch kein Kandidatenvertrag"]
     SQ2{"Artefakte plausibel und kein Malware-Fund?"}
@@ -501,13 +514,14 @@ flowchart TD
   SQ4 -->|"ja"| H0 --> HF0
   HF0 --> H1 --> HJ0
   HF0 --> RS --> HP --> HJ0
+  HP -->|"rot vor oder im Preflight, etwa Checkout mit 429, oder Watchdog-Abbruch: reiner Runnerfehler"| H5R
   HJ0 --> HF
   HF --> H2 --> HJ
   HF --> H3 --> HJ
   HF --> H4 --> HJ
   HF -->|"nur mit runner-retired-Label; Preflight und Abnahme-Job der Plattform entfallen"| H4R --> HJ
   HJ --> H5 --> HQ
-  HQ -->|"nein · Plattform ausgetragen, create-approval schreibt kein Manifest"| NOGO
+  HQ -->|"nein · Plattform ausgetragen oder fachlicher FAIL, create-approval schreibt kein Manifest"| NOGO
   HQ -->|"nein · Evidenz fehlt oder Lauf abgebrochen durch reinen Runnerfehler"| H5R --> H0
   HQ -->|"ja"| H6 --> S6 --> SQ3
   SQ3 -->|"nein"| NOGO
@@ -553,7 +567,9 @@ flowchart TD
     direction TB
     FQ{"öffentlicher Download, sichtbare Version und Update-Check in Ordnung?"}
     F1["Release-Issue schließen<br/>Kriterienmatrix mit URLs und Hashes ist verlinkt"]
+    FQ2{"Fehler am Release oder am Prüfpfad?"}
     F2["Incident<br/>Rollback bzw. Yank-Hinweis oder Hotfix mit neuer Patch-Version ab Schritt 1<br/>Tag nie verschieben, Assets nie ersetzen"]
+    F3["Prüfpfad-Fehler (Netz, Runner, Checkout mit 429)<br/>betroffenen Nachweis von Hand wiederholen und den Fehlversuch mitprotokollieren<br/>Download-Nachweis: Publish-Lauf mit denselben Inputs (idempotent) · Update-Nachweis: release-abnahme.yml mit derselben run_id und predecessor_tag<br/>UPDATE-Kriterien bleiben bis zum bestandenen Lauf PENDING"]
   end
 
   T1 --> T2 --> P1 --> P2 --> P3 --> P4 --> P5 --> PQ1
@@ -566,7 +582,9 @@ flowchart TD
   PQ2 -->|"ja"| P8 --> T3 --> T4 --> FQ
   PQ2 -->|"nein"| P9
   FQ -->|"ja"| T5 --> F1 --> ENDE(("Ende · Release abgeschlossen")):::terminal
-  FQ -->|"nein"| F2 --> ENDE2(("Ende · Release nicht abgeschlossen")):::terminal
+  FQ -->|"nein"| FQ2
+  FQ2 -->|"am Release · Tag, privates Release, Asset-Satz, CHECK_FAILED trotz erreichbarer API"| F2 --> ENDE2(("Ende · Release nicht abgeschlossen")):::terminal
+  FQ2 -->|"am Prüfpfad · Netz oder Runner"| F3 --> T3
 
   classDef terminal fill:#37474f,stroke:#37474f,color:#ffffff;
   classDef bar fill:#37474f,stroke:#37474f,color:#ffffff;
@@ -626,7 +644,9 @@ flowchart TD
   Der Tag wird auch bei `create_tag` anschließend gegen `candidate.head_sha`
   verifiziert, ein abweichender Tag bricht ab statt verschoben zu werden, und
   die beiden Update-Kriterien bleiben ohne Nachweis `PENDING` statt `PASS`.
-  Ein fehlgeschlagener Update-Nachweis wird nie automatisch wiederholt.
+  Ein fehlgeschlagener Update-Nachweis wird nie automatisch wiederholt; von
+  Hand wiederholt wird er nur nach einem Fehler am Prüfpfad (Netz, Runner),
+  ein Fehler am Release ist ein Incident (Runbook Schritt 9).
 - Ein Hotfix überspringt keinen Schritt: neue Patch-Version, neuer Kandidat,
   neue Abnahme, neues Manifest, neuer Tag.
 - Nicht jeder rote Schritt 4 verwirft den Kandidaten: Scheitert der
@@ -652,13 +672,17 @@ flowchart TD
   HTTP 429 ablehnt — darf die Abnahme mit **derselben** Kandidaten-Run-ID
   erneut laufen (Runbook Schritt 5 und 6, Wiederanlaufmatrix); der
   Kandidat und seine Artefakte bleiben gültig, weil die Behebung außerhalb
-  des Kandidatenstands liegt. Für den 429-Fall ist der rein lesende
-  Action-Archiv-Cache des Runners die dokumentierte Abhilfe
-  ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §2.3). Eine fehlende
-  Plattform darf dabei nie als `PASS` eingetragen werden; fachliche
-  Hardware-Befunde (`FAIL`) führen weiterhin auf Schritt 1 zurück. Ein
-  fehlgeschlagener Post-Release-Update-Nachweis (4b) bleibt davon
-  unberührt ein Incident und wird nie automatisch wiederholt.
+  des Kandidatenstands liegt. Der 429-Fall trifft `actions/checkout` als
+  ersten Schritt jedes Self-hosted-Jobs, also vor dem Preflight und
+  außerhalb der Reichweite des Watchdogs; dokumentiert ist er am
+  Post-Release-Update-Nachweis auf dem Pi-Runner (Lauf 32036618118,
+  dreimal identisch), die Abhilfe ist der rein lesende Action-Archiv-Cache
+  des Runners ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §2.3). Eine
+  fehlende Plattform darf dabei nie als `PASS` eingetragen werden;
+  fachliche Hardware-Befunde (`FAIL`) führen weiterhin auf Schritt 1
+  zurück. In 4b gilt dieselbe Trennung: Ein Fehler am Prüfpfad des
+  Download- oder Update-Nachweises wird von Hand wiederholt, ein Fehler am
+  Release ist ein Incident.
 - Seit #958 kann jede der drei Plattformen per Heartbeat-Eskalation (Stufe 3
   nach 21 Tagen offline; Stufen 7/12/21 Tage mit Owner-Erwähnung) automatisch
   ausgetragen sein — anders als der bewusst pausierte x86_64-Pfad trifft das
