@@ -18,8 +18,8 @@ stammt aus dem Paket:
    Version mit dem Sollwert aus dem Artefaktdateinamen (#686). Läuft zuerst
    und unabhängig vom Projektzustand.
 1. **EufyMake-Export-Smoke** – schreibt das Importpaket aus dem zuvor
-   geöffneten 2.7.0-Projekt (spart ein separates Beispielbild) über den
-   echten ``bgremover.eufymake_writer.write_export``-Pfad.
+   geöffneten 2.7.0-Projekt (Prüfung 2, läuft davor; spart ein separates
+   Beispielbild) über den echten ``bgremover.eufymake_writer.write_export``-Pfad.
 2. **2.7.0-Projekt-Öffnen** – lädt eine echte, mit dem tatsächlichen
    v2.7.0-Release-Code gebaute ``.bgrproj``-Datei (Pfad kommt aus dem
    Source-Checkout, der ohnehin im selben Abnahme-Job liegt – nur der
