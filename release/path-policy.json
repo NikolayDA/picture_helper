@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 15,
+  "policy_version": 16,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -474,6 +474,14 @@
       "sample_path": "docs/history/EUFYMAKE-687-TESTGOVERNANCE.md",
       "reason": "Governance-Dokumentation zur EufyMake-Testdurchführung; reine Prozessdokumentation ohne Build-, Test- oder Gate-Bezug.",
       "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
+    },
+    {
+      "id": "eufymake-681-vorbereitung-2026-09-05",
+      "kind": "exact",
+      "path": "docs/history/EUFYMAKE-681-VORBEREITUNG-2026-09-05.md",
+      "sample_path": "docs/history/EUFYMAKE-681-VORBEREITUNG-2026-09-05.md",
+      "reason": "Historisches Protokoll der manuellen Druckvorbereitung mit Geräte- und Materialbefunden; kein Produkt-, Build- oder Gate-Eingang.",
+      "evidence": ["Der A4-Generator nennt nur den Dokumentpfad als Warnhinweis und liest keine Werte daraus", "Projekte und Fixture-Hashes werden unabhängig über projects.json und fixtures_manifest.json geprüft"]
     },
     {
       "id": "eufymake-687-druck-checkliste",

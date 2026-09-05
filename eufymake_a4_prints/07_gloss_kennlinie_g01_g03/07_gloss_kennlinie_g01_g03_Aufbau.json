@@ -10,7 +10,7 @@
   "print_blocked": null,
   "substrate": null,
   "carrier": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03_A4_Beschriftung.png",
-  "carrier_sha256": "5e018f747e191146efab25cb4a818994c8bd5f4b964cc3a865ea1c37e5414aea",
+  "carrier_sha256": "0638405c8dd3434f5a0c808b13fb947748b0826c4a2cf8603bb9e0bccd9506e2",
   "preview": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03_NUR_VORSCHAU.png",
   "notes": [
     "Alle fünf Felder mit identischem nativen Gloss-Varnish-Modus und identischer Passzahl."
@@ -148,7 +148,7 @@
     }
   ],
   "project": "eufymake_a4_prints/07_gloss_kennlinie_g01_g03/07_gloss_kennlinie_g01_g03.empf",
-  "project_sha256": "67df0aa85a73788551d95ad6be5983768b0b74aaf930bbc8bea5a07b4984ab95",
+  "project_sha256": "32d922db36f37fb6ab6899125812c459dcbdd6f0085ac3fadb41d945b7bc21cd",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",

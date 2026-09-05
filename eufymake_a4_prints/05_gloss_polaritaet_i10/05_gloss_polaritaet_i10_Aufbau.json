@@ -2,18 +2,15 @@
   "number": 5,
   "slug": "gloss_polaritaet_i10",
   "title": "I-10 – Gloss-Polarität",
-  "budget_slots": [
-    "I-10 normal Lauf 1",
-    "I-10 invertiert Lauf 1"
-  ],
-  "physical_a4_copies": 1,
-  "print_blocked": "Owner-Entscheidung I-10 gegen G-02 steht aus (TESTGOVERNANCE §5.3, Druck-Checkliste §0): Option A streicht I-10 physisch; Option B verlangt den Spot-UV-Zweipass (Pfad 2) statt des hier gebauten nativen Gloss-Varnish-Pfads. Nicht drucken, bis der Freigabe-Vermerk in Governance §4 vorliegt.",
+  "budget_slots": [],
+  "physical_a4_copies": 0,
+  "print_blocked": "Option A im delegierten Owner-Auftrag vom 2026-09-05 (TESTGOVERNANCE): I-10 entfällt physisch; G-02 prüft beide Polaritäten mit je zwei unabhängigen Läufen. Projekt 05 bleibt gesperrt; Budgetplätze 9–10 bleiben unzugeordnet.",
   "substrate": null,
   "carrier": "eufymake_a4_prints/05_gloss_polaritaet_i10/05_gloss_polaritaet_i10_A4_Beschriftung.png",
-  "carrier_sha256": "98433d9b75ba2a39ccd2589698f1ebb28ca24dff682d77d2592e949cc41431a1",
+  "carrier_sha256": "11d8726c4b49058dd3dac5b74165b45774ac088c17c859eb3e4cc806b7fdc468",
   "preview": "eufymake_a4_prints/05_gloss_polaritaet_i10/05_gloss_polaritaet_i10_NUR_VORSCHAU.png",
   "notes": [
-    "Gesperrt: Projekt 05 nutzt den nativen Gloss-Varnish-Pfad; unter Option B wäre I-10 dem Zweipass zuzuordnen und das Projekt neu aufzubauen."
+    "Option A vom 2026-09-05: I-10 entfällt physisch; dieses historische Projekt nicht drucken."
   ],
   "objects": [
     {
@@ -70,7 +67,7 @@
     }
   ],
   "project": "eufymake_a4_prints/05_gloss_polaritaet_i10/05_gloss_polaritaet_i10.empf",
-  "project_sha256": "c510f1dce903511ec957f86ef94721eb500875eee932219c9cdfa3b7af2b5f54",
+  "project_sha256": "f71ab397d13f3f824abe850a86c91948b10f98d680d644f4a2d432199833f688",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",

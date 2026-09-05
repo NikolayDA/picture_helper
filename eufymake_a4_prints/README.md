@@ -1,10 +1,15 @@
 # EufyMake-E1-Testdrucke auf A4-Karton
 
+**Stand 2026-09-05: Dateisatz geprüft, Druckfreigabe blockiert.** Der E1 meldet
+abgelaufene Y-Tinte; Studio warnt bei Cardboard vor Gloss. Messmittel und
+der endgültige Materialpfad fehlen. Befunde und offene Schritte stehen im
+[Vorbereitungsprotokoll](../docs/history/EUFYMAKE-681-VORBEREITUNG-2026-09-05.md).
+
 Dieser Ordner bereitet die noch offenen physischen Drucktests des Epics #681
 als 13 A4-Layouts vor. Die Aufteilung hält die bereits festgelegten
 Vergleichsgruppen zusammen und verändert keine der versionierten Testdateien.
 
-## Fertiger Stand
+## Vorbereiteter Dateisatz
 
 - In jedem nummerierten Unterordner liegt genau eine gleichnamige `.empf`-Datei.
 - Die Projekte sind selbstständig: COLOR-, HEIGHT- und Gloss-Daten sind jeweils
@@ -12,9 +17,9 @@ Vergleichsgruppen zusammen und verändert keine der versionierten Testdateien.
 - Alle Projekte liegen auf dem Standard-Flatbed des E1 (335 × 420 mm, in
   Studio 4.2.2 die Arbeitsfläche **Standard Flatbed**), A4 hochkant und mittig
   bei X = 62,50 mm / Y = 61,50 mm in Studio-Koordinaten (siehe *Feste Geometrie*).
-- Die Projekte 04 (HEIGHT + Crop + Gloss), 05 (nur Gloss) und 06 (COLOR / mm-DPI)
-  wurden in eufyMake Studio 4.2.2 mit Editor v1.20.0 geöffnet. Dabei wurden
-  weder **Preview** noch **Print** ausgelöst.
+- Die reparierten Projekte 04 und 10 wurden in Studio 4.2.2 / Editor v1.20.0
+  geöffnet. Für 04 wurden Preview und Estimate Ink & Time ausgeführt:
+  1 h 40 min 43 s, ca. 1,84 ml unter vorläufigen Einstellungen. Kein Druck.
 - `projects.json` bindet jedes Projekt handgepflegt an Layout, Prüfsumme,
   eingebetteten Beschriftungsträger und Studio-Ebenen. Der Generator prüft
   diese Bindung fail-closed (siehe *Bindung und Neuerzeugung*), und
@@ -27,29 +32,27 @@ Vergleichsgruppen zusammen und verändert keine der versionierten Testdateien.
 
 | Projekt | Inhalt | Druck | A4-Kartons | Budgetzuordnung |
 | --- | --- | --- | ---: | --- |
-| 01 | I-02 / I-04 – HEIGHT-Pixelgröße | frei | 1 | I-02, I-04 |
-| 02 | I-03 / I-14 – Bittiefe und Filterung | frei | 1 | I-03 8 Bit, I-03 16 Bit, I-14 |
-| 03 | I-07 / I-11 / I-13 – Grenzen, Stufen, Alpha | frei, nur nicht-weißer Karton | 1 | I-07, I-11, I-13 |
-| 04 | I-08 – Registrierung vor/nach Crop | frei | 1 | I-08 vor/nach Crop |
-| 05 | I-10 – Gloss-Polarität | **gesperrt** bis Owner-Entscheidung | 1 | I-10 normal/invertiert |
-| 06 | I-05 – mm/DPI-Referenz | frei | 1 | I-05 konsistent |
-| 07 | G-01 / G-03 – Gloss-Grenzen und Kennlinie | frei | 1 | G-01, G-03 |
-| 08 | G-02 – Gloss-Polarität (zweimal drucken) | frei | **2** | normal/invertiert jeweils Lauf 1+2 |
-| 09 | G-04 – fehlend / Null / Voll | frei | 1 | G-04a/b/c |
-| 10 | G-05 – abweichende Gloss-Dimension | frei | 1 | G-05 |
-| 11 | G-06 – Alpha × Gloss | frei, nur nicht-weißer Karton | 1 | G-06 |
-| 12 | G-07 – HEIGHT × Gloss | frei | 1 | G-07 |
-| 13 | G-08 – Registrierung und Mindeststruktur | frei | 1 | G-08 |
+| 01 | I-02 / I-04 – HEIGHT-Pixelgröße | geplant | 1 | I-02, I-04 |
+| 02 | I-03 / I-14 – Bittiefe und Filterung | geplant | 1 | I-03 8 Bit, I-03 16 Bit, I-14 |
+| 03 | I-07 / I-11 / I-13 – Grenzen, Stufen, Alpha | geplant, nur nicht-weißer Karton | 1 | I-07, I-11, I-13 |
+| 04 | I-08 – Registrierung vor/nach Crop | geplant | 1 | I-08 vor/nach Crop |
+| 05 | I-10 – Gloss-Polarität | **gesperrt**, entfällt (Option A) | 0 | Plätze 9–10 unzugeordnet |
+| 06 | I-05 – mm/DPI-Referenz | geplant | 1 | I-05 konsistent |
+| 07 | G-01 / G-03 – Gloss-Grenzen und Kennlinie | geplant | 1 | G-01, G-03 |
+| 08 | G-02 – Gloss-Polarität (zweimal drucken) | geplant | **2** | normal/invertiert jeweils Lauf 1+2 |
+| 09 | G-04 – fehlend / Null / Voll | geplant | 1 | G-04a/b/c |
+| 10 | G-05 – abweichende Gloss-Dimension | geplant | 1 | G-05 |
+| 11 | G-06 – Alpha × Gloss | geplant, nur nicht-weißer Karton | 1 | G-06 |
+| 12 | G-07 – HEIGHT × Gloss | geplant | 1 | G-07 |
+| 13 | G-08 – Registrierung und Mindeststruktur | geplant | 1 | G-08 |
 
-Damit werden für die Erstläufe 14 A4-Kartons eingeplant; 13 davon sind sofort
-druckbar. Karton 05 bleibt gesperrt, bis der Freigabe-Vermerk zur
-Owner-Entscheidung I-10 gegen G-02 in
-`docs/history/EUFYMAKE-687-TESTGOVERNANCE.md` §4 vorliegt (Optionen in §5.3
-dort und in `docs/history/EUFYMAKE-687-DRUCK-CHECKLISTE.md` §0): Unter
-Option A wird I-10 gar nicht gedruckt; unter Option B gehört I-10 zum
-Spot-UV-Zweipass (Pfad 2), und Projekt 05 ist dafür neu aufzubauen. Es enthält
-heute den nativen Gloss-Varnish-Pfad und würde G-02 nur wiederholen. Die
-Sperre steht auch im Feld `print_blocked` der Aufbau-JSON.
+Für die Erstläufe sind 13 A4-Kartons vorgesehen; 13 davon gehören zum aktiven
+Plan, benötigen aber noch die gemeinsame Druckfreigabe. Im delegierten
+Vorbereitungsauftrag vom 2026-09-05 wurde Option A umgesetzt: I-10 entfällt
+physisch, G-02 bleibt mit je zwei unabhängigen Läufen pro Richtung. Projekt
+05 bleibt als historische Vorbereitung erhalten, mit `physical_a4_copies: 0`
+und `print_blocked` im Manifest. Plätze 9–10 bleiben unzugeordnet; das harte
+Budgetlimit bleibt 35 (maximal 33 belegte Plätze im aktiven Plan).
 
 Ein Karton mit mehreren Feldern verbraucht im 35er-Testbudget weiterhin die
 Budgetplätze aller darauf enthaltenen Varianten. Projekt 08 wird auf zwei
@@ -57,6 +60,10 @@ Budgetplätze aller darauf enthaltenen Varianten. Projekt 08 wird auf zwei
 ist keine unabhängige Wiederholung.
 
 ## Substrat
+
+Nutzerangabe: „Schwarz, 0,1 mm“, vorläufig als schwarzer Karton mit 0,1 mm
+Dicke verstanden. Die Zuordnung der Dicke und die Messmittel sind noch offen;
+für Cardboard zeigt Studio eine Gloss-Warnung. Dies ist keine Materialfreigabe.
 
 - Karton 03 (wegen I-13) und Karton 11 (G-06) werden auf demselben, in
   `docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md` §3.0 eingetragenen
@@ -94,7 +101,8 @@ ist keine unabhängige Wiederholung.
 ## Dateien je Projekt
 
 - `NN_name/NN_name.empf` ist das fertige, direkt in eufyMake Studio zu öffnende
-  Druckprojekt. Nur diese Datei wird zum Drucken benötigt.
+  Projektdatei. Für einen Druck müssen zusätzlich die protokollierten
+  Geräte-, Material- und Messvoraussetzungen erfüllt sein.
 - `*_A4_Beschriftung.png` ist der transparente, exakt 210 × 297 mm große
   Beschriftungs- und Eckmarkenträger. Er wird im nativen Studio-Projekt als
   COLOR-Ebene „A4 Beschriftung und Eckmarken" mitgeführt und ist damit an die
@@ -108,7 +116,7 @@ ist keine unabhängige Wiederholung.
   A4-Position, Studio-Position, Größe, Ink Mode sowie `crop_fraction`,
   `print_blocked` und `substrate`.
 - `projects.json` ist die **handgepflegte** Bindung: je Projekt Pfad, SHA-256,
-  SHA-256 des eingebetteten Trägers und die Studio-Ebenen; dazu
+  SHA-256 des eingebetteten Trägers, des nativen Thumbnails und die Studio-Ebenen; dazu
   `carrier_font` und `project_format`. Nach jedem Neuaufbau in Studio wird sie
   bewusst nachgezogen.
 - `layout_manifest.json` bündelt alle 13 Projekte samt Bezugsflächen, Quellen
@@ -123,7 +131,9 @@ DejaVu Sans – der Lauf nennt die verwendete Schrift). Der Generator
 1. prüft **vor dem ersten Schreibzugriff** alle Quelldateien gegen
    `fixtures_manifest.json` und jedes Projekt gegen `projects.json` (Pfad,
    SHA-256, Studio-Ebenen, eingebetteter Träger) und bricht bei jeder
-   Abweichung ab;
+   Abweichung ab. Im nativen ZIP-kompatiblen `.empf` prüft er zusätzlich
+   Quellen je Ebene, Träger, Thumbnail, Rollen, Flatbed, gültige Ursprünge und
+   endliche Sollgeometrie;
 2. schreibt Aufbau-JSONs, Vorschauen und Manifest neu;
 3. lässt die gebundenen Träger unverändert, wenn der gerenderte Träger davon
    abweicht (etwa durch eine andere Schrift oder eine geänderte Beschriftung),
@@ -137,19 +147,19 @@ betroffenen Projekte ersetzen, speichern und in `projects.json`
 bricht jeder Lauf ohne `--rebuild-carriers` ab; ein Manifest kann so keinen
 Träger behaupten, den die `.empf` nicht enthält.
 
-**Offener Nachzug (Stand 2026-09-03):** Die gebundenen Träger 04 und 10
-stammen noch aus dem Stand, in dem ein späterer Beschriftungskasten eine
-frühere Zeile übermalte (bei 10 fehlt „G-05 · COLOR 256×256", bei 04
-„I-08 · nach Crop"). Der Generator setzt kollidierende Zeilen jetzt versetzt.
-Die beiden Träger sind unter macOS mit `--rebuild-carriers` neu zu erzeugen,
-die Projekte 04 und 10 in Studio neu aufzubauen und `projects.json` ist
-nachzuziehen; danach diesen Absatz entfernen.
+**Nachzug erledigt (2026-09-05):** Die eingebetteten Träger 04 und 10 zeigen
+beide Beschriftungszeilen. In allen 13 Projekten wurden insgesamt 37 ungültige
+`originY: left` zu `originY: top` korrigiert; sonstige Projektwerte und
+Bildbytes blieben gegenüber den geprüften Reparaturquellen unverändert.
+Die gebundenen Träger stammen aus der lokalen Überarbeitung. Der Generator
+behält sie bei Renderabweichungen bei; seine neu gerenderten Vorschauhilfen
+sind nicht mit den separat gehashten nativen Thumbnails gleichzusetzen.
 
 ## Vor jedem Drucktag
 
 1. Voraussetzungen aus `docs/history/EUFYMAKE-687-DRUCK-CHECKLISTE.md` §0
-   erledigt: Owner-Entscheidung I-10 gegen G-02 (sonst bleibt Projekt 05
-   gesperrt), Substrat und Messmittel in
+   erledigt: Option A berücksichtigen (Projekt 05 entfällt), Gerät verfügbar,
+   Materialwarnungen geklärt, Substrat und Messmittel in
    `docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md` §3.0 eingetragen, und
    `python scripts/prepare_eufymake_a4_layouts.py --check` läuft grün.
 2. Nur exakt die vorbereitete `.empf`-Datei öffnen.

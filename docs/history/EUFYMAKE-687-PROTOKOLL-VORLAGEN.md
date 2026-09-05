@@ -392,6 +392,13 @@ Materialverbrauch beachten – siehe
 
 ### 3.0 Feste Laufparameter (vor dem ersten Druck)
 
+**Vorbereitung 2026-09-05:** Firmware V4.0.2 live abgelesen; Gerät wegen
+abgelaufener Y-Kartusche `Unavailable`. Cardboard erzeugt eine Gloss-Warnung.
+Option A ist gewählt (I-10 entfällt). Vollständiger, von einem Drucktag
+getrennter Status samt Schätzung für I-08:
+[`EUFYMAKE-681-VORBEREITUNG-2026-09-05.md`](EUFYMAKE-681-VORBEREITUNG-2026-09-05.md).
+Die folgenden leeren Tagesfelder sind deshalb noch keine Druckfreigabe.
+
 Die **Tagesparameter** gelten für alle Zellen eines Testtags. Die
 **Reihenparameter** gelten je Vergleichsreihe – etwa die HEIGHT-Stammvarianten
 mit `Color Raised` oder die Gloss-Zellen mit `Gloss Varnish` – und stehen je
@@ -449,8 +456,8 @@ Jede Zeile nennt die Reihe aus §3.0, deren Parameter für sie gelten.
 | I-07 | H1 | | | | | | | |
 | I-08 (vor Crop) | H2 | | | | | | | |
 | I-08 (nach Crop) | H2 | | | | | | | |
-| I-10 (normal) – gesperrt bis Owner-Entscheidung I-10/G-02 | G2 | | | | | | | |
-| I-10 (invertiert) – gesperrt bis Owner-Entscheidung I-10/G-02 | G2 | | | | | | | |
+| I-10 (normal) – entfällt gemäß Option A (2026-09-05) | G2 | | | | | | | |
+| I-10 (invertiert) – entfällt gemäß Option A (2026-09-05) | G2 | | | | | | | |
 | I-11 | H1 | | | | | | | |
 | I-13 (Alpha/Coverage) | H1 | | | | | | | |
 | I-14 (direkte 128×128-Kontrolle) | H1 | | | | | | | |

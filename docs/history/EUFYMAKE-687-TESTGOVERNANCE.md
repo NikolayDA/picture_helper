@@ -213,11 +213,26 @@ Erweiterung der Testmatrix, siehe Budget-Eskalation in Abschnitt 1) braucht
 erneut eine explizite Owner-Entscheidung und einen aktualisierten
 Freigabe-Vermerk hier.
 
-## 5. Vorbereiteter Nachtrag vom 2026-09-03 (Owner-Freigabe ausstehend)
+## Freigabe-Nachtrag 2026-09-05
 
-Dieser Abschnitt ist ein **Vorschlag** aus der Qualitätsprüfung des Epics
-#681 vor den Testdrucken. Er wird erst mit einem Freigabe-Vermerk in
-Abschnitt 4 verbindlich; bis dahin gelten die Abschnitte 1–3 unverändert.
+Auftrag des Owners: „Erledige Punkt 1 für mich“ (Druckvorbereitung einschließlich
+I-10/G-02-Entscheidung und Vorschau-Preflight). Im Rahmen dieses Auftrags wird
+**Option A** umgesetzt: I-10 entfällt physisch, G-02 liefert die Polarität mit
+je zwei unabhängigen Läufen pro Richtung. Plätze 9–10 bleiben unzugeordnet.
+Der aktive Plan umfasst 11 Stammvarianten + höchstens 11 priorisierte
+Wiederholungen + 11 Gloss-Läufe = höchstens 33 belegte Budgetplätze; das harte
+Limit bleibt 35. Die frühere 13-Varianten-Matrix oben ist insoweit historisch.
+
+Nachtrag 5.1–5.2 wird für die Vorbereitung übernommen. Der Vorschau-Preflight
+ist vom Auftrag umfasst; ein physischer Druck ist nicht Teil dieses Auftrags.
+Gerätesperren werden nicht übergangen. Die Gloss-Ebene bei I-08 nach Crop bleibt
+unverändert. Der Stand ist im Vorbereitungsprotokoll vom 2026-09-05 festgehalten.
+
+## 5. Nachtrag vom 2026-09-03 (am 2026-09-05 übernommen)
+
+Dieser Nachtrag wurde am 2026-09-05 im oben dokumentierten Auftrag übernommen;
+für I-10/G-02 gilt Option A. Die ursprünglichen Alternativen bleiben zur
+Nachvollziehbarkeit erhalten.
 Die zugehörigen Ablaufschritte stehen bereits in
 [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](EUFYMAKE-687-DRUCK-CHECKLISTE.md)
 (§0 und Phase 2b), die Felder in

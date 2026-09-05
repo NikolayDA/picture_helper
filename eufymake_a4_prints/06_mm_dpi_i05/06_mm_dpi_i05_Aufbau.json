@@ -9,7 +9,7 @@
   "print_blocked": null,
   "substrate": null,
   "carrier": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05_A4_Beschriftung.png",
-  "carrier_sha256": "821839b19a2182c1fe28bcdabe0a5e57314e02e9aa8d38264b441e6410dbc76d",
+  "carrier_sha256": "9a2bb65e91f68fa4f3fed333ce76884da1de20bdd2a375502da47b8442c5c14d",
   "preview": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05_NUR_VORSCHAU.png",
   "notes": [
     "Native Studio-Ausdehnung 101,60 × 101,60 mm beibehalten."
@@ -43,7 +43,7 @@
     }
   ],
   "project": "eufymake_a4_prints/06_mm_dpi_i05/06_mm_dpi_i05.empf",
-  "project_sha256": "a8542743bffd1dfd8b0f563fb1e6bba0e7747f888d7fa903f6c097ac8aa7d9e8",
+  "project_sha256": "f75cd29f63f957768d3d38ab1e8ce3bb607b6a2759479be3bda2bfd6c5aa69b0",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",
