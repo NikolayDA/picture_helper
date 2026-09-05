@@ -30,6 +30,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   confirmée par le propriétaire et correspond à la zone de travail affichée par
   eufyMake Studio 4.2.2 ; `PRINT_AREA_EXCEEDED` n'avertit donc qu'au-delà de
   335 mm de largeur, et le texte ne qualifie plus la valeur de non confirmée.
+- **L'export EufyMake écrit la résolution du projet en `pHYs` PNG (#689, #691).**
+  `color_motif.png`, `height_map.png` et `gloss_mask.png` portent désormais les
+  DPI X et Y dérivés de la taille physique du projet comme valeurs `pHYs`
+  séparées (pixels par mètre entiers). eufyMake Studio 4.2.2 utilise cette
+  valeur (observé) comme taille de départ ; sans `pHYs`, il démarrait à 72 dpi
+  et un motif de 1200 px mesurait 423 mm. Sans taille physique, aucun chunk
+  n'est écrit ; les pixels et `manifest.json` restent inchangés, et
+  l'avertissement sur la taille physique décrit le nouvel état.
 
 ## [2.9.0] – 2026-08-26
 

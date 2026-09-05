@@ -147,6 +147,21 @@ deshalb nicht geraten. Es wurde kein Druck ausgelöst.
 `STANDARD_FLATBED_MM` folgt seit PR #971 diesem Wert (zuvor 330 × 420 mm aus
 A10/A15, siehe Nachtrag Flatbed-Maß im Annahmeninventar `EUFYMAKE-687-ANNAHMENINVENTAR.md`).
 
+**Nachtrag 2026-09-05 (Writer schreibt `pHYs`):** Der Produktionswriter
+(`bgremover/eufymake_writer.py`) schreibt die aus `physical_size_mm`
+abgeleiteten X-/Y-DPI seitdem als `pHYs` in alle drei Assets
+(`png_dpi_for`, identisch mit Manifest-`target.dpi`; Quantisierung nach der
+Rundungsregel oben, Rückweg ≤ 0,02 dpi). Die Vertragszeile „Studio verwendet
+PNG-`pHYs` für die Startgröße“ ist damit produktiv umgesetzt; der frühere
+Status-Kommentar in #681 vom 2026-09-02, der das bereits behauptete, war zu
+diesem Zeitpunkt nicht zutreffend. Ohne physische Projektgröße entsteht
+weiterhin **kein** `pHYs` (72-dpi-Fallback in Studio); die dafür geforderte
+Warnung bleibt offen, weil sie eine neue Validator-Regel und damit eine
+Profilversionsentscheidung (#691) verlangt. Alle Studio-Beobachtungen unten
+stammen aus Fixtures und Paketen **vor** dieser Änderung und werden nicht
+umgeschrieben; das I-06-Paket erhält sein 150-dpi-Konflikt-`pHYs` unverändert
+durch die nachträgliche Überschreibung im Fixture-Generator.
+
 | Eingabe/Aktion | Exakte Studio-Beobachtung |
 | --- | --- |
 | `mm_typisch_no_phys.png`, 1200×1200 px, kein `pHYs` | Warnung wegen Überschreitung der Arbeitsfläche; nach „Originalgröße behalten“ 423,33×423,33 mm bei X/Y −44,17/−1,67 mm. Das entspricht 72 dpi und Zentrierung auf 335×420 mm. |

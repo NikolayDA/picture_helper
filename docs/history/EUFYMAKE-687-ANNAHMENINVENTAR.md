@@ -180,7 +180,7 @@ indirekt den Sinn von `feather_alpha` (#361).
 | EM-F01 | PNG verlustfrei, RGBA fürs Farbmotiv | `eufymake_writer.py` | A1, A14 (S) | **bestätigt** |
 | EM-F02 | Höhe als Graustufen-PNG (`L` / `I;16`) | `eufymake_writer.py` | A2, A3 (S) | **bestätigt**, TIFF zusätzlich zulässig |
 | EM-F03 | 8 Bit ist Default, 16 Bit ist „nicht offiziell bestätigt" | `eufymake_export.py`, `eufymake_validate.py` | A2, A3 (S) | **widerlegt → umgesetzt**: `BIT_DEPTH_UNCONFIRMED` feuert seit dieser Version bei 8 Bit, nicht mehr bei 16 Bit; **Nachtrag #691 (2026-09-02):** seit PR #953 für beide Träger (8 und 16 Bit), Default 16 Bit |
-| EM-F04 | Kein `pHYs`/DPI in den PNGs (Befund N10 in `RECOMMENDATIONS.md`) | `eufymake_writer.py` | B1 (P), A7 (S) | **teilbestätigt** – kein Mangel gegenüber Studio, siehe Abschnitt „Konsequenzen" |
+| EM-F04 | Kein `pHYs`/DPI in den PNGs (Befund N10 in `RECOMMENDATIONS.md`) | `eufymake_writer.py` | B1 (P), A7 (S) | **teilbestätigt** – kein Mangel gegenüber Studio, siehe Abschnitt „Konsequenzen"; **Nachtrag (2026-09-05):** Writer schreibt `pHYs` seither aus der Projekt-DPI, siehe „Nachtrag pHYs im Writer" |
 
 **EM-F03** ist der konkreteste Codebefund: Der Hersteller empfiehlt für
 Tiefenkarten selbst „16-bit/channel … if the option is available" (A2, A3). Die
@@ -929,3 +929,28 @@ Maß nicht mehr als unbestätigt, der Schweregrad bleibt WARNING. Die A4-Layouts
 in `eufymake_a4_prints/` beziehen ihre Studio-Koordinaten unverändert auf diese
 Fläche (A4-Ursprung X = 62,50 mm, Y = 61,50 mm); der Generator bricht ab, falls
 die Konstante je von der Fläche der gebundenen Projekte abweicht.
+
+## Nachtrag pHYs im Writer (2026-09-05)
+
+**Codeänderung, keine neue Hardwareevidenz.** `bgremover/eufymake_writer.py`
+schreibt die aus `physical_size_mm` abgeleiteten X-/Y-DPI (identisch mit
+Manifest-`target.dpi`, Regel `png_dpi_for`) als `pHYs` in jedes Asset. Das
+setzt die #689-Studio-Beobachtung um, dass Studio 4.2.2 `pHYs` je Achse als
+Startgröße übernimmt und ohne den Chunk auf 72 dpi zurückfällt.
+
+Einordnung der bisherigen Belege:
+
+- EM-F04 („kein `pHYs` in den PNGs“) beschreibt den Stand bis zum 2026-09-05;
+  die Bewertung „kein Mangel gegenüber Studio“ galt für den nativen
+  `.empf`-Pfad (B1) und ist durch die I-05-Beobachtung für den Bildimport
+  überholt: Dort ist das fehlende `pHYs` die Ursache des 72-dpi-Starts.
+- Konsequenz 3 in Abschnitt 4 (N10 umformulieren) ist gegenstandslos; N10 ist
+  nicht mehr Teil von `RECOMMENDATIONS.md`.
+- Die 42 Einzel-Fixtures, das I-06-Paket (150-dpi-Konflikt-`pHYs` durch die
+  nachträgliche Überschreibung im Generator) und die sechs Gloss-Pakete (ohne
+  physische Größe, daher weiterhin ohne `pHYs`) bleiben bytegleich; die in
+  Studio geprüften Bytes sind nicht betroffen.
+
+Offen bleibt der Fall „Export ohne physische Projektgröße“: kein `pHYs`,
+72-dpi-Start in Studio. Eine Validator-Warnung dafür ist eine neue Regel und
+damit eine Profilversionsentscheidung (#691).

@@ -1,6 +1,6 @@
 # Versioniertes EufyMake-Zielprofil
 
-Stand: 2026-09-02 · Profil `bgremover-eufymake-import@1` · Schema 1
+Stand: 2026-09-05 · Profil `bgremover-eufymake-import@1` · Schema 1
 
 ## Zweck und Status
 
@@ -65,6 +65,15 @@ Vertrag dieses Assets.
 - Physische Maße stammen ausschließlich aus `physical_size_mm` des Projekts.
 - Daraus berechnete X- und Y-DPI werden getrennt behandelt und im Dialog sowie
   Manifest getrennt angezeigt.
+- Der Writer schreibt genau diese X-/Y-DPI als PNG-`pHYs` in **jedes** Asset
+  (`eufymake_writer.png_dpi_for` = Manifest-`target.dpi`; das ist die
+  `physical_size_source` des Profils). `pHYs` speichert ganzzahlige Pixel pro
+  Meter je Achse, der Rückweg weicht deshalb um höchstens 0,02 dpi vom Sollwert
+  ab. Pixeldaten und Manifest bleiben davon unberührt.
+- Ohne physische Projektgröße entsteht **kein** `pHYs` – keine erfundene
+  Auflösung. Studio startet dann beobachtet mit 72 dpi (1200 px → 423,33 mm
+  samt Arbeitsflächenwarnung). Ein eigener Validator-Befund für diesen Fall ist
+  noch nicht Teil von Profil v1 (neue Regel = Profilversionsentscheidung, #691).
 - Studio 4.2.2 hat `pHYs` je Achse und ohne `pHYs` einen 72-dpi-Startwert
   beobachtbar verwendet. Manuelle Studio-Maße können diesen Startwert ersetzen.
 - Priorität im vollständigen Rollenverbund, Rundung, Registrierung und

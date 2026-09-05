@@ -306,6 +306,75 @@ def test_overwrite_replaces_target(tmp_path: Path) -> None:
     assert not _temp_leftovers(tmp_path, dest)
 
 
+# ── PNG-pHYs aus der Projekt-Auflösung (#689/#691) ────────────────────────
+
+#: Zulässige Abweichung des aus ``pHYs`` zurückgelesenen Werts: ganzzahlige
+#: Pixel pro Meter (Formatquantisierung, EUFYMAKE-689-MM-DPI-VERTRAG.md).
+_PHYS_DPI_TOLERANCE = 0.02
+
+
+def _phys_project() -> Project:
+    """300×150 px bei 25,4×25,4 mm → bewusst **verschiedene** X-/Y-DPI (300/150)."""
+    project = _color_project((300, 150))
+    _add_height(project)
+    _add_gloss(project)
+    project.set_physical_size_mm(25.4, 25.4)
+    return project
+
+
+def test_written_pngs_carry_phys_from_project_dpi_per_axis(tmp_path: Path) -> None:
+    """Jedes Asset trägt X- und Y-DPI getrennt als ``pHYs`` – ohne stille Kopplung."""
+    project = _phys_project()
+    assert project.dpi == (300.0, 150.0)
+    dest = write_export(project, tmp_path / "export", confirm_warnings=True)
+    manifest = json.loads((dest / MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    assert manifest["target"]["dpi"] == [300.0, 150.0]
+
+    for name in ("color_motif.png", "height_map.png", "gloss_mask.png"):
+        with Image.open(dest / name) as img:
+            x_dpi, y_dpi = img.info["dpi"]
+        assert abs(x_dpi - 300.0) <= _PHYS_DPI_TOLERANCE, name
+        assert abs(y_dpi - 150.0) <= _PHYS_DPI_TOLERANCE, name
+
+
+def test_phys_is_pure_metadata_and_leaves_pixels_untouched(tmp_path: Path) -> None:
+    """Mit und ohne physische Größe entstehen bitgenau dieselben Pixel."""
+    with_phys = _phys_project()
+    without_phys = _color_project((300, 150))
+    _add_height(without_phys)
+    _add_gloss(without_phys)
+    a = write_export(with_phys, tmp_path / "a", confirm_warnings=True)
+    b = write_export(without_phys, tmp_path / "b", confirm_warnings=True)
+    for name in ("color_motif.png", "height_map.png", "gloss_mask.png"):
+        with Image.open(a / name) as img_a, Image.open(b / name) as img_b:
+            assert img_a.mode == img_b.mode, name
+            assert np.array_equal(np.array(img_a), np.array(img_b)), name
+
+
+def test_written_pngs_without_physical_size_have_no_phys(tmp_path: Path) -> None:
+    """Ohne physische Größe kein ``pHYs`` – keine erfundene Auflösung (Studio: 72 dpi)."""
+    project = _color_project((300, 150))
+    _add_height(project)
+    assert project.dpi is None
+    dest = write_export(project, tmp_path / "export", confirm_warnings=True)
+    manifest = json.loads((dest / MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    assert manifest["target"]["dpi"] is None
+    for name in ("color_motif.png", "height_map.png"):
+        with Image.open(dest / name) as img:
+            assert "dpi" not in img.info, name
+
+
+def test_png_dpi_rule_is_the_manifest_target_dpi() -> None:
+    """``png_dpi_for`` ist genau die Manifest-Zielauflösung – eine Quelle, kein Drift."""
+    from bgremover.eufymake_writer import png_dpi_for
+
+    project = _phys_project()
+    plan = build_export_plan(project)
+    assert png_dpi_for(plan.target) == plan.target.dpi == (300.0, 150.0)
+    unset = _color_project((300, 150))
+    assert png_dpi_for(build_export_plan(unset).target) is None
+
+
 # ── Atomares Schreiben: Fehlerpfade ──────────────────────────────────────
 
 def test_render_error_leaves_no_partial_target(tmp_path: Path, monkeypatch) -> None:
@@ -318,11 +387,11 @@ def test_render_error_leaves_no_partial_target(tmp_path: Path, monkeypatch) -> N
     calls = {"n": 0}
     real = writer._write_png
 
-    def flaky(image, path):  # 2. Asset schlägt fehl → vor Veröffentlichung
+    def flaky(image, path, **kwargs):  # 2. Asset schlägt fehl → vor Veröffentlichung
         calls["n"] += 1
         if calls["n"] == 2:
             raise OSError("inject encode failure")
-        return real(image, path)
+        return real(image, path, **kwargs)
 
     monkeypatch.setattr(writer, "_write_png", flaky)
     with pytest.raises(OSError, match="inject"):

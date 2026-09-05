@@ -840,7 +840,11 @@ en continu et signale les constats par gravité :
 
 `manifest.json` est une provenance interne avec versions profil/app,
 interprétation des canaux, pixels/mm et DPI X/Y ; Studio 4.2.2 ne le traite pas
-comme paquet. Les propriétés matérielles ouvertes restent signalées.
+comme paquet. Les propriétés matérielles ouvertes restent signalées. Les
+fichiers PNG eux-mêmes portent les DPI X et Y dérivés des dimensions du projet
+en `pHYs` ; Studio 4.2.2 utilise cette valeur comme taille de départ. Sans
+dimensions de projet, la valeur manque et Studio démarre à 72 dpi : un motif
+de 1200 px mesurerait 423 mm.
 
 Ensuite, vous importez et positionnez les assets dans EufyMake Studio, y
 attribuez les modes d'encre/calques et enregistrez le projet Studio

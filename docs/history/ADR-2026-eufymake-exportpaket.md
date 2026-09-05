@@ -127,3 +127,17 @@ Abgelöst ist Entscheidung 5 im Punkt Bittiefe: Der konservative HEIGHT-Default
 ist 16 Bit, und `BIT_DEPTH_UNCONFIRMED` warnt für **beide** Träger, bis die
 physische #688-Messung vorliegt. Entscheidung und Begründung:
 [`ADR-2026-eufymake-zielprofil.md`](ADR-2026-eufymake-zielprofil.md).
+
+## Nachtrag 2026-09-05 (#689/#691, PNG-`pHYs`)
+
+Entscheidung 5 (Parameterableitung) wird um den Träger im PNG ergänzt: Der
+Writer schreibt die aus Pixelmaß und physischer Größe abgeleiteten X-/Y-DPI als
+`pHYs`-Chunk in jedes Asset (`eufymake_writer.png_dpi_for`, identisch mit
+Manifest-`target.dpi`). Grund ist die #689-Studio-Beobachtung: Studio 4.2.2
+übernimmt `pHYs` je Achse als Startgröße und startet ohne den Chunk mit 72 dpi
+(1200 px → 423,33 mm). Ohne physische Projektgröße entsteht bewusst kein
+`pHYs` – eine erfundene Auflösung wäre schlechter als ein sichtbar fehlender
+Wert. Entscheidung 3 bleibt unberührt: `manifest.json` ist weiterhin interne
+Provenienz, das `pHYs` ist der einzige Weg der physischen Größe nach Studio.
+Evidenz: [`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md),
+Nachtrag 2026-09-05.

@@ -29,6 +29,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   confirmed by the owner and matches the work area shown by eufyMake Studio
   4.2.2; `PRINT_AREA_EXCEEDED` therefore warns only above 335 mm width, and the
   warning text no longer calls the figure unverified.
+- **EufyMake export writes the project resolution as PNG `pHYs` (#689, #691).**
+  `color_motif.png`, `height_map.png` and `gloss_mask.png` now carry the X and
+  Y DPI derived from the project's physical size as separate `pHYs` values
+  (integer pixels per metre). eufyMake Studio 4.2.2 has been observed to use
+  this value as the start size; without `pHYs` it started at 72 dpi, so a
+  1200 px motif became 423 mm wide. Without a physical size no chunk is
+  written; pixel data and `manifest.json` are unchanged, and the physical-size
+  warning now describes the new state.
 
 ## [2.9.0] – 2026-08-26
 

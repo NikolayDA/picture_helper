@@ -387,7 +387,10 @@ Ein Paket, `bgremover/`:
   `eufymake_validate` baut darauf auf, ohne seine produktspezifischen Codes zu ändern. `eufymake_writer.py` — Qt-freies **Rendern + atomares
   Schreiben** (#353): `render_export` erzeugt die Pixel (Farbmotiv = Komposit/RGBA
   alpha-erhaltend, Height graustufig hell=hoch als `L`/`I;16`, Gloss graustufig) in
-  Zielgröße plus `manifest.json`; `write_export` validiert (Fehler→`ExportValidationError`,
+  Zielgröße plus `manifest.json`; `_write_png` schreibt die Projekt-DPI
+  (`png_dpi_for` = Manifest-`target.dpi`, X/Y getrennt) als PNG-`pHYs` in jedes
+  Asset – ohne physische Größe kein Chunk, Studio 4.2.2 fällt dann beobachtet auf
+  72 dpi zurück (#689/#691); `write_export` validiert (Fehler→`ExportValidationError`,
   Warnungen→`ExportConfirmationRequired` ohne `confirm_warnings`), rendert in ein
   Temp-Verzeichnis und veröffentlicht via **einem** `os.replace` (vorhandenes Ziel
   bleibt bei Fehlern unversehrt, Temp wird aufgeräumt; `overwrite` steuert
