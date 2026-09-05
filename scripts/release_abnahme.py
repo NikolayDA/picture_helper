@@ -8,8 +8,11 @@ eines ``release-linux.yml``-Laufs (``--source-run-id``) –, verifiziert sie per
 SHA256 und schreibt ``evidenz.json`` + ``manifest.md`` nach dem Evidenzvertrag
 aus ``docs/history/ADR-2026-release-abnahme-automatisierung.md``.
 
-Der eigentliche Smoke-Inhalt (App-Start, GL-Provenance, Screenshots) folgt mit
-#642/#643 – bis dahin trägt die Evidenz den Status ``platzhalter``.
+``main()`` schreibt über ``build_evidence`` zunächst die Platzhalter-Evidenz
+(Status ``platzhalter``); die eigentlichen Smoke-Auswertungen (GL-Provenance,
+Retina, ``.deb``-Zyklus) leben in ``evaluate_*``/``finalize_evidence``
+(#642/#643) und werden von ``scripts/abnahme_smoke.py`` gefahren, das die
+Evidenz auf ``bestanden``/``fehlgeschlagen`` fortschreibt.
 """
 from __future__ import annotations
 

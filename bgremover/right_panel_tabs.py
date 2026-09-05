@@ -96,7 +96,8 @@ def _wrap_to_width(text: str, font: QFont, max_width: int) -> str:
     """Bricht ``text`` wortweise um, sodass keine Zeile ``max_width`` überschreitet.
 
     Reine Fontmetrik-Messung (keine hartkodierten Sprach-Umbrüche) – funktioniert
-    unverändert für alle Laufzeitsprachen (de/en).
+    für alle leerzeichengetrennten Laufzeitsprachen. Sprachen ohne Wortgrenzen
+    (``zh``) liefern ein einziges „Wort" und bleiben ungebrochen.
     """
     fm = QFontMetrics(font)
     words = text.split(" ")
@@ -221,7 +222,7 @@ class _ModeSegments(QWidget):
         return [btn.text() for btn in self._buttons.values()]
 
 
-# ── Tab 1 – Vorschau ─────────────────────────────────────────────
+# ── Vorschau ─────────────────────────────────────────────────────
 
 
 class PreviewTab:
@@ -330,7 +331,7 @@ class PreviewTab:
         }
 
 
-# ── Tab 2 – Auswahl ──────────────────────────────────────────────
+# ── Auswahl ──────────────────────────────────────────────────────
 
 
 class SelectionTab:
@@ -346,7 +347,7 @@ class SelectionTab:
         outer, layout = _make_scroll_tab()
 
         # KI-Primärbutton oben im Inspector (§9 Schritt 2, #437). Die Kurzlabels
-        # (de/en) passen einzeilig in die 332-px-Panelbreite – Primärbuttons
+        # passen einzeilig in die 332-px-Panelbreite – Primärbuttons
         # kennen keine Umbruch-Ausnahme (§5.4, #515); der volle Wortlaut steht
         # im Tooltip.
         btn_ai = _make_primary_btn(
@@ -466,7 +467,7 @@ class SelectionTab:
         }
 
 
-# ── Tab 3 – Hintergrund ──────────────────────────────────────────
+# ── Hintergrund ──────────────────────────────────────────────────
 
 
 class BackgroundTab:
@@ -548,7 +549,7 @@ class BackgroundTab:
         }
 
 
-# ── Tab 5 – Transform ────────────────────────────────────────────
+# ── Transform ────────────────────────────────────────────────────
 
 
 class TransformTab:
@@ -647,7 +648,7 @@ class TransformTab:
         }
 
 
-# ── Tab 6 – Form & Zuschnitt ─────────────────────────────────────
+# ── Form & Zuschnitt ─────────────────────────────────────────────
 
 
 class ShapeTab:
@@ -730,7 +731,7 @@ class ShapeTab:
         }
 
 
-# ── Tab 4 – Anpassen (Farbkorrektur) ─────────────────────────────
+# ── Anpassen (Farbkorrektur) ─────────────────────────────────────
 
 
 class AdjustTab:

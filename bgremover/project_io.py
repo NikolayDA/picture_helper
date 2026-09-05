@@ -108,7 +108,7 @@ def _decode_height16_values(data: bytes, file_name: str) -> np.ndarray:
     """Dekodiert eine ``height16``-PNG strikt zu einem ``uint16``-Array.
 
     Megapixel-geprüft wie die RGBA-Ebenen; akzeptiert die 16-Bit-Grau-Modi
-    (``I;16``/``I;16B`` – Rohbytes explizit über numpy gedeutet) sowie PILs
+    (``I;16``/``I;16L``/``I;16B`` – Rohbytes explizit über numpy gedeutet) sowie PILs
     ``I``-Fallback (32-Bit, wertebereichsgeprüft). Alles andere – 8-Bit-Grau,
     Farbbilder, undekodierbare Daten, Werte außerhalb ``0..65535`` – wird als
     :class:`ProjectFileError` abgewiesen, bevor etwas ins Projekt gelangt.

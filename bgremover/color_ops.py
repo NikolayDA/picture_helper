@@ -29,8 +29,10 @@ def adjust_color(
     """Passt Helligkeit, Kontrast und Sättigung der **RGB-Kanäle** an.
 
     Jeder Faktor ist multiplikativ um den Neutralwert ``1.0`` herum
-    (``> 1.0`` verstärkt, ``< 1.0`` schwächt, ``0.0`` entsättigt vollständig zu
-    Graustufen). Angewandt wird die Pillow-Kette
+    (``> 1.0`` verstärkt, ``< 1.0`` schwächt); am Extrem ``0.0`` entsättigt
+    ``saturation`` vollständig zu Graustufen, ``brightness`` liefert Schwarz und
+    ``contrast`` eine Fläche in der mittleren Luminanz des (bereits per
+    ``brightness`` angepassten) Bilds. Angewandt wird die Pillow-Kette
     ``Brightness → Contrast → Color`` – deterministisch und in plausibler
     Richtung.
 

@@ -54,7 +54,7 @@ from bgremover.units import UnitsError
 
 # Namensraum aller i18n-Keys dieses Moduls. Der konkrete Key eines Befunds ist
 # ``f"{_I18N_PREFIX}{code.value}"`` (siehe ``ExportFinding.i18n_key``); die
-# de/en-Übersetzungen liegen zentral in :mod:`bgremover.i18n`.
+# Übersetzungen liegen zentral in :mod:`bgremover.i18n`.
 _I18N_PREFIX = "eufymake.export."
 
 
@@ -300,7 +300,7 @@ def _fmt_size(size: tuple[int, int]) -> str:
 
 
 def format_finding(finding: ExportFinding) -> str:
-    """Qt-freie, lokalisierte Klartextmeldung eines Befunds (de/en über ``tr``).
+    """Qt-freie, lokalisierte Klartextmeldung eines Befunds (über ``tr``).
 
     Nutzt je Code einen **literalen** i18n-Key, damit die zentrale Coverage-Prüfung
     (``test_no_unused_keys_in_table``) jede Meldung als referenziert erkennt. Hier
