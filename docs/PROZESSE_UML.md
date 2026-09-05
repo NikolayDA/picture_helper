@@ -110,6 +110,8 @@ flowchart TD
     DA2["i18n-Parität unter docs/i18n wahren<br/>keine toten Markdown-Links"]
     DQ3{"Qt-apt-Paketliste geändert?"}
     DA3["Befund N6: alle sechs Dateien angleichen<br/>ci.yml, pr-ci.yml, ui-nightly.yml, benchmark.yml, coverage.yml, session-start.sh"]
+    DQ4{"ANLEITUNG.md oder scripts/generate_anleitung_pdf.py geändert?"}
+    DA4["ANLEITUNG.pdf im selben Commit neu erzeugen<br/>pip install -e '.[docs]' · python scripts/generate_anleitung_pdf.py<br/>Wächter tests/test_anleitung_pdf_sync.py prüft die Git-Mitänderung"]
   end
 
   subgraph GATE["Partition: Standard-Gate · make check"]
@@ -134,8 +136,10 @@ flowchart TD
   DQ1 -->|"nein"| DQ2
   DQ2 -->|"ja"| DA2 --> DQ3
   DQ2 -->|"nein"| DQ3
-  DQ3 -->|"ja"| DA3 --> G1
-  DQ3 -->|"nein"| G1
+  DQ3 -->|"ja"| DA3 --> DQ4
+  DQ3 -->|"nein"| DQ4
+  DQ4 -->|"ja"| DA4 --> G1
+  DQ4 -->|"nein"| G1
   G1 --> G2 --> G3 --> GQ
   GQ -->|"nein · Lint, Typ oder Test rot"| D7 --> G1
   GQ -->|"ja"| GQ2
@@ -163,6 +167,13 @@ flowchart TD
   Standard-Gate.
 - `shellcheck` wird übersprungen statt zu scheitern, wenn es lokal fehlt — in
   der CI ist es installiert.
+- Der ANLEITUNG.pdf-Wächter (#974) prüft Disziplin statt Bytes: Der Commit,
+  der zuletzt `ANLEITUNG.md` oder das Generator-Skript berührt hat, muss auch
+  das PDF berühren (der WeasyPrint-Bau ist nicht deterministisch). Lokal wird
+  ein Verstoß deshalb erst nach dem Commit sichtbar; verlässlich prüft die
+  PR-CI mit `fetch-depth: 0`, ein flacher Klon überspringt sichtbar. Das
+  `docs`-Extra ist bewusst in keinem CI-Pfad installiert — die Regeneration
+  bleibt ein manueller Schritt außerhalb der `make`-Ziele.
 
 ---
 
@@ -391,8 +402,10 @@ flowchart TD
   `recommendations-live-check.yml` (täglich 06:30 UTC),
   `clamav-db-refresh.yml` (montags 03:00 UTC),
   `runner-heartbeat.yml` (täglich 05:30 UTC, Erreichbarkeit der Self-hosted
-  Abnahme-Runner) und der monatliche Dry-Run von `release-linux.yml`
-  (am 3. um 04:40 UTC, siehe Abschnitt 4).
+  Abnahme-Runner; eskaliert seit #958 gestuft nach 7/12/21 Tagen offline bis
+  zur automatischen Austragung der Plattform, siehe Abschnitt 4) und der
+  monatliche Dry-Run von `release-linux.yml` (am 3. um 04:40 UTC, siehe
+  Abschnitt 4).
 - Ebenfalls nicht gezeichnet ist der `workflow_run`-Einstieg von
   `recommendations-live-check.yml` nach jedem Abschluss von
   `codex-security-scan.yml` und `benchmark.yml`: Deren automatisch eröffnete
@@ -439,6 +452,7 @@ flowchart TD
     S2["Schritt 2 · Kandidatenstand einfrieren<br/>scripts/verify_release_freeze.py, Laufkopf ist der Kandidat<br/>Release-Ref release/vX.Y.Z anlegen, anlege-only, Ruleset prüfen"]
     SQ1{"Freeze konsistent?"}
     S2F["Pfadklassifikation oder Doku per PR korrigieren<br/>zurück zu Schritt 1, nicht taggen"]
+    S3R["Runner-Umgebung oder Infrastruktur außerhalb des Repos beheben<br/>Kandidatenlauf ab Schritt 3 auf demselben SHA; braucht der Fix einen Repo-Commit, entsteht ein neuer Kandidat ab Schritt 1"]
     S3["Schritt 3 · Kandidatenbau starten<br/>verify-release-ref, dann gh workflow run release-linux.yml --ref RELEASE_REF -f with_ai=true"]
     S4["Schritt 4 · Kandidatenartefakte und Sicherheitsbefunde vorprüfen<br/>Build-Container, Freeze-Provenienz und Logs; noch kein Kandidatenvertrag"]
     SQ2{"Artefakte plausibel und kein Malware-Fund?"}
@@ -461,6 +475,7 @@ flowchart TD
     direction TB
     H0["Schritt 5 · Abnahme starten<br/>--ref RELEASE_REF · run_id des Kandidaten · platforms=alle · dry_run=false · target_issue"]
     H1["candidate-source<br/>fünf Dateien laden, Hashes prüfen, release-candidate-contract-&lt;attempt&gt; erzeugen<br/>und Workflow-SHA hart an den Kandidaten binden"]
+    RS["retirement-status<br/>liest fail-closed die Labels runner-retired:&lt;Plattform&gt;:&lt;Datum&gt; des Heartbeat-Betriebs-Issues;<br/>eine ausgetragene Plattform überspringt Preflight und Abnahme-Job"]
     HP["Preflight je Plattform + Runner-Watchdog<br/>Runner-Erreichbarkeit und echter Qt-/GL-Probeaufruf;<br/>hängende Warteschlangen brechen sichtbar ab statt still zu warten"]
     HF0["Fork"]:::bar
     HJ0["Join"]:::bar
@@ -468,25 +483,31 @@ flowchart TD
     H2["macOS arm64<br/>DMG-Start, Retina, natives 3D, E2E, GL-Suite"]
     H3["Linux arm64<br/>AppImage- und .deb-Zyklus, GL-Provenance, natives 3D, E2E"]
     H4["Linux x86_64<br/>sichtbar pausiert, erscheint als Hinweis statt als Lücke"]
+    H4R["ausgetragene Plattform<br/>per Heartbeat-Eskalation Stufe 3 automatisch ausgetragen; Job hinweis-ausgetragen meldet sichtbar,<br/>Abschlussmatrix führt sie als ausgetragen seit Datum — blockierend, kein Abnahmeergebnis"]
     HJ["Join"]:::bar
     H5["Aggregation<br/>Vision-Vorbewertung fail-safe, Abschlussmatrix, Kommentar ins Release-Issue"]
+    HQ{"Abschlussmatrix ohne blockierende Lücken?"}
     H6["Artefakt: release-approval-manifest<br/>nur bei platforms=alle erzeugt"]
   end
 
   S1 --> S2 --> SQ1
   SQ1 -->|"nein"| S2F --> S1
   SQ1 -->|"ja"| S3 --> B1 --> B2 --> B3 --> B4 --> B5 --> B6 --> S4 --> SQ2
-  SQ2 -->|"nein · Fund oder Artefaktfehler"| NOGO["No-Go protokollieren<br/>Kandidat verwerfen, Ursache per PR beheben, neu ab Schritt 1"]
+  SQ2 -->|"nein · Fund oder inhaltlicher Artefaktfehler"| NOGO["No-Go protokollieren<br/>Kandidat verwerfen, Ursache per PR beheben, neu ab Schritt 1"]
+  SQ2 -->|"nein · Umgebungs- oder Infrastrukturfehler ohne Repo-Änderung, z. B. nicht entpackbar"| S3R --> S3
   SQ2 -->|"ja"| SQ4
   SQ4 -->|"nein · Ref bewegt oder verwechselt"| NOGO
   SQ4 -->|"ja"| H0 --> HF0
   HF0 --> H1 --> HJ0
-  HF0 --> HP --> HJ0
+  HF0 --> RS --> HP --> HJ0
   HJ0 --> HF
   HF --> H2 --> HJ
   HF --> H3 --> HJ
   HF --> H4 --> HJ
-  HJ --> H5 --> H6 --> S6 --> SQ3
+  HF -->|"nur mit runner-retired-Label; Preflight und Abnahme-Job der Plattform entfallen"| H4R --> HJ
+  HJ --> H5 --> HQ
+  HQ -->|"nein · ausgetragen oder fehlend, create-approval schreibt kein Manifest"| NOGO
+  HQ -->|"ja"| H6 --> S6 --> SQ3
   SQ3 -->|"nein"| NOGO
   SQ3 -->|"ja"| WEITER(("weiter in 4b")):::terminal
   NOGO --> ENDE(("Ende · kein Release")):::terminal
@@ -606,3 +627,29 @@ flowchart TD
   Ein fehlgeschlagener Update-Nachweis wird nie automatisch wiederholt.
 - Ein Hotfix überspringt keinen Schritt: neue Patch-Version, neuer Kandidat,
   neue Abnahme, neues Manifest, neuer Tag.
+- Nicht jeder rote Schritt 4 verwirft den Kandidaten: Scheitert der
+  Security-Scan an Werkzeug oder Runner-Umgebung (Artefakt nicht entpackbar —
+  `dpkg-deb`/`hdiutil` fehlt, AppImage nicht ausführbar, Datei unlesbar;
+  Verdikt `FAIL`, #944), an einem Ausfall der Build-Infrastruktur oder am
+  leeren ClamAV-Signaturcache, sieht die Wiederanlaufmatrix des Runbooks den
+  Kandidatenlauf ab Schritt 3 auf demselben SHA vor. Das trägt nur, solange
+  die Behebung außerhalb des Repositorys liegt (Runner-Umgebung,
+  Infrastruktur, Signaturcache): Der Lauf führt die Workflow-Definition des
+  Release-Refs aus, ein per PR gemergter Fix wirkt auf demselben SHA also
+  nicht — braucht die Ursache einen Repo-Commit, entsteht ein neuer Kandidat
+  ab Schritt 1. Inhaltliche Befunde am Kandidaten führen immer auf
+  Schritt 1 zurück.
+- Seit #958 kann jede der drei Plattformen per Heartbeat-Eskalation (Stufe 3
+  nach 21 Tagen offline; Stufen 7/12/21 Tage mit Owner-Erwähnung) automatisch
+  ausgetragen sein — anders als der bewusst pausierte x86_64-Pfad trifft das
+  auch die beiden aktiven Plattformen. Die Abnahme liest diesen Bestand vorab
+  im GitHub-hosted Job `retirement-status` (fail-closed: ohne lesbares
+  Betriebs-Issue startet kein Preflight), überspringt Preflight und
+  Plattform-Job der ausgetragenen Plattform (der Watchdog erwartet sie nicht
+  mehr) und meldet das über `hinweis-ausgetragen` auch im Dry-Run. In der
+  Abschlussmatrix steht sie als „ausgetragen seit <Datum>" — kein
+  Abnahmeergebnis: Die Matrix gilt als blockierend, `create-approval` weist
+  sie ab und schreibt kein Freigabemanifest (der Freigabevertrag verlangt
+  weiterhin `approved`); der Lauf endet als No-Go. Reaktiviert wird durch Neuregistrierung und
+  Entfernen des Labels am Betriebs-Issue
+  ([`RUNNER_SETUP.md`](RUNNER_SETUP.md) §4).
