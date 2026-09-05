@@ -328,6 +328,28 @@ def test_recovery_matrix_records_that_main_no_longer_burns_the_candidate() -> No
     assert "nachschieben" in matrix.lower()
 
 
+def test_recovery_matrix_never_pairs_same_sha_restart_with_repo_fix() -> None:
+    """Ein per PR gemergter Fix wirkt auf dem unveraenderten Kandidaten-SHA nicht:
+    Jeder Dispatch fuehrt die Workflow-Definition des Release-Refs aus (#918).
+    Eine Matrixzeile, die als zulaessigen Wiederanlauf „per PR beheben" und
+    „auf demselben SHA" kombiniert, wiederholte also den urspruenglichen Fehler
+    (Codex-Review zu #985, Zeile zu #944). Das Prinzip steht vor der Tabelle,
+    und keine Zeile darf es unterlaufen.
+    """
+    matrix = RUNBOOK.split("## Wiederanlaufmatrix", maxsplit=1)[1].split("## Eskalation", 1)[0]
+    assert "außerhalb des Repositorys" in matrix
+    assert "$RELEASE_REF" in matrix
+    rows = [line for line in matrix.splitlines() if line.startswith("| ") and "---" not in line]
+    assert len(rows) > 10
+    for row in rows[1:]:
+        allowed = row.strip().strip("|").split("|")[1]
+        if "demselben SHA" in allowed:
+            assert "per PR" not in allowed, f"Same-SHA-Wiederanlauf nach Repo-Fix: {row}"
+    # Negativkontrolle: die frühere Zeile zu #944 wäre durch den Wächter gefallen.
+    stale = "| Ursache in Werkzeug oder Runner-Umgebung per PR beheben, danach Kandidatenlauf ab Schritt 3 auf demselben SHA |"
+    assert "per PR" in stale and "demselben SHA" in stale
+
+
 def test_secondary_docs_only_point_to_canonical_release_sources() -> None:
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     automation = (ROOT / "docs" / "RELEASE_AUTOMATION.md").read_text(encoding="utf-8")
