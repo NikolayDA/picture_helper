@@ -1304,6 +1304,12 @@ die Kopie mit; sonst bleibt `make check` grün und die Doku still falsch:
   `license-check.yml` gegen die „Stand:"-Zeile, die
   `scripts/generate_license_report.py` tatsächlich schreibt (inkl. Rückfall
   unter `pipefail`).
+- `tests/test_anleitung_pdf_sync.py` (#974): das von Hand erzeugte
+  `ANLEITUNG.pdf` gegen `ANLEITUNG.md` **und** `scripts/generate_anleitung_pdf.py`
+  – geprüft über die Mitänderung in der Git-Historie, nicht über Bytes (der
+  WeasyPrint-Bau ist nicht deterministisch, und das `docs`-Extra bleibt
+  bewusst aus jedem CI-Pfad). In einem flachen Klon ohne Aussage wird
+  sichtbar übersprungen; die PR-CI prüft mit `fetch-depth: 0` immer.
 - `tests/test_process_documentation.py`: den Ein-Review-Trigger von
   `claude-code-review.yml` gegen seine sechs Doku-Stellen und die
   Quellworkflow-Liste des Live-Checks gegen ihre drei.
