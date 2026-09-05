@@ -134,7 +134,8 @@ Die vollständigen SHA-256-Werte stehen zusätzlich in `projects.json`.
   benötigte einen Lauf außerhalb der Sandbox. Shellcheck lokal nicht
   installiert; die CI übernimmt das Shell-Lint.
 - `make PYTHON=<bestehende-venv>/bin/python release-freeze-check`:
-  0 Fehler, 0 Warnungen; bestehende Pfadpolicy 15 unverändert.
+  0 Fehler, 0 Warnungen nach Aufnahme dieses Protokolls als exakter neutraler
+  Dokumentpfad in Pfadpolicy 16; bestehende Regeln unverändert.
 - `python scripts/prepare_eufymake_a4_layouts.py --check`: alle 13 nativen
   Projektbindungen, Quellen, Geometrien, Träger, Vorschauen und Manifeste gültig.
 - Unabhängiger Vergleich mit den Reparaturquellen: exakt 37 Änderungen von
