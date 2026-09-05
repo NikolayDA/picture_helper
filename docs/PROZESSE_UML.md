@@ -453,6 +453,7 @@ flowchart TD
     SQ1{"Freeze konsistent?"}
     S2F["Pfadklassifikation oder Doku per PR korrigieren<br/>zurück zu Schritt 1, nicht taggen"]
     S3R["Runner-Umgebung oder Infrastruktur außerhalb des Repos beheben<br/>Kandidatenlauf ab Schritt 3 auf demselben SHA; muss der Fix im ausgeführten Kandidatenstand wirksam werden, entsteht ein neuer Kandidat ab Schritt 1"]
+    H5R["Reinen Runnerfehler beheben<br/>Runner offline, Watchdog-Abbruch (#915) oder Action-Download mit 429 hinter der Heim-IP (Archiv-Cache, RELEASE_AUTOMATION §2.3)<br/>Behebung liegt außerhalb des Kandidatenstands: Abnahme mit derselben Kandidaten-Run-ID wiederholen, keine Plattform als PASS markieren"]
     S3["Schritt 3 · Kandidatenbau starten<br/>verify-release-ref, dann gh workflow run release-linux.yml --ref RELEASE_REF -f with_ai=true"]
     S4["Schritt 4 · Kandidatenartefakte und Sicherheitsbefunde vorprüfen<br/>Build-Container, Freeze-Provenienz und Logs; noch kein Kandidatenvertrag"]
     SQ2{"Artefakte plausibel und kein Malware-Fund?"}
@@ -506,7 +507,8 @@ flowchart TD
   HF --> H4 --> HJ
   HF -->|"nur mit runner-retired-Label; Preflight und Abnahme-Job der Plattform entfallen"| H4R --> HJ
   HJ --> H5 --> HQ
-  HQ -->|"nein · ausgetragen oder fehlend, create-approval schreibt kein Manifest"| NOGO
+  HQ -->|"nein · Plattform ausgetragen, create-approval schreibt kein Manifest"| NOGO
+  HQ -->|"nein · Evidenz fehlt oder Lauf abgebrochen durch reinen Runnerfehler"| H5R --> H0
   HQ -->|"ja"| H6 --> S6 --> SQ3
   SQ3 -->|"nein"| NOGO
   SQ3 -->|"ja"| WEITER(("weiter in 4b")):::terminal
@@ -643,6 +645,20 @@ flowchart TD
   (etwa das Wiederherstellen einer Workflow-Datei auf `main`, damit
   `workflow_dispatch` auslöst), lässt den Kandidaten dagegen gültig.
   Inhaltliche Befunde am Kandidaten führen immer auf Schritt 1 zurück.
+- Auch ein roter Schritt 5 verwirft den Kandidaten nicht immer: Nach einem
+  reinen Runnerfehler — Runner offline, Watchdog-Abbruch nach zehn Minuten
+  ohne Runner-Zuweisung (#915) oder ein Action-Download, den
+  `codeload.github.com` hinter der Heim-IP der Self-hosted Runner mit
+  HTTP 429 ablehnt — darf die Abnahme mit **derselben** Kandidaten-Run-ID
+  erneut laufen (Runbook Schritt 5 und 6, Wiederanlaufmatrix); der
+  Kandidat und seine Artefakte bleiben gültig, weil die Behebung außerhalb
+  des Kandidatenstands liegt. Für den 429-Fall ist der rein lesende
+  Action-Archiv-Cache des Runners die dokumentierte Abhilfe
+  ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §2.3). Eine fehlende
+  Plattform darf dabei nie als `PASS` eingetragen werden; fachliche
+  Hardware-Befunde (`FAIL`) führen weiterhin auf Schritt 1 zurück. Ein
+  fehlgeschlagener Post-Release-Update-Nachweis (4b) bleibt davon
+  unberührt ein Incident und wird nie automatisch wiederholt.
 - Seit #958 kann jede der drei Plattformen per Heartbeat-Eskalation (Stufe 3
   nach 21 Tagen offline; Stufen 7/12/21 Tage mit Owner-Erwähnung) automatisch
   ausgetragen sein — anders als der bewusst pausierte x86_64-Pfad trifft das
