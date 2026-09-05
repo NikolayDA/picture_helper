@@ -9,7 +9,7 @@
   "print_blocked": null,
   "substrate": null,
   "carrier": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08_A4_Beschriftung.png",
-  "carrier_sha256": "418a061972665ddc33d826f7e5246c864dc52f1199c0f07299293734335c535c",
+  "carrier_sha256": "fb0f134653b1e76a6113d05cc41f0b0b6ba3495eb7cdeee7def9d477799aa917",
   "preview": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08_NUR_VORSCHAU.png",
   "notes": [
     "Registriermaske deckungsgleich mit der Farbreferenz; Schachbrett als separates natives Glossfeld."
@@ -95,7 +95,7 @@
     }
   ],
   "project": "eufymake_a4_prints/13_gloss_registrierung_g08/13_gloss_registrierung_g08.empf",
-  "project_sha256": "98fb7dee871a491c3566a6e5144b6c70a9c8a2a2e08f394a6925688ccda71d9b",
+  "project_sha256": "3fd347a980c729e7be100976ac7547c6117f9e6870f143eab4f26b3b51d72890",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",

@@ -11,6 +11,15 @@ die **Sicherheits-/Ablageregeln** aus
 Dokumenten gesprungen werden muss. Bei Widerspruch gelten die beiden
 Quelldokumente.
 
+## Aktueller Vorbereitungsstand 2026-09-05
+
+Option A ist beschlossen: I-10 entfällt physisch; die Zeilen 9–10 sind nicht
+mehr ausstehend, sondern nicht anwendbar. Plätze 9–10 bleiben unzugeordnet.
+Die Vorbereitung einschließlich Vorschau ist vom aktuellen Auftrag umfasst.
+Die finale Druckbereitschaft hängt weiterhin von Gerätestatus, Material und
+Messmitteln ab. Details und Prüfnachweise:
+[`EUFYMAKE-681-VORBEREITUNG-2026-09-05.md`](EUFYMAKE-681-VORBEREITUNG-2026-09-05.md).
+
 ## 0. Einmalig vor dem ersten Testtag
 
 - [ ] Governance-Status geprüft: `EUFYMAKE-687-TESTGOVERNANCE.md` zeigt
@@ -65,7 +74,7 @@ Quelldokumente.
       Unterordner `…/<Issue>/<Zelle>/studio/` im iCloud-Ordner für
       Screenshots und gespeicherte Studio-Projekte (Governance §3 und der
       vorbereitete Nachtrag in Governance Abschnitt 5).
-- [ ] **Owner-Entscheidung I-10/G-02** getroffen und als Freigabe-Vermerk in
+- [x] **Owner-Entscheidung I-10/G-02** getroffen (2026-09-05: Option A) und als Freigabe-Vermerk in
       Governance §4 eingetragen (siehe Abschnitt 5 dieser Checkliste); bis
       dahin werden die Zeilen 9–10 der Stammvariantentabelle nicht gedruckt.
 
@@ -375,8 +384,8 @@ wiederholen und nicht automatisch jede Variante zweimal drucken.
 | 6 | I-07 | ☐ | ☐ | | ☐ | ☐ |
 | 7 | I-08 (vor Crop) | ☐ | ☐ | | ☐ | ☐ |
 | 8 | I-08 (nach Crop) | ☐ | ☐ | | ☐ | ☐ |
-| 9 | I-10 (normal) – ⛔ gesperrt bis Owner-Entscheidung I-10/G-02 | ☐ | ☐ | | ☐ | ☐ |
-| 10 | I-10 (invertiert) – ⛔ gesperrt bis Owner-Entscheidung I-10/G-02 | ☐ | ☐ | | ☐ | ☐ |
+| 9 | I-10 (normal) – entfällt gemäß Option A | — | — | | — | — |
+| 10 | I-10 (invertiert) – entfällt gemäß Option A | — | — | | — | — |
 | 11 | I-11 | ☐ | ☐ | | ☐ | ☐ |
 | 12 | I-13 (Alpha/Coverage) | ☐ | ☐ | | ☐ | ☐ |
 | 13 | I-14 (direkte 128×128-Kontrolle; Referenz I-03 16 Bit) | ☐ | ☐ | | ☐ | ☐ |

@@ -10,7 +10,7 @@
   "print_blocked": null,
   "substrate": null,
   "carrier": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04_A4_Beschriftung.png",
-  "carrier_sha256": "d5b9aae861a8c10da4504959959da478b05db41b95abcc50385858888afbc344",
+  "carrier_sha256": "a87c884519268338138c2cd3b6d2f0984933806e82e15e4d4daf30247ff386ac",
   "preview": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04_NUR_VORSCHAU.png",
   "notes": [
     "Beide Objekte unverändert 90,31 × 90,31 mm; keine automatische Größenanpassung."
@@ -70,7 +70,7 @@
     }
   ],
   "project": "eufymake_a4_prints/01_height_pixelgroesse_i02_i04/01_height_pixelgroesse_i02_i04.empf",
-  "project_sha256": "f30933e44d8ab776ace8816cd7954d402c35a528333d1c28cb8dacce3ea600cd",
+  "project_sha256": "748d245c9fdb5ae0f6b11205ff0f2fee08a73bcf7fd791f5e94640c9c77384bc",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",

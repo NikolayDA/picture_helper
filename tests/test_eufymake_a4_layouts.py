@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import zipfile
 from dataclasses import replace
 from pathlib import Path
 
@@ -85,10 +86,12 @@ def test_readme_table_matches_manifest(manifest: dict) -> None:
     assert f"{free} davon" in text
 
 
-def test_layout_05_is_blocked_until_owner_decision(manifest: dict) -> None:
+def test_layout_05_is_omitted_under_option_a(manifest: dict) -> None:
     blocked = [record["number"] for record in manifest["layouts"] if record["print_blocked"]]
     assert blocked == [5]
-    assert "Owner-Entscheidung" in manifest["layouts"][4]["print_blocked"]
+    assert "Option A" in manifest["layouts"][4]["print_blocked"]
+    assert manifest["layouts"][4]["physical_a4_copies"] == 0
+    assert manifest["layouts"][4]["budget_slots"] == []
     assert any("print_blocked" in warning for warning in manifest["warnings"])
 
 
@@ -327,3 +330,30 @@ def test_write_run_reproduces_committed_outputs_and_keeps_bound_carriers(tmp_pat
                 )
         else:
             assert twin.read_bytes() == path.read_bytes(), path.name
+
+
+@pytest.mark.parametrize("mutation", ["origin", "position", "gloss"])
+def test_native_project_rejects_corrupted_geometry_and_roles(tmp_path: Path, mutation: str) -> None:
+    layout = gen.layouts()[3]
+    projects = gen.load_projects(OUT / gen.PROJECTS_FILENAME)
+    binding = projects.bindings[4]
+    hashes = gen.fixture_hashes(gen.load_json(gen.FIXTURES / gen.FIXTURES_MANIFEST_FILENAME))
+    changed = tmp_path / "changed.empf"
+    with (
+        zipfile.ZipFile(gen.ROOT / binding.project) as source,
+        zipfile.ZipFile(changed, "w") as output,
+    ):
+        for name in source.namelist():
+            data = source.read(name)
+            if name.startswith("Asset/project_file/canvas_"):
+                document = json.loads(data)
+                if mutation == "origin":
+                    document["objects"][0]["originY"] = "left"
+                elif mutation == "position":
+                    document["objects"][0]["top"] += 10
+                else:
+                    document["objects"][2]["subPrintModel"] = 0
+                data = json.dumps(document).encode()
+            output.writestr(name, data)
+    with pytest.raises(ValueError, match="Ursprung|Geometrie|Gloss"):
+        gen.verify_native_project(changed, layout, binding, hashes)

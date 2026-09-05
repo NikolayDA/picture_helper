@@ -10,7 +10,7 @@
   "print_blocked": null,
   "substrate": null,
   "carrier": "eufymake_a4_prints/04_registrierung_crop_i08/04_registrierung_crop_i08_A4_Beschriftung.png",
-  "carrier_sha256": "b88c38553a90ccd8e0c790b8c706330a89f33a1f968f283d686a984c5d266b15",
+  "carrier_sha256": "30526d74d3f3288bf199cf8cb85f825883e28328c972151a6fa2f8f0d8f47792",
   "preview": "eufymake_a4_prints/04_registrierung_crop_i08/04_registrierung_crop_i08_NUR_VORSCHAU.png",
   "notes": [
     "Nach-Crop-COLOR/HEIGHT rechtsbündig im unveränderten 90,31-mm-Glossfeld; X-Versatz 45,45 mm."
@@ -127,7 +127,7 @@
     }
   ],
   "project": "eufymake_a4_prints/04_registrierung_crop_i08/04_registrierung_crop_i08.empf",
-  "project_sha256": "9e246ad5687556941734be5b11d061ab18834437418333763e82b57f185013ef",
+  "project_sha256": "d6ba1003d3645ad0dc59006ea5925a8941f1c2609d5ac11a41433aae293af045",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",

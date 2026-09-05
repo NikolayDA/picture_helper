@@ -9,7 +9,7 @@
   "print_blocked": null,
   "substrate": null,
   "carrier": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07_A4_Beschriftung.png",
-  "carrier_sha256": "79a92b197b64da8844b08d891f1ede42597586264f9098600a573da5580cfafa",
+  "carrier_sha256": "1501c995dcdd540a16aef72d3ced3824fa7b8f70a366cecda8c2d8df7099010b",
   "preview": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07_NUR_VORSCHAU.png",
   "notes": [
     "Color Raised 2,50 mm und Gloss Varnish × 1; beide Objekte exakt deckungsgleich."
@@ -69,7 +69,7 @@
     }
   ],
   "project": "eufymake_a4_prints/12_gloss_height_g07/12_gloss_height_g07.empf",
-  "project_sha256": "7ea3b7d310336af469543ead6c2430ee25385e82d407b30d732a495f72801752",
+  "project_sha256": "79f78c3b88c82a321aaa2b570e42196be0b6b93c0a9c63a7b1089a54710ae079",
   "project_layers": [
     {
       "name": "A4 Beschriftung und Eckmarken",

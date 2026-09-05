@@ -41,11 +41,14 @@ Studio-Koordinaten der Projekte zu entkoppeln.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import io
 import json
+import math
 import re
 import sys
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -239,10 +242,9 @@ NON_WHITE_SUBSTRATE = (
     "Karton 03 (I-13) und Karton 11 (G-06)"
 )
 I10_BLOCK_REASON = (
-    "Owner-Entscheidung I-10 gegen G-02 steht aus (TESTGOVERNANCE §5.3, "
-    "Druck-Checkliste §0): Option A streicht I-10 physisch; Option B verlangt den "
-    "Spot-UV-Zweipass (Pfad 2) statt des hier gebauten nativen Gloss-Varnish-Pfads. "
-    "Nicht drucken, bis der Freigabe-Vermerk in Governance §4 vorliegt."
+    "Option A im delegierten Owner-Auftrag vom 2026-09-05 (TESTGOVERNANCE): "
+    "I-10 entfällt physisch; G-02 prüft beide Polaritäten mit je zwei unabhängigen Läufen. "
+    "Projekt 05 bleibt gesperrt; Budgetplätze 9–10 bleiben unzugeordnet."
 )
 
 
@@ -412,8 +414,8 @@ def layouts() -> list[Layout]:
             5,
             "gloss_polaritaet_i10",
             "I-10 – Gloss-Polarität",
-            ["I-10 normal Lauf 1", "I-10 invertiert Lauf 1"],
-            1,
+            [],
+            0,
             [
                 obj(
                     "I-10 · normal", "gloss_wedge.png", "GLOSS", x1, y_mid, ink="Gloss Varnish × 1"
@@ -428,7 +430,7 @@ def layouts() -> list[Layout]:
                 ),
             ],
             [
-                "Gesperrt: Projekt 05 nutzt den nativen Gloss-Varnish-Pfad; unter Option B wäre I-10 dem Zweipass zuzuordnen und das Projekt neu aufzubauen."
+                "Option A vom 2026-09-05: I-10 entfällt physisch; dieses historische Projekt nicht drucken."
             ],
             print_blocked=I10_BLOCK_REASON,
         ),
@@ -800,6 +802,7 @@ class ProjectBinding:
     project_sha256: str
     carrier_sha256: str
     layers: tuple[dict[str, str], ...]
+    thumbnail_sha256: str
 
 
 @dataclass(frozen=True)
@@ -818,7 +821,7 @@ def _binding_from(raw: object, index: int) -> ProjectBinding:
     project = raw.get("project")
     if not isinstance(project, str) or not project.endswith(".empf"):
         raise PreparationError(f"projects.json: Layout {number:02d} ohne .empf-Pfad")
-    for key in ("project_sha256", "carrier_sha256"):
+    for key in ("project_sha256", "carrier_sha256", "thumbnail_sha256"):
         value = raw.get(key)
         if not isinstance(value, str) or not _HEX64.match(value):
             raise PreparationError(
@@ -840,7 +843,12 @@ def _binding_from(raw: object, index: int) -> ProjectBinding:
             )
         layers.append({"name": layer["name"], "role": layer["role"]})
     return ProjectBinding(
-        number, project, raw["project_sha256"], raw["carrier_sha256"], tuple(layers)
+        number,
+        project,
+        raw["project_sha256"],
+        raw["carrier_sha256"],
+        tuple(layers),
+        raw["thumbnail_sha256"],
     )
 
 
@@ -956,6 +964,125 @@ def verify_bindings(
                 ".empf in Studio neu aufbauen und projects.json nachziehen"
             )
     return errors
+
+
+def verify_native_project(
+    path: Path, layout: Layout, binding: ProjectBinding, source_hashes: dict[str, str]
+) -> None:
+    """Native Ebenen statt ausschließlich eines äußeren Prüfsummenvermerks prüfen."""
+    with zipfile.ZipFile(path) as archive:
+        canvases = [
+            name
+            for name in archive.namelist()
+            if name.startswith("Asset/project_file/canvas_") and name.endswith(".json")
+        ]
+        if len(canvases) != 1:
+            raise ValueError("Genau ein nativer Canvas erforderlich")
+        metadata = json.loads(archive.read("Metadata/project_info.json"))
+        print_params = json.loads(metadata["canvases"][0]["print_param"])
+        if (print_params["format_size_w"], print_params["format_size_h"]) != EMPF_CANVAS_MM:
+            raise ValueError("Native Flatbed-Fläche weicht ab")
+        document = json.loads(archive.read(canvases[0]))
+        objects = document["objects"]
+        if len(objects) != len(layout.objects) + 1:
+            raise ValueError("Native Ebenenzahl weicht ab")
+        hashes: set[str] = set()
+
+        def collect(value: Any) -> None:
+            if isinstance(value, dict):
+                for child in value.values():
+                    collect(child)
+            elif isinstance(value, list):
+                for child in value:
+                    collect(child)
+            elif isinstance(value, str) and value.startswith("data:") and ";base64," in value:
+                hashes.add(
+                    sha256_bytes(base64.b64decode(value.split(";base64,", 1)[1], validate=True))
+                )
+
+        collect(document)
+        required = {
+            binding.carrier_sha256,
+            *(source_hashes[source] for source in referenced_sources([layout])),
+        }
+        if not required <= hashes:
+            raise ValueError("Native eingebettete Quellen oder Beschriftung weichen ab")
+        if sha256_bytes(archive.read("Asset/images/thumbnail.png")) != binding.thumbnail_sha256:
+            raise ValueError("Native Vorschau weicht ab")
+        for index, native in enumerate(objects):
+            if native.get("originX") not in ("left", "center", "right") or native.get(
+                "originY"
+            ) not in ("top", "center", "bottom"):
+                raise ValueError("Ungültiger nativer Ursprung: originX/originY")
+            values = [
+                native[key]
+                for key in ("left", "top", "width", "height", "scaleX", "scaleY", "angle")
+            ]
+            if not all(
+                isinstance(value, (int, float)) and math.isfinite(value) for value in values
+            ):
+                raise ValueError("Nicht endliche native Geometrie")
+            width = native["width"] * native["scaleX"] * 0.508
+            height = native["height"] * native["scaleY"] * 0.508
+            x = (
+                native["left"] * 0.508
+                - {"left": 0, "center": 0.5, "right": 1}[native["originX"]] * width
+            )
+            y = (
+                native["top"] * 0.508
+                - {"top": 0, "center": 0.5, "bottom": 1}[native["originY"]] * height
+            )
+            if index == 0:
+                carrier_hash = sha256_bytes(
+                    base64.b64decode(native["src"].split(";base64,", 1)[1], validate=True)
+                )
+                if carrier_hash != binding.carrier_sha256:
+                    raise ValueError(
+                        "Nativer Beschriftungsträger ist der falschen Ebene zugewiesen"
+                    )
+                expected = (A4_ORIGIN_MM[0], A4_ORIGIN_MM[1], A4_W_MM, A4_H_MM)
+            else:
+                item = layout.objects[index - 1]
+                if (
+                    item.source
+                    and sha256_bytes(
+                        base64.b64decode(native["src"].split(";base64,", 1)[1], validate=True)
+                    )
+                    != source_hashes[item.source]
+                ):
+                    raise ValueError("Native Quelle ist der falschen Ebene zugewiesen")
+                if (
+                    item.height_source
+                    and sha256_bytes(
+                        base64.b64decode(native["grayscale"].split(";base64,", 1)[1], validate=True)
+                    )
+                    != source_hashes[item.height_source]
+                ):
+                    raise ValueError("Native HEIGHT-Quelle ist der falschen Ebene zugewiesen")
+                expected = (
+                    A4_ORIGIN_MM[0] + item.x_mm,
+                    A4_ORIGIN_MM[1] + item.y_mm,
+                    item.width_mm,
+                    item.height_mm,
+                )
+                if item.role == "GLOSS" and native.get("subPrintModel") != 2:
+                    raise ValueError("Native Gloss-Zuweisung fehlt")
+                if item.height_source and (
+                    not native.get("_isCustomizeTexture") or native.get("thickness") != 2.5
+                ):
+                    raise ValueError("Native HEIGHT-Zuweisung oder Texturhöhe weicht ab")
+            if (
+                any(
+                    abs(actual - wanted) > 0.02
+                    for actual, wanted in zip((x, y, width, height), expected, strict=True)
+                )
+                or native["angle"] != 0
+            ):
+                raise ValueError(
+                    f"Native Geometrie weicht ab: Layout {layout.number:02d}, Ebene {index}: {(x, y, width, height)} statt {expected}"
+                )
+            if native.get("_layerNameCus") != binding.layers[index]["name"]:
+                raise ValueError("Native Ebenenbezeichnung weicht ab")
 
 
 # ── Beschriftungsträger ───────────────────────────────────────────────────
@@ -1288,7 +1415,9 @@ def build_manifest(
             "Vorschau-PNGs sind Platzierungshilfen und ersetzen KEINE nativen Fixture-Objekte.",
             "HEIGHT- oder GLOSS-Objekte nicht reduzieren.",
             "Beim bloßen Vorbereiten oder Prüfen weder Preview noch Print auslösen.",
-            "Layouts mit print_blocked werden bis zum Freigabe-Vermerk nicht gedruckt.",
+            "Layouts mit print_blocked werden nicht gedruckt; I-10 entfällt gemäß Option A.",
+            "Druckfreigabe aller aktiven Layouts offen: Gerät, Gloss-Material und Messmittel klären "
+            "(docs/history/EUFYMAKE-681-VORBEREITUNG-2026-09-05.md).",
         ],
         "project_format": projects.project_format,
         "layouts": records,
@@ -1327,6 +1456,16 @@ def run(
             allow_missing=mode == "rebuild",
         )
     )
+    if errors:
+        raise PreparationError("\n".join(errors))
+    for layout in all_layouts:
+        binding = projects.bindings.get(layout.number)
+        if binding is None:
+            continue
+        try:
+            verify_native_project(project_path_for(layout, out_dir), layout, binding, hashes)
+        except (ValueError, KeyError, TypeError, IndexError, zipfile.BadZipFile) as exc:
+            errors.append(f"Layout {layout.stem}: nativer Projektcontainer ungültig: {exc}")
     if errors:
         raise PreparationError("\n".join(errors))
     log(f"[a4-layouts] ok: {len(hashes)} Quelldateien gegen {FIXTURES_MANIFEST_FILENAME} geprüft")
