@@ -452,7 +452,7 @@ flowchart TD
     S2["Schritt 2 · Kandidatenstand einfrieren<br/>scripts/verify_release_freeze.py, Laufkopf ist der Kandidat<br/>Release-Ref release/vX.Y.Z anlegen, anlege-only, Ruleset prüfen"]
     SQ1{"Freeze konsistent?"}
     S2F["Pfadklassifikation oder Doku per PR korrigieren<br/>zurück zu Schritt 1, nicht taggen"]
-    S3R["Runner-Umgebung oder Infrastruktur außerhalb des Repos beheben<br/>Kandidatenlauf ab Schritt 3 auf demselben SHA; braucht der Fix einen Repo-Commit, entsteht ein neuer Kandidat ab Schritt 1"]
+    S3R["Runner-Umgebung oder Infrastruktur außerhalb des Repos beheben<br/>Kandidatenlauf ab Schritt 3 auf demselben SHA; muss der Fix im ausgeführten Kandidatenstand wirksam werden, entsteht ein neuer Kandidat ab Schritt 1"]
     S3["Schritt 3 · Kandidatenbau starten<br/>verify-release-ref, dann gh workflow run release-linux.yml --ref RELEASE_REF -f with_ai=true"]
     S4["Schritt 4 · Kandidatenartefakte und Sicherheitsbefunde vorprüfen<br/>Build-Container, Freeze-Provenienz und Logs; noch kein Kandidatenvertrag"]
     SQ2{"Artefakte plausibel und kein Malware-Fund?"}
@@ -633,12 +633,16 @@ flowchart TD
   Verdikt `FAIL`, #944), an einem Ausfall der Build-Infrastruktur oder am
   leeren ClamAV-Signaturcache, sieht die Wiederanlaufmatrix des Runbooks den
   Kandidatenlauf ab Schritt 3 auf demselben SHA vor. Das trägt nur, solange
-  die Behebung außerhalb des Repositorys liegt (Runner-Umgebung,
-  Infrastruktur, Signaturcache): Der Lauf führt die Workflow-Definition des
-  Release-Refs aus, ein per PR gemergter Fix wirkt auf demselben SHA also
-  nicht — braucht die Ursache einen Repo-Commit, entsteht ein neuer Kandidat
-  ab Schritt 1. Inhaltliche Befunde am Kandidaten führen immer auf
-  Schritt 1 zurück.
+  die Behebung außerhalb des ausgeführten Kandidatenstands liegt (typisch:
+  Runner-Umgebung, Infrastruktur, Signaturcache): Der Lauf führt die
+  Workflow-Definition des Release-Refs aus, ein per PR gemergter Fix wirkt
+  auf demselben SHA also nicht — muss die Behebung in der ausgeführten
+  Definition oder in den Build-Eingaben wirksam werden (Workflow-Logik,
+  Packaging-Skript, Scanner, Policy), entsteht ein neuer Kandidat ab
+  Schritt 1. Ein Repo-Commit, der den ausgeführten Stand nicht berührt
+  (etwa das Wiederherstellen einer Workflow-Datei auf `main`, damit
+  `workflow_dispatch` auslöst), lässt den Kandidaten dagegen gültig.
+  Inhaltliche Befunde am Kandidaten führen immer auf Schritt 1 zurück.
 - Seit #958 kann jede der drei Plattformen per Heartbeat-Eskalation (Stufe 3
   nach 21 Tagen offline; Stufen 7/12/21 Tage mit Owner-Erwähnung) automatisch
   ausgetragen sein — anders als der bewusst pausierte x86_64-Pfad trifft das

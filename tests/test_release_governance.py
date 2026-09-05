@@ -328,6 +328,78 @@ def test_recovery_matrix_records_that_main_no_longer_burns_the_candidate() -> No
     assert "nachschieben" in matrix.lower()
 
 
+# Formulierungen, mit denen die Matrix einen Wiederanlauf auf dem unveraenderten
+# Kandidaten bzw. eine Behebung im Repository ausdrueckt. Beide Listen sind
+# bewusst breit: Der Waechter prueft die Regel, nicht eine Wortwahl.
+_SAME_SHA_MARKERS = ("demselben SHA", "denselben Dispatch")
+_REPO_FIX_MARKERS = ("per PR", "Fix-PR", "Pull Request", "per Merge", "gemergt")
+# Begruendete Ausnahmen: Stoerungs-Praefix -> Phrase, die in der Spalte
+# „Zulaessiger Wiederanlauf" stehen muss, damit die Kopplung erlaubt ist.
+_SAME_SHA_REPO_FIX_EXCEPTIONS = {
+    # Die Zelle verzweigt nach Ursache; der Repo-Fix-Pfad fuehrt ausdruecklich
+    # auf einen neuen Kandidaten.
+    "Artefakt lässt sich im Security-Scan nicht entpacken": "neuer Kandidat ab Schritt 1",
+    # Der Repo-Commit stellt nur die Ausloesbarkeit auf dem Default-Branch her;
+    # ausgefuehrt wird weiterhin die unveraenderte Definition aus $RELEASE_REF.
+    "Merge nach `main` entfernt oder benennt": "denselben Dispatch auf `$RELEASE_REF`",
+}
+
+
+def _same_sha_after_repo_fix(rows: list[str]) -> list[str]:
+    """Liefert Matrixzeilen, deren zulaessiger Wiederanlauf Same-SHA und Repo-Fix
+    koppeln, ohne dass eine der begruendeten Ausnahmen greift."""
+    offending = []
+    for row in rows:
+        cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
+        assert len(cells) == 3, f"keine dreispaltige Matrixzeile: {row}"
+        disruption, allowed = cells[0], cells[1]
+        same_sha = any(marker in allowed for marker in _SAME_SHA_MARKERS)
+        repo_fix = any(marker in allowed for marker in _REPO_FIX_MARKERS)
+        if not (same_sha and repo_fix):
+            continue
+        excused = any(
+            disruption.startswith(prefix) and phrase in allowed
+            for prefix, phrase in _SAME_SHA_REPO_FIX_EXCEPTIONS.items()
+        )
+        if not excused:
+            offending.append(row)
+    return offending
+
+
+def test_recovery_matrix_never_pairs_same_sha_restart_with_repo_fix() -> None:
+    """Ein per PR gemergter Fix wirkt auf dem unveraenderten Kandidaten-SHA nicht:
+    Jeder Dispatch fuehrt die Workflow-Definition des Release-Refs aus (#918).
+    Eine Matrixzeile, die als zulaessigen Wiederanlauf „per PR beheben" und
+    „auf demselben SHA" kombiniert, wiederholte also den urspruenglichen Fehler
+    (Codex-Review zu #985, Zeile zu #944). Das Prinzip steht vor der Tabelle,
+    und keine Zeile darf es ohne begruendete Ausnahme unterlaufen.
+    """
+    after_heading = RUNBOOK.split("## Wiederanlaufmatrix", maxsplit=1)[1]
+    # Ohne den Folgeanker liefe die Extraktion bis in den Aenderungsverlauf.
+    assert "## Eskalation und Waiver" in after_heading
+    matrix = after_heading.split("## Eskalation und Waiver", 1)[0]
+    assert "außerhalb des Repositorys" in matrix
+    assert "$RELEASE_REF" in matrix
+    rows = [line for line in matrix.splitlines() if line.startswith("| ") and "---" not in line]
+    assert rows[0].startswith("| Störung |")
+    assert len(rows) > 10
+    assert not _same_sha_after_repo_fix(rows[1:])
+    # Beide Ausnahmen muessen real in der Tabelle vorkommen, sonst sind sie tot.
+    for prefix in _SAME_SHA_REPO_FIX_EXCEPTIONS:
+        assert any(row.strip("| ").startswith(prefix) for row in rows[1:]), prefix
+    # Negativkontrollen ueber denselben Helfer: die fruehere Zeile zu #944 und
+    # eine Umformulierung mit anderem Repo-Fix-Marker fallen beide durch.
+    stale_rows = [
+        "| Artefakt lässt sich im Security-Scan nicht entpacken (#944) "
+        "| Ursache in Werkzeug oder Runner-Umgebung per PR beheben, danach "
+        "Kandidatenlauf ab Schritt 3 auf demselben SHA "
+        "| den `--logs-only`-Ersatzbericht als Scan-Ergebnis werten |",
+        "| Irgendeine Störung | Ursache per Fix-PR beheben, danach ab Schritt 3 "
+        "auf demselben SHA | nichts |",
+    ]
+    assert _same_sha_after_repo_fix(stale_rows) == stale_rows
+
+
 def test_secondary_docs_only_point_to_canonical_release_sources() -> None:
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     automation = (ROOT / "docs" / "RELEASE_AUTOMATION.md").read_text(encoding="utf-8")
