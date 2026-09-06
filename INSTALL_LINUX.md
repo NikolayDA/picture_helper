@@ -57,6 +57,15 @@ Release-Downloads, siehe oben). Die folgenden venv-/Git-Anleitungen bleiben
 wichtig, wenn du aus `main`, aus einem Feature-Branch oder mit lokalen
 Änderungen testen willst.
 
+> **Systemanforderung der Artefakte (ab der nächsten Version):** Das
+> gebündelte Qt verlangt eine neuere glibc als bisher, auf **beiden**
+> Architekturen. Für **aarch64** gilt **glibc 2.39**, also Raspberry Pi OS
+> „Trixie" (Debian 13) oder neuer. Für **x86_64** gilt **glibc 2.34**, also
+> Debian 12, Ubuntu 22.04, RHEL 9 oder neuer; ältere Stände wie Debian 11,
+> Ubuntu 20.04 und RHEL 8 fallen damit weg. Das `.deb` deklariert die Grenze
+> und verweigert die Installation, statt erst beim Start zu scheitern. Auf zu
+> alten Systemen bleibt der apt-/venv-Weg weiter unten.
+
 ## Voraussetzungen
 
 > **Raspberry Pi OS (Desktop)?** Dann den deutlich einfacheren Weg

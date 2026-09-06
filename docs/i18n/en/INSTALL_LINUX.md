@@ -57,6 +57,15 @@ release downloads, see above). The venv/Git instructions below remain useful
 when you want to test from `main`, from a feature branch, or with local
 changes.
 
+> **System requirement of the artifacts (from the next release):** The
+> bundled Qt requires a newer glibc than before, on **both** architectures.
+> For **aarch64** that is **glibc 2.39**, i.e. Raspberry Pi OS "Trixie"
+> (Debian 13) or newer. For **x86_64** it is **glibc 2.34**, i.e. Debian 12,
+> Ubuntu 22.04, RHEL 9 or newer; older systems such as Debian 11,
+> Ubuntu 20.04 and RHEL 8 drop out. The `.deb` declares the bound and
+> refuses to install rather than failing at startup. On systems that are too
+> old, the apt/venv path below remains.
+
 ## Requirements
 
 > **Raspberry Pi OS (Desktop)?** Then take the much simpler path

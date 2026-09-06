@@ -47,7 +47,7 @@ BgRemover ist ein lokales Desktop-Tool ohne Netzwerkdienst, Nutzerdatenbank oder
 |-------|---------|-------|
 | **CodeQL** (`.github/workflows/codeql.yml`) | automatisch: Push/PR auf `main`, wöchentlich, `workflow_dispatch` | Deterministische SAST-Grundabdeckung für Python (Standard-Query-Suite), GitHub-nativ über den *Security*-Tab, unabhängig von externer API-Quota. |
 | **Codex Security Scan** (`.github/codex/`, `.github/workflows/codex-security-scan.yml`) | **ausschließlich manuell** über `workflow_dispatch` | Repo-spezifische, semantische Prüfung (Bild-/Projektdatei-Grenzen, Pfad-/Temp-Verhalten, Worker-/Prozessgrenzen, Packaging-/Release-/CI-Vertrauensgrenzen). Kein Zeitplan, kein automatischer Lauf bei Push/PR – abhängig von einem gültigen `OPENAI_API_KEY` und dessen Quota (separater Betriebs-Tracker: #245). |
-| **pip-audit** (`dependency-audit.yml`) | PR + wöchentlich | Bekannte CVEs im gepinnten Abhängigkeits-Snapshot (`requirements/constraints.txt`). |
+| **pip-audit** (`dependency-audit.yml`) | PR + wöchentlich | Bekannte CVEs im gepinnten Abhängigkeits-Snapshot (`requirements/constraints.txt`). **Grenze (#994):** Der Abgleich läuft gegen PyPI-Distributionen. Qt-Schwachstellen werden gegen *Qt* gemeldet, nicht gegen die Distribution `PyQt6-Qt6`, die es mitliefert – ein grüner Lauf sagt deshalb nichts über das gebündelte Qt aus. Dessen Stand wird beim Anheben des Pins von Hand geprüft und im Kommentarblock von `requirements/constraints.txt` festgehalten. |
 | **Lizenzprüfung** (`license-check.yml`) | PR | Inventar-/Lizenz-Drift der Abhängigkeiten. |
 | **CI-Matrix** (`ci.yml`/`pr-ci.yml`) | PR | Qualität/Funktion (Lint, Typecheck, Tests) – ersetzt keine Quellcode-Sicherheitsanalyse. |
 
@@ -57,4 +57,4 @@ und Branch-Protection-Abwägung ist dokumentiert in
 
 ## Abhängigkeiten
 
-Bekannte CVEs in Abhängigkeiten werden in `pyproject.toml` durch Mindestversions-Pins ausgeschlossen und im CHANGELOG dokumentiert. Bitte melde schwerwiegende, noch nicht gepinnte CVEs ebenfalls über den oben beschriebenen vertraulichen Weg.
+Bekannte CVEs in Abhängigkeiten werden über die exakten Pins in `requirements/constraints.txt` ausgeschlossen und im CHANGELOG dokumentiert; `pyproject.toml` führt nur die weiten Mindestversionsbereiche. Wo ein Pin wissentlich eine offene Schwachstelle trägt, steht die Begründung als Kommentarblock direkt über der betroffenen Zeile in `constraints.txt`. Bitte melde schwerwiegende, noch nicht gepinnte CVEs ebenfalls über den oben beschriebenen vertraulichen Weg.

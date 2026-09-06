@@ -6,6 +6,7 @@ import subprocess
 import sys
 import urllib.error
 from pathlib import Path
+from platform import machine as _machine
 
 import pytest
 
@@ -630,7 +631,71 @@ def test_run_preflight_wires_the_probe_note_through(
     notes: dict[str, str] = {}
     values = dict(preflight.run_preflight("linux-arm64", notes=notes))
     assert values["qt-gl"] is None
-    assert notes == {"qt-gl": "Broadcom / V3D 7.1.10.2 / 3.1 Mesa"}
+    assert notes["qt-gl"] == "Broadcom / V3D 7.1.10.2 / 3.1 Mesa"
+    assert set(notes) == {"qt-gl"}
+
+
+def test_platform_provenance_names_system_libc_and_architecture() -> None:
+    """Die Provenienzzeile traegt genau die Angaben, an denen die glibc-
+    Untergrenze der gebuendelten Qt-Wheels haengt (#994)."""
+    text = preflight.platform_provenance()
+    assert text and " / " in text
+    assert _machine() in text
+    if sys.platform != "darwin":
+        # Auf Linux muss die C-Bibliothek benannt sein – ohne sie beantwortet
+        # die Zeile die Frage nicht, fuer die sie eingefuehrt wurde.
+        assert "libc" in text.lower()
+
+
+@pytest.mark.parametrize("fehler", [OSError("nicht lesbar"), UnicodeDecodeError(
+    "utf-8", b"\xff", 0, 1, "invalid start byte")])
+def test_platform_provenance_survives_an_unreadable_os_release(
+    monkeypatch: pytest.MonkeyPatch, fehler: Exception,
+) -> None:
+    """Fail-open, auch jenseits von OSError (Review PR #999).
+
+    ``read_text`` wirft bei nicht-UTF-8-Bytes einen ``UnicodeDecodeError``,
+    der kein ``OSError`` ist. Die Zeile ist rein informativ und darf einen
+    sonst gueltigen Nachweislauf nie mit einem Traceback beenden.
+    """
+    real_read = Path.read_text
+
+    def _boom(self: Path, *a: object, **kw: object) -> str:
+        if str(self) == "/etc/os-release":
+            raise fehler
+        return real_read(self, *a, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(Path, "read_text", _boom)
+    assert preflight.platform_provenance()
+
+
+def test_platform_provenance_never_raises_even_if_everything_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Der Docstring sagt "wirft nie" - das muss auch fuer den Rumpf gelten."""
+    monkeypatch.setattr(
+        preflight, "_platform_provenance",
+        lambda: (_ for _ in ()).throw(RuntimeError("kaputt")),
+    )
+    text = preflight.platform_provenance()
+    assert "nicht ermittelbar" in text and "RuntimeError" in text
+
+
+def test_preflight_prints_the_system_line_even_when_a_check_fails(
+    hermetic_preflight: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Review PR #999: Der Systemstand darf nicht am Bestehen eines Checks haengen.
+
+    Gebraucht wird er gerade dann, wenn ein Check kippt - "der Pi laeuft noch
+    auf Bookworm" ist genau dieser Fall, und RUNNER_SETUP.md nennt die Zeile
+    als Weg, den Stand eines Geraets festzustellen.
+    """
+    monkeypatch.setattr(preflight, "check_python", lambda: "Python zu alt")
+    code = preflight.main(["--platform", "linux-arm64"])
+    out = capsys.readouterr().out
+    assert code == 1, "der Fehlschlag muss weiterhin durchschlagen"
+    assert "[preflight] system: " in out
+    assert preflight.platform_provenance() in out
 
 
 def test_run_preflight_includes_deb_sudo_only_on_linux(hermetic_preflight: None) -> None:

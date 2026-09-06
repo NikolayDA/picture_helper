@@ -30,6 +30,7 @@ import getpass
 import hashlib
 import json
 import os
+import platform
 import plistlib
 import re
 import shutil
@@ -116,6 +117,66 @@ def check_python() -> str | None:
     found = ".".join(str(part) for part in sys.version_info[:3])
     wanted = ".".join(str(part) for part in MIN_PYTHON)
     return f"Python {found} ist zu alt (mindestens {wanted})."
+
+
+def platform_provenance() -> str:
+    """Systemstand als Provenienz: Betriebssystem-Kennung und C-Bibliothek.
+
+    Wird **nicht** bewertet, aber bei jedem gruenen Lauf gedruckt – dieselbe
+    Abwaegung wie bei der GL-Provenienz (#934) und ``laufzeit_herkunft``
+    (#738). Ohne diese Zeile laesst sich hinterher nicht belegen, auf welchem
+    Systemstand ein Nachweis entstanden ist. Genau daran haengt seit #994 die
+    glibc-Untergrenze der gebuendelten Qt-Wheels: Der Stand des Runners war
+    nur ueber den Paketnamen eines Mesa-Treibers im Joblog erschliessbar.
+
+    Wirft nie. Der ganze Rumpf ist abgesichert, nicht nur die offensichtlichen
+    Quellen (Review PR #999): ``read_text`` wirft bei nicht-UTF-8-Bytes einen
+    ``UnicodeDecodeError`` statt eines ``OSError``, und ``platform.libc_ver``
+    faellt intern auf ``open(sys.executable, "rb")`` zurueck. Eine rein
+    informative Zeile darf einen sonst gueltigen Nachweislauf nicht mit einem
+    Traceback beenden.
+    """
+    try:
+        return _platform_provenance()
+    except Exception as exc:  # noqa: BLE001 - nie den Lauf wegen der Zeile verlieren
+        return f"Systemstand nicht ermittelbar ({type(exc).__name__})"
+
+
+def _platform_provenance() -> str:
+    """Rumpf von :func:`platform_provenance`; darf werfen, der Aufrufer faengt."""
+    teile: list[str] = []
+    if sys.platform == "darwin":
+        release = platform.mac_ver()[0]
+        teile.append(f"macOS {release}" if release else "macOS")
+    else:
+        pretty = ""
+        try:
+            # ``errors="replace"``: Ein kaputtes Byte darf die Zeile hoechstens
+            # unleserlich machen, nicht den Aufruf abbrechen.
+            roh = Path("/etc/os-release").read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            roh = ""
+        for zeile in roh.splitlines():
+            if zeile.startswith("PRETTY_NAME="):
+                pretty = zeile.split("=", 1)[1].strip().strip('"')
+                break
+        teile.append(pretty or platform.system() or "unbekannt")
+        try:
+            # ``os.confstr`` liefert "glibc 2.36"; ``platform.libc_ver`` liest
+            # dafuer die Binaerdatei und ist auf manchen Staenden leer.
+            libc = os.confstr("CS_GNU_LIBC_VERSION") or ""
+        except (OSError, ValueError):
+            libc = ""
+        if not libc:
+            try:
+                name, version = platform.libc_ver()
+            except OSError:
+                name, version = "", ""
+            libc = f"{name} {version}".strip()
+        if libc:
+            teile.append(libc)
+    teile.append(platform.machine() or "unbekannte Architektur")
+    return " / ".join(teile)
 
 
 def check_venv() -> str | None:
@@ -753,6 +814,11 @@ def main(argv: list[str] | None = None) -> int:
 
     failures = 0
     notes: dict[str, str] = {}
+    # Unabhaengig von jedem Check ausgeben (Review PR #999): Der Systemstand
+    # steht immer fest, und gebraucht wird er gerade dann, wenn ein Check
+    # kippt - "der Pi laeuft noch auf Bookworm" ist genau so ein Fall. Haenge
+    # er am ``ok``-Zweig eines Checks, fehlte er im interessanten Moment.
+    print(f"[preflight] system: {platform_provenance()}")
     for name, error in run_preflight(
         args.platform, min_free_gb=args.min_free_gb, notes=notes,
     ):

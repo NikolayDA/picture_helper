@@ -329,7 +329,17 @@ def test_deb_build_produces_valid_package(tmp_path) -> None:
     assert "Package: bgremover" in info
     assert f"Version: {_pyproject_version()}" in info
     assert re.search(r"Architecture: (amd64|arm64|armhf)", info)
-    assert "Depends: libfuse2" in info
+    # FUSE bleibt Pflicht (die AppImage braucht es), und seit #994 steht davor
+    # die glibc-Untergrenze der gebuendelten Qt-Wheels. Ohne sie installiert apt
+    # auf einem zu alten System anstandslos und die App stirbt erst beim Start
+    # mit "GLIBC_2.xx not found" - der Fehler, den der Kommentarblock in
+    # requirements/constraints.txt als real beobachtet zitiert.
+    assert re.search(r"Depends: libc6 \(>= \d+\.\d+\), libfuse2", info), info
+    arch = re.search(r"Architecture: (\S+)", info).group(1)
+    libc_min = re.search(r"libc6 \(>= (\d+\.\d+)\)", info).group(1)
+    # Die Werte folgen den manylinux-Tags des Pins: aarch64 kommt als
+    # manylinux_2_39, x86_64 als manylinux_2_34.
+    assert libc_min == {"arm64": "2.39"}.get(arch, "2.34"), (arch, libc_min)
 
     contents = subprocess.run(
         ["dpkg-deb", "--contents", str(debs[0])],
@@ -341,6 +351,45 @@ def test_deb_build_produces_valid_package(tmp_path) -> None:
         f"/usr/share/metainfo/{APP_ID}.metainfo.xml",
     ):
         assert expected in contents, f"missing from .deb: {expected}"
+
+
+def test_deb_libc_floor_matches_the_pinned_qt_wheels() -> None:
+    """Handgepflegte Kopie gegen ihre Quelle (#994, Muster der Drift-Disziplin).
+
+    ``build_deb.sh`` nennt die glibc-Untergrenze je Architektur als Literal.
+    Massgeblich ist aber der manylinux-Tag, mit dem das gepinnte
+    ``PyQt6-Qt6``-Wheel ausgeliefert wird. Ohne diesen Waechter bliebe ein
+    Qt-Bump gruen, waehrend das ``.deb`` eine veraltete Grenze deklariert -
+    und ein Nutzer auf einem zu alten System bekaeme wieder den Absturz beim
+    Start statt einer Absage von apt.
+
+    Netzfrei: Die Zuordnung Pin -> Tag steht als Kommentar im Skript selbst und
+    wird hier gegen die Literale gehalten, nicht gegen PyPI.
+    """
+    txt = BUILD_DEB.read_text(encoding="utf-8")
+    floors = dict(re.findall(r'(x86_64|aarch64|armv7l)\)\s+DEB_ARCH=\S+;'
+                             r'\s+PLATFORM_TAG="[^"]+";\s+LIBC_MIN="([^"]+)"', txt))
+    assert floors == {"x86_64": "2.34", "aarch64": "2.39", "armv7l": "2.34"}, floors
+    # Der Kommentar nennt die tragenden manylinux-Tags; er ist die Begruendung
+    # der Zahlen und darf nicht von ihnen abdriften.
+    assert "manylinux_2_39" in txt and "manylinux_2_34" in txt
+    # Massgeblich ist das Maximum ueber ALLE gebuendelten Wheels, nicht eine
+    # einzelne Distribution (Review PR #999). Das muss der Kommentar sagen,
+    # sonst liest die naechste Person die Regel zu eng und misst nur Qt nach.
+    assert "MAXIMUM" in txt, "Kommentar nennt die Maximum-Regel nicht"
+    # armv7l ist ein geerbter Platzhalter ohne eigene Messung - ohne diesen
+    # Hinweis liest sich die Zahl, als sei auch sie erhoben worden.
+    assert "Platzhalter" in txt, "armv7l-Wert nicht als Platzhalter benannt"
+    constraints = (ROOT / "requirements" / "constraints.txt").read_text(encoding="utf-8")
+    # Beide Qt-Pins bestimmen das Maximum gemeinsam; eine Aenderung an einem
+    # von beiden kann die Grenze verschieben.
+    for pin in (r"^PyQt6==6\.11\.\d+$", r"^PyQt6-Qt6==6\.11\.\d+$"):
+        assert re.search(pin, constraints, re.M), (
+            f"Qt-Pin geaendert ({pin}): manylinux-Tags aller gebuendelten Wheels "
+            "neu vergleichen und LIBC_MIN in packaging/linux/build_deb.sh auf das "
+            "Maximum je Architektur setzen (#994). Netzfrei ist das hier nicht "
+            "pruefbar - die Tags stehen nur auf PyPI."
+        )
 
 
 @pytest.mark.skipif(shutil.which("dpkg-deb") is None, reason="dpkg-deb not available")
