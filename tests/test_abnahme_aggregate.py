@@ -109,7 +109,7 @@ def test_matrix_all_passed(tmp_path: Path) -> None:
     assert by["macos-arm64: Native 3D-E2E (Projekt→HEIGHT→Undo/Save)"] == "erfuellt"
     # x86_64 immer sichtbar als pausiert (kein GPU-Zugang).
     assert any(r.status == "pausiert" and r.kriterium == agg.PAUSED_LABEL for r in rows)
-    assert not agg.has_blocking_gaps(rows)
+    assert not agg.has_technical_gaps(rows)
 
     summary = agg.build_acceptance_summary(rows, commit_sha="abc")
     assert summary["blocking"] is False
@@ -134,7 +134,7 @@ def test_missing_platform_is_gap(tmp_path: Path) -> None:
     rows = agg.build_matrix(agg.load_evidence(tmp_path))
     by = {r.kriterium: r.status for r in rows}
     assert by[agg.EXPECTED_PLATFORMS["macos-arm64"]] == "fehlt"
-    assert agg.has_blocking_gaps(rows)
+    assert agg.has_technical_gaps(rows)
 
 
 def test_loaders_choose_latest_attempt_per_platform(tmp_path: Path) -> None:
@@ -158,7 +158,7 @@ def test_failed_status_maps_and_blocks(tmp_path: Path) -> None:
     rows = agg.build_matrix(agg.load_evidence(tmp_path), e2e=e2e, live_gl=live_gl)
     by = {r.kriterium: r.status for r in rows}
     assert by[agg.EXPECTED_PLATFORMS["macos-arm64"]] == "fehlgeschlagen"
-    assert agg.has_blocking_gaps(rows)
+    assert agg.has_technical_gaps(rows)
 
 
 def test_contract_violation_flags_unbewertet(tmp_path: Path) -> None:
@@ -260,7 +260,7 @@ def test_render_markdown_marks_incomplete_run_as_diagnose(tmp_path: Path) -> Non
     Abnahmeergebnis lesbar sein (Lauf 33071408111)."""
     _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
     rows = agg.build_matrix(agg.load_evidence(tmp_path))
-    assert agg.has_blocking_gaps(rows)
+    assert agg.has_technical_gaps(rows)
     md = agg.render_markdown(rows, commit_sha="deadbeef")
     assert "Abschlussmatrix (Diagnose – kein Abnahmeergebnis)" in md
     assert "Diagnose-Stand, kein Abnahmeergebnis" in md
@@ -283,7 +283,8 @@ def test_render_markdown_vision_advisory_failure_is_not_a_diagnosis(tmp_path: Pa
     rows = agg.build_matrix(
         agg.load_evidence(tmp_path), e2e=e2e, live_gl=live_gl, vision=vision,
     )
-    assert agg.has_blocking_gaps(rows)
+    vision_row = next(r for r in rows if r.kriterium == agg.VISION_LABEL)
+    assert vision_row.status == "fehlgeschlagen"
     assert not agg.has_technical_gaps(rows)
     summary = agg.build_acceptance_summary(rows, commit_sha="abc")
     assert summary["blocking"] is False
@@ -298,7 +299,7 @@ def test_render_markdown_complete_run_has_no_diagnose_marker(tmp_path: Path) -> 
     rows = agg.build_matrix(
         agg.load_evidence(tmp_path), e2e=e2e, live_gl=live_gl,
     )
-    assert not agg.has_blocking_gaps(rows)
+    assert not agg.has_technical_gaps(rows)
     md = agg.render_markdown(rows, commit_sha="deadbeef")
     assert "Diagnose" not in md
     assert md.startswith("## Release-Abnahme – Abschlussmatrix\n")
@@ -375,7 +376,7 @@ def test_render_markdown_contains_new_columns(tmp_path: Path) -> None:
     assert "[Lauf](https://example.invalid/runs/1)" in md
 
 
-def test_vision_verdicts_embedded_and_block(tmp_path: Path) -> None:
+def test_vision_verdicts_embedded_but_advisory(tmp_path: Path) -> None:
     _write(tmp_path, "macos-arm64", _evidence("macos-arm64"))
     _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
     # nicht_erfuellt → Screenshots-Zeile fehlgeschlagen.
@@ -389,7 +390,8 @@ def test_vision_verdicts_embedded_and_block(tmp_path: Path) -> None:
     )
     row = next(r for r in rows if "Vision" in r.kriterium)
     assert row.status == "fehlgeschlagen"
-    assert agg.has_blocking_gaps(rows)
+    # Beratend (#924): der Vision-Fehlschlag ist sichtbar, blockiert aber nicht.
+    assert not agg.has_technical_gaps(rows)
 
 
 def test_vision_row_surfaces_failed_criterion_reasoning() -> None:
@@ -482,7 +484,7 @@ def test_retired_platform_is_visible_and_blocks(tmp_path: Path) -> None:
     # Die aktive Plattform bleibt normal bewertet.
     assert by[agg.EXPECTED_PLATFORMS["linux-arm64"]].status == "erfuellt"
     # Fail-closed: blockierend, Diagnose-Banner, ``retired`` im Fazit.
-    assert agg.has_blocking_gaps(rows) and agg.has_technical_gaps(rows)
+    assert agg.has_technical_gaps(rows)
     summary = agg.build_acceptance_summary(rows, commit_sha="abc", retired=retired)
     assert summary["platforms"] == {
         "macos-arm64": agg.RETIRED_SUMMARY, "linux-arm64": "approved", "linux-x86_64": "paused",

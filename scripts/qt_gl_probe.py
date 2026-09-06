@@ -48,7 +48,12 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-#: Benannte Fehlerzustaende (Reihenfolge = Pruefreihenfolge).
+#: Benannte Fehlerzustaende (Reihenfolge = Pruefreihenfolge) – **die** Quelle
+#: des Stufenvertrags (#992): ``_fail`` nimmt nur diese Namen an, und die
+#: Hinweistabelle ``abnahme_preflight.PROBE_STAGE_HINTS`` wird in
+#: ``tests/test_abnahme_preflight.py`` gegen genau diese Menge gehalten – eine
+#: umbenannte oder ergaenzte Stufe faellt damit im Test auf, nicht erst als
+#: „Qt-/GL-Probe fehlgeschlagen" ohne benannten Befund auf einem Runner.
 STAGES: tuple[str, ...] = ("import", "plugin", "kontext", "renderer")
 
 #: Platform-Plugins einer echten Desktop-Sitzung – und **nur** diese.
@@ -91,6 +96,8 @@ def load_software_renderer_rule() -> Callable[[str], bool]:
 
 
 def _fail(stage: str, detail: str, **extra: Any) -> dict[str, Any]:
+    if stage not in STAGES:  # Programmierfehler der Sonde, kein Laufzeitbefund
+        raise ValueError(f"unbekannte Sonden-Stufe {stage!r}; erlaubt: {STAGES}")
     return {"ok": False, "stage": stage, "detail": detail, **extra}
 
 

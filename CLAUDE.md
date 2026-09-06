@@ -1145,7 +1145,13 @@ schweren Plattform-Job aus.
 `scripts/qt_gl_probe.py` ist die Sonde: eigener Prozess mit
 `QGuiApplication`/`QOffscreenSurface`/`QOpenGLContext`, liest
 Vendor/Renderer/Version und meldet **vier benannte** Stufen (`import`,
-`plugin`, `kontext`, `renderer`) als eine JSON-Zeile. Ein Abbruch **ohne**
+`plugin`, `kontext`, `renderer`) als eine JSON-Zeile. `qt_gl_probe.STAGES`
+ist die Quelle dieses Stufenvertrags (#992): `_fail` nimmt nur diese Namen
+an, und die Hinweistabelle `abnahme_preflight.PROBE_STAGE_HINTS` wird in
+`tests/test_abnahme_preflight.py` gegen genau diese Menge gehalten. Die
+Lückenregel der Abschlussmatrix ist seither allein `has_technical_gaps`
+(`abnahme_aggregate.py`); der strengere Vorgänger `has_blocking_gaps` ohne
+Produktivaufrufer ist entfernt. Ein Abbruch **ohne**
 diese Zeile ist ebenfalls ein Befund: Qt beendet den Prozess bei fehlendem
 Platform-Plugin hart (`qFatal`, real als SIGABRT beobachtet) — der Preflight
 wertet das als `plugin` und hängt die tragenden stderr-Zeilen an. Einen
@@ -1313,6 +1319,9 @@ die Kopie mit; sonst bleibt `make check` grün und die Doku still falsch:
   WeasyPrint-Bau ist nicht deterministisch, und das `docs`-Extra bleibt
   bewusst aus jedem CI-Pfad). In einem flachen Klon ohne Aussage wird
   sichtbar übersprungen; die PR-CI prüft mit `fetch-depth: 0` immer.
+- `tests/test_abnahme_preflight.py`/`tests/test_qt_gl_probe.py` (#992): die
+  Fehlertexte je Sonden-Stufe (`PROBE_STAGE_HINTS`) und die `_fail`-Literale
+  der Sonde gegen `qt_gl_probe.STAGES`, inklusive Prüfreihenfolge.
 - `tests/test_process_documentation.py`: den Ein-Review-Trigger von
   `claude-code-review.yml` gegen seine sechs Doku-Stellen und die
   Quellworkflow-Liste des Live-Checks gegen ihre drei.

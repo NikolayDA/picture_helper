@@ -12,6 +12,7 @@ Zwei Eigenschaften tragen diese Sonde, und beide sind hier festgehalten:
 """
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import re
@@ -84,6 +85,38 @@ def test_the_software_renderer_rule_is_loaded_not_copied() -> None:
     source = (ROOT / "scripts" / "qt_gl_probe.py").read_text(encoding="utf-8")
     for marker in renderer_provenance.SOFTWARE_RENDERER_MARKERS:
         assert marker not in source, f"Marker {marker!r} kopiert statt importiert"
+
+
+def test_every_failure_stage_comes_from_the_declared_contract() -> None:
+    """``STAGES`` ist die Quelle des Stufenvertrags (#992).
+
+    Jedes ``_fail("<stufe>", ...)`` der Sonde nutzt einen deklarierten Namen,
+    die Reihenfolge des ersten Auftretens ist die Pruefreihenfolge, und
+    ``_fail`` selbst weist unbekannte Namen ab. Ohne diesen Waechter bliebe ein
+    Tippfehler still: ``make check`` gruen, der Preflight meldete auf einem
+    kaputten Runner wieder „Qt-/GL-Probe fehlgeschlagen" ohne benannte Stufe.
+    """
+    source = (ROOT / "scripts" / "qt_gl_probe.py").read_text(encoding="utf-8")
+    calls = sorted(
+        (
+            node for node in ast.walk(ast.parse(source))
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_fail"
+        ),
+        key=lambda node: (node.lineno, node.col_offset),
+    )
+    assert calls, "keine _fail-Aufrufe gefunden"
+    literals: list[str] = []
+    for call in calls:
+        assert call.args and isinstance(call.args[0], ast.Constant), ast.dump(call)
+        stage = call.args[0].value
+        assert isinstance(stage, str), ast.dump(call)
+        literals.append(stage)
+    assert set(literals) == set(probe_module.STAGES)
+    assert tuple(dict.fromkeys(literals)) == tuple(probe_module.STAGES)
+    with pytest.raises(ValueError, match="unbekannte Sonden-Stufe"):
+        probe_module._fail("treiber", "x")
 
 
 def test_gl_constants_match_the_production_probe() -> None:

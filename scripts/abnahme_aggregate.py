@@ -540,18 +540,6 @@ def build_matrix(
     return rows
 
 
-def has_blocking_gaps(rows: list[MatrixRow]) -> bool:
-    """Blockierende Lücken; nur die beratende Vision darf unbewertet bleiben."""
-    return any(
-        r.status in ("fehlgeschlagen", "fehlt", RETIRED_STATUS)
-        or (
-            r.status == "unbewertet"
-            and r.kriterium != VISION_LABEL
-        )
-        for r in rows
-    )
-
-
 def has_technical_gaps(rows: list[MatrixRow]) -> bool:
     """Lücken in den **technischen** Pflichtzeilen – dieselbe Basis wie
     ``build_acceptance_summary``/``create-approval``.
@@ -561,6 +549,11 @@ def has_technical_gaps(rows: list[MatrixRow]) -> bool:
     das Freigabemanifest nicht und darf die Matrix deshalb nicht als
     „kein Abnahmeergebnis" kennzeichnen – sonst widersprächen sich
     Matrix-Banner und tatsächlich erzeugtes Manifest.
+
+    Die frühere, strengere Vorgängerregel ``has_blocking_gaps`` (ein
+    Vision-Fehlschlag blockierte) ist mit #992 entfernt: Sie hatte keinen
+    Produktivaufrufer mehr und lud mit dem naheliegenderen Namen zum
+    falschen Griff ein. Dies ist die **einzige** Lückenregel.
     """
     return any(
         r.status in ("fehlgeschlagen", "fehlt", "unbewertet", RETIRED_STATUS)
