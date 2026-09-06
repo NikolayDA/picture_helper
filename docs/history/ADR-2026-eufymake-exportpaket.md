@@ -137,7 +137,11 @@ Manifest-`target.dpi`). Grund ist die #689-Studio-Beobachtung: Studio 4.2.2
 übernimmt `pHYs` je Achse als Startgröße und startet ohne den Chunk mit 72 dpi
 (1200 px → 423,33 mm). Ohne physische Projektgröße entsteht bewusst kein
 `pHYs` – eine erfundene Auflösung wäre schlechter als ein sichtbar fehlender
-Wert. Entscheidung 3 bleibt unberührt: `manifest.json` ist weiterhin interne
-Provenienz, das `pHYs` ist der einzige Weg der physischen Größe nach Studio.
+Wert. Nicht kodierbare Extremwerte (0 bzw. mehr als 2^32 − 1 Pixel pro Meter,
+nur über handeditierte Projektmetadaten erreichbar) brechen strukturiert mit
+`EufyMakeWriteError` ab. Entscheidung 3 bleibt unberührt: `manifest.json` ist
+weiterhin interne Provenienz; im beobachteten Bildimport von Studio 4.2.2 ist
+das `pHYs` der einzige Weg, auf dem die physische Größe aus der Datei nach
+Studio gelangt (manuelle Studio-Maße überschreiben sie).
 Evidenz: [`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md),
 Nachtrag 2026-09-05.

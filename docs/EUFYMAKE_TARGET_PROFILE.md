@@ -69,13 +69,15 @@ Vertrag dieses Assets.
   (`eufymake_writer.png_dpi_for` = Manifest-`target.dpi`; das ist die
   `physical_size_source` des Profils). `pHYs` speichert ganzzahlige Pixel pro
   Meter je Achse, der Rückweg weicht deshalb um höchstens 0,02 dpi vom Sollwert
-  ab. Pixeldaten und Manifest bleiben davon unberührt.
+  ab. Pixeldaten und Manifest bleiben davon unberührt; nicht kodierbare
+  Extremwerte (0 bzw. > 2^32 − 1 Pixel pro Meter, nur über handeditierte
+  Projektmetadaten erreichbar) brechen mit `EufyMakeWriteError` ab.
 - Ohne physische Projektgröße entsteht **kein** `pHYs` – keine erfundene
   Auflösung. Studio startet dann beobachtet mit 72 dpi (1200 px → 423,33 mm
   samt Arbeitsflächenwarnung). Ein eigener Validator-Befund für diesen Fall ist
   noch nicht Teil von Profil v1 (neue Regel = Profilversionsentscheidung, #691).
-- Studio 4.2.2 hat `pHYs` je Achse und ohne `pHYs` einen 72-dpi-Startwert
-  beobachtbar verwendet. Manuelle Studio-Maße können diesen Startwert ersetzen.
+  Manuelle Studio-Maße können den aus `pHYs` übernommenen Startwert ersetzen
+  (#689-Beobachtung).
 - Priorität im vollständigen Rollenverbund, Rundung, Registrierung und
   tatsächliches Druckmaß bleiben bis #689 physisch offen.
 - Das eufyMake-Standard-Flatbed (335 × 420 mm, `STANDARD_FLATBED_MM` in

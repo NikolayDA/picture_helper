@@ -276,7 +276,7 @@ ohne Bestätigung verwenden.
 | --- | --- | --- |
 | EM-V01 | `BIT_DEPTH_UNCONFIRMED` | **umgesetzt** – Vorzeichen gedreht (EM-F03) |
 | EM-V02 | `GLOSS_INK_MODE` | bestätigt richtig, Wortlaut deckt sich mit B1 |
-| EM-V03 | `PHYSICAL_SIZE_UNVERIFIED` | Schweregrad bleibt; Begründung könnte geschärft werden: nicht „unbestätigte Annahme", sondern „Studio liest die Größe nicht aus unseren Dateien" (noch nicht umgesetzt) |
+| EM-V03 | `PHYSICAL_SIZE_UNVERIFIED` | Schweregrad bleibt; Begründung könnte geschärft werden: nicht „unbestätigte Annahme", sondern „Studio liest die Größe nicht aus unseren Dateien" (noch nicht umgesetzt); **Nachtrag (2026-09-05):** umgesetzt – der Text nennt jetzt das geschriebene `pHYs` und das offene Druckmaß, siehe „Nachtrag pHYs im Writer" |
 | EM-V04 | `ASSET_SIZE_MISMATCH` als ERROR | bleibt richtig; ob Studio abweichende Höhenkartenmaße streckt oder ablehnt, ist offen (→ H-03) |
 | EM-V05 | `PRINT_AREA_EXCEEDED` | **neu, umgesetzt** (EM-G05) |
 
@@ -944,8 +944,11 @@ Einordnung der bisherigen Belege:
   die Bewertung „kein Mangel gegenüber Studio“ galt für den nativen
   `.empf`-Pfad (B1) und ist durch die I-05-Beobachtung für den Bildimport
   überholt: Dort ist das fehlende `pHYs` die Ursache des 72-dpi-Starts.
-- Konsequenz 3 in Abschnitt 4 (N10 umformulieren) ist gegenstandslos; N10 ist
-  nicht mehr Teil von `RECOMMENDATIONS.md`.
+- Konsequenz 5 in Abschnitt 6 der Evidenzversion 1 (N10 umformulieren) ist
+  gegenstandslos; N10 ist nicht mehr Teil von `RECOMMENDATIONS.md`. Konsequenz 6
+  dort (EM-V03, Begründungstext von `PHYSICAL_SIZE_UNVERIFIED` schärfen) ist mit
+  dem neuen Wortlaut von `eufymake.export.physical_size_unverified` in allen
+  sechs Sprachen umgesetzt.
 - Die 42 Einzel-Fixtures, das I-06-Paket (150-dpi-Konflikt-`pHYs` durch die
   nachträgliche Überschreibung im Generator) und die sechs Gloss-Pakete (ohne
   physische Größe, daher weiterhin ohne `pHYs`) bleiben bytegleich; die in

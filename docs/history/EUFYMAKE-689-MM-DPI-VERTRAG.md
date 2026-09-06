@@ -153,8 +153,10 @@ abgeleiteten X-/Y-DPI seitdem als `pHYs` in alle drei Assets
 (`png_dpi_for`, identisch mit Manifest-`target.dpi`; Quantisierung nach der
 Rundungsregel oben, Rückweg ≤ 0,02 dpi). Die Vertragszeile „Studio verwendet
 PNG-`pHYs` für die Startgröße“ ist damit produktiv umgesetzt; der frühere
-Status-Kommentar in #681 vom 2026-09-02, der das bereits behauptete, war zu
-diesem Zeitpunkt nicht zutreffend. Ohne physische Projektgröße entsteht
+[Status-Kommentar in #681 vom 2026-09-02](https://github.com/NikolayDA/picture_helper/issues/681#issuecomment-5516382218),
+der das bereits behauptete, war zu diesem Zeitpunkt nicht zutreffend. Nicht
+kodierbare Extremwerte (0 bzw. > 2^32 − 1 Pixel pro Meter) brechen mit
+`EufyMakeWriteError` ab statt mit Pillows nacktem `struct.error`. Ohne physische Projektgröße entsteht
 weiterhin **kein** `pHYs` (72-dpi-Fallback in Studio); die dafür geforderte
 Warnung bleibt offen, weil sie eine neue Validator-Regel und damit eine
 Profilversionsentscheidung (#691) verlangt. Alle Studio-Beobachtungen unten

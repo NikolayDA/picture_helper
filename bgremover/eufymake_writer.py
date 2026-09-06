@@ -302,19 +302,43 @@ def png_dpi_for(target: ExportTarget) -> tuple[float, float] | None:
     return target.dpi
 
 
+# ``pHYs`` trägt je Achse eine vorzeichenlose 4-Byte-Ganzzahl (Pixel pro Meter).
+_PHYS_MAX_PIXELS_PER_METRE = 2**32 - 1
+_METRES_PER_INCH = 0.0254
+
+
+def png_pixels_per_metre(dpi: tuple[float, float]) -> tuple[int, int]:
+    """Ganzzahlige Pixel pro Meter je Achse – exakt Pillows ``pHYs``-Rundung.
+
+    ``int(dpi / 0.0254 + 0.5)`` ist die Formel von ``PngImagePlugin._save``;
+    der Rückweg weicht dadurch um höchstens 0,02 dpi vom Sollwert ab
+    (Formatquantisierung, ``docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md``).
+    Werte, die der Chunk nicht tragen kann (0 Pixel/m bei absurd großer
+    physischer Größe, mehr als ``2**32 - 1`` bei absurd kleiner), werfen
+    :class:`EufyMakeWriteError` – statt Pillows nacktem ``struct.error`` oder
+    einem stillen ``pHYs`` mit 0 dpi. Über die UI sind solche Werte nicht
+    erreichbar, wohl aber über von Hand editierte ``.bgrproj``-Metadaten.
+    """
+    ppm = tuple(int(axis / _METRES_PER_INCH + 0.5) for axis in dpi)
+    if any(v < 1 or v > _PHYS_MAX_PIXELS_PER_METRE for v in ppm):
+        raise EufyMakeWriteError(
+            f"Physische Größe ergibt keine als PNG-pHYs kodierbare Auflösung: {dpi} dpi"
+        )
+    return ppm[0], ppm[1]
+
+
 def _write_png(
     image: Image.Image, path: Path, *, dpi: tuple[float, float] | None = None
 ) -> None:
     """Schreibt ein Bild verlustfrei als PNG (eigene Funktion = Test-Injektionspunkt).
 
-    Mit ``dpi`` schreibt Pillow den ``pHYs``-Chunk als ganzzahlige Pixel pro
-    Meter je Achse (``int(dpi / 0.0254 + 0.5)``); der Rückweg weicht dadurch um
-    höchstens 0,02 dpi vom Sollwert ab (Formatquantisierung, siehe
-    ``docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md``). Ohne ``dpi`` entsteht kein
-    Chunk. Die Pixeldaten werden in keinem Fall berührt.
+    Mit ``dpi`` schreibt Pillow den ``pHYs``-Chunk (Rundung und Grenzen siehe
+    :func:`png_pixels_per_metre`, das hier vorab prüft). Ohne ``dpi`` entsteht
+    kein Chunk. Die Pixeldaten werden in keinem Fall berührt.
     """
     params: dict[str, Any] = {}
     if dpi is not None:
+        png_pixels_per_metre(dpi)  # fail-closed vor dem Encoder
         params["dpi"] = dpi
     image.save(path, "PNG", **params)
 

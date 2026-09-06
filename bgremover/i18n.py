@@ -2921,9 +2921,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "eufymake.export.physical_size_unverified": (
             "La taille physique est écrite dans chaque asset comme « pHYs » PNG (X/Y "
-            "séparément) ; Studio 4.2.2 l'utilise (observé) comme taille de départ, et "
-            "les dimensions saisies manuellement dans Studio ont priorité. La taille "
-            "d'impression réelle reste non confirmée jusqu'à la mesure matérielle de #689."
+            "séparément) ; d'après les observations, Studio 4.2.2 l'utilise comme taille "
+            "de départ, et les dimensions saisies manuellement dans Studio ont priorité. "
+            "La taille d'impression réelle reste non confirmée jusqu'à la mesure "
+            "matérielle de #689."
         ),
         "eufymake.export.print_area_exceeded": (
             "Le motif {width}×{height} mm dépasse le plateau plat standard eufyMake "
@@ -3853,7 +3854,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "призначення шарів виконуються в EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "Фізичний розмір записується в кожен ассет як PNG «pHYs» (X/Y окремо); "
+            "Фізичний розмір записується в кожен ресурс як PNG «pHYs» (X/Y окремо); "
             "Studio 4.2.2 за спостереженнями використовує його як початковий розмір, а "
             "ручні розміри в Studio мають пріоритет. Фактичний розмір друку лишається "
             "непідтвердженим до апаратного вимірювання в #689."
@@ -4780,7 +4781,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "光泽只是导入辅助素材——墨水模式和图层分配在 EufyMake Studio 中完成。"
         ),
         "eufymake.export.physical_size_unverified": (
-            "物理尺寸会以 PNG「pHYs」（X/Y 分别）写入每个资源；据观察 Studio 4.2.2 将其"
+            "物理尺寸会以 PNG「pHYs」（X/Y 分别）写入每个素材；据观察 Studio 4.2.2 将其"
             "用作起始尺寸，Studio 中手动设置的尺寸优先。实际打印尺寸在 #689 的硬件测量"
             "完成前仍未确认。"
         ),

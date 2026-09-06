@@ -20,10 +20,13 @@ from bgremover.eufymake_export import build_export_plan
 from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE
 from bgremover.eufymake_writer import (
     MANIFEST_FILENAME,
+    EufyMakeWriteError,
     ExportConfirmationRequired,
     ExportTargetExistsError,
     ExportTargetNotDirectoryError,
     ExportValidationError,
+    png_dpi_for,
+    png_pixels_per_metre,
     render_export,
     write_export,
 )
@@ -322,16 +325,29 @@ def _phys_project() -> Project:
     return project
 
 
-def test_written_pngs_carry_phys_from_project_dpi_per_axis(tmp_path: Path) -> None:
-    """Jedes Asset trägt X- und Y-DPI getrennt als ``pHYs`` – ohne stille Kopplung."""
+@pytest.mark.parametrize(("bit_depth", "height_mode"), [(16, "I;16"), (8, "L")])
+def test_written_pngs_carry_phys_from_project_dpi_per_axis(
+    tmp_path: Path, bit_depth: int, height_mode: str
+) -> None:
+    """Jedes Asset – RGBA, ``I;16``/``L``, ``L`` – trägt X-/Y-DPI getrennt als ``pHYs``.
+
+    Der Modus wird mitgeprüft, damit ein späterer Wechsel des HEIGHT-Defaults
+    (#688) den 16-Bit-Encoderpfad nicht still aus der Abdeckung nimmt.
+    """
     project = _phys_project()
     assert project.dpi == (300.0, 150.0)
-    dest = write_export(project, tmp_path / "export", confirm_warnings=True)
+    dest = write_export(
+        project, tmp_path / "export", bit_depth=bit_depth, confirm_warnings=True
+    )
     manifest = json.loads((dest / MANIFEST_FILENAME).read_text(encoding="utf-8"))
     assert manifest["target"]["dpi"] == [300.0, 150.0]
 
-    for name in ("color_motif.png", "height_map.png", "gloss_mask.png"):
+    expected_modes = {
+        "color_motif.png": "RGBA", "height_map.png": height_mode, "gloss_mask.png": "L",
+    }
+    for name, mode in expected_modes.items():
         with Image.open(dest / name) as img:
+            assert img.mode == mode, name
             x_dpi, y_dpi = img.info["dpi"]
         assert abs(x_dpi - 300.0) <= _PHYS_DPI_TOLERANCE, name
         assert abs(y_dpi - 150.0) <= _PHYS_DPI_TOLERANCE, name
@@ -365,14 +381,51 @@ def test_written_pngs_without_physical_size_have_no_phys(tmp_path: Path) -> None
 
 
 def test_png_dpi_rule_is_the_manifest_target_dpi() -> None:
-    """``png_dpi_for`` ist genau die Manifest-Zielauflösung – eine Quelle, kein Drift."""
-    from bgremover.eufymake_writer import png_dpi_for
+    """``png_dpi_for`` ist genau die Manifest-Zielauflösung – eine Quelle, kein Drift.
 
+    Gebunden an den Profilvertrag: ``physical_size_source`` verspricht genau
+    diesen Weg, ein Profil v2 mit anderer Quelle darf den Writer nicht still
+    widersprechen lassen.
+    """
     project = _phys_project()
     plan = build_export_plan(project)
     assert png_dpi_for(plan.target) == plan.target.dpi == (300.0, 150.0)
+    assert plan.contract.dimensions.physical_size_source == (
+        "project_physical_size_mm_to_png_phys"
+    )
     unset = _color_project((300, 150))
     assert png_dpi_for(build_export_plan(unset).target) is None
+
+
+def test_png_pixels_per_metre_matches_pillow_rounding() -> None:
+    """Die Vorabprüfung rechnet exakt wie Pillows ``pHYs``-Encoder."""
+    assert png_pixels_per_metre((300.0, 150.0)) == (11811, 5906)
+    assert png_pixels_per_metre((72.0, 72.0)) == (2835, 2835)
+    x_dpi, y_dpi = (11811 * 0.0254, 5906 * 0.0254)
+    assert abs(x_dpi - 300.0) <= _PHYS_DPI_TOLERANCE
+    assert abs(y_dpi - 150.0) <= _PHYS_DPI_TOLERANCE
+
+
+@pytest.mark.parametrize(
+    "physical_size_mm",
+    [
+        [1e-6, 1e-6],  # ~7,6e9 dpi → Pixel/m > 2^32-1 (Pillow: struct.error)
+        [1e6, 1e6],  # ~0,008 dpi → 0 Pixel/m (stilles pHYs mit 0 dpi)
+    ],
+)
+def test_unencodable_phys_raises_structured_error_without_leftovers(
+    tmp_path: Path, physical_size_mm: list[float]
+) -> None:
+    """Handeditierte ``.bgrproj``-Metadaten dürfen den Writer nicht nackt abstürzen lassen."""
+    project = _color_project((300, 150))
+    _add_height(project)
+    project.metadata["physical_size_mm"] = physical_size_mm  # umgeht die UI-Klemmen
+    assert project.dpi is not None
+    dest = tmp_path / "export"
+    with pytest.raises(EufyMakeWriteError, match="pHYs"):
+        write_export(project, dest, confirm_warnings=True)
+    assert not dest.exists()
+    assert not _temp_leftovers(tmp_path, dest)
 
 
 # ── Atomares Schreiben: Fehlerpfade ──────────────────────────────────────
