@@ -31,11 +31,11 @@ afecta a la documentación de pruebas y #957 a los scripts de publicación.
 **Revisión 2026-09-06 (estado `74972f5`):** hay cuatro incidencias nuevas registradas. #992/#993 proceden de un análisis de código muerto de toda la base de código (ruff, vulture, referencia cruzada de símbolos en todo el repositorio): las importaciones, variables locales y módulos sin usar están a cero, y las 572 claves i18n `de`, los 24 mensajes de estado y los ocho recursos de iconos están referenciados. Queda un predecesor sustituido (`has_blocking_gaps`), una constante de contrato que nadie lee (`qt_gl_probe.STAGES`) y API de estilos/modelo sin consumidores. #994 informa de dos CVE de Qt SVG en el pin `PyQt6-Qt6==6.7.3` que #762 no enumera: lo nuevo es la clase de riesgo (use-after-free en lugar de una DoS que solo provoca caídas), no la vía de ataque ni las opciones disponibles; el cuello de botella de las ruedas aarch64 sigue igual. #995 es el hallazgo de CI sobre exactamente esta deriva de la tabla. Ningún defecto de producto nuevo.
 
 **Valoración de publicación: aún no se ha lanzado ningún candidato.** Desde
-`v2.9.0` (2026-08-29) hay 51 commits en la rama principal en el estado auditado `74972f5`. Con el PR #953 (perfil
+`v2.9.0` (2026-08-29) hay 58 commits en la rama principal en el estado auditado `74972f5`. Con el PR #953 (perfil
 de destino EufyMake versionado, HEIGHT por defecto en 16 bits, perfil y DPI X/Y
 en el diálogo, procedencia del manifiesto), #971 (medidas confirmadas de la superficie plana)
 y #996 (DPI del proyecto como `pHYs` PNG) `[Unreleased]` contiene entradas visibles
-para las personas usuarias; el resto es automatización de publicación, documentación y gobernanza. Que **v2.10.0** salga solo con #953
+para las personas usuarias; el resto es automatización de publicación, documentación y gobernanza. Que **v2.10.0** salga con el alcance acumulado #953/#971/#996
 o junto con el motor de tono COLOR (#693/#694 de la épica #682, ADR #692) es una
 decisión del owner. El PR #956 corrigió la referencia con una decisión explícita
 de mantener v1 y guardas golden/de paquetes. #691 ya no añade un bloqueo de

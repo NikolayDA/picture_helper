@@ -32,11 +32,11 @@ the EufyMake empirical findings.
 **Follow-up audit 2026-09-06 (state `74972f5`):** Four new issues are on record. #992/#993 come from a dead-code analysis of the whole codebase (ruff, vulture, repo-wide symbol cross-reference): unused imports, local variables, and modules are all at zero, and all 572 `de` i18n keys, 24 status messages, and eight icon assets are referenced. What remains is a superseded predecessor (`has_blocking_gaps`), a contract constant nothing reads (`qt_gl_probe.STAGES`), and style/model API without consumers. #994 reports two Qt SVG CVEs in the `PyQt6-Qt6==6.7.3` pin that #762 does not list — what is new is the risk class (use-after-free instead of crash-only DoS), not the attack path and not the available options; the aarch64 wheel bottleneck is unchanged. #995 is the CI finding about exactly this table drift. No new product defect.
 
 **Release assessment: no candidate started yet.** Since `v2.9.0` (2026-08-29)
-there are 51 mainline commits at the audited `74972f5` state. With PR #953 (versioned EufyMake target profile,
+there are 58 mainline commits at the audited `74972f5` state. With PR #953 (versioned EufyMake target profile,
 16-bit HEIGHT default, profile and X/Y DPI display in the dialog, manifest
 provenance), #971 (confirmed flatbed dimensions), and #996 (project DPI as PNG `pHYs`)
 `[Unreleased]` holds user-visible entries; everything else is release automation, documentation, and governance. Whether **v2.10.0** ships
-with #953 alone or together with the COLOR tone engine (#693/#694 from epic
+with the accumulated #953/#971/#996 scope or waits for the COLOR tone engine (#693/#694 from epic
 #682, ADR #692) is an owner decision. PR #956 corrected the bad evidence
 reference with an explicit v1 decision and Golden/bundle guards. #691
 therefore adds no release blocker; the normal release gate remains authoritative.

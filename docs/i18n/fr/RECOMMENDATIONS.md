@@ -31,12 +31,12 @@ tests et #957 les scripts de publication.
 **Réexamen du 2026-09-06 (état `74972f5`) :** quatre nouveaux tickets sont enregistrés. #992/#993 proviennent d'une analyse de code mort sur l'ensemble de la base de code (ruff, vulture, référence croisée des symboles sur tout le dépôt) : les imports, variables locales et modules inutilisés sont à zéro, et les 572 clés i18n `de`, les 24 messages de statut et les huit ressources d'icônes sont tous référencés. Restent un prédécesseur remplacé (`has_blocking_gaps`), une constante de contrat que personne ne lit (`qt_gl_probe.STAGES`) et des API de style/modèle sans consommateur. #994 signale deux CVE Qt SVG dans le pin `PyQt6-Qt6==6.7.3` que #762 n'énumère pas : la nouveauté est la classe de risque (use-after-free au lieu d'un DoS limité au plantage), ni la voie d'attaque ni les options possibles ; le goulot d'étranglement des wheels aarch64 reste inchangé. #995 est le constat CI portant précisément sur cette dérive de tableau. Aucun nouveau défaut produit.
 
 **Évaluation de publication : aucun candidat lancé pour l'instant.** Depuis
-`v2.9.0` (2026-08-29), 51 commits sur la branche principale à l'état audité `74972f5`. Avec la PR #953
+`v2.9.0` (2026-08-29), 58 commits sur la branche principale à l'état audité `74972f5`. Avec la PR #953
 (profil cible EufyMake versionné, HEIGHT par défaut en 16 bits, profil et DPI
 X/Y dans le dialogue, provenance du manifeste), #971 (dimensions du plateau confirmées)
 et #996 (DPI du projet en `pHYs` PNG), `[Unreleased]` contient des entrées visibles pour les utilisateurs ; le reste relève de
 l'automatisation de publication, de la documentation et de la gouvernance. Que
-**v2.10.0** sorte avec #953 seul ou avec le moteur de tonalité COLOR (#693/#694
+**v2.10.0** sorte avec le périmètre accumulé #953/#971/#996 ou attende le moteur de tonalité COLOR (#693/#694
 de l'épopée #682, ADR #692) est une décision de l'owner. La PR #956 a corrigé la
 référence avec une décision explicite de conserver v1 et des gardes golden/de
 paquets. #691 n'ajoute donc plus de blocage de publication ; le gate normal reste

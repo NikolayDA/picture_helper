@@ -32,11 +32,11 @@ die Release-Skripte; beide verändern die EufyMake-Empirie nicht.
 **Nachprüfung 2026-09-06 (Stand `74972f5`):** Vier neue Issues sind erfasst. #992/#993 kommen aus einer Dead-Code-Analyse der gesamten Codebase (ruff, vulture, repo-weiter Symbol-Cross-Reference): ungenutzte Importe, lokale Variablen und Module liegen bei null, alle 572 `de`-i18n-Keys, 24 Statusmeldungen und acht Icon-Assets sind referenziert. Übrig bleiben ein abgelöster Vorgänger (`has_blocking_gaps`), eine nirgends gelesene Vertragskonstante (`qt_gl_probe.STAGES`) und Stil-/Modell-API ohne Verbraucher. #994 meldet zwei Qt-SVG-CVEs im Pin `PyQt6-Qt6==6.7.3`, die #762 nicht aufführt – neu ist die Risikoklasse (Use-after-free statt crash-only DoS), nicht der Angriffspfad und nicht die Handlungsoption; der aarch64-Wheel-Engpass besteht unverändert. #995 ist der CI-Befund zu genau dieser Tabellendrift. Kein neuer Produktfehler.
 
 **Release-Einschätzung: noch kein Kandidat angestoßen.** Seit `v2.9.0`
-(2026-08-29) liegen am geprüften Mainline-Stand `74972f5` 51 Commits vor. Mit PR #953 (versioniertes
+(2026-08-29) liegen am geprüften Mainline-Stand `74972f5` 58 Commits vor. Mit PR #953 (versioniertes
 EufyMake-Zielprofil, 16-Bit-HEIGHT-Default, Profil- und X/Y-DPI-Anzeige im
 Dialog, Manifest-Provenienz), #971 (bestätigtes Flatbed-Maß) und #996 (Projekt-DPI als PNG-`pHYs`)
 stehen nutzersichtbare Einträge in `[Unreleased]`; alles andere ist Release-Automatisierung, Doku und Governance.
-Ob **v2.10.0** mit #953 allein oder erst zusammen mit der COLOR-Tonwert-Engine
+Ob **v2.10.0** mit dem angesammelten Umfang (#953/#971/#996) oder erst mit der COLOR-Tonwert-Engine
 (#693/#694 aus Epic #682, ADR #692) gebaut wird, ist ein Owner-Entscheid. PR
 #956 hat die falsche Evidenzreferenz mit bewusster v1-Entscheidung und
 Golden-/Bundle-Guards korrigiert. Damit besteht aus #691 kein zusätzlicher
