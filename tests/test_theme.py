@@ -14,11 +14,14 @@ _PKG = Path(__file__).resolve().parent.parent / "bgremover"
 
 
 def _pkg_function_names() -> set[str]:
-    """Sammelt die Namen aller ``def``-Knoten im Paket (Modul- und Klassenebene)."""
+    """Sammelt die Namen aller ``def``-Knoten im Paket (Modul- und Klassenebene, auch ``async``)."""
     names: set[str] = set()
     for p in sorted(_PKG.glob("*.py")):
         tree = ast.parse(p.read_text(encoding="utf-8"))
-        names |= {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
+        names |= {
+            n.name for n in ast.walk(tree)
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
     return names
 
 
