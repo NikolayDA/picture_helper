@@ -6,6 +6,7 @@ import subprocess
 import sys
 import urllib.error
 from pathlib import Path
+from platform import machine as _machine
 
 import pytest
 
@@ -630,7 +631,41 @@ def test_run_preflight_wires_the_probe_note_through(
     notes: dict[str, str] = {}
     values = dict(preflight.run_preflight("linux-arm64", notes=notes))
     assert values["qt-gl"] is None
-    assert notes == {"qt-gl": "Broadcom / V3D 7.1.10.2 / 3.1 Mesa"}
+    assert notes["qt-gl"] == "Broadcom / V3D 7.1.10.2 / 3.1 Mesa"
+    # Seit #994 traegt derselbe Kanal die Systemprovenienz (Betriebssystem,
+    # glibc, Architektur). Sie ist kein Befund, muss aber jeden gruenen Lauf
+    # ueberleben: Vor #994 war der Stand des aarch64-Runners nur ueber den
+    # Paketnamen eines Mesa-Treibers im Joblog erschliessbar.
+    assert set(notes) == {"qt-gl", "python"}
+    assert notes["python"] == preflight.platform_provenance()
+
+
+def test_platform_provenance_names_system_libc_and_architecture() -> None:
+    """Die Provenienzzeile traegt genau die Angaben, an denen die glibc-
+    Untergrenze der gebuendelten Qt-Wheels haengt (#994)."""
+    text = preflight.platform_provenance()
+    assert text and " / " in text
+    assert _machine() in text
+    if sys.platform != "darwin":
+        # Auf Linux muss die C-Bibliothek benannt sein – ohne sie beantwortet
+        # die Zeile die Frage nicht, fuer die sie eingefuehrt wurde.
+        assert "libc" in text.lower()
+
+
+def test_platform_provenance_survives_an_unreadable_os_release(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fail-open: Eine unlesbare Quelle laesst die Zeile kuerzer werden,
+    aber nie den Preflight scheitern."""
+    real_read = Path.read_text
+
+    def _boom(self: Path, *a: object, **kw: object) -> str:
+        if str(self) == "/etc/os-release":
+            raise OSError("nicht lesbar")
+        return real_read(self, *a, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(Path, "read_text", _boom)
+    assert preflight.platform_provenance()
 
 
 def test_run_preflight_includes_deb_sudo_only_on_linux(hermetic_preflight: None) -> None:

@@ -21,7 +21,7 @@ Verhalten der selbst gehosteten Runner.
 | Plattform | Gerät | Labels | Status |
 |---|---|---|---|
 | macOS arm64 | MacBook (Apple M3) | `self-hosted`, `macOS`, `ARM64` | aktiv geplant |
-| Linux aarch64 | Raspberry Pi 5 (Debian 12) | `self-hosted`, `Linux`, `ARM64` | aktiv geplant |
+| Linux aarch64 | Raspberry Pi 5 (Debian 13, seit #994) | `self-hosted`, `Linux`, `ARM64` | aktiv geplant |
 | Linux x86_64 | – | `self-hosted`, `Linux`, `X64` | **pausiert** (siehe §5) |
 
 Voraussetzungen je Gerät: `python3` (≥ 3.10) **mit venv-Modul** im PATH

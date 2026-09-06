@@ -30,6 +30,7 @@ import getpass
 import hashlib
 import json
 import os
+import platform
 import plistlib
 import re
 import shutil
@@ -116,6 +117,47 @@ def check_python() -> str | None:
     found = ".".join(str(part) for part in sys.version_info[:3])
     wanted = ".".join(str(part) for part in MIN_PYTHON)
     return f"Python {found} ist zu alt (mindestens {wanted})."
+
+
+def platform_provenance() -> str:
+    """Systemstand als Provenienz: Betriebssystem-Kennung und C-Bibliothek.
+
+    Wird **nicht** bewertet, aber bei jedem gruenen Lauf gedruckt – dieselbe
+    Abwaegung wie bei der GL-Provenienz (#934) und ``laufzeit_herkunft``
+    (#738). Ohne diese Zeile laesst sich hinterher nicht belegen, auf welchem
+    Systemstand ein Nachweis entstanden ist. Genau daran haengt seit #994 die
+    glibc-Untergrenze der gebuendelten Qt-Wheels: Der Stand des Runners war
+    nur ueber den Paketnamen eines Mesa-Treibers im Joblog erschliessbar.
+
+    Wirft nie: Eine unlesbare Quelle wird ausgelassen, nicht zum Fehler.
+    """
+    teile: list[str] = []
+    if sys.platform == "darwin":
+        release = platform.mac_ver()[0]
+        teile.append(f"macOS {release}" if release else "macOS")
+    else:
+        pretty = ""
+        try:
+            for zeile in Path("/etc/os-release").read_text(encoding="utf-8").splitlines():
+                if zeile.startswith("PRETTY_NAME="):
+                    pretty = zeile.split("=", 1)[1].strip().strip('"')
+                    break
+        except OSError:
+            pretty = ""
+        teile.append(pretty or platform.system() or "unbekannt")
+        try:
+            # ``os.confstr`` liefert "glibc 2.36"; ``platform.libc_ver`` liest
+            # dafuer die Binaerdatei und ist auf manchen Staenden leer.
+            libc = os.confstr("CS_GNU_LIBC_VERSION") or ""
+        except (OSError, ValueError):
+            libc = ""
+        if not libc:
+            name, version = platform.libc_ver()
+            libc = f"{name} {version}".strip()
+        if libc:
+            teile.append(libc)
+    teile.append(platform.machine() or "unbekannte Architektur")
+    return " / ".join(teile)
 
 
 def check_venv() -> str | None:
@@ -720,6 +762,8 @@ def run_preflight(
     def _note(text: str) -> None:
         if notes is not None:
             notes["qt-gl"] = text
+    if notes is not None:
+        notes["python"] = platform_provenance()
     checks: list[tuple[str, str | None]] = [
         ("python", check_python()),
         ("venv", check_venv()),
