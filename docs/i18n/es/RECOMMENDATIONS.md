@@ -11,7 +11,7 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-09-03, v2.9.0 publicado, inventario abierto auditado por completo)
+## Estado actual (2026-09-06, v2.9.0 publicado, inventario abierto auditado por completo)
 
 **Auditoría diaria 2026-09-02 (estado `91b32b4`):** se contrastaron las 42
 incidencias abiertas con código, fusiones, comentarios y, para la épica Mac App
@@ -28,12 +28,14 @@ referencia de evidencia dentro de la v1 aún no publicada y añadió guardas de
 snapshot/paquetes; con ello queda resuelto el punto crítico de #691. #955 solo
 afecta a la documentación de pruebas y #957 a los scripts de publicación.
 
+**Revisión 2026-09-06 (estado `74972f5`):** hay cuatro incidencias nuevas registradas. #992/#993 proceden de un análisis de código muerto de toda la base de código (ruff, vulture, referencia cruzada de símbolos en todo el repositorio): las importaciones, variables locales y módulos sin usar están a cero, y las 572 claves i18n `de`, los 24 mensajes de estado y los ocho recursos de iconos están referenciados. Queda un predecesor sustituido (`has_blocking_gaps`), una constante de contrato que nadie lee (`qt_gl_probe.STAGES`) y API de estilos/modelo sin consumidores. #994 informa de dos CVE de Qt SVG en el pin `PyQt6-Qt6==6.7.3` que #762 no enumera: lo nuevo es la clase de riesgo (use-after-free en lugar de una DoS que solo provoca caídas), no la vía de ataque ni las opciones disponibles; el cuello de botella de las ruedas aarch64 sigue igual. #995 es el hallazgo de CI sobre exactamente esta deriva de la tabla. Ningún defecto de producto nuevo.
+
 **Valoración de publicación: aún no se ha lanzado ningún candidato.** Desde
-`v2.9.0` (2026-08-29) hay 34 commits en la rama principal en el estado auditado `e7c379d`. Con el PR #953 (perfil
+`v2.9.0` (2026-08-29) hay 58 commits en la rama principal en el estado auditado `74972f5`. Con el PR #953 (perfil
 de destino EufyMake versionado, HEIGHT por defecto en 16 bits, perfil y DPI X/Y
-en el diálogo, procedencia del manifiesto) `[Unreleased]` contiene por primera
-vez una entrada visible para las personas usuarias; el resto es automatización
-de publicación, documentación y gobernanza. Que **v2.10.0** salga solo con #953
+en el diálogo, procedencia del manifiesto), #971 (medidas confirmadas de la superficie plana)
+y #996 (DPI del proyecto como `pHYs` PNG) `[Unreleased]` contiene entradas visibles
+para las personas usuarias; el resto es automatización de publicación, documentación y gobernanza. Que **v2.10.0** salga con el alcance acumulado #953/#971/#996
 o junto con el motor de tono COLOR (#693/#694 de la épica #682, ADR #692) es una
 decisión del owner. El PR #956 corrigió la referencia con una decisión explícita
 de mantener v1 y guardas golden/de paquetes. #691 ya no añade un bloqueo de
@@ -90,6 +92,10 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Referencia de publicación en lugar de congelar main (ADR + salvaguardas fail-closed) | 🟠 Alto (`main` sigue fusionable durante una publicación) | 🟢 Bajo (código, documentación y ruleset están listos) | – (sin agente; próxima publicación) | Bloqueado (externo): reabierto el 2026-08-31 tras su comprobación final; el PR #936 y el ruleset activo 21941216 están documentados, solo falta una ejecución cuya aceptación posterior arrancara demostrablemente en `release/vX.Y.Z` |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Operación: runners autoalojados (canal de alerta del heartbeat) | 🟡 Medio (canal operativo, sin código de producto) | 🟢 Bajo (solo observación) | – (sin agente; owner del repositorio) | Permanentemente abierto: no cerrar (`RUNNER_HEARTBEAT_ISSUE`); el FAIL del 2026-08-31 fue la prueba planificada del canal y el paso de limpieza está hecho (ejecución programada 33496675995 en verde, x86_64 omitido, Mac y Pi superados) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja (solo bloquea un escaneo manual opcional) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: facturación) | Bloqueada (externa) – la última ejecución (29233060507, 2026-07-13) no demuestra un escaneo exitoso; facturación/cuota sigue sin resolver |
+| [#992](https://github.com/NikolayDA/picture_helper/issues/992) | Código muerto en la ruta de aceptación/preflight (`has_blocking_gaps`, `qt_gl_probe.STAGES`) | 🟡 Media (riesgo de deriva en la evidencia de release, sin fallo actual) | 🟢 Baja (eliminar más una prueba guardiana) | Sonnet, baja | Lista para empezar – eliminar `has_blocking_gaps` y sus pruebas (sustituida por `has_technical_gaps`, #924) y vincular `PROBE_STAGE_HINTS` a `qt_gl_probe.STAGES` mediante una prueba guardiana |
+| [#993](https://github.com/NikolayDA/picture_helper/issues/993) | Código muerto en UI/modelo (constantes de estilo, `Project.reorder`, `selected_dpi`) | 🟢 Baja (legibilidad/mantenibilidad, sin comportamiento erróneo) | 🟢 Baja (eliminar más dos puntos de documentación) | Sonnet, baja | Lista para empezar – eliminar `history_button_style`/`CARD_STYLE`/`TAB_STYLE` según el patrón #503 y actualizar CLAUDE.md y `docs/REDESIGN_SPEC.md`; eliminar `Project.reorder`/`selected_dpi` o documentarlos como reserva |
+| [#994](https://github.com/NikolayDA/picture_helper/issues/994) | CVE de Qt SVG en el pin `PyQt6-Qt6` 6.7.3 (CVE-2025-10728/10729), no cubiertos por #762 | 🟠 Alta (el use-after-free anula la hipótesis de «solo caídas» de #762; la vía sigue siendo estrecha e indirecta) | 🔴 Alta (no hay rueda aarch64 posterior a 6.7.3 para glibc 2.36; hace falta decisión del propietario) | Opus, alta + decisión del propietario | Lista para empezar – evaluar primero la opción 3 (quitar `libQt6Svg*` de los paquetes si ningún plugin de Qt lo necesita); si no, reformular la aceptación de #762 nombrando explícitamente el use-after-free; con independencia de ello, dejar constancia de que `pip-audit` no ve estructuralmente el Qt empaquetado |
+| [#995](https://github.com/NikolayDA/picture_helper/issues/995) | CI en rojo: Recommendations Live Check – faltan #992–#994 en la tabla de triaje | 🟡 Media (no afecta a ninguna función, pero mantiene en rojo la comprobación diaria) | 🟢 Baja (actualización de documentación en seis versiones) | Sonnet, baja | En curso – esta actualización añade #992–#995 junto con la fecha del estado; la fila solo desaparece cuando se cierre la incidencia, si no la comprobación informa `closed_but_listed` |
 
 ### Recomendado a continuación
 

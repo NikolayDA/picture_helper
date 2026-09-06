@@ -11,7 +11,7 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-09-03, v2.9.0 publiée, inventaire ouvert entièrement audité)
+## État actuel (2026-09-06, v2.9.0 publiée, inventaire ouvert entièrement audité)
 
 **Audit quotidien 2026-09-02 (état `91b32b4`) :** les 42 tickets ouverts ont
 été confrontés au code, aux fusions, aux commentaires et, pour l'épopée Mac App
@@ -28,13 +28,15 @@ dans la v1 encore non publiée et ajouté des gardes snapshot/paquets ; l'ancien
 point critique de #691 est donc résolu. #955 ne touche que la documentation des
 tests et #957 les scripts de publication.
 
+**Réexamen du 2026-09-06 (état `74972f5`) :** quatre nouveaux tickets sont enregistrés. #992/#993 proviennent d'une analyse de code mort sur l'ensemble de la base de code (ruff, vulture, référence croisée des symboles sur tout le dépôt) : les imports, variables locales et modules inutilisés sont à zéro, et les 572 clés i18n `de`, les 24 messages de statut et les huit ressources d'icônes sont tous référencés. Restent un prédécesseur remplacé (`has_blocking_gaps`), une constante de contrat que personne ne lit (`qt_gl_probe.STAGES`) et des API de style/modèle sans consommateur. #994 signale deux CVE Qt SVG dans le pin `PyQt6-Qt6==6.7.3` que #762 n'énumère pas : la nouveauté est la classe de risque (use-after-free au lieu d'un DoS limité au plantage), ni la voie d'attaque ni les options possibles ; le goulot d'étranglement des wheels aarch64 reste inchangé. #995 est le constat CI portant précisément sur cette dérive de tableau. Aucun nouveau défaut produit.
+
 **Évaluation de publication : aucun candidat lancé pour l'instant.** Depuis
-`v2.9.0` (2026-08-29), 34 commits sur la branche principale à l'état audité `e7c379d`. Avec la PR #953
+`v2.9.0` (2026-08-29), 58 commits sur la branche principale à l'état audité `74972f5`. Avec la PR #953
 (profil cible EufyMake versionné, HEIGHT par défaut en 16 bits, profil et DPI
-X/Y dans le dialogue, provenance du manifeste), `[Unreleased]` contient pour la
-première fois une entrée visible pour les utilisateurs ; le reste relève de
+X/Y dans le dialogue, provenance du manifeste), #971 (dimensions du plateau confirmées)
+et #996 (DPI du projet en `pHYs` PNG), `[Unreleased]` contient des entrées visibles pour les utilisateurs ; le reste relève de
 l'automatisation de publication, de la documentation et de la gouvernance. Que
-**v2.10.0** sorte avec #953 seul ou avec le moteur de tonalité COLOR (#693/#694
+**v2.10.0** sorte avec le périmètre accumulé #953/#971/#996 ou attende le moteur de tonalité COLOR (#693/#694
 de l'épopée #682, ADR #692) est une décision de l'owner. La PR #956 a corrigé la
 référence avec une décision explicite de conserver v1 et des gardes golden/de
 paquets. #691 n'ajoute donc plus de blocage de publication ; le gate normal reste
@@ -91,6 +93,10 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Réf de publication au lieu du gel de main (ADR + garde-fous fail-closed) | 🟠 Élevé (`main` reste fusionnable pendant une publication) | 🟢 Faible (code, documentation et ruleset en place) | – (aucun agent ; prochaine publication) | Bloqué (externe) : rouvert le 2026-08-31 après son contrôle de clôture ; la PR #936 et le ruleset actif 21941216 sont documentés, il ne manque qu'une exécution dont la recette post-publication a démarré de façon démontrable sur `release/vX.Y.Z` |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Exploitation : runners auto-hébergés (canal d'alerte du heartbeat) | 🟡 Moyen (canal d'exploitation, pas de code produit) | 🟢 Faible (observation seule) | – (aucun agent ; owner du dépôt) | Ouvert en permanence : ne pas fermer (`RUNNER_HEARTBEAT_ISSUE`) ; le FAIL du 2026-08-31 était le test prévu du canal d'alerte et l'étape de nettoyage est faite (exécution planifiée 33496675995 verte, x86_64 ignoré, Mac et Pi réussis) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
+| [#992](https://github.com/NikolayDA/picture_helper/issues/992) | Code mort dans le chemin recette/préflight (`has_blocking_gaps`, `qt_gl_probe.STAGES`) | 🟡 Moyenne (risque de dérive dans la preuve de release, aucun défaut actuel) | 🟢 Faible (suppression plus un test gardien) | Sonnet, faible | Prête à démarrer – supprimer `has_blocking_gaps` et ses tests (remplacée par `has_technical_gaps`, #924) et lier `PROBE_STAGE_HINTS` à `qt_gl_probe.STAGES` via un test gardien |
+| [#993](https://github.com/NikolayDA/picture_helper/issues/993) | Code mort dans l'IU/le modèle (constantes de style, `Project.reorder`, `selected_dpi`) | 🟢 Faible (lisibilité/maintenabilité, aucun dysfonctionnement) | 🟢 Faible (suppression plus deux endroits de documentation) | Sonnet, faible | Prête à démarrer – supprimer `history_button_style`/`CARD_STYLE`/`TAB_STYLE` selon le modèle #503 et mettre à jour CLAUDE.md et `docs/REDESIGN_SPEC.md` ; supprimer `Project.reorder`/`selected_dpi` ou les documenter comme réserve |
+| [#994](https://github.com/NikolayDA/picture_helper/issues/994) | CVE Qt SVG dans le pin `PyQt6-Qt6` 6.7.3 (CVE-2025-10728/10729), non couvertes par #762 | 🟠 Élevée (le use-after-free annule l'hypothèse « plantage seul » de #762 ; la voie reste étroite et indirecte) | 🔴 Élevée (aucune wheel aarch64 après 6.7.3 pour glibc 2.36 ; décision de l'owner nécessaire) | Opus, élevé + décision de l'owner | Prête à démarrer – évaluer d'abord l'option 3 (retirer `libQt6Svg*` des bundles si aucun plugin Qt n'en a besoin), sinon reformuler l'acceptation de #762 en nommant explicitement le use-after-free ; indépendamment, consigner que `pip-audit` ne voit structurellement pas le Qt embarqué |
+| [#995](https://github.com/NikolayDA/picture_helper/issues/995) | CI au rouge : Recommendations Live Check – #992–#994 absents du tableau de triage | 🟡 Moyenne (aucune fonction touchée, mais la vérification quotidienne reste au rouge) | 🟢 Faible (mise à jour de documentation dans six versions) | Sonnet, faible | En cours – cette mise à jour ajoute #992–#995 ainsi que la date de l'état ; la ligne ne disparaîtra qu'après la fermeture du ticket, sinon la vérification signale `closed_but_listed` |
 
 ### Recommandé ensuite
 
