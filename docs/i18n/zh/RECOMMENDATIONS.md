@@ -75,7 +75,6 @@
 | [#992](https://github.com/NikolayDA/picture_helper/issues/992) | 验收/预检路径中的死代码（`has_blocking_gaps`、`qt_gl_probe.STAGES`） | 🟡 中（发布证据存在漂移风险，当前无缺陷） | 🟢 低（删除并补一个守卫测试） | Sonnet，低 | 可开始 —— 删除 `has_blocking_gaps` 及其测试（已由 `has_technical_gaps` 取代，#924），并用守卫测试把 `PROBE_STAGE_HINTS` 绑定到 `qt_gl_probe.STAGES` |
 | [#993](https://github.com/NikolayDA/picture_helper/issues/993) | UI/模型中的死代码（样式常量、`Project.reorder`、`selected_dpi`） | 🟢 低（可读性/可维护性，无错误行为） | 🟢 低（删除并更新两处文档） | Sonnet，低 | 可开始 —— 按 #503 的做法删除 `history_button_style`/`CARD_STYLE`/`TAB_STYLE`，并同步 CLAUDE.md 与 `docs/REDESIGN_SPEC.md`；删除 `Project.reorder`/`selected_dpi` 或将其记为储备 |
 | [#994](https://github.com/NikolayDA/picture_helper/issues/994) | `PyQt6-Qt6` 6.7.3 固定版本中的 Qt SVG CVE（CVE-2025-10728/10729），#762 未覆盖 | 🟠 高（use-after-free 推翻了 #762 中「仅崩溃」的前提；路径仍然狭窄且间接） | 🔴 高（6.7.3 之后没有适配 glibc 2.36 的 aarch64 wheel；需要负责人决策） | Opus，高 + 负责人决策 | 可开始 —— 先评估方案 3（若无 Qt 插件需要，则从打包产物中移除 `libQt6Svg*`），否则重新表述 #762 的风险接受并明确点名 use-after-free；无论采取哪种方案，都应记录 `pip-audit` 在结构上看不到随包分发的 Qt |
-| [#995](https://github.com/NikolayDA/picture_helper/issues/995) | CI 变红：Recommendations Live Check —— 分诊表缺少 #992–#994 | 🟡 中（不影响任何功能，但使每日实时检查持续变红） | 🟢 低（六个语言版本的文档补录） | Sonnet，低 | 进行中 —— 本次补录同时加入 #992–#995 与状态日期；该行需待议题关闭后才能移除，否则检查会报告 `closed_but_listed` |
 
 ### 接下来推荐
 
