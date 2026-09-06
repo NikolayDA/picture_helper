@@ -50,6 +50,15 @@ def test_run_acceptance_extra_succeeds_for_real_v270_fixture(qapp, qtbot, tmp_pa
     assert (export_dir / "color_motif.png").is_file()
     assert (export_dir / "height_map.png").is_file()
     assert (export_dir / "manifest.json").is_file()
+    # Das v2.7.0-Fixture trägt 50 × 30 mm: der artefaktgebundene Export muss die
+    # Projekt-DPI je Achse als pHYs führen (#689/#691), Quantisierung ≤ 0,02 dpi.
+    manifest = json.loads((export_dir / "manifest.json").read_text(encoding="utf-8"))
+    x_dpi, y_dpi = manifest["target"]["dpi"]
+    assert (x_dpi, y_dpi) == pytest.approx((8.128, 13.5467), abs=1e-3)
+    for name in ("color_motif.png", "height_map.png"):
+        with Image.open(export_dir / name) as img:
+            got_x, got_y = img.info["dpi"]
+        assert abs(got_x - x_dpi) <= 0.02 and abs(got_y - y_dpi) <= 0.02, name
 
 
 def test_run_acceptance_extra_reports_missing_fixture(qapp, qtbot, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]

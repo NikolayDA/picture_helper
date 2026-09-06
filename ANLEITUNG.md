@@ -827,7 +827,10 @@ Schweregrad:
 `manifest.json` ist interne Provenienz mit Profil-/App-Version,
 Kanalinterpretation, Pixel/mm und X-/Y-DPI; es wird von Studio 4.2.2 nicht als
 Importpaket ausgewertet. Offene Hardwareeigenschaften bleiben darin als
-vorläufig/offen markiert.
+vorläufig/offen markiert. Die PNG-Dateien selbst tragen die aus den
+Projektmaßen abgeleiteten X- und Y-DPI als `pHYs`; Studio 4.2.2 übernimmt
+diesen Wert als Startgröße. Ohne gesetzte Projektmaße fehlt der Wert, und
+Studio startet mit 72 dpi – ein 1200-px-Motiv wäre dann 423 mm groß.
 
 Danach importieren und positionieren Sie die Assets in EufyMake Studio,
 weisen dort Ink-Modi/Layer zu und speichern das Studio-Projekt selbst als

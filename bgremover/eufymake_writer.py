@@ -23,10 +23,19 @@ und veröffentlicht es in **einem** ``os.replace``-Schritt. Schlägt etwas vor d
 Veröffentlichung fehl, bleibt kein halbfertiges Ziel zurück; schlägt das Ersetzen
 fehl, bleibt ein vorhandenes gültiges Ziel unversehrt. Temporärdaten werden in
 jedem Fehlerfall aufgeräumt.
+
+Physische Größe im PNG (#689/#691): Jedes Asset erhält die aus der physischen
+Projektgröße abgeleiteten **X- und Y-DPI getrennt** als ``pHYs``-Chunk
+(:func:`png_dpi_for`). Studio 4.2.2 übernimmt ``pHYs`` beobachtet je Achse als
+Startgröße und fällt ohne den Chunk auf 72 dpi zurück (#689-Protokoll); ohne
+gesetzte physische Größe schreibt der Writer deshalb bewusst **keinen** Chunk
+statt einer erfundenen Auflösung. Die Pixeldaten und ``manifest.json`` bleiben
+davon unberührt – das Manifest trägt weiterhin die ungerundeten Zielwerte.
 """
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 import tempfile
@@ -44,6 +53,7 @@ from bgremover.eufymake_export import (
     AssetPixelFormat,
     ExportAsset,
     ExportPlan,
+    ExportTarget,
     build_export_plan,
 )
 from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, EufyMakeTargetProfile
@@ -280,15 +290,70 @@ def _require_source(asset: ExportAsset) -> str:
     return asset.source_layer_id
 
 
-def _write_png(image: Image.Image, path: Path) -> None:
-    """Schreibt ein Bild verlustfrei als PNG (eigene Funktion = Test-Injektionspunkt)."""
-    image.save(path, "PNG")
+def png_dpi_for(target: ExportTarget) -> tuple[float, float] | None:
+    """Auflösung ``(x, y)`` in DPI, die als PNG-``pHYs`` in **jedes** Asset geht.
+
+    Einzige Quelle dieser Regel: Es ist genau die im Manifest ausgewiesene
+    Zielauflösung (``target.dpi``, aus ``physical_size_mm`` und Pixelmaß, #376),
+    je Achse getrennt – Studio 4.2.2 wertet X und Y unabhängig aus (#689).
+    ``None`` ohne physische Projektgröße: dann entsteht **kein** ``pHYs`` und
+    Studio startet beobachtet mit 72 dpi; eine erfundene Auflösung wäre
+    schlechter als ein sichtbar fehlender Wert.
+    """
+    return target.dpi
+
+
+# ``pHYs`` trägt je Achse eine vorzeichenlose 4-Byte-Ganzzahl (Pixel pro Meter).
+_PHYS_MAX_PIXELS_PER_METRE = 2**32 - 1
+_METRES_PER_INCH = 0.0254
+
+
+def png_pixels_per_metre(dpi: tuple[float, float]) -> tuple[int, int]:
+    """Ganzzahlige Pixel pro Meter je Achse – exakt Pillows ``pHYs``-Rundung.
+
+    ``int(dpi / 0.0254 + 0.5)`` ist die Formel von ``PngImagePlugin._save``;
+    der Rückweg weicht dadurch um höchstens 0,02 dpi vom Sollwert ab
+    (Formatquantisierung, ``docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md``).
+    Werte, die der Chunk nicht tragen kann (0 Pixel/m bei absurd großer
+    physischer Größe, mehr als ``2**32 - 1`` bei absurd kleiner, ``inf`` wenn
+    die DPI-Ableitung selbst schon überläuft), werfen
+    :class:`EufyMakeWriteError` – statt Pillows nacktem ``struct.error``,
+    einem ``OverflowError`` aus ``int()`` oder einem stillen ``pHYs`` mit
+    0 dpi. Über die UI sind solche Werte nicht erreichbar, wohl aber über von
+    Hand editierte ``.bgrproj``-Metadaten.
+    """
+    error = EufyMakeWriteError(
+        f"Physische Größe ergibt keine als PNG-pHYs kodierbare Auflösung: {dpi} dpi"
+    )
+    if not all(math.isfinite(axis) for axis in dpi):
+        raise error
+    ppm = tuple(int(axis / _METRES_PER_INCH + 0.5) for axis in dpi)
+    if any(v < 1 or v > _PHYS_MAX_PIXELS_PER_METRE for v in ppm):
+        raise error
+    return ppm[0], ppm[1]
+
+
+def _write_png(
+    image: Image.Image, path: Path, *, dpi: tuple[float, float] | None = None
+) -> None:
+    """Schreibt ein Bild verlustfrei als PNG (eigene Funktion = Test-Injektionspunkt).
+
+    Mit ``dpi`` schreibt Pillow den ``pHYs``-Chunk (Rundung und Grenzen siehe
+    :func:`png_pixels_per_metre`, das hier vorab prüft). Ohne ``dpi`` entsteht
+    kein Chunk. Die Pixeldaten werden in keinem Fall berührt.
+    """
+    params: dict[str, Any] = {}
+    if dpi is not None:
+        png_pixels_per_metre(dpi)  # fail-closed vor dem Encoder
+        params["dpi"] = dpi
+    image.save(path, "PNG", **params)
 
 
 def _write_rendered(rendered: RenderedExport, out_dir: Path) -> None:
     """Schreibt alle Assets + Manifest in ein (bereits existierendes) Verzeichnis."""
+    dpi = png_dpi_for(rendered.plan.target)
     for item in rendered.assets:
-        _write_png(item.image, out_dir / item.asset.filename)
+        _write_png(item.image, out_dir / item.asset.filename, dpi=dpi)
     manifest_text = json.dumps(rendered.manifest, indent=2, ensure_ascii=False)
     (out_dir / MANIFEST_FILENAME).write_text(manifest_text, encoding="utf-8")
 

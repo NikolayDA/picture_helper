@@ -24,6 +24,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   `STANDARD_FLATBED_MM` 此前为 330 × 420 mm，仅由搜索引擎提取的厂商数据支撑。该尺寸
   现已由所有者确认，并与 eufyMake Studio 4.2.2 显示的工作区域一致；因此
   `PRINT_AREA_EXCEEDED` 仅在宽度超过 335 mm 时警告，警告文本也不再称该值未经证实。
+- **EufyMake 导出将项目分辨率写入 PNG `pHYs`（#689、#691）。**
+  `color_motif.png`、`height_map.png` 和 `gloss_mask.png` 现在将由项目物理尺寸
+  推导出的 X/Y DPI 分别写入 `pHYs`（整数像素/米）。据观察 eufyMake Studio 4.2.2
+  以该值作为起始尺寸；此前没有 `pHYs` 时以 72 dpi 起始，1200 px 的图案会变成
+  423 mm 宽。未设置物理尺寸时仍不写入该 chunk；像素数据和 `manifest.json`
+  保持不变，物理尺寸警告文本已描述新的状态。
 
 ## [2.9.0] – 2026-08-26
 

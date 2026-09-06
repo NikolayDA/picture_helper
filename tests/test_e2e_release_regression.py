@@ -271,10 +271,14 @@ def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], st
     assert color_motif.is_file(), "EufyMake-Export: Farbmotiv fehlt"
     assert height_map_png.is_file(), "EufyMake-Export: Höhenkarte fehlt"
     assert manifest_path.is_file(), "EufyMake-Export: manifest.json fehlt"
+    assert reloaded.dpi is not None
     with Image.open(color_motif) as img:
         assert img.mode == "RGBA" and img.size == reloaded.size
+        # pHYs je Achse aus der Projekt-Auflösung (#689/#691), Quantisierung ≤ 0,02 dpi
+        assert all(abs(a - b) <= 0.02 for a, b in zip(img.info["dpi"], reloaded.dpi, strict=True))
     with Image.open(height_map_png) as img:
         assert img.size == reloaded.size
+        assert all(abs(a - b) <= 0.02 for a, b in zip(img.info["dpi"], reloaded.dpi, strict=True))
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["profile"] == "bgremover-eufymake-import"
     written_roles = {asset["role"] for asset in manifest["assets"]}

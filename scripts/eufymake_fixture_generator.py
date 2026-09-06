@@ -1008,9 +1008,11 @@ def _write_mm_dpi_export_bundle(out_dir: Path) -> dict[str, Any]:
         confirm_warnings=True,
     )
 
-    # Der Produktionswriter erzeugt absichtlich metadatenneutrale PNGs. Nur für
-    # dieses empirische Konfliktfixture wird anschließend ein pHYs-Chunk gesetzt;
-    # manifest.json bleibt unverändert und fordert weiterhin 300×300 DPI.
+    # Der Produktionswriter schreibt die Projekt-DPI (300×300, ``EXPORT_TARGET_DPI``)
+    # bereits selbst als pHYs (#689/#691). Für dieses empirische Konfliktfixture
+    # wird der Chunk anschließend bewusst auf ``EXPORT_PHYS_DPI`` (150×150)
+    # überschrieben; manifest.json bleibt unverändert und fordert weiterhin
+    # 300×300 DPI – nur so entsteht der Widerspruch, den I-06 messen soll.
     png_contracts = {
         "color_motif.png": ("color_motif", "RGBA", 8),
         "height_map.png": ("height_map", "I;16", 16),

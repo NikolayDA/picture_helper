@@ -773,7 +773,10 @@ separately. A
 `manifest.json` is internal provenance containing profile/app versions,
 channel interpretation, pixels/mm, and X/Y DPI; Studio 4.2.2 does not consume
 it as an import package. Open hardware properties remain marked provisional or
-open.
+open. The PNG files themselves carry the X and Y DPI derived from the project
+dimensions as `pHYs`; Studio 4.2.2 uses this value as the start size. Without
+project dimensions the value is missing and Studio starts at 72 dpi, so a
+1200 px motif would be 423 mm wide.
 
 Afterwards you import and position the assets in EufyMake Studio, assign ink
 modes/layers there, and save the Studio project itself as `.empf`.

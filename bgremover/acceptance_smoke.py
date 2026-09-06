@@ -533,7 +533,43 @@ def _run_eufymake_export_smoke(window: MainWindow, export_dir: Path) -> tuple[bo
     ]
     if missing:
         return False, f"EufyMake-Export unvollständig ({missing}): {written}"
-    return True, f"EufyMake-Export ok: {written}"
+    phys_ok, phys_message = _check_export_phys(written)
+    if not phys_ok:
+        return False, phys_message
+    return True, f"EufyMake-Export ok: {written} ({phys_message})"
+
+
+#: Zulässige Abweichung des aus ``pHYs`` zurückgelesenen Werts von der
+#: Manifest-DPI: ganzzahlige Pixel pro Meter (Formatquantisierung, ≤ 0,02 dpi).
+_PHYS_DPI_TOLERANCE = 0.02
+
+
+def _check_export_phys(written: Path) -> tuple[bool, str]:
+    """Bindet den ``pHYs``-Vertrag (#689/#691) an die Artefakt-Evidenz.
+
+    Jedes geschriebene PNG muss die Manifest-DPI je Achse als ``pHYs`` tragen;
+    ohne physische Projektgröße darf umgekehrt kein Chunk entstehen. Geprüft
+    wird hier, weil dieser Hook im **gepackten** Artefakt läuft – der
+    Source-Checkout-Test in ``tests/test_e2e_release_regression.py`` sagt
+    nichts über die Bytes aus, die tatsächlich zu eufyMake Studio gehen.
+    """
+    manifest = json.loads((written / "manifest.json").read_text(encoding="utf-8"))
+    target_dpi = manifest.get("target", {}).get("dpi")
+    for path in sorted(written.glob("*.png")):
+        with Image.open(path) as img:
+            png_dpi = img.info.get("dpi")
+        if target_dpi is None:
+            if png_dpi is not None:
+                return False, f"{path.name} trägt pHYs {png_dpi}, obwohl keine Projekt-DPI gesetzt ist"
+            continue
+        if png_dpi is None or any(
+            abs(actual - expected) > _PHYS_DPI_TOLERANCE
+            for actual, expected in zip(png_dpi, target_dpi, strict=True)
+        ):
+            return False, f"pHYs von {path.name} weicht von der Projekt-DPI ab: {png_dpi} statt {target_dpi}"
+    if target_dpi is None:
+        return True, "kein pHYs ohne Projekt-DPI"
+    return True, f"pHYs je Achse = Projekt-DPI {target_dpi}"
 
 
 def run_acceptance_extra(
