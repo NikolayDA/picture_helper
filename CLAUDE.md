@@ -1323,6 +1323,11 @@ die Kopie mit; sonst bleibt `make check` grün und die Doku still falsch:
 - `tests/test_abnahme_preflight.py`/`tests/test_qt_gl_probe.py` (#992): die
   Fehlertexte je Sonden-Stufe (`PROBE_STAGE_HINTS`) und die `_fail`-Literale
   der Sonde gegen `qt_gl_probe.STAGES`, inklusive Prüfreihenfolge.
+- `tests/test_linux_packaging.py` (#994): die glibc-Untergrenzen (`LIBC_MIN`)
+  in `packaging/linux/build_deb.sh` gegen die manylinux-Tags des
+  `PyQt6-Qt6`-Pins — und gegen das tatsächlich gebaute `.deb`. Ein Qt-Bump ohne
+  Nachzug lässt das Paket sonst eine veraltete Grenze deklarieren, und die App
+  stirbt auf einem zu alten System erst beim Start statt bei der Installation.
 - `tests/test_process_documentation.py`: den Ein-Review-Trigger von
   `claude-code-review.yml` gegen seine sechs Doku-Stellen und die
   Quellworkflow-Liste des Live-Checks gegen ihre drei.

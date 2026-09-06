@@ -7,6 +7,14 @@ name: Dependency Audit
 # - codex-security-scan.yml findet Logik-/Trust-Boundary-Befunde.
 # Keine dieser Ebenen meldet jedoch eine NEU veroeffentlichte CVE gegen eine
 # bereits gepinnte Version – genau diese Luecke schliesst dieser Job.
+#
+# GRENZE DIESES JOBS (#994): pip-audit loest PyPI-Distributionen gegen die
+# OSV-/PyPA-Datenbank auf. Qt-Schwachstellen werden gegen *Qt* gefuehrt, nicht
+# gegen die Distribution PyQt6-Qt6, die Qt als Binaerpaket mitliefert. Ein
+# gruener Lauf ist deshalb KEIN Nachweis, dass das gebuendelte Qt frei von
+# bekannten Befunden ist – 6.7.3 trug zehn Advisories, waehrend dieser Job
+# gruen war. Der Qt-Stand wird beim Anheben des Pins von Hand geprueft und im
+# Kommentarblock von requirements/constraints.txt festgehalten (SECURITY.md).
 on:
   # PR-Audit: laeuft bewusst fuer jeden Pull Request, auch bei Docs-only-
   # Aenderungen, damit der Abhaengigkeitsstand einheitlich sichtbar bleibt.
