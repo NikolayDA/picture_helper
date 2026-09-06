@@ -23,7 +23,7 @@
 
 **EufyMake #681/#687–#691：** PR #948、#951–#953、#956 与 #959–#961 已合并。Schema 5 包含 42 个单独 fixture 和 7 个未改变的真实导出包。Studio 4.2.2 中全部 29 个必需的无打印导入测试格均已完成。除原生 8/16 位 HEIGHT、COLOR/HEIGHT 联动裁剪和 `Gloss Varnish` 外，还证实：像素尺寸不同但宽高比相同会被接受，而 HEIGHT 宽高比不同会以 `Depth image ratio does not match the original image` 拒绝。I-14 新增了直接生成、未预滤波的 256/128 像素边缘/脉冲对；两个变体均已通过导入预检。I-09（`.empf`）仍不阻塞。仅剩 #688–#690 的 E1 物理测量及 #687 收尾评审。
 
-保持不变并已关闭：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项、v2.7.0 至 v2.9.0 各版本，以及史诗 #741（含其十一个子议题）、史诗 #805（含 #806–#811）、#817 与 #821；自上次同步以来新关闭：#943（PR #944）、#692（PR #947），以及 ANLEITUNG 评审 #963 及其 #964–#966、#968、#969（PR #972）与 #967（PR #973），以及测试套件审计 #949（PR #977）与 PDF 守卫 #974（PR #979），以及 Heartbeat 分级升级 #958（PR #981），以及文档同步 #982（PR #984），以及标注载体补录 #975（PR #986）（详见以往轮次）。
+保持不变并已关闭：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项、v2.7.0 至 v2.9.0 各版本，以及史诗 #741（含其十一个子议题）、史诗 #805（含 #806–#811）、#817 与 #821；自上次同步以来新关闭：#943（PR #944）、#692（PR #947），以及 ANLEITUNG 评审 #963 及其 #964–#966、#968、#969（PR #972）与 #967（PR #973），以及测试套件审计 #949（PR #977）与 PDF 守卫 #974（PR #979），以及 Heartbeat 分级升级 #958（PR #981），以及文档同步 #982（PR #984），以及标注载体补录 #975（PR #986），以及分诊表补录 #995（PR #997）（详见以往轮次）。
 
 未结事项：下方分诊表中每个议题一行。自 #821 起，数量与表行都不再人工维护——`scripts/recommendations_live_check.py --write` 依据 GitHub 实时状态更新全部六个版本，评估列仍是编辑工作。
 
@@ -75,7 +75,6 @@
 | [#992](https://github.com/NikolayDA/picture_helper/issues/992) | 验收/预检路径中的死代码（`has_blocking_gaps`、`qt_gl_probe.STAGES`） | 🟡 中（发布证据存在漂移风险，当前无缺陷） | 🟢 低（删除并补一个守卫测试） | Sonnet，低 | 可开始 —— 删除 `has_blocking_gaps` 及其测试（已由 `has_technical_gaps` 取代，#924），并用守卫测试把 `PROBE_STAGE_HINTS` 绑定到 `qt_gl_probe.STAGES` |
 | [#993](https://github.com/NikolayDA/picture_helper/issues/993) | UI/模型中的死代码（样式常量、`Project.reorder`、`selected_dpi`） | 🟢 低（可读性/可维护性，无错误行为） | 🟢 低（删除并更新两处文档） | Sonnet，低 | 可开始 —— 按 #503 的做法删除 `history_button_style`/`CARD_STYLE`/`TAB_STYLE`，并同步 CLAUDE.md 与 `docs/REDESIGN_SPEC.md`；删除 `Project.reorder`/`selected_dpi` 或将其记为储备 |
 | [#994](https://github.com/NikolayDA/picture_helper/issues/994) | `PyQt6-Qt6` 6.7.3 固定版本中的 Qt SVG CVE（CVE-2025-10728/10729），#762 未覆盖 | 🟠 高（use-after-free 推翻了 #762 中「仅崩溃」的前提；路径仍然狭窄且间接） | 🔴 高（6.7.3 之后没有适配 glibc 2.36 的 aarch64 wheel；需要负责人决策） | Opus，高 + 负责人决策 | 可开始 —— 先评估方案 3（若无 Qt 插件需要，则从打包产物中移除 `libQt6Svg*`），否则重新表述 #762 的风险接受并明确点名 use-after-free；无论采取哪种方案，都应记录 `pip-audit` 在结构上看不到随包分发的 Qt |
-| [#995](https://github.com/NikolayDA/picture_helper/issues/995) | CI 变红：Recommendations Live Check —— 分诊表缺少 #992–#994 | 🟡 中（不影响任何功能，但使每日实时检查持续变红） | 🟢 低（六个语言版本的文档补录） | Sonnet，低 | 进行中 —— 本次补录同时加入 #992–#995 与状态日期；该行需待议题关闭后才能移除，否则检查会报告 `closed_but_listed` |
 
 ### 接下来推荐
 
