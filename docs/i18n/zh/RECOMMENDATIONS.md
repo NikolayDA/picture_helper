@@ -23,7 +23,7 @@
 
 **EufyMake #681/#687–#691：** PR #948、#951–#953、#956 与 #959–#961 已合并。Schema 5 包含 42 个单独 fixture 和 7 个未改变的真实导出包。Studio 4.2.2 中全部 29 个必需的无打印导入测试格均已完成。除原生 8/16 位 HEIGHT、COLOR/HEIGHT 联动裁剪和 `Gloss Varnish` 外，还证实：像素尺寸不同但宽高比相同会被接受，而 HEIGHT 宽高比不同会以 `Depth image ratio does not match the original image` 拒绝。I-14 新增了直接生成、未预滤波的 256/128 像素边缘/脉冲对；两个变体均已通过导入预检。I-09（`.empf`）仍不阻塞。仅剩 #688–#690 的 E1 物理测量及 #687 收尾评审。
 
-保持不变并已关闭：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项、v2.7.0 至 v2.9.0 各版本，以及史诗 #741（含其十一个子议题）、史诗 #805（含 #806–#811）、#817 与 #821；自上次同步以来新关闭：#943（PR #944）、#692（PR #947），以及 ANLEITUNG 评审 #963 及其 #964–#966、#968、#969（PR #972）与 #967（PR #973），以及测试套件审计 #949（PR #977）与 PDF 守卫 #974（PR #979），以及 Heartbeat 分级升级 #958（PR #981），以及文档同步 #982（PR #984），以及标注载体补录 #975（PR #986），以及分诊表补录 #995（PR #997），以及死代码清理 #992（详见以往轮次）。
+保持不变并已关闭：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项、v2.7.0 至 v2.9.0 各版本，以及史诗 #741（含其十一个子议题）、史诗 #805（含 #806–#811）、#817 与 #821；自上次同步以来新关闭：#943（PR #944）、#692（PR #947），以及 ANLEITUNG 评审 #963 及其 #964–#966、#968、#969（PR #972）与 #967（PR #973），以及测试套件审计 #949（PR #977）与 PDF 守卫 #974（PR #979），以及 Heartbeat 分级升级 #958（PR #981），以及文档同步 #982（PR #984），以及标注载体补录 #975（PR #986），以及分诊表补录 #995（PR #997），以及死代码清理 #992/#993（详见以往轮次）。
 
 未结事项：下方分诊表中每个议题一行。自 #821 起，数量与表行都不再人工维护——`scripts/recommendations_live_check.py --write` 依据 GitHub 实时状态更新全部六个版本，评估列仍是编辑工作。
 
@@ -72,7 +72,6 @@
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | 用发布 ref 取代 main 冻结（ADR + fail-closed 保障） | 🟠 高（发布期间 `main` 保持可合并） | 🟢 低（代码、文档与 ruleset 均已就位） | – （无代理；下一次发布运行） | 受阻（外部）：2026-08-31 收尾检查后重新开启；PR #936 与生效的 ruleset 21941216 均有记录，仅差一次发布后验收可证明从 `release/vX.Y.Z` 启动的运行 |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | 运维：自托管 runner（heartbeat 告警通道） | 🟡 中（运维通道，非产品代码） | 🟢 低（仅观察） | – （无代理；仓库 owner） | 长期开启：请勿关闭（`RUNNER_HEARTBEAT_ISSUE`）；2026-08-31 的 FAIL 是计划中的告警通道测试，清理步骤已完成（计划运行 33496675995 通过，x86_64 跳过，Mac 与 Pi 均合格） |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
-| [#993](https://github.com/NikolayDA/picture_helper/issues/993) | UI/模型中的死代码（样式常量、`Project.reorder`、`selected_dpi`） | 🟢 低（可读性/可维护性，无错误行为） | 🟢 低（删除并更新两处文档） | Sonnet，低 | 可开始 —— 按 #503 的做法删除 `history_button_style`/`CARD_STYLE`/`TAB_STYLE`，并同步 CLAUDE.md 与 `docs/REDESIGN_SPEC.md`；删除 `Project.reorder`/`selected_dpi` 或将其记为储备 |
 | [#994](https://github.com/NikolayDA/picture_helper/issues/994) | `PyQt6-Qt6` 6.7.3 固定版本中的 Qt SVG CVE（CVE-2025-10728/10729），#762 未覆盖 | 🟠 高（use-after-free 推翻了 #762 中「仅崩溃」的前提；路径仍然狭窄且间接） | 🔴 高（6.7.3 之后没有适配 glibc 2.36 的 aarch64 wheel；需要负责人决策） | Opus，高 + 负责人决策 | 可开始 —— 先评估方案 3（若无 Qt 插件需要，则从打包产物中移除 `libQt6Svg*`），否则重新表述 #762 的风险接受并明确点名 use-after-free；无论采取哪种方案，都应记录 `pip-audit` 在结构上看不到随包分发的 Qt |
 
 ### 接下来推荐

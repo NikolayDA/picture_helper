@@ -78,7 +78,6 @@ from bgremover.theme import (
     CARD_STACK_SPACING,
     CARD_STACK_TOP_MARGIN,
     Palette,
-    _Theme,
     active_palette,
     expert_mode_label_style,
     nav_back_style,
@@ -89,14 +88,6 @@ from bgremover.theme import (
     scroll_style,
     section_header_style,
 )
-
-# Wird von ``tests/test_theme.py`` referenziert und hält den Akzent-Token für
-# die (weiterhin verfügbare) Tab-Optik bereit; der geführte Workflow selbst
-# nutzt den QStackedWidget-Aufbau.
-TAB_STYLE = f"""
-    QTabWidget::pane {{ border: none; background: {_Theme.BG_PANEL}; }}
-    QTabBar::tab:selected {{ border-bottom: 3px solid {_Theme.ACCENT}; }}
-"""
 
 
 # Literale ``tr``-Keys je Schritt (Konvention wie ``layer_panel._role_label``:

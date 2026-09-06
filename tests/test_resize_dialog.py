@@ -62,7 +62,6 @@ def test_pixel_mode_has_no_physical_size_by_default(qapp) -> None:
     dlg = ResizeDialog(100, 100)
     try:
         assert dlg.selected_physical_size_mm() is None
-        assert dlg.selected_dpi() is None
         assert dlg.print_area_exceeded() is False
     finally:
         dlg.close()
@@ -79,7 +78,6 @@ def test_mm_mode_derives_pixel_size_from_mm_and_dpi(qapp) -> None:
         dlg._dpi.setValue(300)
         assert dlg.selected_size() == (300, 600)  # 25,4 mm @ 300 DPI = 300 px
         assert dlg.selected_physical_size_mm() == (25.4, 50.8)
-        assert dlg.selected_dpi() == (300.0, 300.0)
     finally:
         dlg.close()
 

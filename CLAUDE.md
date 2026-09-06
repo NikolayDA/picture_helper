@@ -531,7 +531,8 @@ Ein Paket, `bgremover/`:
   100 % = eingepasste Ansicht, nur im Ready-Zustand sichtbar; Lock friert auch
   Mausrad-/Tasten-Zoom ein) – reiner UI-State, keine Undo-/Redo-Einträge. Das Design-System/Theming liegt in `theme.py`
   (palettengetriebene `*_style`-Builder, u. a. `card_style`/`stepper_style`/
-  `zoom_pill_style`, Tokens `ACCENT`/`CARD_STYLE`, hell/dunkel). Referenz-Spec:
+  `zoom_pill_style`, Karten-Tokens `CARD_RADIUS_PX`/`CARD_PADDING`, hell/dunkel;
+  `*_STYLE`-Aliase ohne Verbraucher sind entfernt, #503/#993). Referenz-Spec:
   [`docs/REDESIGN_SPEC.md`](docs/REDESIGN_SPEC.md), Prototyp unter `design/`.
 - **Standard-/Experten-Modus des Inspectors (Epic #805, #806–#810):** Ein
   persistenter Umschalter im Inspector-Kopf (`expert_mode_toggle.py`,

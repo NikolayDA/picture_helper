@@ -46,7 +46,7 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 |---|---|---|
 | `bg` | `#1f242b` | Leinwand-Umfeld |
 | `panel` / `inspector` | `#272d36` | Panelflächen |
-| `tabbar` | `#141414` | (Alt-)Tab-Leiste |
+| `tabbar` | `#141414` | Verlaufsliste im History-Popup (Erbe der Alt-Tab-Leiste) |
 | `stepper` | `#1c2128` | Schrittleiste |
 | `nav` | `#222831` | Navigations-Fußzeile |
 | `status` | `#1a1e24` | Statusleiste |
@@ -133,9 +133,10 @@ Zoom-Pille, #428), sodass kein Neustart nötig ist.
 **Token ohne Prototyp-`--var`-Pendant (#480).** Vier Token entsprechen
 keiner eigenen CSS-Variable im Prototyp-Bundle: `panel` ist ein reines
 Alias auf `inspector` (im dunklen Schema wertgleich, siehe §3 für die
-helle Abweichung); `tabbar` bedient ausschließlich die (Alt-)Tab-Leiste aus
-der Vor-Redesign-Ära (`TAB_STYLE`/`_Theme`, kein Verbraucher im geführten
-Workflow); `divider` ist eine reine App-Erfindung für dünne Trennflächen
+helle Abweichung); `tabbar` stammt aus der (Alt-)Tab-Leiste der
+Vor-Redesign-Ära – deren `TAB_STYLE` ist seit #993 entfernt – und hinterlegt
+heute nur noch die Verlaufsliste des History-Popups (`history_popup.py`);
+`divider` ist eine reine App-Erfindung für dünne Trennflächen
 ohne CSS-Gegenstück; `on_accent` trifft den im Prototyp hart kodierten
 Text-auf-Akzent-Wert (`.seg.on{ color:#fff }`), der dort nie über eine
 eigene `--var` läuft. Alle vier sind bewusste, dokumentierte Ausnahmen —
@@ -149,7 +150,7 @@ Gleiches Token-Set, Ausprägung `theme.LIGHT`:
 |---|---|---|
 | `bg` | `#e9edf3` | Leinwand-Umfeld |
 | `panel` / `inspector` | `#f2f4f8` / `#f5f7fb` | Panelflächen |
-| `tabbar` | `#e6eaf1` | (Alt-)Tab-Leiste |
+| `tabbar` | `#e6eaf1` | Verlaufsliste im History-Popup (Erbe der Alt-Tab-Leiste) |
 | `stepper` | `#f1f4f8` | Schrittleiste |
 | `nav` | `#eaeef3` | Navigations-Fußzeile |
 | `status` | `#dee3eb` | Statusleiste |

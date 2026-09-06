@@ -368,6 +368,10 @@ def _publish_dir(tmp: Path, dest: Path, *, overwrite: bool) -> None:
     if not dest.exists():
         os.replace(tmp, dest)
         return
+    if not overwrite:
+        # Zweite Sperre hinter ``_atomic_publish``: Die Zusicherung des
+        # Docstrings hält damit in dieser Funktion selbst (#993).
+        raise ExportTargetExistsError(str(dest))
     backup = dest.parent / f".{dest.name}.bak-{uuid.uuid4().hex}"
     os.replace(dest, backup)
     try:

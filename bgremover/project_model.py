@@ -517,6 +517,11 @@ class Project:
         ``ordered_ids`` muss exakt die vorhandenen IDs enthalten (Permutation),
         sonst ``ProjectModelError`` – ein Schutz gegen versehentliches Verlieren
         oder Duplizieren von Ebenen.
+
+        Derzeit ohne Aufrufer in der UI (#993): Das Ebenen-Panel verschiebt
+        schrittweise über :meth:`move_layer`. Die Permutations-Schnittstelle
+        bleibt bewusst als Vorrat für eine Drag-&-Drop-Sortierung und wird von
+        den Modell-/History-Tests gefahren.
         """
         ids = list(ordered_ids)
         current = [layer.id for layer in self._layers]
@@ -635,7 +640,11 @@ class Project:
         self.metadata[META_PHYSICAL_SIZE_MM] = parse_size_mm((width_mm, height_mm))
 
     def clear_physical_size(self) -> None:
-        """Entfernt physische Zielgröße und damit die abgeleitete DPI."""
+        """Entfernt physische Zielgröße und damit die abgeleitete DPI.
+
+        Gegenstück zu :meth:`set_physical_size_mm`; derzeit ohne UI-Weg (#993),
+        nur von Tests genutzt. Bleibt, damit der mm-Vertrag symmetrisch ist.
+        """
         self.metadata.pop(META_PHYSICAL_SIZE_MM, None)
 
     @property

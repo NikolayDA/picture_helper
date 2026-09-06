@@ -8,10 +8,18 @@ import re
 from pathlib import Path
 
 import bgremover
-from bgremover.right_panel import TAB_STYLE
 from bgremover.theme import _Theme
 
 _PKG = Path(__file__).resolve().parent.parent / "bgremover"
+
+
+def _pkg_function_names() -> set[str]:
+    """Sammelt die Namen aller ``def``-Knoten im Paket (Modul- und Klassenebene)."""
+    names: set[str] = set()
+    for p in sorted(_PKG.glob("*.py")):
+        tree = ast.parse(p.read_text(encoding="utf-8"))
+        names |= {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
+    return names
 
 
 def _pkg_assigned_names() -> set[str]:
@@ -54,17 +62,14 @@ def test_shared_templates_use_palette():
     # Live-Vertrag von ``TOOL_STYLE``/``SLD_STYLE`` prüft daher gegen die
     # aktuellen ``DARK``-Werte bzw. den nativen Prototyp-Range-Look, nicht
     # gegen die eingefrorenen Konstanten.
-    # ``TAB_STYLE`` wird dagegen direkt aus ``_Theme.ACCENT`` gebaut (siehe
-    # right_panel.py) – dort bleibt der Vergleich gegen ``_Theme`` korrekt.
     assert DARK.accent in bgremover.TOOL_STYLE
     assert DARK.accent in bgremover.SLD_STYLE
     assert DARK.on_accent in bgremover.SLD_STYLE
     assert "#e6e6e6" in bgremover.SLD_STYLE
-    assert _Theme.ACCENT in TAB_STYLE
     # Resolvte Templates enthalten valides CSS (Einfach-Klammern nach
     # f-String-Auflösung, keine doppelten {{ }} mehr).
     assert "{{" not in bgremover.TOOL_STYLE
-    assert "}}" not in TAB_STYLE
+    assert "}}" not in bgremover.SLD_STYLE
 
 
 def test_palette_for_selects_scheme_case_insensitively():
@@ -268,7 +273,7 @@ def test_interactive_style_builders_carry_focus_state():
 
     builders = (
         theme.panel_btn_style, theme.primary_btn_style, theme.nav_back_style,
-        theme.nav_next_style, theme.tool_style, theme.history_button_style,
+        theme.nav_next_style, theme.tool_style,
         theme.num_style, theme.combo_style, theme.slider_style,
     )
     for build in builders:
@@ -333,7 +338,8 @@ def test_card_metric_tokens_are_named_constants():
     assert theme.CARD_CONTENT_SPACING == 10          # Binnenabstand (§5.1)
     assert theme.CARD_STACK_SPACING == 11            # Sektionsabstand im Stapel (§5.1)
     # Der Radius-Token bestimmt den aufgelösten Karten-Stil (kein zweiter Wert).
-    assert f"{theme.CARD_RADIUS_PX}px" in theme.CARD_STYLE
+    for p in (theme.DARK, theme.LIGHT):
+        assert f"{theme.CARD_RADIUS_PX}px" in theme.card_style(p)
     # Die Panels ziehen exakt diese Tokens (kein Drift zur Spec).
     assert rpt._CARD_STACK_SPACING == theme.CARD_STACK_SPACING
     assert rpt._CARD_STACK_SIDE_MARGIN == theme.CARD_STACK_SIDE_MARGIN
@@ -384,14 +390,17 @@ def test_no_hardcoded_accent_hex_outside_theme():
 # Ehemals tote Modul-/Klassenkonstanten (nirgends referenziert), entfernt und
 # gegen Wiedereinführung bewacht: BTN_STYLE/GRP_STYLE (früheres Aufräumen),
 # die referenzlosen *_STYLE-Aliase aus theme.py, MENU_STYLE aus
-# menu_actions.py sowie die aus DARK gespiegelten _Theme-Zusatzattribute (#503).
+# menu_actions.py sowie die aus DARK gespiegelten _Theme-Zusatzattribute (#503);
+# CARD_STYLE (theme.py), TAB_STYLE (right_panel.py) und der Builder
+# history_button_style folgten mit #993 – ihr einziger Bezug war diese Datei.
 _DEAD_MODULE_CONSTANTS = (
     "BTN_STYLE", "GRP_STYLE",
     "SECTION_HEADER_STYLE", "PRIMARY_BTN_STYLE", "STEPPER_STYLE",
     "NAV_BAR_STYLE", "NAV_BACK_STYLE", "NAV_NEXT_STYLE",
     "STATUS_BAR_STYLE", "TOOLBAR_FRAME_STYLE", "HISTORY_BUTTON_STYLE",
-    "MENU_STYLE",
+    "MENU_STYLE", "CARD_STYLE", "TAB_STYLE",
 )
+_DEAD_STYLE_BUILDERS = ("history_button_style",)
 _DEAD_THEME_CLASS_ATTRS = (
     "ACCENT_SOFT", "ACCENT_LINE", "ACCENT_TEXT", "ACCENT_2", "ACCENT_SHADOW",
     "CARD_BG", "CARD_BORDER", "STEPPER_BG", "NAV_BG", "MUTED", "TEXT_3",
@@ -412,6 +421,12 @@ def test_dead_style_constants_not_reintroduced():
     for name in _DEAD_THEME_CLASS_ATTRS:
         assert not hasattr(_Theme, name), name
         assert name not in assigned, name
+    from bgremover import theme
+
+    defined = _pkg_function_names()
+    for name in _DEAD_STYLE_BUILDERS:
+        assert not hasattr(theme, name), name
+        assert name not in defined, name
 
 
 # ── Drift-Schutz: theme.py vs. docs/REDESIGN_SPEC.md (#480) ─────────────────
