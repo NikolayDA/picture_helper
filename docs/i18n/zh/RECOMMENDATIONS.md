@@ -70,6 +70,8 @@
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | 用发布 ref 取代 main 冻结（ADR + fail-closed 保障） | 🟠 高（发布期间 `main` 保持可合并） | 🟢 低（代码、文档与 ruleset 均已就位） | – （无代理；下一次发布运行） | 受阻（外部）：2026-08-31 收尾检查后重新开启；PR #936 与生效的 ruleset 21941216 均有记录，仅差一次发布后验收可证明从 `release/vX.Y.Z` 启动的运行 |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | 运维：自托管 runner（heartbeat 告警通道） | 🟡 中（运维通道，非产品代码） | 🟢 低（仅观察） | – （无代理；仓库 owner） | 长期开启：请勿关闭（`RUNNER_HEARTBEAT_ISSUE`）；2026-08-31 的 FAIL 是计划中的告警通道测试，清理步骤已完成（计划运行 33496675995 通过，x86_64 跳过，Mac 与 Pi 均合格） |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
+| [#992](https://github.com/NikolayDA/picture_helper/issues/992) | 验收/预检路径中的死代码（`has_blocking_gaps`、`qt_gl_probe.STAGES`） | 🟡 中（发布证据存在漂移风险，当前无缺陷） | 🟢 低（删除并补一个守卫测试） | Sonnet，低 | 可开始 —— 删除 `has_blocking_gaps` 及其测试（已由 `has_technical_gaps` 取代，#924），并用守卫测试把 `PROBE_STAGE_HINTS` 绑定到 `qt_gl_probe.STAGES` |
+| [#993](https://github.com/NikolayDA/picture_helper/issues/993) | UI/模型中的死代码（样式常量、`Project.reorder`、`selected_dpi`） | 🟢 低（可读性/可维护性，无错误行为） | 🟢 低（删除并更新两处文档） | Sonnet，低 | 可开始 —— 按 #503 的做法删除 `history_button_style`/`CARD_STYLE`/`TAB_STYLE`，并同步 CLAUDE.md 与 `docs/REDESIGN_SPEC.md`；删除 `Project.reorder`/`selected_dpi` 或将其记为储备 |
 
 ### 接下来推荐
 
