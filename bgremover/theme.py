@@ -454,19 +454,6 @@ def zoom_pill_style(p: Palette) -> str:
 """
 
 
-def history_button_style(p: Palette) -> str:
-    return f"""
-    QToolButton {{
-        color: {p.text3}; font-size: 20px; border: none;
-        border-radius: 9px; background: {p.surface};
-    }}
-    QToolButton:hover    {{ background: {p.surface_hover}; }}
-    QToolButton:pressed  {{ background: {p.divider}; }}
-    QToolButton:focus    {{ outline: none; border: 1px solid {p.accent}; }}
-    QToolButton:disabled {{ color: {p.muted}; background: {p.divider}; }}
-"""
-
-
 def build_app_stylesheet(p: Palette) -> str:
     """Anwendungsweites QSS für die Redesign-Chrome (Objektnamen/Typen).
 
@@ -545,9 +532,9 @@ class _Theme:
 
 # ── Rückwärtskompatible, dunkel gebaute Konstanten (Tests/Alt-Imports) ──────
 # Nur die tatsächlich referenzierten Alt-Konstanten; die übrigen ``*_STYLE``-
-# Aliase waren toter Code und sind entfernt (#503) – die laufende UI baut
-# ihre Stile über die ``*_style``-Builder mit der aktiven Palette.
-CARD_STYLE = card_style(DARK)
+# Aliase waren toter Code und sind entfernt (#503, ``CARD_STYLE`` und der
+# Builder ``history_button_style`` mit #993) – die laufende UI baut ihre Stile
+# über die ``*_style``-Builder mit der aktiven Palette.
 TOOL_STYLE = tool_style(DARK)
 SLD_STYLE = slider_style(DARK)
 CANVAS_CONTAINER_STYLE = "background: transparent;"

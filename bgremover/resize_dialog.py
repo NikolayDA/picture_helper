@@ -331,10 +331,3 @@ class ResizeDialog(QDialog):
         if self._is_mm_mode():
             return (self._w_mm.value(), self._h_mm.value())
         return None
-
-    def selected_dpi(self) -> tuple[float, float] | None:
-        """Zielauflösung ``(x, y)`` in DPI – nur im mm-Modus, sonst ``None``."""
-        if self._is_mm_mode():
-            value = self._dpi.value()
-            return (value, value)
-        return None

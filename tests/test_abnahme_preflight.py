@@ -203,6 +203,10 @@ def test_qt_probe_names_each_failing_stage() -> None:
         "renderer": "Unerwuenschter Software-Renderer",
     }
     assert set(cases) == set(preflight.PROBE_STAGE_HINTS)
+    # Quelle des Stufenvertrags ist die Sonde (#992): die Hinweistabelle darf
+    # weder Stufen erfinden noch auslassen – sonst meldet der Preflight auf
+    # einem kaputten Runner wieder „irgendwas mit Qt" statt des Befunds.
+    assert set(preflight.PROBE_STAGE_HINTS) == set(qt_gl_probe.STAGES)
     for stage, hint in cases.items():
         error = _check(_probe_runner(
             {"ok": False, "stage": stage, "detail": f"detail-{stage}"}, code=1

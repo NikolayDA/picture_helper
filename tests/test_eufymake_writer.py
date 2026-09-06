@@ -25,6 +25,7 @@ from bgremover.eufymake_writer import (
     ExportTargetExistsError,
     ExportTargetNotDirectoryError,
     ExportValidationError,
+    _publish_dir,
     png_dpi_for,
     png_pixels_per_metre,
     render_export,
@@ -295,6 +296,43 @@ def test_existing_target_without_overwrite_raises(tmp_path: Path) -> None:
     # Vorhandenes Ziel unverändert, kein Temp-Rest.
     assert marker.read_bytes() == original
     assert not _temp_leftovers(tmp_path, dest)
+
+
+def test_publish_dir_itself_refuses_existing_target_without_overwrite(
+    tmp_path: Path,
+) -> None:
+    """``_publish_dir`` hält seine Docstring-Zusicherung selbst (#993) – nicht
+    nur über die vorgelagerte Prüfung in ``_atomic_publish``."""
+    tmp = tmp_path / "staging"
+    tmp.mkdir()
+    (tmp / "new.txt").write_text("neu", encoding="utf-8")
+    dest = tmp_path / "export"
+    dest.mkdir()
+    (dest / "old.txt").write_text("alt", encoding="utf-8")
+    with pytest.raises(ExportTargetExistsError):
+        _publish_dir(tmp, dest, overwrite=False)
+    # Beide Seiten unangetastet: Ziel und Staging.
+    assert (dest / "old.txt").read_text(encoding="utf-8") == "alt"
+    assert (tmp / "new.txt").read_text(encoding="utf-8") == "neu"
+    _publish_dir(tmp, dest, overwrite=True)
+    assert sorted(p.name for p in dest.iterdir()) == ["new.txt"]
+    assert not tmp.exists()
+
+
+def test_publish_dir_itself_never_replaces_a_file_target(tmp_path: Path) -> None:
+    """Zwilling der Sperre (Review PR #998): Taucht unter ``dest`` eine Datei
+    auf, darf ``_publish_dir`` sie auch mit ``overwrite`` nicht über den
+    Backup-Pfad verschieben und am Ende löschen."""
+    tmp = tmp_path / "staging"
+    tmp.mkdir()
+    (tmp / "new.txt").write_text("neu", encoding="utf-8")
+    dest = tmp_path / "export"
+    dest.write_text("fremde Datei", encoding="utf-8")
+    with pytest.raises(ExportTargetNotDirectoryError):
+        _publish_dir(tmp, dest, overwrite=True)
+    assert dest.read_text(encoding="utf-8") == "fremde Datei"
+    assert (tmp / "new.txt").read_text(encoding="utf-8") == "neu"
+    assert not [p for p in tmp_path.iterdir() if p.name.startswith(".export.bak-")]
 
 
 def test_overwrite_replaces_target(tmp_path: Path) -> None:
