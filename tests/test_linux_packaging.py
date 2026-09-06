@@ -373,11 +373,23 @@ def test_deb_libc_floor_matches_the_pinned_qt_wheels() -> None:
     # Der Kommentar nennt die tragenden manylinux-Tags; er ist die Begruendung
     # der Zahlen und darf nicht von ihnen abdriften.
     assert "manylinux_2_39" in txt and "manylinux_2_34" in txt
+    # Massgeblich ist das Maximum ueber ALLE gebuendelten Wheels, nicht eine
+    # einzelne Distribution (Review PR #999). Das muss der Kommentar sagen,
+    # sonst liest die naechste Person die Regel zu eng und misst nur Qt nach.
+    assert "MAXIMUM" in txt, "Kommentar nennt die Maximum-Regel nicht"
+    # armv7l ist ein geerbter Platzhalter ohne eigene Messung - ohne diesen
+    # Hinweis liest sich die Zahl, als sei auch sie erhoben worden.
+    assert "Platzhalter" in txt, "armv7l-Wert nicht als Platzhalter benannt"
     constraints = (ROOT / "requirements" / "constraints.txt").read_text(encoding="utf-8")
-    assert re.search(r"^PyQt6-Qt6==6\.11\.\d+$", constraints, re.M), (
-        "PyQt6-Qt6-Pin geaendert: manylinux-Tags der neuen Wheels pruefen und "
-        "LIBC_MIN in packaging/linux/build_deb.sh nachziehen (#994)."
-    )
+    # Beide Qt-Pins bestimmen das Maximum gemeinsam; eine Aenderung an einem
+    # von beiden kann die Grenze verschieben.
+    for pin in (r"^PyQt6==6\.11\.\d+$", r"^PyQt6-Qt6==6\.11\.\d+$"):
+        assert re.search(pin, constraints, re.M), (
+            f"Qt-Pin geaendert ({pin}): manylinux-Tags aller gebuendelten Wheels "
+            "neu vergleichen und LIBC_MIN in packaging/linux/build_deb.sh auf das "
+            "Maximum je Architektur setzen (#994). Netzfrei ist das hier nicht "
+            "pruefbar - die Tags stehen nur auf PyPI."
+        )
 
 
 @pytest.mark.skipif(shutil.which("dpkg-deb") is None, reason="dpkg-deb not available")

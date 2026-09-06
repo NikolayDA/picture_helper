@@ -32,13 +32,31 @@ APPIMAGE="${1:-$(ls -1t "$BUILD/appimage"/*.AppImage 2>/dev/null | head -1 || tr
 # PLATFORM_TAG ist der menschenlesbare Teil des Dateinamens, im selben
 # OS+Geraet-Vokabular wie build_appimage.sh (#584).
 #
-# LIBC_MIN ist die glibc-Untergrenze der gebuendelten Qt-Wheels (#994). Ohne
-# sie installiert apt das Paket auf einem zu alten System anstandslos und die
-# App stirbt erst beim Start mit "GLIBC_2.xx not found" - genau der Fehler,
-# den der Kommentar in requirements/constraints.txt als beobachtet zitiert.
-# Die Werte folgen den manylinux-Tags des PyQt6-Qt6-Pins: aarch64 kommt als
-# manylinux_2_39, x86_64 als manylinux_2_34. Beim Anheben des Pins mit
-# pruefen (Wheel-Dateinamen auf PyPI).
+# LIBC_MIN ist die glibc-Untergrenze des Pakets (#994). Ohne sie installiert
+# apt auf einem zu alten System anstandslos und die App stirbt erst beim Start
+# mit "GLIBC_2.xx not found" - genau der Fehler, den der Kommentar in
+# requirements/constraints.txt als real beobachtet zitiert.
+#
+# Massgeblich ist das MAXIMUM ueber alle gebuendelten Binaerwheels, nicht eine
+# einzelne Distribution: Die AppImage traegt neben PyQt6-Qt6 auch PyQt6,
+# PyQt6_sip und im --ai-Bundle numpy/scipy/onnxruntime/scikit-image (Review
+# PR #999). Gemessen am 2026-09-06 ueber alle Pins aus
+# requirements/constraints.txt bestimmen PyQt6 UND PyQt6-Qt6 das Maximum
+# gemeinsam: beide liefern manylinux_2_34_x86_64 und manylinux_2_39_aarch64.
+# Die naechsthoeheren sind numpy, scipy, onnxruntime und pillow mit je 2.27.
+# Mehrfach getaggte Wheels zaehlen mit ihrem niedrigsten Tag, weil sie ab dort
+# laufen.
+#
+# Beim Anheben IRGENDEINES gebuendelten Pins neu bestimmen: die manylinux-Tags
+# der Wheel-Dateinamen auf PyPI vergleichen und das Maximum je Architektur
+# eintragen. tests/test_linux_packaging.py haelt die Literale netzfrei gegen
+# beide Qt-Pins; eine Verschiebung durch ein anderes Paket faellt dort NICHT
+# auf und braucht diese Handmessung.
+#
+# armv7l traegt bewusst denselben Wert wie x86_64, ohne eigene Messung: Fuer
+# PyQt6/PyQt6-Qt6 gibt es keine armv7l-Wheels, und der Release-Vertrag kennt
+# nur x86_64 und arm64 (CLAUDE.md). Der Zweig bleibt fuer selbst gebaute
+# Pakete bestehen; die Zahl ist dort ein geerbter Platzhalter, kein Messwert.
 case "$(uname -m)" in
   x86_64)  DEB_ARCH=amd64; PLATFORM_TAG="linux-x86_64"; LIBC_MIN="2.34" ;;
   aarch64) DEB_ARCH=arm64; PLATFORM_TAG="linux-raspberrypi-arm64"; LIBC_MIN="2.39" ;;
