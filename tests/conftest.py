@@ -6,13 +6,27 @@ headless laufen (CI, lokale Server ohne Display), und stellt eine geteilte
 mit ``ABNAHME_REQUIRE_NATIVE_3D=1`` lässt Qt dagegen sein natives Backend aus
 der laufenden Desktop-Session wählen.
 """
+import atexit
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 if os.environ.get("ABNAHME_REQUIRE_NATIVE_3D") != "1":
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+# Konfigurationspfad der *Subprozesse* umlenken: die App-Smoke-Tests starten
+# ``python -m bgremover`` bzw. ein eigenes ``MainWindow`` in einem eigenen
+# Prozess, den der Qt-Testmodus weiter unten nicht erreicht (der wirkt nur
+# prozesslokal). Ohne diese Zeile schreibt der Testlauf ``recent_files`` &
+# Co. in die echte Nutzerkonfiguration. ``XDG_CONFIG_HOME`` wird sonst
+# nirgends ausgewertet, das Setzen ist also nebenwirkungsfrei -- deckt aber
+# nur Linux ab; unter macOS legt Qt seine Preferences unabhängig davon an.
+_XDG_CONFIG_TMP = tempfile.mkdtemp(prefix="bgremover-tests-config-")
+os.environ["XDG_CONFIG_HOME"] = _XDG_CONFIG_TMP
+atexit.register(shutil.rmtree, _XDG_CONFIG_TMP, ignore_errors=True)
 
 # Repo-Root in sys.path aufnehmen, damit Unit-Tests die aktuelle Quelle
 # importieren. Die App-Smoke-Tests prüfen zusätzlich die echte Installation
@@ -26,7 +40,22 @@ from bgremover.qt_plugins import ensure_qt_plugin_path
 ensure_qt_plugin_path()
 
 import pytest
+from PyQt6.QtCore import QSettings, QStandardPaths
 from PyQt6.QtWidgets import QApplication
+
+# Qt-Testmodus: verlegt alle schreibbaren Standardpfade in einen eigenen
+# Zweig (``~/.qttest``). Ohne ihn liest ``MainWindow.__init__`` die *echte*
+# Nutzerkonfiguration (``QSettings("BgRemover", "BgRemover")``) und schreibt
+# beim Schließen hinein -- der Testlauf hängt dann an den Einstellungen des
+# jeweiligen Rechners (eine dort gespeicherte englische Oberflächensprache
+# lässt jeden Test scheitern, der deutsche Meldungen erwartet) und
+# hinterlässt darin Testwerte. ``QSettings.setPath()`` reicht dafür nicht:
+# es bleibt auf dem XDG-Pfad wirkungslos (in einzelnen Testmodulen so
+# vorhanden, aber ohne Wirkung). Der Aufruf steht bewusst auf Modulebene --
+# Qt merkt sich die aufgelösten Pfade ab der ersten Nutzung, eine Fixture
+# könnte also schon zu spät kommen. Ebenfalls abgedeckt: der Log-Pfad aus
+# ``logging_config`` (``QStandardPaths.AppDataLocation``).
+QStandardPaths.setTestModeEnabled(True)
 
 # Mini-Programm, das genau den riskanten Schritt macht: QApplication
 # konstruieren. Schlägt das Plattform-Plugin fehl, ruft Qt qFatal() →
@@ -93,6 +122,31 @@ def qapp():
         pytest.exit(diagnosis, returncode=1)
     app = QApplication.instance() or QApplication([])
     yield app
+
+
+@pytest.fixture(autouse=True)
+def _reset_settings_and_locale():
+    """Startet jeden Test mit leeren Einstellungen und der Default-Locale.
+
+    ``i18n._current_locale`` ist prozessweiter Zustand: baut ein Test ein
+    ``MainWindow``, übernimmt dieses die Sprache aus den Einstellungen und
+    behält sie für alle folgenden Tests bei. Zusammen mit den ebenfalls
+    prozessweit wirkenden ``QSettings`` machte das die Suite von der
+    Testreihenfolge abhängig. Beides wird vor *und* nach jedem Test
+    zurückgesetzt; Tests, die eine andere Sprache oder vorbelegte
+    Einstellungen brauchen, setzen sie wie bisher selbst.
+    """
+    from bgremover import i18n
+
+    def _reset() -> None:
+        settings = QSettings("BgRemover", "BgRemover")
+        settings.clear()
+        settings.sync()
+        i18n.configure_locale(i18n.DEFAULT_LOCALE)
+
+    _reset()
+    yield
+    _reset()
 
 
 @pytest.fixture(autouse=True)
