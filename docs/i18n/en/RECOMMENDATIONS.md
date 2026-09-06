@@ -11,7 +11,7 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-09-03, v2.9.0 published, open inventory fully audited)
+## Current Status (2026-09-06, v2.9.0 published, open inventory fully audited)
 
 **Daily audit 2026-09-02 (state `91b32b4`):** All 42 open issues were checked
 against code, merges, comments, and—within the Mac App Store epic—current
@@ -29,11 +29,13 @@ snapshot/bundle guards, resolving the former release-critical #691 item. #955
 only affects test-suite documentation and #957 release scripts; neither changes
 the EufyMake empirical findings.
 
+**Follow-up audit 2026-09-06 (state `74972f5`):** Four new issues are on record. #992/#993 come from a dead-code analysis of the whole codebase (ruff, vulture, repo-wide symbol cross-reference): unused imports, local variables, and modules are all at zero, and all 572 `de` i18n keys, 24 status messages, and eight icon assets are referenced. What remains is a superseded predecessor (`has_blocking_gaps`), a contract constant nothing reads (`qt_gl_probe.STAGES`), and style/model API without consumers. #994 reports two Qt SVG CVEs in the `PyQt6-Qt6==6.7.3` pin that #762 does not list — what is new is the risk class (use-after-free instead of crash-only DoS), not the attack path and not the available options; the aarch64 wheel bottleneck is unchanged. #995 is the CI finding about exactly this table drift. No new product defect.
+
 **Release assessment: no candidate started yet.** Since `v2.9.0` (2026-08-29)
-there are 34 mainline commits at the audited `e7c379d` state. With PR #953 (versioned EufyMake target profile,
+there are 51 mainline commits at the audited `74972f5` state. With PR #953 (versioned EufyMake target profile,
 16-bit HEIGHT default, profile and X/Y DPI display in the dialog, manifest
-provenance) `[Unreleased]` holds its first user-visible entry; everything else
-is release automation, documentation, and governance. Whether **v2.10.0** ships
+provenance), #971 (confirmed flatbed dimensions), and #996 (project DPI as PNG `pHYs`)
+`[Unreleased]` holds user-visible entries; everything else is release automation, documentation, and governance. Whether **v2.10.0** ships
 with #953 alone or together with the COLOR tone engine (#693/#694 from epic
 #682, ADR #692) is an owner decision. PR #956 corrected the bad evidence
 reference with an explicit v1 decision and Golden/bundle guards. #691
@@ -92,6 +94,8 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
 | [#992](https://github.com/NikolayDA/picture_helper/issues/992) | Dead code in the acceptance/preflight path (`has_blocking_gaps`, `qt_gl_probe.STAGES`) | 🟡 Medium (drift risk in the release evidence, no current defect) | 🟢 Low (removal plus one guard test) | Sonnet, low | Ready to start – remove `has_blocking_gaps` and its tests (superseded by `has_technical_gaps`, #924) and bind `PROBE_STAGE_HINTS` to `qt_gl_probe.STAGES` with a guard test |
 | [#993](https://github.com/NikolayDA/picture_helper/issues/993) | Dead code in UI/model (style constants, `Project.reorder`, `selected_dpi`) | 🟢 Low (readability/maintainability, no misbehaviour) | 🟢 Low (removal plus two doc spots) | Sonnet, low | Ready to start – remove `history_button_style`/`CARD_STYLE`/`TAB_STYLE` following the #503 pattern and update CLAUDE.md and `docs/REDESIGN_SPEC.md`; remove `Project.reorder`/`selected_dpi` or document them as reserved |
+| [#994](https://github.com/NikolayDA/picture_helper/issues/994) | Qt SVG CVEs in the `PyQt6-Qt6` 6.7.3 pin (CVE-2025-10728/10729), not covered by #762 | 🟠 High (use-after-free voids the crash-only assumption from #762; the path stays narrow and indirect) | 🔴 High (no aarch64 wheel after 6.7.3 for glibc 2.36; owner decision required) | Opus, high + owner decision | Ready to start – first evaluate option 3 (drop `libQt6Svg*` from the bundles if no Qt plugin needs it), otherwise restate the #762 acceptance with the use-after-free named explicitly; independently, record that `pip-audit` is structurally blind to bundled Qt |
+| [#995](https://github.com/NikolayDA/picture_helper/issues/995) | CI red: Recommendations Live Check – #992–#994 missing from the triage table | 🟡 Medium (no functionality affected, but keeps the daily live check red) | 🟢 Low (documentation update across six versions) | Sonnet, low | In progress – this update adds #992–#995 together with the status date; the row itself goes only once the issue is closed, otherwise the check reports `closed_but_listed` |
 
 ### Recommended Next
 
