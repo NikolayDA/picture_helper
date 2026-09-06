@@ -363,14 +363,19 @@ def _publish_dir(tmp: Path, dest: Path, *, overwrite: bool) -> None:
 
     Existiert ``dest`` (nur mit ``overwrite``), wird es zuerst beiseitegeschoben
     und bei einem Fehler beim Einspielen des neuen Inhalts wiederhergestellt –
-    ein vorhandenes gültiges Ziel bleibt so unversehrt.
+    ein vorhandenes gültiges Ziel bleibt so unversehrt. Ein Nicht-Verzeichnis
+    unter ``dest`` wird unabhängig von ``overwrite`` abgewiesen.
     """
     if not dest.exists():
         os.replace(tmp, dest)
         return
+    # Zweite Sperre hinter ``_atomic_publish`` (#993, Review PR #998): Die
+    # Zusicherungen des Docstrings halten damit in dieser Funktion selbst –
+    # auch wenn ``dest`` erst zwischen beiden Prüfungen entstanden ist. Eine
+    # fremde Datei liefe sonst über ``backup`` und würde am Ende gelöscht.
+    if not dest.is_dir():
+        raise ExportTargetNotDirectoryError(str(dest))
     if not overwrite:
-        # Zweite Sperre hinter ``_atomic_publish``: Die Zusicherung des
-        # Docstrings hält damit in dieser Funktion selbst (#993).
         raise ExportTargetExistsError(str(dest))
     backup = dest.parent / f".{dest.name}.bak-{uuid.uuid4().hex}"
     os.replace(dest, backup)

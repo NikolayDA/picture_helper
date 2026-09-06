@@ -95,9 +95,21 @@ def load_software_renderer_rule() -> Callable[[str], bool]:
     return rule
 
 
+class ProbeContractError(ValueError):
+    """Programmierfehler der Sonde: ``_fail`` mit einer Stufe ausserhalb von ``STAGES``.
+
+    Bewusst kein Laufzeitbefund: ``probe`` reicht sie unveraendert durch,
+    statt sie im ``kontext``-Handler in einen scheinbar regulaeren Befund zu
+    verwandeln (Review PR #998) – ein Tippfehler in einer Stufe soll den
+    Prozess hart beenden, nicht „Kein gueltiger OpenGL-Kontext" melden.
+    ``tests/test_qt_gl_probe.py`` haelt fest, dass jeder breite Handler um
+    einen ``_fail``-Aufruf diese Klasse vorher weiterreicht.
+    """
+
+
 def _fail(stage: str, detail: str, **extra: Any) -> dict[str, Any]:
-    if stage not in STAGES:  # Programmierfehler der Sonde, kein Laufzeitbefund
-        raise ValueError(f"unbekannte Sonden-Stufe {stage!r}; erlaubt: {STAGES}")
+    if stage not in STAGES:
+        raise ProbeContractError(f"unbekannte Sonden-Stufe {stage!r}; erlaubt: {STAGES}")
     return {"ok": False, "stage": stage, "detail": detail, **extra}
 
 
@@ -130,7 +142,8 @@ def success_payload(
 def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
     """Fuehrt den Qt-/GL-Smoke aus und liefert das strukturierte Ergebnis.
 
-    Wirft nie: Jeder Fehler wird zu einem benannten ``stage``. Ein stiller
+    Wirft nie – jeder Laufzeitfehler wird zu einem benannten ``stage``; nur
+    :class:`ProbeContractError` (Programmierfehler) passiert absichtlich. Ein stiller
     Skip existiert bewusst nicht – ein nicht durchgefuehrter Nachweis ist ein
     Fehler, keine Auslassung.
     """
@@ -247,6 +260,8 @@ def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
                 version=version,
             )
         return payload
+    except ProbeContractError:
+        raise  # Programmierfehler der Sonde – nie als Kontext-Befund tarnen
     except Exception as exc:  # noqa: BLE001 - Sonde darf nie ohne JSON enden
         return _fail("kontext", f"{type(exc).__name__}: {exc}", platform=platform_name)
     finally:

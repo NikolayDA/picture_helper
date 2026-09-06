@@ -319,6 +319,22 @@ def test_publish_dir_itself_refuses_existing_target_without_overwrite(
     assert not tmp.exists()
 
 
+def test_publish_dir_itself_never_replaces_a_file_target(tmp_path: Path) -> None:
+    """Zwilling der Sperre (Review PR #998): Taucht unter ``dest`` eine Datei
+    auf, darf ``_publish_dir`` sie auch mit ``overwrite`` nicht über den
+    Backup-Pfad verschieben und am Ende löschen."""
+    tmp = tmp_path / "staging"
+    tmp.mkdir()
+    (tmp / "new.txt").write_text("neu", encoding="utf-8")
+    dest = tmp_path / "export"
+    dest.write_text("fremde Datei", encoding="utf-8")
+    with pytest.raises(ExportTargetNotDirectoryError):
+        _publish_dir(tmp, dest, overwrite=True)
+    assert dest.read_text(encoding="utf-8") == "fremde Datei"
+    assert (tmp / "new.txt").read_text(encoding="utf-8") == "neu"
+    assert not [p for p in tmp_path.iterdir() if p.name.startswith(".export.bak-")]
+
+
 def test_overwrite_replaces_target(tmp_path: Path) -> None:
     dest = tmp_path / "export"
     write_export(_color_project((4, 2)), dest)

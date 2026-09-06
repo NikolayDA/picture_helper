@@ -115,8 +115,48 @@ def test_every_failure_stage_comes_from_the_declared_contract() -> None:
         literals.append(stage)
     assert set(literals) == set(probe_module.STAGES)
     assert tuple(dict.fromkeys(literals)) == tuple(probe_module.STAGES)
-    with pytest.raises(ValueError, match="unbekannte Sonden-Stufe"):
+    with pytest.raises(probe_module.ProbeContractError, match="unbekannte Sonden-Stufe"):
         probe_module._fail("treiber", "x")
+
+
+def _calls_fail(statements: list[ast.stmt]) -> bool:
+    return any(
+        isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "_fail"
+        for stmt in statements
+        for n in ast.walk(stmt)
+    )
+
+
+def test_a_contract_error_passes_every_broad_handler() -> None:
+    """Review PR #998: Der Guard in ``_fail`` darf nicht vom ``except Exception``
+    des Kontext-Blocks geschluckt werden – sonst meldete ein Tippfehler in einer
+    Stufe „Kein gueltiger OpenGL-Kontext" fuer einen intakten Runner. Jeder
+    ``try``, dessen Rumpf ``_fail`` aufruft und der ``Exception`` breit faengt,
+    muss den Vertragsfehler **vorher** unveraendert weiterreichen.
+    """
+    source = (ROOT / "scripts" / "qt_gl_probe.py").read_text(encoding="utf-8")
+    checked = 0
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Try) or not _calls_fail(node.body):
+            continue
+        broad = [
+            i for i, h in enumerate(node.handlers)
+            if h.type is None or (isinstance(h.type, ast.Name) and h.type.id == "Exception")
+        ]
+        if not broad:
+            continue
+        passthrough = [
+            i for i, h in enumerate(node.handlers)
+            if isinstance(h.type, ast.Name) and h.type.id == "ProbeContractError"
+            and len(h.body) == 1
+            and isinstance(h.body[0], ast.Raise) and h.body[0].exc is None
+        ]
+        assert passthrough and passthrough[0] < broad[0], f"try in Zeile {node.lineno}"
+        checked += 1
+    assert checked >= 1, "kein breiter Handler um einen _fail-Aufruf gefunden"
+    # Als Exception-Subklasse bleibt sie fuer den Aufrufer normal fangbar; die
+    # Durchreichung ist eine explizite Entscheidung der Sonde, kein BaseException-Trick.
+    assert issubclass(probe_module.ProbeContractError, Exception)
 
 
 def test_gl_constants_match_the_production_probe() -> None:
