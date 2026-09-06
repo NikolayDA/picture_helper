@@ -57,6 +57,12 @@ release downloads, see above). The venv/Git instructions below remain useful
 when you want to test from `main`, from a feature branch, or with local
 changes.
 
+> **System requirement of the aarch64 artifacts (from v2.10.0):** The Qt
+> bundled there requires **glibc 2.39**, i.e. **Raspberry Pi OS "Trixie"
+> (Debian 13) or newer**. On "Bookworm" (Debian 12) the `.deb` refuses to
+> install instead of failing later at startup; use the apt path below there,
+> or upgrade the system. The x86_64 artifacts are **not** affected.
+
 ## Requirements
 
 > **Raspberry Pi OS (Desktop)?** Then take the much simpler path

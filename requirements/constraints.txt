@@ -50,40 +50,60 @@ pooch==1.9.0
 protobuf==7.34.1
 Pygments==2.20.0
 PyMatting==1.1.15
-# PyQt6/-Qt6 pinned to the last aarch64-portable release (#595): upstream
-# stopped publishing manylinux_2_28_aarch64 wheels after 6.7.x (PyQt6 6.8.0+,
-# PyQt6-Qt6 6.8.1+ ship only manylinux_2_39_aarch64, i.e. they require glibc
-# >= 2.39 - newer than current Raspberry Pi OS/Debian 12 "bookworm", which
-# only has 2.36). A newer pin here would make the aarch64 AppImage/.deb
-# unstartable on that widely used target OS (confirmed via manual Raspberry
-# Pi 5 testing: ImportError "GLIBC_2.38' not found" in PyQt6.QtGui). Revisit
-# once Raspberry Pi OS ships a newer glibc baseline.
+# PyQt6/-Qt6 moved to the current line (#994, owner decision 2026-09-06).
+# Rationale for the move: the previous pin 6.7.3 was kept because releases
+# after it ship only manylinux_2_39_aarch64 wheels (glibc >= 2.39), which the
+# then-current Raspberry Pi OS / Debian 12 "bookworm" (glibc 2.36) could not
+# run. That premise expired: the official 64-bit Raspberry Pi OS build branch
+# (RPi-Distro/pi-gen, branch arm64) now sets RELEASE=trixie, and Debian 13
+# "trixie" ships glibc 2.41. Staying on 6.7.3 therefore no longer protected a
+# current target, it only protected a legacy one.
 #
-# Accepted risk (#762, owner decision 2026-08-13): this pin also carries
-# CVE-2026-6210 (Qt SVG type confusion / heap-buffer-overflow, HIGH,
-# CVSS 8.7, fixed 6.8.8/6.11.1) and CVE-2026-15037 (QDom XML injection,
-# LOW, fixed 6.12). Confirmed on PyPI (2026-08-05, see #762 comment
-# history) that no PyQt6-Qt6 release after 6.7.3 ships a
-# manylinux_2_28_aarch64 wheel - the fixed 6.8.8/6.11.1 lines require the
-# same glibc >= 2.39 that already blocks a plain bump above, so this isn't
-# a viable "just upgrade" fix without dropping Raspberry Pi OS "bookworm"
-# aarch64 support. bgremover doesn't call QSvgRenderer/QSvgWidget or build
-# QDomDocument from untrusted input; the residual exposure is a narrow,
-# crash-only DoS via Qt's native file-dialog icon theme path when browsing
-# a folder containing an attacker-supplied SVG, not RCE in normal
-# image-editing use. Tracked as an accepted risk until a glibc-2.36-
-# compatible fixed wheel exists or the aarch64 target is revisited (same
-# glibc baseline as the PyQt6-Qt6 note above).
+# What the move closes: 6.7.3 carried at least ten Qt advisories, of which
+# #762 documented three. Read directly from the CVE records: CVE-2025-10728
+# (Qt SVG uncontrolled recursion, CWE-674) and CVE-2025-10729 (Qt SVG
+# use-after-free, CWE-416), both affected 6.7.0-6.8.4 and 6.9.0-6.9.2, so
+# both ranges end below this pin. Taken from the GitHub advisory database and
+# not re-checked against a second source: CVE-2026-6210 (Qt SVG type
+# confusion, HIGH) and CVE-2025-5683 (ICNS DoS in QImage) from the #762 entry,
+# plus further advisories naming 6.7.3 that were tracked nowhere in this
+# repository (among them CVE-2025-12385 and CVE-2025-5455, both HIGH).
+# Completeness of that list is not guaranteed - a very recent, not yet
+# imported advisory would not show up by this method.
 #
-# Related: CVE-2025-5683 (#769, ICNS DoS in QImage, same 6.7.3 pin) is
-# mitigated in-app - bgremover.image_loading.open_validated_image is the
-# only path used for user-supplied image bytes (Pillow, explicit format
-# whitelist, no ICNS) and bgremover.right_panel._recent_thumbnail_icon
-# routes recent-file thumbnails through the same validated loader instead
-# of a direct QPixmap(path) (#769 fix). The residual Qt-internal ICNS
-# decoder exposure falls under the same accepted-risk umbrella as above.
-PyQt6==6.7.1
-PyQt6-Qt6==6.7.3
+# The use-after-free is the reason the #762 acceptance could not simply be
+# renewed: that decision was explicitly premised on a "crash-only DoS"
+# exposure, which does not cover memory corruption.
+#
+# Remaining accepted risk: CVE-2026-15037 (QDom XML injection, LOW) is fixed
+# in 6.12 and therefore still present here. bgremover never builds a
+# QDomDocument from untrusted input.
+#
+# Correction to the #762 record, measured on 2026-09-06: that comment
+# described the exposure as "browsing a folder containing an attacker-supplied
+# SVG". QFileIconProvider returns the theme's MIME icon and does not render
+# the file's contents, and bgremover never calls QIcon(path) or QImageReader
+# at all - it passes ready-made QPixmaps and routes every user-supplied byte
+# through bgremover.image_loading.open_validated_image (Pillow, format
+# whitelist, no SVG). The only path that reached Qt's SVG code was the
+# system-installed theme icons of Qt's own file dialog, which an attacker does
+# not control.
+#
+# Platform impact of the move: x86_64 is unaffected (6.11.2 ships
+# manylinux_2_34_x86_64, below bookworm's 2.36). The aarch64 AppImage/.deb now
+# require glibc >= 2.39, i.e. Raspberry Pi OS / Debian 13 "trixie" or newer;
+# the .deb declares that bound so an old system refuses the install instead of
+# failing at startup. The self-hosted aarch64 acceptance runner must be on
+# trixie before the next release candidate is built - a bookworm runner cannot
+# install these wheels (--only-binary=:all:, no sdist fallback) and its
+# platform job would fail in the preflight.
+#
+# Note on tooling: pip-audit resolves PyPI distributions against the OSV/PyPA
+# database. Qt advisories are filed against Qt, not against the PyQt6-Qt6
+# distribution that vendors it, so a green dependency-audit run says nothing
+# about the bundled Qt. See SECURITY.md.
+PyQt6==6.11.0
+PyQt6-Qt6==6.11.2
 PyQt6_sip==13.11.1
 pytest==9.0.3
 pytest-qt==4.5.0

@@ -30,6 +30,14 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   以该值作为起始尺寸；此前没有 `pHYs` 时以 72 dpi 起始，1200 px 的图案会变成
   423 mm 宽。未设置物理尺寸时仍不写入该 chunk；像素数据和 `manifest.json`
   保持不变，物理尺寸警告文本已描述新的状态。
+- **Qt 升级至 6.11；aarch64 构建现在需要 Debian 13（#994）。** `PyQt6-Qt6`
+  此前固定在 6.7.3，因为更新的 wheel 在 aarch64 上需要 glibc 2.39。Raspberry Pi OS
+  现已构建 Debian 13「Trixie」（glibc 2.41），该理由仅剩下保护旧版系统的作用。此次
+  升级关闭了约十条影响 6.7.3 的 Qt 安全公告，其中包括 Qt SVG 的 CVE-2025-10728 与
+  CVE-2025-10729；其中的 use-after-free 并不在此前的风险接受范围内，后者明确以仅导致
+  崩溃的暴露为前提。因此 aarch64 的 AppImage 与 `.deb` 需要 Raspberry Pi OS「Trixie」
+  或更新版本，并且 `.deb` 现在自行声明 glibc 下限，在较旧系统上会拒绝安装，而不是等到
+  启动时才失败。x86_64 与 macOS 不受影响。
 
 ## [2.9.0] – 2026-08-26
 

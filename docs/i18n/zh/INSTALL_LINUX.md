@@ -52,6 +52,11 @@ sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 背景移除（发行版下载的默认设置，见上文），文件名就会带有 `-ai` 后缀。下面的
 venv/Git 说明仍适用于从 `main`、功能分支或本地修改进行测试。
 
+> **aarch64 构建的系统要求（自 v2.10.0 起）：** 其中内置的 Qt 需要
+> **glibc 2.39**，即 **Raspberry Pi OS「Trixie」（Debian 13）或更新版本**。
+> 在「Bookworm」（Debian 12）上，`.deb` 会拒绝安装，而不是等到启动时才失败；
+> 请在该系统上改用下方的 apt 途径，或升级系统。x86_64 构建**不**受影响。
+
 ## 前提条件
 
 > **使用 Raspberry Pi OS（桌面版）？** 那就采用下文中

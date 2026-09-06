@@ -56,6 +56,13 @@ predeterminado en las descargas de releases, ver arriba). Las instrucciones
 venv/Git siguientes siguen siendo útiles si quieres probar desde `main`,
 desde una rama de funcionalidad o con cambios locales.
 
+> **Requisito de sistema de los artefactos aarch64 (desde v2.10.0):** el Qt
+> incluido allí exige **glibc 2.39**, es decir **Raspberry Pi OS «Trixie»
+> (Debian 13) o posterior**. En «Bookworm» (Debian 12) el `.deb` rechaza la
+> instalación en lugar de fallar más tarde al arrancar; allí conviene usar la
+> vía apt de más abajo o actualizar el sistema. Los artefactos x86_64 **no**
+> se ven afectados.
+
 ## Requisitos
 
 > **¿Raspberry Pi OS (Desktop)?** Entonces toma la vía claramente más

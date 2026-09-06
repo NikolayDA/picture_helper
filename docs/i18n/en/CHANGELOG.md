@@ -37,6 +37,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   1200 px motif became 423 mm wide. Without a physical size no chunk is
   written; pixel data and `manifest.json` are unchanged, and the physical-size
   warning now describes the new state.
+- **Qt raised to 6.11; the aarch64 artifacts now require Debian 13 (#994).**
+  The `PyQt6-Qt6` pin sat at 6.7.3 because newer wheels require glibc 2.39 on
+  aarch64. Raspberry Pi OS now builds Debian 13 "Trixie" (glibc 2.41), so that
+  reasoning only protected a legacy state. The move closes about ten Qt
+  advisories affecting 6.7.3, among them the Qt SVG findings CVE-2025-10728 and
+  CVE-2025-10729; the use-after-free among them was not covered by the earlier
+  risk acceptance, which was explicitly based on crash-only exposure. AppImage
+  and `.deb` for aarch64 therefore require Raspberry Pi OS "Trixie" or newer,
+  and the `.deb` now states the glibc floor itself, refusing installation on
+  older systems instead of failing at startup. x86_64 and macOS are unaffected.
 
 ## [2.9.0] – 2026-08-26
 
