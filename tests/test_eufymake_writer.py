@@ -411,6 +411,7 @@ def test_png_pixels_per_metre_matches_pillow_rounding() -> None:
     [
         [1e-6, 1e-6],  # ~7,6e9 dpi → Pixel/m > 2^32-1 (Pillow: struct.error)
         [1e6, 1e6],  # ~0,008 dpi → 0 Pixel/m (stilles pHYs mit 0 dpi)
+        [1e-307, 1e-307],  # DPI-Ableitung läuft zu inf über (int(): OverflowError)
     ],
 )
 def test_unencodable_phys_raises_structured_error_without_leftovers(

@@ -35,6 +35,7 @@ davon unberührt – das Manifest trägt weiterhin die ungerundeten Zielwerte.
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 import tempfile
@@ -314,16 +315,21 @@ def png_pixels_per_metre(dpi: tuple[float, float]) -> tuple[int, int]:
     der Rückweg weicht dadurch um höchstens 0,02 dpi vom Sollwert ab
     (Formatquantisierung, ``docs/history/EUFYMAKE-689-MM-DPI-VERTRAG.md``).
     Werte, die der Chunk nicht tragen kann (0 Pixel/m bei absurd großer
-    physischer Größe, mehr als ``2**32 - 1`` bei absurd kleiner), werfen
-    :class:`EufyMakeWriteError` – statt Pillows nacktem ``struct.error`` oder
-    einem stillen ``pHYs`` mit 0 dpi. Über die UI sind solche Werte nicht
-    erreichbar, wohl aber über von Hand editierte ``.bgrproj``-Metadaten.
+    physischer Größe, mehr als ``2**32 - 1`` bei absurd kleiner, ``inf`` wenn
+    die DPI-Ableitung selbst schon überläuft), werfen
+    :class:`EufyMakeWriteError` – statt Pillows nacktem ``struct.error``,
+    einem ``OverflowError`` aus ``int()`` oder einem stillen ``pHYs`` mit
+    0 dpi. Über die UI sind solche Werte nicht erreichbar, wohl aber über von
+    Hand editierte ``.bgrproj``-Metadaten.
     """
+    error = EufyMakeWriteError(
+        f"Physische Größe ergibt keine als PNG-pHYs kodierbare Auflösung: {dpi} dpi"
+    )
+    if not all(math.isfinite(axis) for axis in dpi):
+        raise error
     ppm = tuple(int(axis / _METRES_PER_INCH + 0.5) for axis in dpi)
     if any(v < 1 or v > _PHYS_MAX_PIXELS_PER_METRE for v in ppm):
-        raise EufyMakeWriteError(
-            f"Physische Größe ergibt keine als PNG-pHYs kodierbare Auflösung: {dpi} dpi"
-        )
+        raise error
     return ppm[0], ppm[1]
 
 
