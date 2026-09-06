@@ -37,7 +37,8 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   CVE-2025-10729；其中的 use-after-free 并不在此前的风险接受范围内，后者明确以仅导致
   崩溃的暴露为前提。因此 aarch64 的 AppImage 与 `.deb` 需要 Raspberry Pi OS「Trixie」
   或更新版本，并且 `.deb` 现在自行声明 glibc 下限，在较旧系统上会拒绝安装，而不是等到
-  启动时才失败。x86_64 与 macOS 不受影响。
+  启动时才失败。x86_64 同样上调，从 glibc 2.28 提升到 2.34：Debian 12、Ubuntu 22.04
+  与 RHEL 9 继续受支持，Debian 11、Ubuntu 20.04 与 RHEL 8 不再适用。macOS 不受影响。
 
 ## [2.9.0] – 2026-08-26
 

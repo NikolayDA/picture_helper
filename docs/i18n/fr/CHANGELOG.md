@@ -48,8 +48,10 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   explicitement sur une exposition limitée aux plantages. L'AppImage et le
   `.deb` pour aarch64 exigent donc Raspberry Pi OS « Trixie » ou plus récent,
   et le `.deb` annonce lui-même le seuil glibc : il refuse l'installation sur
-  les systèmes anciens au lieu d'échouer au démarrage. x86_64 et macOS ne sont
-  pas concernés.
+  les systèmes anciens au lieu d'échouer au démarrage. x86_64 monte aussi, de
+  glibc 2.28 à 2.34 : Debian 12, Ubuntu 22.04 et RHEL 9 restent pris en
+  charge, Debian 11, Ubuntu 20.04 et RHEL 8 sortent du champ. macOS n'est pas
+  concerné.
 
 ## [2.9.0] – 2026-08-26
 

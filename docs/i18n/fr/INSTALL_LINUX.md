@@ -57,12 +57,14 @@ défaut pour les téléchargements de releases, voir ci-dessus). Les
 instructions venv/Git ci-dessous restent utiles pour tester depuis `main`,
 une branche de fonctionnalité ou avec des changements locaux.
 
-> **Prérequis système des artefacts aarch64 (à partir de v2.10.0) :** le Qt
-> embarqué y exige **glibc 2.39**, c'est-à-dire **Raspberry Pi OS
-> « Trixie » (Debian 13) ou plus récent**. Sur « Bookworm » (Debian 12), le
-> `.deb` refuse l'installation au lieu d'échouer plus tard au démarrage ;
-> utilisez-y la voie apt ci-dessous ou mettez le système à niveau. Les
-> artefacts x86_64 ne sont **pas** concernés.
+> **Prérequis système des artefacts (à partir de la prochaine version) :** le
+> Qt embarqué exige une glibc plus récente qu'auparavant, sur les **deux**
+> architectures. Pour **aarch64**, c'est **glibc 2.39**, soit Raspberry Pi OS
+> « Trixie » (Debian 13) ou plus récent. Pour **x86_64**, c'est **glibc
+> 2.34**, soit Debian 12, Ubuntu 22.04, RHEL 9 ou plus récent ; les systèmes
+> plus anciens comme Debian 11, Ubuntu 20.04 et RHEL 8 sortent du champ. Le
+> `.deb` déclare le seuil et refuse l'installation au lieu d'échouer au
+> démarrage. Sur un système trop ancien, la voie apt/venv ci-dessous demeure.
 
 ## Prérequis
 

@@ -89,8 +89,10 @@ PyMatting==1.1.15
 # system-installed theme icons of Qt's own file dialog, which an attacker does
 # not control.
 #
-# Platform impact of the move: x86_64 is unaffected (6.11.2 ships
-# manylinux_2_34_x86_64, below bookworm's 2.36). The aarch64 AppImage/.deb now
+# Platform impact of the move: BOTH Linux architectures gain a higher glibc
+# floor, because 6.7.3 shipped manylinux_2_28 on each (review PR #999).
+# x86_64 goes from 2.28 to 2.34 - Debian 12, Ubuntu 22.04 and RHEL 9 stay in,
+# Debian 11, Ubuntu 20.04 and RHEL 8 drop out. The aarch64 AppImage/.deb now
 # require glibc >= 2.39, i.e. Raspberry Pi OS / Debian 13 "trixie" or newer;
 # the .deb declares that bound so an old system refuses the install instead of
 # failing at startup. The self-hosted aarch64 acceptance runner must be on

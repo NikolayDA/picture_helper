@@ -46,7 +46,9 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   risk acceptance, which was explicitly based on crash-only exposure. AppImage
   and `.deb` for aarch64 therefore require Raspberry Pi OS "Trixie" or newer,
   and the `.deb` now states the glibc floor itself, refusing installation on
-  older systems instead of failing at startup. x86_64 and macOS are unaffected.
+  older systems instead of failing at startup. x86_64 rises too, from glibc
+  2.28 to 2.34: Debian 12, Ubuntu 22.04 and RHEL 9 stay supported, while
+  Debian 11, Ubuntu 20.04 and RHEL 8 drop out. macOS is unaffected.
 
 ## [2.9.0] – 2026-08-26
 

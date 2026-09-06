@@ -49,7 +49,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   gestützte Risikoakzeptanz. AppImage und `.deb` für aarch64 setzen deshalb
   Raspberry Pi OS „Trixie" oder neuer voraus, und das `.deb` nennt die
   glibc-Untergrenze jetzt selbst, verweigert die Installation auf älteren
-  Ständen also, statt erst beim Start zu scheitern. x86_64 und macOS sind
+  Ständen also, statt erst beim Start zu scheitern. Auch x86_64 steigt mit,
+  von glibc 2.28 auf 2.34: Debian 12, Ubuntu 22.04 und RHEL 9 bleiben
+  unterstützt, Debian 11, Ubuntu 20.04 und RHEL 8 fallen weg. macOS ist
   nicht betroffen.
 
 ## [2.9.0] – 2026-08-26
