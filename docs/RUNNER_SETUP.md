@@ -19,7 +19,7 @@ Zielzustand (Geräte/Labels aus [`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md)
 | Gerät | Runner-Name | Labels | Dienstform |
 |---|---|---|---|
 | MacBook (Apple Silicon) | `Mac` | `self-hosted`, `macOS`, `ARM64` | LaunchAgent des angemeldeten Benutzers |
-| Raspberry Pi 5 (Debian 12, Desktop) | `raspberrypi` | `self-hosted`, `Linux`, `ARM64` | systemd-System-Dienst |
+| Raspberry Pi 5 (Debian 13, Desktop) | `raspberrypi` | `self-hosted`, `Linux`, `ARM64` | systemd-System-Dienst |
 
 **Wo welche Kommandos laufen:** Alle `gh`-Kommandos dieser Anleitung laufen
 auf dem **Arbeitsrechner** (installiertes, authentifiziertes `gh` mit
@@ -302,7 +302,13 @@ Qt-Runtime-Baus bis zu 7 Minuten.
 
 ### 3.1 Betriebssystem, Pakete und Checkout
 
-Raspberry Pi OS **mit Desktop** (Debian 12, 64-bit) installieren – die
+Raspberry Pi OS **mit Desktop** (Debian 13 „Trixie“, 64-bit) installieren.
+„Bookworm“ (Debian 12) reicht seit #994 **nicht** mehr: Die Qt-Pins des
+Releases kommen als `manylinux_2_39`-Wheels, und der Abnahme-Preflight
+installiert ausschließlich Wheels (`--only-binary=:all:`). Auf einem
+Bookworm-Gerät findet `pip` kein passendes Wheel; der Plattform-Job
+scheitert dann schon im Preflight. Welchen Stand ein Gerät fährt, weist der
+Preflight seit #994 selbst aus (Zeile `[preflight] ok: python (…)`). Die
 Qt-/GL-Systembibliotheken der Desktop-Session sind Voraussetzung. Der im
 Imager bzw. Erststart-Assistenten angelegte Benutzer ist der
 Runner-Benutzer (§1). Dann:
