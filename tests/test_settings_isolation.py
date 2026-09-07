@@ -6,14 +6,14 @@ Nutzerkonfiguration. Daraus kommt auch die prozessweite UI-Locale: eine dort
 gespeicherte englische Oberflächensprache ließ jeden Test scheitern, der
 deutsche Meldungen erwartet. Umgekehrt schrieb der Lauf Testwerte zurück.
 
-Die Umlenkung (``QStandardPaths.setTestModeEnabled``) wirkt nur, solange vor
-``conftest.py`` noch kein ``QSettings`` konstruiert wurde. Diese Annahme ist
-still: greift sie nicht mehr, bleibt der Lauf grün und leert dabei die
-Konfiguration des Nutzers. Deshalb hier fail-closed geprüft.
+Die Umlenkung ist still: greift sie nicht mehr, bleibt der Lauf grün und
+verändert dabei die Konfiguration des Nutzers. Deshalb hier je Lauf geprüft.
 """
 import os
+import sys
 from pathlib import Path
 
+import pytest
 from PyQt6.QtCore import QSettings
 
 from bgremover.i18n import DEFAULT_LOCALE, current_locale
@@ -23,16 +23,10 @@ def _resolved_settings_path() -> Path:
     return Path(QSettings("BgRemover", "BgRemover").fileName()).resolve()
 
 
-def test_qsettings_liegt_im_testmodus_zweig() -> None:
-    """Der aufgelöste Pfad liegt im ``~/.qttest``-Zweig, nicht im Nutzerprofil."""
-    assert ".qttest" in _resolved_settings_path().parts, (
-        "QSettings zeigt nicht in den Qt-Testmodus-Zweig – die Isolation aus "
-        "tests/conftest.py greift nicht."
-    )
-
-
-def test_qsettings_meidet_die_echten_konfigurationsorte() -> None:
-    """Weder der XDG- noch der macOS-Ablageort des Nutzers wird berührt."""
+def test_qsettings_meidet_die_echten_konfigurationsorte(settings_isolated) -> None:
+    """Der aufgelöste Pfad liegt nicht in der Ablage des Nutzers."""
+    if not settings_isolated:
+        pytest.skip("Plattform ohne umlenkbare QSettings-Ablage (macOS/CFPreferences)")
     path = _resolved_settings_path()
     home = Path.home().resolve()
     for verboten in (home / ".config", home / "Library" / "Preferences"):
@@ -42,9 +36,26 @@ def test_qsettings_meidet_die_echten_konfigurationsorte() -> None:
         )
 
 
+def test_qsettings_liegt_im_wegwerf_verzeichnis(settings_isolated) -> None:
+    """Positiv geprüft: die Ablage liegt im temporären Verzeichnis des Laufs."""
+    if not settings_isolated:
+        pytest.skip("Plattform ohne umlenkbare QSettings-Ablage (macOS/CFPreferences)")
+    assert "bgremover-tests-qsettings-" in str(_resolved_settings_path())
+
+
+def test_umlenkung_greift_ausserhalb_von_macos(settings_isolated) -> None:
+    """Nur macOS darf ohne Umlenkung laufen (CFPreferences statt Datei).
+
+    Anderswo ist ein Ausfall ein Fehler, kein hinzunehmender Zustand – dort
+    bricht ``conftest.py`` bereits beim Import ab. Dieser Test hält fest,
+    dass die Ausnahme nicht unbemerkt auf weitere Plattformen wächst.
+    """
+    assert settings_isolated or sys.platform == "darwin"
+
+
 def test_subprozesse_erben_ein_umgelenktes_konfigverzeichnis() -> None:
-    """Die App-Smoke-Tests starten eigene Prozesse; der Testmodus wirkt dort
-    nicht (er ist prozesslokal). Für sie trägt allein ``XDG_CONFIG_HOME``."""
+    """Die App-Smoke-Tests starten eigene Prozesse; die Umlenkung im Prozess
+    wirkt dort nicht. Für sie trägt allein ``XDG_CONFIG_HOME`` (Linux)."""
     xdg = os.environ.get("XDG_CONFIG_HOME")
     assert xdg, "XDG_CONFIG_HOME ist nicht gesetzt – Subprozesse schreiben real."
     assert not Path(xdg).resolve().is_relative_to((Path.home() / ".config").resolve())

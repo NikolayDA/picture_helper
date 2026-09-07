@@ -28,37 +28,49 @@ _XDG_CONFIG_TMP = tempfile.mkdtemp(prefix="bgremover-tests-config-")
 os.environ["XDG_CONFIG_HOME"] = _XDG_CONFIG_TMP
 atexit.register(shutil.rmtree, _XDG_CONFIG_TMP, ignore_errors=True)
 
-# Qt-Testmodus: verlegt alle schreibbaren Standardpfade prozesslokal in einen
-# eigenen Zweig (``~/.qttest``). Ohne ihn liest ``MainWindow.__init__`` die
-# *echte* Nutzerkonfiguration (``QSettings("BgRemover", "BgRemover")``) und
-# schreibt beim Schließen hinein -- der Testlauf hängt dann an den
-# Einstellungen des jeweiligen Rechners (eine dort gespeicherte englische
-# Oberflächensprache lässt jeden Test scheitern, der deutsche Meldungen
-# erwartet) und hinterlässt darin Testwerte. Ebenfalls abgedeckt: der
-# Log-Pfad aus ``logging_config`` (``QStandardPaths.AppDataLocation``).
-#
-# Der Aufruf steht bewusst VOR jedem Projekt-Import: Qt friert die
-# aufgelösten Pfade ab dem ersten konstruierten ``QSettings`` ein, ein
-# späterer Testmodus wirkt dann auch auf neu gebaute Objekte nicht mehr.
-# ``QSettings.setPath()`` (früher in einzelnen Testmodulen, mit diesem Stand
-# entfernt) leistet das nicht -- der Pfad blieb die echte Nutzerdatei.
+# QStandardPaths-Testmodus: verlegt die schreibbaren Standardpfade in einen
+# eigenen Zweig (``~/.qttest``). Betrifft hier vor allem den Log-Pfad aus
+# ``logging_config`` (``AppDataLocation``); die QSettings-Ablage hängt
+# dagegen nicht daran (siehe unten).
 from PyQt6.QtCore import QSettings, QStandardPaths
 
 QStandardPaths.setTestModeEnabled(True)
 
-# Fail-closed statt Vertrauen auf die Importreihenfolge: ein später
-# ergänzter QSettings-Zugriff auf Modulebene -- im Paket oder in einem über
-# Entry-Points geladenen pytest-Plugin (die lädt pytest VOR dieser Datei) --
-# hängt die Umlenkung still aus. Der Lauf bliebe grün, während die
-# autouse-Fixture unten die echte Nutzerkonfiguration leert. Deshalb hier
-# hart abbrechen; ``tests/test_settings_isolation.py`` prüft dasselbe je Lauf.
-_SETTINGS_PROBE = Path(QSettings("BgRemover", "BgRemover").fileName())
-if ".qttest" not in _SETTINGS_PROBE.parts:
+# QSettings selbst umlenken. ``MainWindow.__init__`` liest die *echte*
+# Nutzerkonfiguration (``QSettings("BgRemover", "BgRemover")``) und setzt
+# daraus die prozessweite UI-Locale -- eine dort gespeicherte englische
+# Oberflächensprache ließ jeden Test scheitern, der deutsche Meldungen
+# erwartet; umgekehrt landeten Testwerte in der Datei des Nutzers.
+#
+# Entscheidend ist der Format-Schlüssel: die Zwei-Argument-Form behält
+# ``NativeFormat`` und ignoriert ``setDefaultFormat()``. Die früher in
+# einzelnen Testmodulen stehenden ``setPath(IniFormat, ...)``-Aufrufe gingen
+# deshalb ins Leere -- sie registrierten einen Pfad, den diese Objekte nie
+# nachschlagen. Mit ``NativeFormat`` greift die Umlenkung, und zwar auch
+# nachträglich (anders als der Testmodus, der ab dem ersten konstruierten
+# ``QSettings`` wirkungslos bleibt).
+_QSETTINGS_TMP = tempfile.mkdtemp(prefix="bgremover-tests-qsettings-")
+atexit.register(shutil.rmtree, _QSETTINGS_TMP, ignore_errors=True)
+QSettings.setPath(
+    QSettings.Format.NativeFormat, QSettings.Scope.UserScope, _QSETTINGS_TMP)
+
+# Hat die Umlenkung gegriffen? Unter macOS ist ``NativeFormat`` die
+# CFPreferences-API statt einer Datei; sie lässt sich weder per ``setPath``
+# noch über den Testmodus verlegen. Dort bleibt die Suite deshalb auf der
+# echten Ablage -- unverändert zum bisherigen Verhalten, aber die
+# *zerstörende* Bereinigung in ``_reset_settings_and_locale`` unterbleibt
+# dann (sie würde die Einstellungen des Nutzers löschen). Auf allen anderen
+# Plattformen ist eine fehlgeschlagene Umlenkung ein harter Abbruch: der Lauf
+# bliebe sonst grün und würde dabei die Nutzerdatei leeren.
+SETTINGS_ISOLATED = Path(
+    QSettings("BgRemover", "BgRemover").fileName()
+).resolve().is_relative_to(Path(_QSETTINGS_TMP).resolve())
+if not SETTINGS_ISOLATED and sys.platform != "darwin":
     raise RuntimeError(
         "QSettings-Isolation greift nicht: aufgelöster Pfad "
-        f"{_SETTINGS_PROBE}. Vor tests/conftest.py wurde bereits ein QSettings "
-        "konstruiert (Paket-Import oder pytest-Plugin); Qt hält die Pfade dann "
-        "fest. Der Testlauf würde die echte Nutzerkonfiguration lesen und leeren."
+        f"{QSettings('BgRemover', 'BgRemover').fileName()} liegt nicht unter "
+        f"{_QSETTINGS_TMP}. Der Testlauf würde die echte Nutzerkonfiguration "
+        "lesen und leeren."
     )
 
 # Repo-Root in sys.path aufnehmen, damit Unit-Tests die aktuelle Quelle
@@ -142,6 +154,12 @@ def qapp():
     yield app
 
 
+@pytest.fixture(scope="session")
+def settings_isolated() -> bool:
+    """Ob die QSettings-Umlenkung auf dieser Plattform greift (siehe oben)."""
+    return SETTINGS_ISOLATED
+
+
 @pytest.fixture(autouse=True)
 def _reset_settings_and_locale():
     """Startet jeden Test mit leeren Einstellungen und der Default-Locale.
@@ -153,13 +171,18 @@ def _reset_settings_and_locale():
     Testreihenfolge abhängig. Beides wird vor *und* nach jedem Test
     zurückgesetzt; Tests, die eine andere Sprache oder vorbelegte
     Einstellungen brauchen, setzen sie wie bisher selbst.
+
+    Das Leeren der Einstellungen setzt eine bestätigte Umlenkung voraus
+    (``SETTINGS_ISOLATED``) -- sonst träfe es die echte Konfiguration des
+    Nutzers. Der Locale-Reset ist davon unabhängig und läuft immer.
     """
     from bgremover import i18n
 
     def _reset() -> None:
-        settings = QSettings("BgRemover", "BgRemover")
-        settings.clear()
-        settings.sync()
+        if SETTINGS_ISOLATED:
+            settings = QSettings("BgRemover", "BgRemover")
+            settings.clear()
+            settings.sync()
         i18n.configure_locale(i18n.DEFAULT_LOCALE)
 
     _reset()
