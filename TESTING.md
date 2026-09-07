@@ -261,11 +261,13 @@ würde vier Prüfstellen der Tabelle deselektieren, statt sie laufen zu
 lassen). Die Locale muss installiert sein (`locale -a | grep de_DE`;
 Debian: `sudo dpkg-reconfigure locales`) – fehlt sie, überspringt sich die
 Locale-Prüfung sichtbar, statt zu messen. Ein Software-Renderer (llvmpipe,
-etwa unter `xvfb-run`) ist kein gültiges Ziel für Schritt 2: Der
-Live-Benchmark-Test überspringt sich dort, der native Screenshot-Lauf in
-`test_screenshot3d.py` wird dagegen **rot**, weil erst `run_native_3d_screenshot`
-den Software-Renderer abweist (#642) – das ist der bekannte Befund #1013,
-kein neuer. Für die Gegenprobe zählt allein die echte GPU.
+etwa unter `xvfb-run`) ist kein gültiges Ziel für Schritt 2 – seit #1013 aber
+auch kein roter Lauf mehr: Live-Benchmark **und** nativer Screenshot-Lauf
+überspringen sich dort sichtbar mit Grund, und der Gegenpfad in
+`test_screenshot3d.py` prüft an derselben Stelle real nach, dass
+`run_native_3d_screenshot` den Software-Renderer abweist (#642) statt ihn
+still als Hardware-Nachweis zu nehmen. Für die Gegenprobe zählt weiterhin
+allein die echte GPU: Ein Skip ist kein Nachweis.
 
 Erwartung je Prüfstelle – eine Abweichung ist ein neuer Befund mit eigenem
 Issue, kein Anlass, den Test umzubauen:

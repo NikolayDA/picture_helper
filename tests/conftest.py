@@ -160,24 +160,32 @@ def qapp():
 
 
 @pytest.fixture(scope="session")
-def gl_capability_ok(qapp) -> bool:
-    """Ob diese Umgebung nutzbar mit OpenGL rendern kann.
+def gl_capability(qapp):
+    """Das vollständige Ergebnis der produktiven Capability-Probe.
 
-    Mehrere Tests belegen den dokumentierten 3D-*Fallback* und setzten dafür
-    „offscreen" mit „kein GL" gleich. Das gilt nicht überall: auf einem
-    Raspberry Pi (Broadcom V3D + Mesa) liefert auch die Offscreen-Plattform
-    einen Kontext, und die Tests scheiterten, statt sich zu überspringen.
-    Gefragt wird deshalb die produktive Regel selbst statt des
-    Plattformnamens; ``use_cache=False`` liest und schreibt den Sitzungscache
-    nicht, die Weiche bleibt also nebenwirkungsfrei.
+    Die Weiche vieler 3D-Tests ist nicht der Plattformname, sondern die
+    produktive Regel selbst: auf einem Raspberry Pi (Broadcom V3D + Mesa)
+    liefert auch „offscreen" einen Kontext, und Tests, die „offscreen" mit
+    „kein GL" gleichsetzten, scheiterten dort, statt sich zu überspringen.
+    ``use_cache=False`` liest und schreibt den Sitzungscache nicht, die Weiche
+    bleibt also nebenwirkungsfrei.
 
     Seit #1002 schließt diese Regel den Render-Nachweis ein (Framebuffer-Objekt
-    der Bauart, die ``QOpenGLWidget`` selbst anlegt) – die Weiche folgt damit
-    weiterhin genau dem, was das Gating produktiv entscheidet.
+    der Bauart, die ``QOpenGLWidget`` selbst anlegt). Gegeben wird seit #1013
+    das ganze ``RendererCapability`` statt nur ``ok``: Ob der Kontext von
+    **Hardware** kommt, steht allein in der Diagnose (``renderer_provenance``),
+    und genau daran hängt der native Screenshot-Nachweis. Die Probe kostet
+    einen echten GL-Kontext und läuft deshalb einmal je Sitzung.
     """
     from bgremover.preview3d_capability import probe_3d_capability
 
-    return probe_3d_capability(use_cache=False).ok
+    return probe_3d_capability(use_cache=False)
+
+
+@pytest.fixture(scope="session")
+def gl_capability_ok(gl_capability) -> bool:
+    """Ob diese Umgebung nutzbar mit OpenGL rendern kann (Kurzform)."""
+    return bool(gl_capability.ok)
 
 
 @pytest.fixture(scope="session")
