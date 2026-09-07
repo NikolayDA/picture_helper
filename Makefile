@@ -44,8 +44,12 @@ lint-shell:
 type:
 	$(RUN_ENV) "$(PYTHON)" -m mypy
 
+# PYTEST_ARGS reicht Zusatzargumente an pytest durch, z. B. fuer die
+# Gegenprobe auf Zielhardware (TESTING.md, #1009):
+#   make check PYTEST_ARGS=-rs                                   # Skips mit Grund
+#   make test QT_QPA_PLATFORM=wayland PYTEST_ARGS="-rs -m gl_smoke"
 test:
-	$(QT_ENV) "$(PYTHON)" -m pytest
+	$(QT_ENV) "$(PYTHON)" -m pytest $(PYTEST_ARGS)
 
 # 'coverage xml' erzeugt zusaetzlich coverage.xml fuer den Codecov-Upload in
 # der Full CI; HTML bleibt fuer die lokale Durchsicht.

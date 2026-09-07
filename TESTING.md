@@ -105,7 +105,7 @@ Im Projektordner (venv aktiv):
 | `make all`   | Alles zusammen (`check` + `ui`)                                            |
 | `make lint`  | `shellcheck` für Shell-Skripte (falls installiert) + `ruff` (Stil/Fehler)  |
 | `make type`  | Nur `mypy` (Typprüfung)                                                    |
-| `make test`  | Nur `pytest` (volle UI-Suite ausgeschlossen, `ui_smoke` läuft mit)         |
+| `make test`  | Nur `pytest` (volle UI-Suite ausgeschlossen, `ui_smoke` läuft mit); `PYTEST_ARGS=…` reicht Zusatzargumente durch |
 | `make coverage` | `pytest` mit Coverage-Messung und HTML-Report (`fail_under = 86`)      |
 | `make gl-stress` | GL-Ressourcen-Langzeitsonde der 3D-Vorschau (`scripts/gl_stress_probe.py`) |
 
@@ -226,6 +226,62 @@ bewusst nicht abnahmefähigen Diagnoselauf `--allow-short-run` setzen. Ergebniss
 
 Die Tests laufen headless über `QT_QPA_PLATFORM=offscreen` – es öffnet
 sich also **kein Fenster**.
+
+### Gegenprobe auf Zielhardware: deutsche Locale, echte GPU (#1009)
+
+Zwei Fehlerklassen kann die Offscreen-CI prinzipiell nicht sehen: Verhalten,
+das von der Locale abhängt (die Runner laufen englisch; #1001), und das
+GL-Gating auf echter GPU (die Runner haben keine; #1002, #1004). Beide
+Befunde kamen aus einem `make check` auf einem deutsch eingerichteten
+Raspberry Pi 5 (Debian 13, Broadcom V3D). Die Gegenprobe nach einem solchen
+Fix ist deshalb ein Lauf auf dem Gerät – in drei Schritten, damit die
+Ergebnisse zwischen Geräten und Ständen vergleichbar bleiben:
+
+```bash
+# 1. Standard-Gate unter deutscher Locale; make setzt QT_QPA_PLATFORM=offscreen.
+#    -rs listet jeden Skip mit Grund – die Skips sind hier die Aussage.
+LC_ALL=de_DE.UTF-8 make check PYTEST_ARGS=-rs
+
+# 2. Die gl_smoke-Tests unter der Sitzungsplattform (wayland oder xcb).
+LC_ALL=de_DE.UTF-8 make test QT_QPA_PLATFORM=wayland PYTEST_ARGS="-rs -m gl_smoke"
+
+# 3. Provenienz als eine JSON-Zeile: Plattform, Vendor, Renderer, Mesa-Version.
+QT_QPA_PLATFORM=wayland python scripts/qt_gl_probe.py
+```
+
+`PYTEST_ARGS` reicht Zusatzargumente an `pytest` durch; `-m gl_smoke`
+überschreibt dabei den Standardfilter aus `pyproject.toml`, genau wie
+`make ui`. Die Locale muss installiert sein (`locale -a | grep de_DE`;
+Debian: `sudo dpkg-reconfigure locales`) – fehlt sie, überspringt sich die
+Locale-Prüfung sichtbar, statt zu messen. Ein Software-Renderer (llvmpipe,
+etwa unter `xvfb-run`) ist kein gültiges Ziel für Schritt 2: Der native
+Screenshot-Lauf weist ihn bewusst ab (#642) und der Live-Benchmark-Test
+überspringt sich; für die Gegenprobe zählt allein die echte GPU.
+
+Erwartung je Prüfstelle – eine Abweichung ist ein neuer Befund mit eigenem
+Issue, kein Anlass, den Test umzubauen:
+
+| Prüfstelle | Schritt 1 (`offscreen`) | Schritt 2 (Sitzungsplattform, Hardware-GL) |
+|---|---|---|
+| `test_preview3d_capability.py::test_offscreen_default_probe_reports_unavailable` | misst deterministisch, kein Skip (Plattformregel aus #1002) | Skip „Testlauf auf einer renderfähigen Plattform" |
+| `test_scan_release_artifacts.py::test_signature_state_is_locale_independent` | läuft echt, kein Locale-Skip | ebenso |
+| `gl_smoke` in `test_viewer_3d_gl.py` (vier Tests) | Skip „kann QOpenGLWidget nicht rendern" | laufen: Freispruch nach dem ersten Frame, ein verborgener Viewer wird nie abgestuft (#1004) |
+| `test_screenshot3d.py`: Fallback-Zweig und nativer Lauf | Fallback läuft, nativer Lauf skippt | Fallback skippt („GL-Capability vorhanden"), nativer Lauf schreibt PNG und Sidecar |
+| `test_benchmark_preview3d_live.py`: Live-Test | Skip (Plattform) | läuft mit echtem Hardware-Kontext |
+| 3D-Zustand in `test_e2e_release_regression.py` | läuft mit der produktiven GL-Regel | ebenso |
+
+Das Ergebnis gehört als Kommentar in das auslösende Issue, in diesem Format:
+
+```text
+Gerät · OS · Locale     : Raspberry Pi 5 · Debian 13 · de_DE.UTF-8
+Provenienz (Schritt 3)  : <JSON-Zeile von qt_gl_probe.py>
+Schritt 1 (offscreen)   : <N passed, M skipped> + Skips mit Grund aus -rs
+Schritt 2 (wayland/xcb) : <N passed, M skipped> + Skips mit Grund aus -rs
+```
+
+Die Container-Referenz für dieselben drei Schritte (`xvfb-run` + `xcb`,
+llvmpipe) liegt im PR zu #1009; sie deckt die Locale-Klasse ab, die
+GPU-Klasse nur das Gerät.
 
 ## Recommendations-Live-Check (#752)
 
