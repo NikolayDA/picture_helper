@@ -242,21 +242,29 @@ Ergebnisse zwischen Geräten und Ständen vergleichbar bleiben:
 #    -rs listet jeden Skip mit Grund – die Skips sind hier die Aussage.
 LC_ALL=de_DE.UTF-8 make check PYTEST_ARGS=-rs
 
-# 2. Die gl_smoke-Tests unter der Sitzungsplattform (wayland oder xcb).
-LC_ALL=de_DE.UTF-8 make test QT_QPA_PLATFORM=wayland PYTEST_ARGS="-rs -m gl_smoke"
+# 2. Die sechs Prüfstellen der Tabelle unten unter der Sitzungsplattform
+#    (wayland oder xcb); die gl_smoke-Tests liegen in diesen Dateien.
+LC_ALL=de_DE.UTF-8 make test QT_QPA_PLATFORM=wayland PYTEST_ARGS="-rs \
+  tests/test_viewer_3d_gl.py tests/test_screenshot3d.py \
+  tests/test_benchmark_preview3d_live.py tests/test_preview3d_capability.py \
+  tests/test_scan_release_artifacts.py tests/test_e2e_release_regression.py"
 
 # 3. Provenienz als eine JSON-Zeile: Plattform, Vendor, Renderer, Mesa-Version.
 QT_QPA_PLATFORM=wayland python scripts/qt_gl_probe.py
 ```
 
-`PYTEST_ARGS` reicht Zusatzargumente an `pytest` durch; `-m gl_smoke`
-überschreibt dabei den Standardfilter aus `pyproject.toml`, genau wie
-`make ui`. Die Locale muss installiert sein (`locale -a | grep de_DE`;
+`PYTEST_ARGS` reicht Zusatzargumente an `pytest` durch – Schritt 2 wählt
+damit genau die Dateien der Tabelle aus, der Standardfilter aus
+`pyproject.toml` bleibt wie in `make check` aktiv (ein bloßes `-m gl_smoke`
+würde vier Prüfstellen der Tabelle deselektieren, statt sie laufen zu
+lassen). Die Locale muss installiert sein (`locale -a | grep de_DE`;
 Debian: `sudo dpkg-reconfigure locales`) – fehlt sie, überspringt sich die
 Locale-Prüfung sichtbar, statt zu messen. Ein Software-Renderer (llvmpipe,
-etwa unter `xvfb-run`) ist kein gültiges Ziel für Schritt 2: Der native
-Screenshot-Lauf weist ihn bewusst ab (#642) und der Live-Benchmark-Test
-überspringt sich; für die Gegenprobe zählt allein die echte GPU.
+etwa unter `xvfb-run`) ist kein gültiges Ziel für Schritt 2: Der
+Live-Benchmark-Test überspringt sich dort, der native Screenshot-Lauf in
+`test_screenshot3d.py` wird dagegen **rot**, weil erst `run_native_3d_screenshot`
+den Software-Renderer abweist (#642) – das ist der bekannte Befund #1013,
+kein neuer. Für die Gegenprobe zählt allein die echte GPU.
 
 Erwartung je Prüfstelle – eine Abweichung ist ein neuer Befund mit eigenem
 Issue, kein Anlass, den Test umzubauen:
