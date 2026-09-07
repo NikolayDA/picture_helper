@@ -954,6 +954,7 @@ def test_signature_state_is_locale_independent(monkeypatch, tmp_path: Path) -> N
     lieferte ``clamav_signature_state`` ``age_days=None``/``stale=False`` statt
     16/``True``. Ohne installierte Locale ist die Aussage nicht messbar – dann
     wird sichtbar uebersprungen statt scheinbar bestanden."""
+    vorher = locale.setlocale(locale.LC_TIME)
     try:
         locale.setlocale(locale.LC_TIME, "de_DE.UTF-8")
     except locale.Error:
@@ -968,7 +969,9 @@ def test_signature_state_is_locale_independent(monkeypatch, tmp_path: Path) -> N
             tmp_path, now=datetime(2026, 8, 31, tzinfo=timezone.utc)
         )
     finally:
-        locale.setlocale(locale.LC_TIME, "C")
+        # Den *vorgefundenen* Stand wiederherstellen, nicht "C" annehmen – sonst
+        # laufen Folgetests unter einer anderen Locale als der Rest des Laufs.
+        locale.setlocale(locale.LC_TIME, vorher)
     assert state["age_days"] == 16
     assert state["stale"] is True
 

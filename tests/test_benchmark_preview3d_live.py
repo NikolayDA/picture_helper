@@ -146,15 +146,16 @@ def test_real_hook_renders_and_measures_real_metrics(qapp) -> None:  # type: ign
     assert hooks._frame_number == 4
 
 
-def test_refuses_without_hardware_gl(qapp) -> None:  # type: ignore[no-untyped-def]
+def test_refuses_without_hardware_gl(qapp, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """Ohne Hardware-GL verweigert der Benchmark – kein llvmpipe-Ersatzwert.
 
-    Gefragt wird ``probe_live_gl`` (die Regel, die ``benchmark_preview3d_live``
-    selbst anwendet), nicht der Plattformname: „offscreen" heisst nicht
-    ueberall „kein GL", etwa auf einem Raspberry Pi mit Broadcom V3D.
+    Die Weiche kommt aus ``probe_live_gl`` und wird hier **gemockt**, nicht vom
+    Rechner gelesen: an der Plattform festzumachen war falsch („offscreen"
+    heisst nicht ueberall „kein GL", etwa auf einem Raspberry Pi mit Broadcom
+    V3D), sie an der echten Probe zu ueberspringen haette den Zweig
+    ausgerechnet auf den GL-faehigen Abnahme-Runnern ungeprueft gelassen.
     """
-    if bench.probe_live_gl()[0]:
-        pytest.skip("Hardware-GL vorhanden; der Verweigerungszweig ist nicht erreichbar")
+    monkeypatch.setattr(bench, "probe_live_gl", lambda: (False, "kein Hardware-GL (Test)"))
     with pytest.raises(bench.Preview3DLiveUnavailable):
         bench.benchmark_preview3d_live(32, 32)
 
@@ -172,7 +173,7 @@ def test_probe_live_gl_rejects_software_renderer(monkeypatch) -> None:  # type: 
     assert "llvmpipe" in diagnostic
 
 
-def test_cmd_run_skips_or_fails_without_gl(qapp) -> None:  # type: ignore[no-untyped-def]
+def test_cmd_run_skips_or_fails_without_gl(qapp, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     import argparse
 
     def _args(require_gl: bool) -> argparse.Namespace:
@@ -182,9 +183,9 @@ def test_cmd_run_skips_or_fails_without_gl(qapp) -> None:  # type: ignore[no-unt
         )
 
     # Ohne Hardware-GL: ohne --require-gl freundlicher Skip (0), mit --require-gl
-    # Fehler (2). Wo GL vorhanden ist, gibt es diesen Zweig nicht zu pruefen.
-    if bench.probe_live_gl()[0]:
-        pytest.skip("Hardware-GL vorhanden; der Skip-/Fehlerzweig ist nicht erreichbar")
+    # Fehler (2). Die Abwesenheit wird gemockt, damit der Exit-Code-Vertrag auch
+    # auf GL-faehigen Rechnern geprueft wird (Codex-Review PR #1001).
+    monkeypatch.setattr(bench, "probe_live_gl", lambda: (False, "kein Hardware-GL (Test)"))
     assert bench._cmd_run_preview3d_live(_args(False)) == 0
     assert bench._cmd_run_preview3d_live(_args(True)) == 2
 
