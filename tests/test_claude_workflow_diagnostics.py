@@ -3,8 +3,7 @@
 Seit der Verschlankung (ADR-2026-review-workflow-verschlankung) prüft diese
 Datei nur noch, was Verhalten oder Sicherheit trägt — keine Wortlaut-Pins
 auf Begründungsprosa mehr; die Herleitungen stehen im ADR. Bewusst rein
-textbasiert (PyYAML ist keine deklarierte Projekt-Abhängigkeit, Muster aus
-test_process_documentation). Die Trigger-Mechanik des Reviews (Typen,
+textbasiert, also parserunabhängig (Muster aus test_process_documentation). Die Trigger-Mechanik des Reviews (Typen,
 ``paths-ignore``, Job-``if``) pinnt tests/test_process_documentation.py.
 """
 

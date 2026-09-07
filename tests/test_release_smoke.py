@@ -1,6 +1,6 @@
 """Governance für die Headless-Smoke-Launches im Release-Build (#307/#308).
 
-Textbasiert (ohne PyYAML, analog zu ``tests/test_ci_qt_packages.py``): stellt
+Textbasiert (parserunabhängig, analog zu ``tests/test_ci_qt_packages.py``): stellt
 sicher, dass der ``build``-Job jedes frisch gebaute Artefakt headless startet,
 den Fork-Bomb-Wächter nutzt und im ``--ai``-Build den KI-Selbsttest fährt.
 Die Trennung vom neubaufreien Publish-Workflow wird bewusst nicht hier erneut

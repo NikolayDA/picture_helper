@@ -446,8 +446,7 @@ def test_deb_build_propagates_ai_suffix_from_appimage_name(tmp_path) -> None:
 # ── Release workflow ───────────────────────────────────────────────────
 
 def test_release_workflow_builds_both_arches_and_formats() -> None:
-    # Text-based (no PyYAML dependency — matches tests/test_ci_qt_packages.py
-    # and keeps the test runnable with only the declared ``[test]`` extras).
+    # Text-based (parser-independent — matches tests/test_ci_qt_packages.py).
     text = WORKFLOW.read_text(encoding="utf-8")
     # Candidate builds are manual and cannot publish by themselves.
     assert "'v*'" not in text

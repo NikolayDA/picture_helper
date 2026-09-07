@@ -6,12 +6,12 @@ Workflow) für genau diesen Commit grün ist, Tag-Format und ``project.version``
 zusammenpassen und kein ``gh release``-Fehler pauschal mit ``|| true``
 verschluckt wird.
 
-Die sicherheitskritischen Invarianten sind textbasiert (laufen mit den
-deklarierten ``[test]``-Extras, ohne PyYAML – analog zu
-``tests/test_ci_qt_packages.py``). Die Struktur des Job-Graphen
-(``needs``/``uses``) wird zusätzlich gegen das geparste YAML geprüft, sofern
-PyYAML vorhanden ist (sonst übersprungen – analog zu
-``tests/test_ci_workflow_yaml.py``).
+Die sicherheitskritischen Invarianten sind textbasiert, also unabhängig vom
+YAML-Parser (analog zu ``tests/test_ci_qt_packages.py``): Sie greifen auch,
+wenn eine Datei syntaktisch kaputt ist. Die Struktur des Job-Graphen
+(``needs``/``uses``) wird zusätzlich gegen das geparste YAML geprüft; PyYAML
+ist seit #1016 deklarierte ``[test]``-Abhängigkeit, ein Skip gibt es nicht
+mehr – ohne das Paket ist der Lauf rot.
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ import re
 from pathlib import Path
 
 import pytest
+import yaml
 
 _ROOT = Path(__file__).resolve().parent.parent
 _CI = _ROOT / ".github" / "workflows" / "ci.yml"
@@ -40,7 +41,6 @@ def _publish_text() -> str:
 
 
 def _load(path: Path) -> dict:
-    yaml = pytest.importorskip("yaml")
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert isinstance(doc, dict)
     return doc
@@ -58,7 +58,7 @@ def _needs_list(job: dict) -> list[str]:
     return [needs] if isinstance(needs, str) else list(needs)
 
 
-# ── Textbasierte Invarianten (laufen ohne PyYAML) ──────────────────────
+# ── Textbasierte Invarianten (parserunabhängig) ────────────────────────
 
 def test_full_ci_declares_workflow_call() -> None:
     """``ci.yml`` ist wiederverwendbar, damit der Release-Workflow die Matrix
@@ -530,7 +530,7 @@ def test_publish_provides_repo_context_for_gh() -> None:
 
 
 def test_release_passes_id_token_through_to_reusable_ci() -> None:
-    """Textbasiert (ohne PyYAML): release-linux.yml muss ``id-token: write``
+    """Textbasiert (parserunabhängig): release-linux.yml muss ``id-token: write``
     gewaehren, weil das aufgerufene ci.yml es fuer den Codecov-OIDC-Upload
     (#303) verlangt. Ein per ``uses`` aufgerufener Workflow darf nicht mehr
     Rechte verlangen als der Aufrufer – fehlt das Recht, lehnt GitHub den
@@ -714,7 +714,7 @@ def test_extract_release_notes_fails_loudly_on_missing_version() -> None:
         module.extract_release_notes(changelog, "9.9.9")  # type: ignore[attr-defined]
 
 
-# ── Struktur des Job-Graphen (geparstes YAML, übersprungen ohne PyYAML) ─
+# ── Struktur des Job-Graphen (geparstes YAML) ──────────────────────────
 
 def test_release_jobgraph_separates_build_from_publish() -> None:
     jobs = _load(_RELEASE)["jobs"]
@@ -902,7 +902,6 @@ def test_reusable_workflow_callers_grant_all_required_permissions() -> None:
     aufgerufene Workflow überhaupt ``workflow_call`` deklariert – fehlt das,
     lehnt GitHub den Run ebenfalls beim Start ab.
     """
-    yaml = pytest.importorskip("yaml")
     checked = 0
     for caller_path in _workflow_files():
         caller_doc = yaml.safe_load(caller_path.read_text(encoding="utf-8"))

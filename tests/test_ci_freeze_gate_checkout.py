@@ -24,11 +24,11 @@ Fehlermodus wie #870, eine Ebene tiefer (Review-Befund auf PR #880). Die
 betroffenen Targets werden deshalb **aus dem Makefile abgeleitet**, nicht
 hartkodiert.
 
-Bewusst **ohne** ``yaml``: PyYAML ist keine deklarierte Test-Abhaengigkeit. Die
-Repo-Konvention dafuer ist ein weicher ``importorskip`` – fuer einen Waechter
-waere das der stille Skip genau dort, wo er zaehlt, naemlich in der CI. Die
-Zerlegung laeuft daher ueber die Einrueckung, wie in
-``test_license_workflow_security.py``.
+Bewusst textbasiert, also parserunabhaengig: Die Zerlegung laeuft ueber die
+Einrueckung, wie in ``test_license_workflow_security.py``, und greift damit
+auch, wenn eine Workflow-Datei syntaktisch kaputt ist. PyYAML ist seit #1016
+deklarierte ``[test]``-Abhaengigkeit; ein weicher ``importorskip`` ist keine
+Repo-Konvention mehr – ein fehlendes Paket ist rot, nicht still.
 """
 from __future__ import annotations
 

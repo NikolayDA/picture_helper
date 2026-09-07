@@ -3,7 +3,7 @@
 # Огляд ліцензій та правових аспектів – bgremover 2.9.0
 
 > Згенеровано автоматично – **суто технічна оцінка умов ліцензій, а не юридична консультація.**
-> Станом на: 2026-08-27 · Власна ліцензія проєкту: `GPL-3.0-or-later` · проаналізовано залежностей: 45.
+> Станом на: 2026-09-07 · Власна ліцензія проєкту: `GPL-3.0-or-later` · проаналізовано залежностей: 46.
 
 ## Загальна оцінка – комерційна придатність
 
@@ -27,7 +27,7 @@
 | Сильний копілефт | 1 | PyQt6 |
 | Слабкий копілефт (бібліотека) | 1 | PyQt6-Qt6 |
 | Слабкий копілефт (файл) | 3 | certifi, pathspec, tqdm |
-| Дозвільна | 40 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
+| Дозвільна | 41 | ImageIO, PyMatting, PyQt6_sip, PyYAML, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
 
 ## Залежності детально
 
@@ -67,6 +67,7 @@
 | PyQt6_sip | 13.11.1 | `BSD-2-Clause` | Дозвільна | Дозвільна ліцензія (родина BSD). Комерційне та пропрієтарне використання дозволене; повідомлення про авторські права/ліцензію має додаватися, реклама з іменами авторів без згоди заборонена. |
 | pytest | 9.0.3 | `MIT` | Дозвільна | Дозвільна ліцензія. Використання, зміна та поширення – зокрема комерційне та у пропрієтарних продуктах – дозволені, доки збережено повідомлення про авторські права та ліцензію. |
 | pytest-qt | 4.5.0 | `MIT License` | Дозвільна | Дозвільна ліцензія. Використання, зміна та поширення – зокрема комерційне та у пропрієтарних продуктах – дозволені, доки збережено повідомлення про авторські права та ліцензію. |
+| PyYAML | 6.0.3 | `MIT License` | Дозвільна | Дозвільна ліцензія. Використання, зміна та поширення – зокрема комерційне та у пропрієтарних продуктах – дозволені, доки збережено повідомлення про авторські права та ліцензію. |
 | referencing | 0.37.0 | `MIT` | Дозвільна | Дозвільна ліцензія. Використання, зміна та поширення – зокрема комерційне та у пропрієтарних продуктах – дозволені, доки збережено повідомлення про авторські права та ліцензію. |
 | rembg | 2.0.75 | `MIT License` | Дозвільна | Дозвільна ліцензія. Використання, зміна та поширення – зокрема комерційне та у пропрієтарних продуктах – дозволені, доки збережено повідомлення про авторські права та ліцензію. |
 | requests | 2.33.1 | `Apache Software License` | Дозвільна | Дозвільна ліцензія з явним наданням патенту. Комерційне та пропрієтарне використання дозволене; повідомлення про ліцензію/авторські права та примітки про зміни (NOTICE) мають зберігатися. |
@@ -110,6 +111,7 @@
 - **PyQt6_sip** – https://github.com/Python-SIP/sip
 - **pytest** – https://docs.pytest.org/en/latest/
 - **pytest-qt** – http://github.com/pytest-dev/pytest-qt
+- **PyYAML** – https://pyyaml.org/
 - **referencing** – https://github.com/python-jsonschema/referencing
 - **rembg** – https://github.com/danielgatis/rembg
 - **requests** – https://github.com/psf/requests

@@ -51,6 +51,9 @@ test = [
     "mypy>=1.10",
     "packaging>=24",
     "coverage[toml]>=7.6",
+    # Workflow-Wächter (test_release_gate & Co.) lesen die YAML-Workflows; ohne das
+    # Paket übersprangen sie sich still in CI und auf dem Pi (#1016).
+    "pyyaml>=6",
 ]
 # Erzeugt ANLEITUNG.pdf aus ANLEITUNG.md (scripts/generate_anleitung_pdf.py).
 # Zusaetzlich noetig: unter Linux DejaVu-Schriften (fonts-dejavu-core),

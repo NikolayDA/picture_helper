@@ -3,7 +3,7 @@
 # Aperçu des licences et aspects juridiques – bgremover 2.9.0
 
 > Généré automatiquement – **une évaluation purement technique des conditions de licence, pas un conseil juridique.**
-> Au : 2026-08-27 · Licence propre du projet : `GPL-3.0-or-later` · 45 dépendances analysées.
+> Au : 2026-09-07 · Licence propre du projet : `GPL-3.0-or-later` · 46 dépendances analysées.
 
 ## Évaluation globale – utilisabilité commerciale
 
@@ -27,7 +27,7 @@ Licence pertinente la plus forte dans l'œuvre combinée : **Copyleft fort**.
 | Copyleft fort | 1 | PyQt6 |
 | Copyleft faible (bibliothèque) | 1 | PyQt6-Qt6 |
 | Copyleft faible (fichier) | 3 | certifi, pathspec, tqdm |
-| Permissive | 40 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
+| Permissive | 41 | ImageIO, PyMatting, PyQt6_sip, PyYAML, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
 
 ## Dépendances en détail
 
@@ -67,6 +67,7 @@ Licence pertinente la plus forte dans l'œuvre combinée : **Copyleft fort**.
 | PyQt6_sip | 13.11.1 | `BSD-2-Clause` | Permissive | Licence permissive (famille BSD). Utilisation commerciale et propriétaire autorisée ; la mention de copyright/licence doit être fournie et le nom des auteurs ne peut pas être utilisé à des fins publicitaires sans accord. |
 | pytest | 9.0.3 | `MIT` | Permissive | Licence permissive. L'utilisation, la modification et la redistribution – y compris à des fins commerciales et dans des produits propriétaires – sont autorisées tant que les mentions de copyright et de licence sont conservées. |
 | pytest-qt | 4.5.0 | `MIT License` | Permissive | Licence permissive. L'utilisation, la modification et la redistribution – y compris à des fins commerciales et dans des produits propriétaires – sont autorisées tant que les mentions de copyright et de licence sont conservées. |
+| PyYAML | 6.0.3 | `MIT License` | Permissive | Licence permissive. L'utilisation, la modification et la redistribution – y compris à des fins commerciales et dans des produits propriétaires – sont autorisées tant que les mentions de copyright et de licence sont conservées. |
 | referencing | 0.37.0 | `MIT` | Permissive | Licence permissive. L'utilisation, la modification et la redistribution – y compris à des fins commerciales et dans des produits propriétaires – sont autorisées tant que les mentions de copyright et de licence sont conservées. |
 | rembg | 2.0.75 | `MIT License` | Permissive | Licence permissive. L'utilisation, la modification et la redistribution – y compris à des fins commerciales et dans des produits propriétaires – sont autorisées tant que les mentions de copyright et de licence sont conservées. |
 | requests | 2.33.1 | `Apache Software License` | Permissive | Licence permissive avec octroi de brevet explicite. Utilisation commerciale et propriétaire autorisée ; la mention de licence/copyright et les notes de modification (NOTICE) doivent être conservées. |
@@ -110,6 +111,7 @@ Licence pertinente la plus forte dans l'œuvre combinée : **Copyleft fort**.
 - **PyQt6_sip** – https://github.com/Python-SIP/sip
 - **pytest** – https://docs.pytest.org/en/latest/
 - **pytest-qt** – http://github.com/pytest-dev/pytest-qt
+- **PyYAML** – https://pyyaml.org/
 - **referencing** – https://github.com/python-jsonschema/referencing
 - **rembg** – https://github.com/danielgatis/rembg
 - **requests** – https://github.com/psf/requests

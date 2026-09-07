@@ -112,6 +112,7 @@ def test_constraints_cover_runtime_test_and_ai_direct_dependencies() -> None:
         "pyqt6",
         "pytest",
         "pytest-qt",
+        "pyyaml",
         "rembg",
         "ruff",
     }

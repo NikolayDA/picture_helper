@@ -3,7 +3,7 @@
 # 许可证与法律概览 – bgremover 2.9.0
 
 > 自动生成 – **纯粹是对许可条款的技术性评估，并非法律意见。**
-> 截至：2026-08-27 · 项目自身许可证：`GPL-3.0-or-later` · 已分析 45 个依赖。
+> 截至：2026-09-07 · 项目自身许可证：`GPL-3.0-or-later` · 已分析 46 个依赖。
 
 ## 总体评估 – 商业可用性
 
@@ -27,7 +27,7 @@
 | 强 copyleft | 1 | PyQt6 |
 | 弱 copyleft（库） | 1 | PyQt6-Qt6 |
 | 弱 copyleft（文件） | 3 | certifi, pathspec, tqdm |
-| 宽松 | 40 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
+| 宽松 | 41 | ImageIO, PyMatting, PyQt6_sip, PyYAML, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
 
 ## 依赖详情
 
@@ -67,6 +67,7 @@
 | PyQt6_sip | 13.11.1 | `BSD-2-Clause` | 宽松 | 宽松许可证（BSD 系列）。允许商业和专有用途；必须随附版权/许可证声明，未经同意不得使用作者姓名进行宣传。 |
 | pytest | 9.0.3 | `MIT` | 宽松 | 宽松许可证。只要保留版权声明和许可证声明，即可使用、修改和再分发，包括商业用途和在专有产品中使用。 |
 | pytest-qt | 4.5.0 | `MIT License` | 宽松 | 宽松许可证。只要保留版权声明和许可证声明，即可使用、修改和再分发，包括商业用途和在专有产品中使用。 |
+| PyYAML | 6.0.3 | `MIT License` | 宽松 | 宽松许可证。只要保留版权声明和许可证声明，即可使用、修改和再分发，包括商业用途和在专有产品中使用。 |
 | referencing | 0.37.0 | `MIT` | 宽松 | 宽松许可证。只要保留版权声明和许可证声明，即可使用、修改和再分发，包括商业用途和在专有产品中使用。 |
 | rembg | 2.0.75 | `MIT License` | 宽松 | 宽松许可证。只要保留版权声明和许可证声明，即可使用、修改和再分发，包括商业用途和在专有产品中使用。 |
 | requests | 2.33.1 | `Apache Software License` | 宽松 | 带有明确专利授权的宽松许可证。允许商业和专有用途；必须保留许可证/版权声明和变更说明（NOTICE）。 |
@@ -110,6 +111,7 @@
 - **PyQt6_sip** – https://github.com/Python-SIP/sip
 - **pytest** – https://docs.pytest.org/en/latest/
 - **pytest-qt** – http://github.com/pytest-dev/pytest-qt
+- **PyYAML** – https://pyyaml.org/
 - **referencing** – https://github.com/python-jsonschema/referencing
 - **rembg** – https://github.com/danielgatis/rembg
 - **requests** – https://github.com/psf/requests
