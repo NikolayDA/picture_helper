@@ -188,6 +188,13 @@ def _libc_version() -> str:
     Gemeinsame Messung fuer die Provenienzzeile und :func:`check_libc` – beide
     muessen dieselbe Zahl sehen, sonst nennt der Befund einen anderen Stand
     als die Zeile darueber.
+
+    Vorrang hat ``os.confstr``, das den Systemstand liefert. Der Fallback
+    ``platform.libc_ver()`` liest dagegen die hoechste im Interpreter-Binary
+    geforderte ``GLIBC_x.y``-Symbolversion – eine **Untergrenze** des
+    tatsaechlichen Stands, nicht der Stand selbst (Review PR #1012). Auf
+    glibc-Linux greift er praktisch nie (``confstr`` antwortet dort), auf musl
+    liefert er leer und der fail-closed Befund bleibt korrekt.
     """
     try:
         # ``os.confstr`` liefert "glibc 2.36"; ``platform.libc_ver`` liest
@@ -221,7 +228,8 @@ def check_libc(
     Fail-closed: Eine nicht ermittelbare oder fremde C-Bibliothek (musl) ist
     ein Befund, kein Skip – manylinux-Wheels setzen glibc voraus. Plattformen
     ohne Eintrag in :data:`LIBC_FLOORS` (macOS) haben keine Grenze; der
-    Aufrufer haengt den Check dort gar nicht erst an.
+    Aufrufer haengt den Check dort gar nicht erst an (dasselbe Gate, damit
+    ein fehlender Eintrag nie als ``ok`` erscheint).
     """
     floor = LIBC_FLOORS.get(platform_name)
     if floor is None:
@@ -850,9 +858,13 @@ def run_preflight(
     """
     session = check_graphical_session(platform, os.environ)
     gl = check_gl(platform)
-    # Nur Linux traegt eine glibc-Grenze (#1008); auf macOS gaebe es dafuer
-    # keine Messung, und ein "ok: libc" ohne Pruefung waere ein stiller Pass.
-    libc = None if platform == MACOS_PLATFORM else check_libc(platform)
+    # Nur Plattformen mit Eintrag in LIBC_FLOORS tragen eine glibc-Grenze
+    # (#1008); auf macOS gaebe es dafuer keine Messung, und ein "ok: libc" ohne
+    # Pruefung waere ein stiller Pass. Das Gate haengt bewusst an der Tabelle,
+    # nicht an "nicht macOS" (Review PR #1012): Eine neue Linux-Plattform
+    # ohne Eintrag druckte sonst "ok: libc" ohne Messung. Dass jede
+    # Linux-Plattform einen Eintrag hat, haelt ein Mengen-Waechter in den Tests.
+    libc = check_libc(platform) if platform in LIBC_FLOORS else None
 
     def _note(text: str) -> None:
         if notes is not None:
@@ -864,7 +876,7 @@ def run_preflight(
         ("session", session),
         ("gl", gl),
     ]
-    if platform != MACOS_PLATFORM:
+    if platform in LIBC_FLOORS:
         checks.append(("libc", libc))
     checks += [
         # Kurzschluss statt Doppelbefund: Ohne Sitzung oder GL koennte die

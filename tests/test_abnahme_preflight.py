@@ -769,6 +769,27 @@ def test_the_provenance_line_and_the_libc_check_share_one_measurement(
     assert error is not None and "glibc 2.36" in error
 
 
+def test_every_linux_platform_carries_a_libc_floor() -> None:
+    """Mengen-Waechter (Review PR #1012): Das Gate in ``run_preflight`` haengt
+    an ``LIBC_FLOORS``. Kaeme eine Linux-Plattform ohne Eintrag hinzu, fiele
+    der Check dort still weg – kein ``ok: libc``, aber auch kein Befund. Die
+    Tabelle muss deshalb genau die Nicht-macOS-Plattformen fuehren."""
+    expected = set(preflight.KNOWN_PLATFORMS) - {preflight.MACOS_PLATFORM}
+    assert set(preflight.LIBC_FLOORS) == expected
+
+
+def test_a_platform_without_a_floor_never_prints_ok_libc(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Gegenprobe zum Waechter: Fehlt der Eintrag, darf ``run_preflight`` den
+    Check nicht anhaengen (ein ``ok`` ohne Messung waere ein stiller Pass)."""
+    for name in _check_names():
+        monkeypatch.setattr(preflight, name, lambda *a, **k: None)
+    monkeypatch.setattr(preflight, "LIBC_FLOORS", {"linux-x86_64": (2, 34)})
+    assert "libc" not in dict(preflight.run_preflight("linux-arm64"))
+    assert "libc" in dict(preflight.run_preflight("linux-x86_64"))
+
+
 def test_libc_runs_only_on_linux_and_short_circuits_the_probe(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
