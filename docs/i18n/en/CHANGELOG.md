@@ -75,6 +75,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   OpenGL 2.1") instead of only one of the possible causes. Fixed along the way:
   without a running `QGuiApplication` the probe crashed with SIGSEGV instead of
   reporting a reason.
+- **3D preview stayed blank when Qt refused the frame (#1004).** The up-front
+  checks from #1002 are necessary but not sufficient: if the widget framebuffer
+  is missing for window-lifecycle reasons, no probe can see it. Qt then refuses
+  the frame with a log warning rather than an error — the 3D tab reported
+  "ready" and showed an empty surface. The viewer now proves its own frame: it
+  detects while painting that Qt holds no framebuffer and switches to the error
+  state with an explanation and "Show 2D relief" after three consecutive
+  refusals. The rule cannot downgrade working hardware — once Qt confirms a
+  single frame, the viewer counts as sound for good; a viewer that is never
+  painted is never judged, and one refusal is not enough.
 
 ## [2.9.0] – 2026-08-26
 

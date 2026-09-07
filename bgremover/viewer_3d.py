@@ -82,6 +82,16 @@ _GL_TRIANGLES = 0x0004
 _GL_UNSIGNED_INT = 0x1405
 _GL_FLOAT = 0x1406
 
+#: Wie oft Qt eine Paint-Anforderung nacheinander **ohne Widget-Framebuffer**
+#: abweisen darf, bevor der Viewer den Fehlerzustand meldet (#1004).
+#: ``QOpenGLWidgetPrivate::render`` bricht in diesem Fall mit
+#: ``QOpenGLWidget: No fbo, cannot render`` ab – eine ``qWarning``, keine
+#: Ausnahme, weshalb der bisherige rein exception-basierte Fehlerpfad sie nicht
+#: sah. Drei aufeinanderfolgende Abweisungen, weil eine einzelne auch ein
+#: Übergang sein kann (nach einem Reparenting erzeugt Qt den Framebuffer erst
+#: im folgenden Resize); ein einziger gelungener Paint setzt den Zähler zurück.
+_MAX_REFUSED_PAINTS = 3
+
 # GLSL 1.20 (OpenGL 2.1). ``abs(dot(...))`` beleuchtet doppelseitig, damit ein
 # Orbit unter das Relief die Struktur weiter sichtbar hält.
 _VERTEX_SHADER = """
@@ -223,6 +233,11 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         self._index_count = 0
         self._gl_ready = False
         self._failed = False
+        # Renderbeweis (#1004): ``_has_rendered`` wird nur von Qt selbst gesetzt
+        # (``frameSwapped``) und spricht den Viewer dauerhaft frei;
+        # ``_refused_paints`` zählt die Gegenrichtung.
+        self._has_rendered = False
+        self._refused_paints = 0
         # Fixier-Lock der Zoom-Pille (#464): reiner UI-Zustand, friert den
         # Kamera-Zoom gegen Mausrad, +/−-Tasten und Pillen-Buttons ein.
         self._zoom_locked = False
@@ -231,6 +246,7 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         self._palette = active_palette()
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMinimumSize(*MIN_VIEWER_SIZE_PX)
+        self.frameSwapped.connect(self._on_frame_swapped)
         self.setAccessibleName(tr("preview3d.a11y.name"))
         self.setAccessibleDescription(tr("preview3d.a11y.desc"))
 
@@ -348,6 +364,51 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
     def has_failed(self) -> bool:
         return self._failed
 
+    def _on_frame_swapped(self) -> None:
+        """Qt hat einen Frame komponiert – der einzige positive Zeuge (#1004).
+
+        Wird ausschließlich von Qt ausgelöst und ist damit **freisprechend**:
+        Ab hier gilt der Viewer als renderfähig, und die Abweisungszählung
+        unten kann ihn nicht mehr abstufen.
+        """
+        self._has_rendered = True
+        self._refused_paints = 0
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
+        """Erkennt, dass Qt den Frame verweigert hat (#1004).
+
+        Bis hierher war der Fehlerzustand [F] rein exception-basiert. Qts
+        Absage ist aber eine ``qWarning`` aus ``QOpenGLWidgetPrivate::render``
+        (``fbos[LeftBuffer] == nullptr``), keine Ausnahme – der 3D-Tab blieb
+        deshalb im Zustand [R] und leer. Nach ``super().paintEvent()`` steht
+        genau diese Absage fest: ``defaultFramebufferObject()`` ist dann 0.
+
+        Die Regel ist bewusst asymmetrisch (UX §5, Fehlerrichtung wie bei den
+        Probe-Regeln aus #1002): Ein **verborgener** Viewer bekommt gar keinen
+        Paint und wird deshalb nie bewertet – gemessen, und der Grund, warum
+        hier kein ``isVisible()`` steht (ein verdecktes Fenster wäre sichtbar
+        und malte trotzdem nicht). Ein Viewer, der je einen Frame geliefert
+        hat, wird nie abgestuft. Und eine einzelne Absage genügt nicht.
+        """
+        super().paintEvent(event)
+        if self._failed or self._has_rendered or not self.updatesEnabled():
+            return
+        if self.defaultFramebufferObject() != 0:
+            self._refused_paints = 0
+            return
+        self._refused_paints += 1
+        if self._refused_paints < _MAX_REFUSED_PAINTS:
+            # Ohne diese Anforderung endet der kaputte Fall nach zwei Paints,
+            # und der Zähler erreicht seine Schwelle nie. Der Aufruf ist
+            # begrenzt: Ab der Schwelle schaltet ``_fail`` und
+            # ``_safe_update`` stellt das Nachfordern ein.
+            self.update()
+            return
+        self._fail(
+            "paintEvent: Qt hält keinen Widget-Framebuffer "
+            f"({self._refused_paints} Anforderungen abgewiesen, kein Frame)"
+        )
+
     @property
     def gl_object_count(self) -> int:
         """Zahl der aktuell gehaltenen GL-Objekte (0–4: drei Puffer + VAO, #684).
@@ -412,6 +473,9 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         mesh = self._mesh
         self.cleanup_gl()
         self._pending_mesh = mesh
+        # Der neue Kontext baut seinen Framebuffer erst wieder auf; eine
+        # Abweisung aus dem alten darf ihn nicht belasten (#1004).
+        self._refused_paints = 0
 
     def _init_gl(self) -> None:
         program = QOpenGLShaderProgram(self)
@@ -771,7 +835,14 @@ class Relief3DView(QStackedWidget):
         self._sync_zoom_overlay()
 
     def show_mesh(self, mesh: ReliefMesh) -> None:
-        """Zeigt ein Mesh im GL-Viewer; ein GL-Init-Fehler wechselt zu ``error``."""
+        """Zeigt ein Mesh im GL-Viewer; ein GL-Fehler wechselt zu ``error``.
+
+        ``ready`` gilt hier zunächst als Annahme: Ob Qt wirklich einen Frame
+        erzeugt, steht erst beim ersten Paint fest. Weist Qt ihn ab, meldet der
+        Renderbeweis in :meth:`GLReliefViewer.paintEvent` das über ``initFailed``
+        und der Container wechselt nach ``error`` (#1004) – bisher blieb er in
+        diesem Fall auf ``ready`` und zeigte eine leere Fläche.
+        """
         viewer = self._ensure_viewer()
         if viewer is None:
             self.show_error()

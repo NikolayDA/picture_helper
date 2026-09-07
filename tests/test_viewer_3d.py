@@ -551,3 +551,136 @@ def test_zoom_pill_stays_anchored_after_zoom_changes_width(qapp) -> None:
     assert ctrl.label.text() == "1000%"
     assert ctrl.x() + ctrl.width() == view.width() - 14
     assert ctrl.y() + ctrl.height() == view.height() - 14
+
+
+# ── Beobachtender Renderbeweis (#1004) ───────────────────────────────────
+#
+# Qts Absage „No fbo, cannot render" ist eine ``qWarning`` aus
+# ``QOpenGLWidgetPrivate::render``, keine Ausnahme – der bisherige, rein
+# exception-basierte Fehlerpfad sah sie nie. Gegen den Plattformnamen zu
+# prüfen genügt hier nicht: Gemessen (``xvfb-run``, llvmpipe) ist die Signatur
+# eines gesunden **verborgenen** Viewers bitgleich zur kaputten. Getrennt
+# werden sie dadurch, dass Qt einem verborgenen Widget gar keinen ``paintEvent``
+# schickt – deshalb hängt der Wächter dort und nicht an ``isVisible()`` (ein
+# verdecktes Fenster wäre sichtbar und malte trotzdem nicht).
+
+def _refuse_frames(viewer, monkeypatch) -> None:
+    """Lässt ``defaultFramebufferObject()`` 0 melden – Qts Absage."""
+    monkeypatch.setattr(type(viewer), "defaultFramebufferObject", lambda self: 0)
+
+
+def _grant_frames(viewer, monkeypatch) -> None:
+    monkeypatch.setattr(type(viewer), "defaultFramebufferObject", lambda self: 1)
+
+
+def _paint(viewer, times: int = 1) -> None:
+    from PyQt6.QtCore import QRect
+    from PyQt6.QtGui import QPaintEvent
+
+    for _ in range(times):
+        viewer.paintEvent(QPaintEvent(QRect(0, 0, 10, 10)))
+
+
+def test_frame_swapped_marks_the_viewer_as_rendered(qapp) -> None:
+    """``frameSwapped`` ist der einzige positive Zeuge – und kommt von Qt."""
+    viewer = GLReliefViewer()
+    viewer._refused_paints = 2
+
+    viewer._on_frame_swapped()
+
+    assert viewer._has_rendered is True
+    assert viewer._refused_paints == 0
+
+
+def test_a_single_refused_paint_does_not_downgrade(qapp, monkeypatch) -> None:
+    """Eine einzelne Absage kann ein Übergang sein.
+
+    Nach einem Reparenting verwirft Qt die Framebuffer und erzeugt sie erst im
+    folgenden Resize neu; genau dazwischen liegt ein Paint ohne Framebuffer.
+    """
+    viewer = GLReliefViewer()
+    _refuse_frames(viewer, monkeypatch)
+
+    _paint(viewer, 1)
+
+    assert viewer.has_failed is False
+    assert viewer._refused_paints == 1
+
+
+def test_repeated_refusals_report_the_missing_widget_framebuffer(
+    qapp, monkeypatch
+) -> None:
+    """Der eigentliche #1004-Fall: Qt weist dauerhaft ab, ohne je zu werfen."""
+    viewer = GLReliefViewer()
+    failures: list[str] = []
+    viewer.initFailed.connect(failures.append)
+    _refuse_frames(viewer, monkeypatch)
+
+    _paint(viewer, 3)
+
+    assert viewer.has_failed is True
+    assert len(failures) == 1
+    assert "Widget-Framebuffer" in failures[0]
+
+
+def test_a_successful_paint_resets_the_refusal_count(qapp, monkeypatch) -> None:
+    viewer = GLReliefViewer()
+    _refuse_frames(viewer, monkeypatch)
+    _paint(viewer, 2)
+    assert viewer._refused_paints == 2
+
+    _grant_frames(viewer, monkeypatch)
+    _paint(viewer, 1)
+
+    assert viewer._refused_paints == 0
+    assert viewer.has_failed is False
+
+
+def test_a_viewer_that_rendered_once_is_never_downgraded(qapp, monkeypatch) -> None:
+    """Die asymmetrische Zusage: Wer je einen Frame lieferte, bleibt verschont.
+
+    ``defaultFramebufferObject()`` ist Beobachtungswissen, kein zugesicherter
+    Qt-Vertrag. Es darf deshalb nie gegen einen Viewer zeugen, für den Qt
+    selbst schon einen Frame bestätigt hat.
+    """
+    viewer = GLReliefViewer()
+    viewer._on_frame_swapped()
+    _refuse_frames(viewer, monkeypatch)
+
+    _paint(viewer, 10)
+
+    assert viewer.has_failed is False
+    assert viewer._refused_paints == 0
+
+
+def test_a_context_loss_clears_the_refusal_count(qapp, monkeypatch) -> None:
+    """Der neue Kontext baut seinen Framebuffer erst auf – alte Absagen zählen nicht."""
+    viewer = GLReliefViewer()
+    _refuse_frames(viewer, monkeypatch)
+    _paint(viewer, 2)
+
+    viewer._on_context_about_to_be_destroyed()
+
+    assert viewer._refused_paints == 0
+    assert viewer.has_failed is False
+
+
+def test_refusals_reach_the_container_as_the_documented_error_state(
+    qapp, monkeypatch
+) -> None:
+    """Der Zustandsvertrag: [F], nicht [E] (UX §5).
+
+    Verdrahtet ist das über das bestehende ``initFailed`` – der Wächter
+    braucht dafür keinen eigenen Pfad in den Container.
+    """
+    view = Relief3DView()
+    view.show_mesh(_mesh())
+    viewer = view.viewer()
+    if viewer is None:
+        pytest.skip("Kein GL-Viewer konstruierbar")
+    assert view.state == "ready"
+    _refuse_frames(viewer, monkeypatch)
+
+    _paint(viewer, 3)
+
+    assert view.state == "error"

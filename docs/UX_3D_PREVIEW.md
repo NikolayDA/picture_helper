@@ -160,6 +160,16 @@ Farbe oder Spinner. Verbindliche Formulierungen (de / en):
   der technische Kurzgrund steht im Log. Ein zweiter sichtbarer Zustand wäre
   ohne Nutzen – die Handlungsoption ist in allen Fällen dieselbe (2D
   weiterverwenden oder „Erneut versuchen").
+- **[R] wird beobachtet, nicht behauptet (#1004).** Beim Anzeigen eines
+  Meshes gilt [R] zunächst als Annahme – ob Qt wirklich einen Frame erzeugt,
+  steht erst beim ersten Paint fest. Weist Qt ihn ab
+  (`QOpenGLWidget: No fbo, cannot render`, eine `qWarning` ohne Ausnahme),
+  wechselt der Viewer nach **[F]**, nicht nach [E]. Die Regel ist asymmetrisch:
+  Ein **verborgener** Viewer bekommt von Qt keinen Paint und wird deshalb nie
+  bewertet; ein Viewer, für den Qt je einen Frame bestätigt hat
+  (`frameSwapped`), wird nie abgestuft; und eine einzelne Absage genügt nicht,
+  weil sie nach einem Reparenting auch ein Übergang sein kann. Damit kann der
+  Nachweis funktionierende Hardware nicht in [F] schicken.
 - Der Ladezustand erscheint erst nach 300 ms (kein Flackern bei
   Cache-Treffern); [A] zeigt das **alte** Mesh weiter (kein Schwarzbild).
 - Das Decimation-Badge erscheint immer, wenn das Grid kleiner als die
