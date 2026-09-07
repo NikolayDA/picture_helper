@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-from PyQt6.QtCore import Qt, pyqtBoundSignal, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtBoundSignal, pyqtSignal
 from PyQt6.QtGui import QMatrix4x4, QSurfaceFormat
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -88,8 +88,13 @@ _GL_FLOAT = 0x1406
 #: ``QOpenGLWidget: No fbo, cannot render`` ab – eine ``qWarning``, keine
 #: Ausnahme, weshalb der bisherige rein exception-basierte Fehlerpfad sie nicht
 #: sah. Drei aufeinanderfolgende Abweisungen, weil eine einzelne auch ein
-#: Übergang sein kann (nach einem Reparenting erzeugt Qt den Framebuffer erst
-#: im folgenden Resize); ein einziger gelungener Paint setzt den Zähler zurück.
+#: Übergang sein kann: Gemessen zeigt selbst der kaputte Fall beim **ersten**
+#: Paint noch einen Framebuffer und erst beim zweiten keinen mehr. Ein einziger
+#: gelungener Paint setzt den Zähler zurück, ein bestätigter Frame beendet die
+#: Bewertung dauerhaft (Review PR #1005: den eigentlichen Schutz gegen einen
+#: Übergang trägt ``_has_rendered``, nicht die Zählung – auf gesunder Hardware
+#: steht der Freispruch schon nach dem allerersten Ereignisdurchlauf, gemessen
+#: auch vor einem Reparenting).
 _MAX_REFUSED_PAINTS = 3
 
 # GLSL 1.20 (OpenGL 2.1). ``abs(dot(...))`` beleuchtet doppelseitig, damit ein
@@ -238,6 +243,9 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         # ``_refused_paints`` zählt die Gegenrichtung.
         self._has_rendered = False
         self._refused_paints = 0
+        self._repaint_timer = QTimer(self)
+        self._repaint_timer.setSingleShot(True)
+        self._repaint_timer.timeout.connect(self.update)
         # Fixier-Lock der Zoom-Pille (#464): reiner UI-Zustand, friert den
         # Kamera-Zoom gegen Mausrad, +/−-Tasten und Pillen-Buttons ein.
         self._zoom_locked = False
@@ -402,7 +410,17 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
             # und der Zähler erreicht seine Schwelle nie. Der Aufruf ist
             # begrenzt: Ab der Schwelle schaltet ``_fail`` und
             # ``_safe_update`` stellt das Nachfordern ein.
-            self.update()
+            #
+            # Über den Nullzeit-Timer statt direkt (Review PR #1005): Ein
+            # ``update()`` postet sofort eine Paint-Anforderung, die noch vor
+            # einem bereits anstehenden Resize zugestellt werden könnte – die
+            # Zählung nähme dann dreimal denselben Augenblick statt drei
+            # unabhängiger Runden. Qt stellt Timer erst nach den geposteten
+            # Ereignissen zu; ein reparierender Resize kommt damit gemessen
+            # zuerst. Der Timer ist ein **Kind** des Viewers und stirbt mit
+            # ihm; ``QTimer.singleShot`` kennt in PyQt6 keine Kontext-Variante
+            # und liefe sonst auf ein gelöschtes Widget.
+            self._repaint_timer.start(0)
             return
         self._fail(
             "paintEvent: Qt hält keinen Widget-Framebuffer "

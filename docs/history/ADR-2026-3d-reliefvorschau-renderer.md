@@ -638,7 +638,15 @@ Millisekunden: drei aufeinanderfolgende abgewiesene Paints
 (`_MAX_REFUSED_PAINTS`). Eine einzelne Absage kann ein Übergang sein (nach
 einem Reparenting erzeugt Qt den Framebuffer erst im folgenden Resize); der
 kaputte Fall endet ohne Nachforderung nach zwei Paints, weshalb der Zähler
-unterhalb der Schwelle ein `update()` anfordert.
+unterhalb der Schwelle einen weiteren Paint anfordert – über einen
+Nullzeit-Timer statt direkt (Review PR #1005). Ein sofortiges `update()`
+könnte noch vor einem bereits anstehenden Resize zugestellt werden; die
+Zählung nähme dann dreimal denselben Augenblick statt drei unabhängiger
+Runden. Qt stellt Timer erst nach den geposteten Ereignissen zu — gemessen
+kommt der Resize damit zuerst. Der eigentliche Schutz gegen einen Übergang
+bleibt aber `_has_rendered`, nicht die Zählung: Auf gesunder Hardware steht
+der Freispruch gemessen schon nach dem allerersten Ereignisdurchlauf, also
+vor jedem Reparenting.
 
 **Drei Asymmetrien, alle in dieselbe Richtung.** Wie bei den Probe-Regeln aus
 #1002 darf der Beweis nur zusätzliche Fehler *finden*, nie welche *erfinden*:
