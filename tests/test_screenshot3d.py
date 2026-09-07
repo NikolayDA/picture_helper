@@ -71,12 +71,15 @@ def test_headless_fallback_reports_unavailable_without_writing_file(
 ) -> None:  # type: ignore[no-untyped-def]
     """Ohne nativen GL-Frame entsteht keine Datei – und kein stiller Erfolg.
 
-    ``ok is False`` und die Abwesenheit beider Dateien gelten in jeder
-    Umgebung. Der *Zustand* ``unavailable``/``error`` dagegen nur dort, wo es
-    keinen GL-Kontext gibt: mit Kontext (z. B. Raspberry Pi mit Broadcom V3D,
-    auch unter „offscreen") meldet der Viewer ``ready`` und erst der Frame
-    scheitert – frueher liess dieser Test das die Suite rot faerben.
+    Der Test beschreibt ausschliesslich den Fallback-Zweig und laeuft daher nur
+    ohne GL-Capability. Mit Capability meldet der Viewer ``ready``: auf echter
+    Hardware mit Sitzung entsteht dann ein Screenshot (das deckt der
+    ``gl_smoke``-Test unten ab), auf dem Raspberry Pi unter „offscreen"
+    scheitert erst der Frame (``No fbo``) – beides ist hier nicht die Aussage.
     """
+    if gl_capability_ok:
+        pytest.skip("GL-Capability vorhanden – der Fallback-Zweig ist hier nicht pruefbar")
+
     win = MainWindow()
     qtbot.addWidget(win)
     win.show()
@@ -87,8 +90,7 @@ def test_headless_fallback_reports_unavailable_without_writing_file(
         win.close()
 
     assert result.ok is False
-    if not gl_capability_ok:
-        assert result.state in {"unavailable", "error"}
+    assert result.state in {"unavailable", "error"}
     assert not target.exists()
     assert not target.with_name(target.name + ".json").exists()
 
