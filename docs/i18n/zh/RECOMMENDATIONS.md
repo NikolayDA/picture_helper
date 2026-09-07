@@ -87,6 +87,7 @@
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | 运维：自托管 runner（heartbeat 告警通道） | 🟡 中（运维通道，非产品代码） | 🟢 低（仅观察） | – （无代理；仓库 owner） | 长期开启：请勿关闭（`RUNNER_HEARTBEAT_ISSUE`）；2026-08-31 的 FAIL 是计划中的告警通道测试，清理步骤已完成（计划运行 33496675995 通过，x86_64 跳过，Mac 与 Pi 均合格） |
 | [#1009](https://github.com/NikolayDA/picture_helper/issues/1009) | 在 Raspberry Pi 上补跑完整 `make check`（#1001/#1002/#1003） | 🟡 中（离屏 CI 无法提供的唯一反向验证） | 🟢 低（一次测试运行，无代码改动） | – （无代理；仓库 owner，硬件） | 在 `de_DE.UTF-8` 下运行，将测试数与跳过项评论到 #1002；偏差另立发现 |
 | [#1010](https://github.com/NikolayDA/picture_helper/issues/1010) | 在 macOS（cocoa）上测量 `frameSwapped` 渲染证明 | 🟠 高（未测量；误报会波及 `MACOS-ARM-DMG-01`） | 🟡 中（在 Mac runner 上测量 + 文档跟进） | Sonnet，小 + 硬件 | 在 `cocoa` 上按事件循环轮次记录计数器，补充 ADR 附录与 PACKAGING_SMOKE；之后再决定检查清单 |
+| [#1013](https://github.com/NikolayDA/picture_helper/issues/1013) | `test_native_gl_run_writes_png_and_provenance_sidecar` 假定硬件 GL（在 `xvfb`/llvmpipe 下失败） | 🟢 低（仅 `xvfb`/llvmpipe 运行；CI、Pi 和 Mac 不受影响） | 🟢 低（按 `probe_live_gl` 模式加一处跳过判断） | Sonnet，小 | 在构建 `MainWindow` 前通过 `renderer_provenance.is_software_renderer` 带原因跳过；`screenshot3d.py` 中的拒绝保留 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
 
 ### 接下来推荐

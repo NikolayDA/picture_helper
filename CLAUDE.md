@@ -24,7 +24,11 @@ headless-Qt-Betrieb:
   für `BgRemover.command`/`create_BgRemover_app.sh`/`diagnose_mac.sh`, wird ohne
   installiertes shellcheck übersprungen statt zu scheitern)
 - `make type` — `mypy`
-- `make test` — `pytest` (ohne volle UI-Suite, das `ui_smoke`-Subset läuft mit)
+- `make test` — `pytest` (ohne volle UI-Suite, das `ui_smoke`-Subset läuft mit);
+  `PYTEST_ARGS` reicht Zusatzargumente durch (`make check PYTEST_ARGS=-rs` zeigt
+  jeden Skip mit Grund). Die Gegenprobe auf Zielhardware – deutsche Locale,
+  echte GPU, die Klasse von #1001/#1002/#1004 – steht als Drei-Schritt-Prozedur
+  mit Erwartungstabelle in [`TESTING.md`](TESTING.md) (#1009)
 - `make coverage` — Coverage-Report (`fail_under = 86`, schreibt zusätzlich
   `coverage.xml`/`htmlcov` für Codecov bzw. lokale Durchsicht)
 - `make ui` — volle qtbot-UI-Suite (sonst nur nightly); `make all` = `check` + `ui`

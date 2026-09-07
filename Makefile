@@ -44,13 +44,17 @@ lint-shell:
 type:
 	$(RUN_ENV) "$(PYTHON)" -m mypy
 
+# PYTEST_ARGS reicht Zusatzargumente an pytest durch (auch in 'coverage' und
+# 'ui'), z. B. fuer die Gegenprobe auf Zielhardware (TESTING.md, #1009):
+#   make check PYTEST_ARGS=-rs                                   # Skips mit Grund
+#   make test QT_QPA_PLATFORM=wayland PYTEST_ARGS="-rs tests/test_viewer_3d_gl.py"
 test:
-	$(QT_ENV) "$(PYTHON)" -m pytest
+	$(QT_ENV) "$(PYTHON)" -m pytest $(PYTEST_ARGS)
 
 # 'coverage xml' erzeugt zusaetzlich coverage.xml fuer den Codecov-Upload in
 # der Full CI; HTML bleibt fuer die lokale Durchsicht.
 coverage:
-	$(QT_ENV) "$(PYTHON)" -m coverage run -m pytest
+	$(QT_ENV) "$(PYTHON)" -m coverage run -m pytest $(PYTEST_ARGS)
 	$(RUN_ENV) "$(PYTHON)" -m coverage report
 	$(RUN_ENV) "$(PYTHON)" -m coverage html
 	$(RUN_ENV) "$(PYTHON)" -m coverage xml
@@ -59,7 +63,7 @@ coverage:
 # '-m not ui or ui_smoke' aus pyproject [tool.pytest.ini_options].addopts und
 # laeuft damit alle ui-Tests (inkl. des ui_smoke-Subsets).
 ui:
-	$(QT_ENV) "$(PYTHON)" -m pytest -m ui
+	$(QT_ENV) "$(PYTHON)" -m pytest -m ui $(PYTEST_ARGS)
 
 # GL-Ressourcen-Langzeitsonde der 3D-Vorschau (#684). Laeuft offscreen mit
 # instrumentierten Puffer-/VAO-Attrappen; auf einer renderfaehigen Plattform
