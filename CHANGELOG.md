@@ -33,8 +33,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   konservative HEIGHT-Default, bleibt wie Gloss und physische Maße aber bis zu
   den Hardwaretests ausdrücklich vorläufig und warnpflichtig. Alte
   Profilreferenzen bleiben lesbar; es gibt keine Container-Migration.
-  Eine früher gespeicherte Bittiefe bleibt als Vorauswahl erhalten, bis sie im
-  Dialog geändert wird. Vertrag: [`docs/EUFYMAKE_TARGET_PROFILE.md`](docs/EUFYMAKE_TARGET_PROFILE.md).
+  Eine früher gespeicherte Profilwahl und Bittiefe bleiben als Vorauswahl
+  erhalten, bis sie im Dialog geändert werden. Vertrag: [`docs/EUFYMAKE_TARGET_PROFILE.md`](docs/EUFYMAKE_TARGET_PROFILE.md).
 
 ### Geändert
 

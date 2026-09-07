@@ -820,8 +820,8 @@ El **perfil de destino v2** aditivo para Studio 4.3.3, Editor 1.20.0 y firmware
 4.2.2 sigue disponible como referencia histórica. Ambos perfiles son
 provisionales hasta completar las pruebas físicas de impresión. Eliges la
 carpeta, los activos y la **profundidad de bits**: 16 bits es el valor
-conservador; 8 bits sigue como opción heredada. Una profundidad de bits guardada
-anteriormente se mantiene preseleccionada hasta que la cambies en el diálogo. El
+conservador; 8 bits sigue como opción heredada. La selección de perfil y la
+profundidad de bits guardadas se mantienen preseleccionadas hasta que las cambies. El
 contrato completo del perfil está en
 [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md). Con medidas
 de proyecto se muestran píxeles, mm y DPI X/Y efectivos por separado. Una **comprobación previa** se

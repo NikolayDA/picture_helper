@@ -756,8 +756,8 @@ firmware 4.0.9 is selected by default in the dialog. The frozen **profile v1**
 for Studio 4.2.2 remains selectable as a historical reference. Both profiles
 are provisional until the physical print tests are complete. You choose the
 export folder, optional assets, and height-map **bit depth**. 16-bit is the
-conservative default; 8-bit remains a legacy option. A previously saved bit
-depth stays preselected until you change it in the dialog. The full profile
+conservative default; 8-bit remains a legacy option. A previously saved profile
+selection and bit depth stay preselected until you change them in the dialog. The full profile
 contract is described in
 [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md). When project
 dimensions are set, the dialog shows pixels, mm, and effective X/Y DPI

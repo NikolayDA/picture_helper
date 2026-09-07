@@ -825,8 +825,8 @@ Le **profil cible v2** additif pour Studio 4.3.3, Editor 1.20.0 et le firmware
 Studio 4.2.2 reste sélectionnable comme référence historique. Les deux profils
 restent provisoires jusqu'aux tests d'impression physiques. Vous choisissez le
 dossier, les assets et la **profondeur** : 16 bits est le défaut prudent, 8 bits
-reste l'option héritée. Une profondeur de bits enregistrée auparavant reste
-présélectionnée jusqu'à ce que vous la changiez dans la boîte de dialogue. Le
+reste l'option héritée. Le choix de profil et la profondeur de bits enregistrés
+restent présélectionnés jusqu'à ce que vous les changiez dans la boîte de dialogue. Le
 contrat complet du profil est décrit dans
 [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md). Avec des
 dimensions de projet, pixels, mm et DPI X/Y effectifs sont affichés séparément. Une **vérification** s'exécute

@@ -47,7 +47,12 @@ from bgremover.constants import (
 )
 from bgremover.crop_bar import CropBar
 from bgremover.eufymake_export_dialog import EufyMakeExportDialog
-from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, EufyMakeTargetProfile
+from bgremover.eufymake_profile import (
+    DEFAULT_PROFILE_REGISTRY,
+    DEFAULT_TARGET_PROFILE,
+    EufyMakeTargetProfile,
+    ProfileResolutionError,
+)
 from bgremover.eufymake_validate import format_finding
 from bgremover.eufymake_writer import (
     EufyMakeWriteError,
@@ -109,6 +114,8 @@ from bgremover.settings_schema import (
     EXPORT_DIR_KEY,
     EXPORT_INCLUDE_GLOSS_KEY,
     EXPORT_INCLUDE_HEIGHT_KEY,
+    EXPORT_PROFILE_ID_KEY,
+    EXPORT_PROFILE_VERSION_KEY,
     PREVIEW3D_EXAGGERATION_KEY,
     PREVIEW3D_LIGHT_AZIMUTH_KEY,
     PREVIEW3D_LIGHT_ELEVATION_KEY,
@@ -145,6 +152,27 @@ def _quality_from_setting(value: str) -> MeshQuality:
         return MeshQuality(value)
     except ValueError:
         return MeshQuality.STANDARD
+
+
+def _eufymake_profile_from_settings(settings: QSettings) -> EufyMakeTargetProfile:
+    """Löst die letzte Profilauswahl auf; veraltete Werte fallen auf den Default."""
+    profile_id = settings.value(EXPORT_PROFILE_ID_KEY, None)
+    raw_version = settings.value(EXPORT_PROFILE_VERSION_KEY, None)
+    if (
+        not isinstance(profile_id, str)
+        or not profile_id
+        or isinstance(raw_version, bool)
+        or not isinstance(raw_version, (int, str))
+    ):
+        return DEFAULT_TARGET_PROFILE
+    try:
+        profile_version = int(raw_version)
+    except ValueError:
+        return DEFAULT_TARGET_PROFILE
+    try:
+        return DEFAULT_PROFILE_REGISTRY.resolve(profile_id, profile_version)
+    except ProfileResolutionError:
+        return DEFAULT_TARGET_PROFILE
 
 
 def _bounded_float_setting(
@@ -1418,6 +1446,7 @@ class MainWindow(QMainWindow):
                 type=int,
             ),
             dest_dir=self._settings.value(EXPORT_DIR_KEY, "", type=str),
+            profile=_eufymake_profile_from_settings(self._settings),
             parent=self,
         )
         if not dlg.exec():
@@ -1427,7 +1456,7 @@ class MainWindow(QMainWindow):
         bits = dlg.selected_bit_depth()
         profile = dlg.selected_profile()
         dest = dlg.selected_destination()
-        self._remember_export_options(dest, roles, bits)
+        self._remember_export_options(dest, roles, bits, profile)
         self._write_eufymake(
             project,
             dest,
@@ -1495,13 +1524,19 @@ class MainWindow(QMainWindow):
         return reply == QMessageBox.StandardButton.Yes
 
     def _remember_export_options(
-        self, dest: str, roles: list[LayerRole], bits: int,
+        self,
+        dest: str,
+        roles: list[LayerRole],
+        bits: int,
+        profile: EufyMakeTargetProfile,
     ) -> None:
         """Persistiert Zielordner und allgemeine (nicht projektspezifische) Optionen."""
         self._settings.setValue(EXPORT_DIR_KEY, dest)
         self._settings.setValue(EXPORT_INCLUDE_HEIGHT_KEY, LayerRole.HEIGHT_MAP in roles)
         self._settings.setValue(EXPORT_INCLUDE_GLOSS_KEY, LayerRole.GLOSS_MASK in roles)
         self._settings.setValue(EXPORT_BIT_DEPTH_KEY, bits)
+        self._settings.setValue(EXPORT_PROFILE_ID_KEY, profile.profile_id)
+        self._settings.setValue(EXPORT_PROFILE_VERSION_KEY, profile.profile_version)
 
     # ── Recent-Files ────────────────────────────────────────────
 

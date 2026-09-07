@@ -283,6 +283,15 @@ def test_registry_rejects_unknown_profile_specific_validation_code() -> None:
         ProfileRegistry((profile,))
 
 
+def test_registry_requires_complete_validation_codes_for_default_profile() -> None:
+    incomplete_default = dataclasses.replace(
+        DEFAULT_TARGET_PROFILE,
+        validation_rules=TARGET_PROFILE_V1.validation_rules,
+    )
+    with pytest.raises(ValueError, match="Defaultprofil.*unvollständige"):
+        ProfileRegistry((incomplete_default,), default_profile=incomplete_default)
+
+
 @pytest.mark.parametrize("profile", [TARGET_PROFILE_V1, TARGET_PROFILE_V2])
 def test_profile_keeps_hardware_unknowns_open(profile) -> None:
     assert profile.status is ProfileStatus.PROVISIONAL
@@ -298,9 +307,13 @@ def test_profile_keeps_hardware_unknowns_open(profile) -> None:
 def test_profiles_define_version_specific_validation_codes_and_remedies() -> None:
     v1_rules = {rule.code: rule for rule in TARGET_PROFILE_V1.validation_rules}
     v2_rules = {rule.code: rule for rule in TARGET_PROFILE_V2.validation_rules}
+    default_rules = {
+        rule.code: rule for rule in DEFAULT_TARGET_PROFILE.validation_rules
+    }
     missing = ExportCheckCode.PHYSICAL_SIZE_MISSING.value
     assert set(v1_rules) == {code.value for code in ExportCheckCode} - {missing}
     assert set(v2_rules) == {code.value for code in ExportCheckCode}
+    assert set(default_rules) == {code.value for code in ExportCheckCode}
     assert not TARGET_PROFILE_V1.supports_validation(missing)
     assert TARGET_PROFILE_V2.supports_validation(missing)
     assert all(rule.remedy for rule in (*v1_rules.values(), *v2_rules.values()))

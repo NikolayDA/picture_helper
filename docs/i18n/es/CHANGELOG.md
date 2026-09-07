@@ -33,8 +33,8 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   BgRemover. 16 bits es el valor HEIGHT conservador, pero junto con gloss y las
   medidas físicas sigue provisional y con advertencia hasta las pruebas reales.
   Las referencias antiguas siguen legibles; no hay migración de contenedor.
-  Una profundidad de bits guardada anteriormente se mantiene preseleccionada
-  hasta cambiarla en el diálogo. Contrato: [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
+  La selección de perfil y la profundidad de bits guardadas se mantienen
+  preseleccionadas hasta cambiarlas en el diálogo. Contrato: [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
 
 ### Cambiado
 

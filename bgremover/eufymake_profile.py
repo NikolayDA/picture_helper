@@ -301,10 +301,30 @@ class ProfileContractMismatchError(ProfileResolutionError):
 class ProfileRegistry:
     """Explizites Register für bestehende und künftige Zielprofile."""
 
-    def __init__(self, profiles: tuple[EufyMakeTargetProfile, ...] = ()) -> None:
+    def __init__(
+        self,
+        profiles: tuple[EufyMakeTargetProfile, ...] = (),
+        *,
+        default_profile: EufyMakeTargetProfile | None = None,
+    ) -> None:
         self._profiles: dict[tuple[str, int], EufyMakeTargetProfile] = {}
         for profile in profiles:
             self.register(profile)
+        if default_profile is not None:
+            registered_default = self._profiles.get(
+                (default_profile.profile_id, default_profile.profile_version)
+            )
+            if registered_default != default_profile:
+                raise ValueError(
+                    f"Defaultprofil {default_profile.reference} ist nicht identisch registriert"
+                )
+            default_codes = {rule.code for rule in default_profile.validation_rules}
+            known_codes = {code.value for code in ExportCheckCode}
+            if default_codes != known_codes:
+                raise ValueError(
+                    f"Defaultprofil {default_profile.reference} hat unvollständige "
+                    "Validierungscodes"
+                )
 
     def register(self, profile: EufyMakeTargetProfile) -> None:
         if isinstance(profile.profile_version, bool) or not isinstance(
@@ -599,7 +619,10 @@ TARGET_PROFILE_V2 = replace(
 
 DEFAULT_TARGET_PROFILE = TARGET_PROFILE_V2
 
-DEFAULT_PROFILE_REGISTRY = ProfileRegistry((TARGET_PROFILE_V1, TARGET_PROFILE_V2))
+DEFAULT_PROFILE_REGISTRY = ProfileRegistry(
+    (TARGET_PROFILE_V1, TARGET_PROFILE_V2),
+    default_profile=DEFAULT_TARGET_PROFILE,
+)
 
 
 @dataclass(frozen=True)

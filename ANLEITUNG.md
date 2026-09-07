@@ -809,8 +809,8 @@ und Firmware 4.0.9 voreingestellt. Das eingefrorene **Profil v1** für Studio
 4.2.2 bleibt als historische Referenz auswählbar. Beide Profile sind bis zu den
 physischen Drucktests vorläufig. Sie wählen den Exportordner, die optionalen
 Assets und die **Bittiefe** der Höhenkarte. 16 Bit ist der konservative Default;
-8 Bit bleibt als Legacy-Option. Eine früher gespeicherte Bittiefe bleibt als
-Vorauswahl erhalten, bis Sie sie im Dialog ändern. Den vollständigen
+8 Bit bleibt als Legacy-Option. Eine früher gespeicherte Profilwahl und
+Bittiefe bleiben als Vorauswahl erhalten, bis Sie sie im Dialog ändern. Den vollständigen
 Profilvertrag beschreibt
 [`docs/EUFYMAKE_TARGET_PROFILE.md`](docs/EUFYMAKE_TARGET_PROFILE.md). Sind
 Projektmaße gesetzt, zeigt der Dialog Pixel, mm sowie effektive X- und Y-DPI

@@ -27,7 +27,7 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   的修复代码。对话框显示配置版本及独立 X/Y DPI；清单包含完整配置快照和 BgRemover
   版本。16 位是保守的 HEIGHT 默认值，但与光泽和物理尺寸一样，在硬件测试前仍明确
   标为暂定并要求确认警告。旧配置引用仍可读取，无需容器迁移。
-  先前保存的位深会保持为预选值，直到在对话框中更改。合约：[`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md)。
+  先前保存的配置选择和位深会保持为预选值，直到在对话框中更改。合约：[`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md)。
 
 ### 变更
 

@@ -33,8 +33,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   16 bits est le défaut HEIGHT prudent, mais reste, comme le gloss et les mesures
   physiques, provisoire et soumis à avertissement jusqu'aux tests matériels. Les
   références anciennes restent lisibles ; aucune migration de conteneur.
-  Une profondeur de bits enregistrée auparavant reste présélectionnée jusqu'à
-  sa modification dans la boîte de dialogue. Contrat : [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
+  Le choix de profil et la profondeur de bits enregistrés restent
+  présélectionnés jusqu'à leur modification dans la boîte de dialogue. Contrat : [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
 
 ### Modifié
 

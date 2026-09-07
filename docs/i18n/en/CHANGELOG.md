@@ -32,8 +32,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   conservative HEIGHT default but, like gloss and physical dimensions, remains
   explicitly provisional and warning-gated until hardware tests. Legacy profile
   references remain readable; no container migration is required.
-  A previously saved bit depth stays preselected until it is changed in the
-  dialog. Contract: [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
+  A previously saved profile selection and bit depth stay preselected until
+  they are changed in the dialog. Contract: [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
 
 ### Changed
 
