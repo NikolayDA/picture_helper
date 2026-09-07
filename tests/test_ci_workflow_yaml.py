@@ -16,8 +16,8 @@ Job-``env`` geprüft: ``jobs.<job_id>.env`` erlaubt nur ``github``, ``needs``,
 läuft. Weder ``bash -n`` noch die YAML-lesenden Gate-Tests fangen das, weil die
 Expression lokal nie ausgewertet wird (Review-Befund PR #925).
 
-``yaml`` ist keine deklarierte Projekt-Abhängigkeit, aber im Test-Env
-vorhanden – fehlt es, wird der Test übersprungen statt fälschlich rot.
+PyYAML ist seit #1016 deklarierte ``[test]``-Abhängigkeit; zuvor wurde der
+Test ohne das Paket still übersprungen – in der PR-CI dauerhaft.
 """
 from __future__ import annotations
 

@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import yaml
+
 _ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -92,8 +94,8 @@ def test_review_workflow_runs_once_per_pr_not_per_push() -> None:
     Trigger-Block von ``claude-code-review.yml`` – ohne diesen Wächter würde
     ein wieder ergänztes ``synchronize`` alle sechs Stellen still falsch
     machen und ``make check`` bliebe grün (Review-Befund auf PR #857).
-    Textbasiert statt über PyYAML, aus demselben Grund wie der
-    workflow_run-Wächter unten.
+    Textbasiert, weil der Trigger-Block als Ganzes gegen seinen Wortlaut
+    geprüft wird – parserunabhängig, wie bei den N6-Paketlisten.
     """
     text = (_ROOT / ".github/workflows/claude-code-review.yml").read_text(encoding="utf-8")
     trigger = re.search(r"(?ms)^on:\n.*?(?=^\S)", text)
@@ -128,51 +130,29 @@ def test_workflow_run_sources_are_documented_at_all_three_places() -> None:
     Quellworkflows im Umfeld ihrer ``workflow_run``-Erwähnung nennen
     (Muster wie N6/gl_smoke: Listenkopie ohne Abgleich driftet still).
 
-    PyYAML ist keine deklarierte Projekt-Abhängigkeit (auch nicht in den
-    Constraints); ohne PyYAML läuft deshalb ein textbasierter Rückfall
-    (Muster aus test_release_gate: textbasierte Invarianten laufen immer),
-    damit dieser Wächter im ``.[test]``-Env nie still übersprungen wird.
+    Liest die Workflows über PyYAML – seit #1016 deklarierte
+    ``[test]``-Abhängigkeit. Der frühere textbasierte Rückfall für ein
+    fehlendes PyYAML ist entfallen: Er war in jeder deklarierten Umgebung
+    unerreichbar und pinnte nebenbei die Inline-Flow-Schreibweise des Triggers.
     """
     workflow_dir = _ROOT / ".github" / "workflows"
     workflow_files = sorted(workflow_dir.glob("*.yml")) + sorted(workflow_dir.glob("*.yaml"))
     trigger_text = (workflow_dir / "recommendations-live-check.yml").read_text(encoding="utf-8")
-    try:
-        import yaml
-    except ImportError:
-        yaml = None
 
     by_name: dict[str, list[str]] = {}
-    if yaml is not None:
-        trigger_doc = yaml.safe_load(trigger_text)
-        # PyYAML (YAML 1.1) liest den Schlüssel ``on:`` als ``True``; ein
-        # quotiertes ``"on":`` bliebe ein String. Die ``get``-Kette (Idiom aus
-        # test_release_gate) lässt jeden Driftfall am ``assert`` mit seiner
-        # Aussage enden statt an einem nackten ``KeyError``.
-        triggers = trigger_doc.get(True, trigger_doc.get("on")) or {}
-        display_names = (triggers.get("workflow_run") or {}).get("workflows") or []
-        # Einmalige Namenstabelle statt erneutem Parsen je Anzeigename; die
-        # Parsebarkeit sichert bereits tests/test_ci_workflow_yaml.py.
-        for path in workflow_files:
-            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
-            if isinstance(doc, dict) and isinstance(doc.get("name"), str):
-                by_name.setdefault(doc["name"], []).append(path.name)
-    else:
-        # Rückfall bewusst nur für die heutige Inline-Flow-/Quoting-
-        # Schreibweise: Eine Umformung fällt hier fail-closed als fehlender
-        # Trigger auf, statt den Wächter still zu überspringen.
-        block = re.search(
-            r"(?ms)^  workflow_run:\n\s*workflows:\s*\[(?P<names>[^\]]*)\]",
-            trigger_text,
-        )
-        assert block, "workflow_run-Trigger in recommendations-live-check.yml nicht gefunden"
-        display_names = re.findall(r"""["']([^"']+)["']""", block.group("names"))
-        for path in workflow_files:
-            name_match = re.search(
-                r"""(?m)^name:\s*["']?(?P<name>[^"'\n]+?)["']?\s*$""",
-                path.read_text(encoding="utf-8"),
-            )
-            if name_match:
-                by_name.setdefault(name_match.group("name"), []).append(path.name)
+    trigger_doc = yaml.safe_load(trigger_text)
+    # PyYAML (YAML 1.1) liest den Schlüssel ``on:`` als ``True``; ein
+    # quotiertes ``"on":`` bliebe ein String. Die ``get``-Kette (Idiom aus
+    # test_release_gate) lässt jeden Driftfall am ``assert`` mit seiner
+    # Aussage enden statt an einem nackten ``KeyError``.
+    triggers = trigger_doc.get(True, trigger_doc.get("on")) or {}
+    display_names = (triggers.get("workflow_run") or {}).get("workflows") or []
+    # Einmalige Namenstabelle statt erneutem Parsen je Anzeigename; die
+    # Parsebarkeit sichert bereits tests/test_ci_workflow_yaml.py.
+    for path in workflow_files:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if isinstance(doc, dict) and isinstance(doc.get("name"), str):
+            by_name.setdefault(doc["name"], []).append(path.name)
     assert display_names, "workflow_run-Trigger ohne Workflow-Namen"
 
     filenames = []
