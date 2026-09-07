@@ -112,7 +112,7 @@ flowchart TD
     DA3["Befund N6: alle sechs Dateien angleichen<br/>ci.yml, pr-ci.yml, ui-nightly.yml, benchmark.yml, coverage.yml, session-start.sh"]
     DQ4{"ANLEITUNG.md oder scripts/generate_anleitung_pdf.py geändert?"}
     DA4["ANLEITUNG.pdf im selben Commit neu erzeugen<br/>pip install -e '.[docs]' · python scripts/generate_anleitung_pdf.py<br/>Wächter tests/test_anleitung_pdf_sync.py prüft die Git-Mitänderung"]
-    DQ5{"Neuer Pfad, den release/path-policy.json nicht kennt?"}
+    DQ5{"Berührt der Commit einen Pfad, den release/path-policy.json nicht kennt?"}
     DA5["Pfadpolicy im selben PR nachziehen<br/>Eintrag ergänzen (release-neutral nur eng begründet); policy_version nur bei Semantikänderung anheben, dann Versionszeile im aktiven Freeze-Dokument nachziehen<br/>unbekannte Pfade blockieren fail-closed in release-freeze-check (make pr-check, PR-CI) — make check sieht sie nicht"]
   end
 
@@ -182,9 +182,12 @@ flowchart TD
   mit versetztem Wächter: Ein Pfad, den sie nicht kennt, ist kandidatenrelevant
   und blockiert `release-freeze-check` fail-closed (`unclassified-path`) — das
   läuft in `make pr-check` und in der PR-CI, nicht in `make check`. Wer eine
-  neue Datei außerhalb der bekannten Muster anlegt (zuletzt #986 mit einem
-  Protokoll unter `docs/history/`), ergänzt im selben PR den Eintrag. Der
-  Regelfall ist die kandidatenrelevante Klasse; `release-neutral` bleibt eng
+  Datei außerhalb der bekannten Muster **berührt**, ergänzt im selben PR den
+  Eintrag. Das Gate klassifiziert alle geänderten Pfade eines Commits, nicht
+  nur neu angelegte: In diesem Fenster traf es zweimal Dateien, die seit
+  August bestehen und erst jetzt zum ersten Mal geändert wurden (#1001 und
+  #1003, je ein Dokument unter `docs/history/`). Der Regelfall ist die
+  kandidatenrelevante Klasse; `release-neutral` bleibt eng
   begründeten Einträgen vorbehalten. `policy_version` bindet die
   Klassifikations**semantik**, nicht die Regelmenge: Eine reine
   Allowlist-Ergänzung hebt sie **nicht** an (ADR-Nachtrag 2026-08-25 in
@@ -275,7 +278,14 @@ flowchart TD
   sind per `paths-ignore` ausgenommen.
 - `dependency-audit.yml` läuft ohne Pfadfilter auch bei reinen Doku-PRs. Der
   Audit ist laut dem aktuellen [GitHub-Rahmen](#aktueller-github-rahmen) kein
-  erforderlicher Branch-Protection-Status.
+  erforderlicher Branch-Protection-Status. Er hat zudem eine
+  Abdeckungsgrenze (#994): Der Abgleich läuft gegen PyPI-Distributionen,
+  Qt-Advisories werden aber gegen *Qt* geführt und nicht gegen die
+  Distribution `PyQt6-Qt6`, die Qt als Binärpaket mitliefert — ein grüner
+  Lauf ist deshalb kein Nachweis, dass das gebündelte Qt frei von bekannten
+  Befunden ist. Der Qt-Stand wird beim Anheben des Pins von Hand geprüft und
+  im Kommentarblock von `requirements/constraints.txt` festgehalten (so im
+  Kopf des Workflows und in `SECURITY.md`).
 - Das Review kommentiert nur; es hat weder Schreibrechte auf den Code noch
   blockiert es den Merge. Das erledigen die Pflicht-Checks. Auch seine
   Inline-Konversationen sperren den Merge nicht mehr (siehe
@@ -553,7 +563,7 @@ flowchart TD
     direction TB
     T1["Schritt 7 · Tag setzen<br/>von Hand oder per create_tag im Publish-Lauf<br/>immer auf candidate.head_sha aus dem Manifest, danach verifiziert"]
     T2["Schritt 8 · Veröffentlichung starten<br/>verify-release-ref, dann gh workflow run release-publish.yml --ref RELEASE_REF<br/>mit tag, candidate_run_id, acceptance_run_id, approval_artifact_name<br/>create_tag und predecessor_tag optional"]
-    T3["Schritt 9 · öffentliche Prüfung<br/>alle fünf Assets anonym über browser_download_url laden und Hashes vergleichen"]
+    T3["Schritt 9 · öffentliche Prüfung<br/>public-download-report.json lesen: Gesamtverdikt und jedes Asset auf PASS<br/>sichtbare Produktversion auf den aktiven Plattformen prüfen<br/>Handprozedur nur als Rückfallweg, wenn der Nachweis-Job nicht lief"]
     T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>vom Publish-Lauf ausgelöst (Job update-dispatch, Marker im run-name)<br/>gleiche run_id, platforms=alle, predecessor_tag<br/>manueller Start bleibt Rückfallweg"]
     T5["Instanz prüfen<br/>Publish-Lauf setzt PUBLISH-01 bis 03 und PUBLIC-DOWNLOAD-01 (bis Phase publish)<br/>ausgelöster Abnahme-Lauf trägt beide UPDATE-Kriterien nach (bis post-release)<br/>set-criterion von Hand bleibt Rückfallweg"]
   end
@@ -572,11 +582,13 @@ flowchart TD
     P8["Draft veröffentlichen · gh release edit --draft=false --latest"]
     P9["Vertrag stoppt<br/>partieller oder abweichender Zustand, kein Clobber, kein Asset-Tausch"]
     P10["already-complete<br/>Release steht bereits vollständig und byteidentisch, keine Mutation"]
+    P11["public-download · eigener Job nach dem Publish (#916)<br/>lädt alle fünf Assets ohne Authorization über browser_download_url;<br/>Sollwerte aus dem Freigabemanifest, Verdikt aus demselben verify-artifacts<br/>Artefakt public-download-report.json, Job-Summary, Issue-Kommentar — auch im Fehlerfall"]
   end
 
   subgraph FIN["Partition: Abschluss"]
     direction TB
-    FQ{"öffentlicher Download, sichtbare Version und Update-Check in Ordnung?"}
+    PQ3{"Download-Nachweis: Gesamtverdikt PASS?"}
+    FQ{"sichtbare Version und Update-Check in Ordnung?"}
     F1["Release-Issue schließen<br/>Kriterienmatrix mit URLs und Hashes ist verlinkt"]
     FQ2{"Fehler am Release oder am Prüfpfad?"}
     F2["Incident<br/>Rollback bzw. Yank-Hinweis oder Hotfix mit neuer Patch-Version ab Schritt 1<br/>Tag nie verschieben, Assets nie ersetzen"]
@@ -588,9 +600,11 @@ flowchart TD
   PQ1 -->|"Draft ohne Assets · upload-to-draft"| P6
   PQ1 -->|"vollständiger Draft · publish-existing-draft"| P7
   PQ1 -->|"teilweise oder abweichend"| P9 --> F2
-  PQ1 -->|"bereits veröffentlicht"| P10 --> T3
+  PQ1 -->|"bereits veröffentlicht"| P10 --> P11
   P6 --> P7 --> PQ2
-  PQ2 -->|"ja"| P8 --> T3 --> T4 --> FQ
+  PQ2 -->|"ja"| P8 --> P11 --> T3 --> PQ3
+  PQ3 -->|"ja"| T4 --> FQ
+  PQ3 -->|"nein · release-instance und update-dispatch entfallen (needs public-download), es wurde kein Update-Nachweis ausgelöst"| FQ2
   PQ2 -->|"nein"| P9
   FQ -->|"ja"| T5 --> F1 --> ENDE(("Ende · Release abgeschlossen")):::terminal
   FQ -->|"nein"| FQ2
@@ -651,6 +665,18 @@ flowchart TD
   Die drei Workflow-Dateien müssen während eines laufenden Releases unter
   ihren Pfaden auf `main` bestehen bleiben; ausgeführt wird danach die
   Definition aus dem gewählten Ref.
+- `PUBLIC-DOWNLOAD-01` erbringt seit #916 der Nachweis-Job des Publish-Laufs,
+  nicht der Release-Owner: Er kann erst **nach** `--draft=false` laufen, weil
+  Draft-Assets anonym gar nicht erreichbar sind und der Verifikationsschritt
+  im Publish-Job authentifiziert aus dem Draft lädt. Die URL des Publish-Laufs
+  allein genügt deshalb nie als Nachweis; maßgeblich ist der Bericht. Schritt 9
+  ist damit Prüfen und Protokollieren — die anonyme Handprozedur bleibt
+  Rückfallweg, wenn der Job nicht gelaufen ist. Ein rotes Verdikt hält auch
+  die beiden Folgejobs an: `release-instance` verlangt `needs: [publish,
+  public-download]` und `update-dispatch` zusätzlich `release-instance`, ein
+  Update-Nachweis wird dann also gar nicht erst ausgelöst. Der Bericht selbst
+  entsteht trotzdem (`if: !cancelled()`) und bleibt die Grundlage der
+  Ursachenklärung.
 - Der automatisierte Abschluss (#919) ersetzt keine Prüfung, nur Tipparbeit:
   Der Tag wird auch bei `create_tag` anschließend gegen `candidate.head_sha`
   verifiziert, ein abweichender Tag bricht ab statt verschoben zu werden, und
