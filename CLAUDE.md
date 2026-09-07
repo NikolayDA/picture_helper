@@ -357,9 +357,11 @@ Ein Paket, `bgremover/`:
   Qt-freie, strikt getypte Quelle des versionierten Zielvertrags: Profil-ID/
   -Version, separate Studio-/Geräteumgebung, Rollen/Dateinamen/Kanäle,
   konservativer HEIGHT-Default 16 Bit, Maße/DPI, Validierungscode+Schweregrad+
-  Abhilfe und Evidenzstatus. Profil v1 bleibt `provisional`; 16-Bit-Nutzung,
-  Grauwert→mm, physisches Druckmaß und Gloss-Semantik sind offen. Registry und
-  Legacy-Auflösung dokumentieren
+  Abhilfe und Evidenzstatus. Das additive Profil v2 für Studio 4.3.3, Editor
+  1.20.0 und Firmware 4.0.9 ist der Default; Profil v1 bleibt als eingefrorene,
+  auswählbare Studio-4.2.2-Referenz registriert. Beide bleiben `provisional`;
+  16-Bit-Nutzung, Grauwert→mm, physisches Druckmaß und Gloss-Semantik sind
+  offen. Registry und Legacy-Auflösung dokumentieren
   [`docs/EUFYMAKE_TARGET_PROFILE.md`](docs/EUFYMAKE_TARGET_PROFILE.md) sowie
   [`docs/history/ADR-2026-eufymake-zielprofil.md`](docs/history/ADR-2026-eufymake-zielprofil.md).
   `eufymake_export.py` — Qt-freies, strikt
@@ -387,10 +389,13 @@ Ein Paket, `bgremover/`:
   Warnungen (leere/konstante Height-/Gloss-Daten, 8-/16-Bit-Höhenträger bis zur
   physischen #688-Messung unbestätigt, 8-Bit-Ziel
   mit echten 16-Bit-Höhen = Präzisionsverlust (#590), Gloss=Ink-Mode-Hilfsasset,
+  Profil-v2-Befund `physical_size_missing` bei fehlender physischer Projektgröße,
   physische Größe ohne Herstellervertrag, Motiv überschreitet das eufyMake-
   Standard-Flatbed `STANDARD_FLATBED_MM` = 335 × 420 mm (#687; seit #971 vom Owner bestätigt))
   erlauben den Export erst nach Bestätigung; die Height-Prüfungen arbeiten auf der
-  kanonischen Payload. `format_finding` liefert die übersetzte Meldung (literale
+  kanonischen Payload. Fehlerhaft geformte Zielwerte bleiben davon getrennt der
+  blockierende Fehler `INVALID_TARGET_PARAMS`; sie werden nicht zur Warnung
+  herabgestuft. `format_finding` liefert die übersetzte Meldung (literale
   `tr`-Keys `eufymake.export.*`). Das Befund-Fundament (`Severity`,
   `severity_rank`, `has_blocking_errors`, `split_findings`) liegt seit #379
   geteilt in `export_checks.py` und wird hier re-exportiert
@@ -451,6 +456,17 @@ Ein Paket, `bgremover/`:
   `STANDARD_FLATBED_MM` (335 × 420 mm, Owner-Bestätigung #971); weicht die
   Konstante je von der Fläche ab, auf der die `.empf`-Projekte gebaut sind,
   bricht der Generator ab.
+  **GUI-Preflight 2026-09-07:** Unter Studio 4.3.3, Editor 1.20.0 und Firmware
+  4.0.9 lief die Rohimportmatrix mit 29/29 Zellen funktional wie unter 4.2.2.
+  Einzige UX-Abweichung: I-06 lässt `manifest.json` zunächst auswählen und
+  meldet danach `Unsupported file type.`. Alle 13/13 nativen Projekte wurden
+  geladen; die zwölf aktiven Projekte erreichten mit `Unidirectional` die
+  Vorschau ohne Warnung, nur Projekt 03 scheiterte auch nach `Retry` ein zweites
+  Mal an der Zeit-/Tintenschätzung. `Bidirectional` ist ungetestet. Es wurde
+  nicht gedruckt: Y-Tinte, Scraper und Luftfilter waren abgelaufen, schwarzer
+  Karton (0,1 mm) war vorhanden; die physischen #688–#690-Befunde bleiben offen.
+  Vollständige Evidenz:
+  [`EUFYMAKE-681-PREFLIGHT-2026-09-07.md`](docs/history/EUFYMAKE-681-PREFLIGHT-2026-09-07.md).
 - **Allgemeine Pre-Export-Prüfung:** `export_checks.py` — Qt-freie, strikt getypte,
   geteilte Basis (#379): generischer `Finding`/`CheckCode`/`Severity`-Vertrag mit
   deterministischer Sortierung und `format_finding` (literale `tr`-Keys

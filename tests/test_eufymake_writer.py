@@ -17,7 +17,7 @@ import pytest
 from PIL import Image
 
 from bgremover.eufymake_export import build_export_plan
-from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, TARGET_PROFILE_V1
 from bgremover.eufymake_writer import (
     MANIFEST_FILENAME,
     EufyMakeWriteError,
@@ -193,7 +193,7 @@ def test_manifest_describes_plan() -> None:
     project = _color_project((6, 3))
     _add_height(project)
     manifest = render_export(project, build_export_plan(project)).manifest
-    assert manifest["profile_version"] == 1
+    assert manifest["profile_version"] == 2
     assert manifest["height_semantics"] == "light_is_high"
     assert manifest["target"]["pixel_size"] == [6, 3]
     filenames = [a["filename"] for a in manifest["assets"]]
@@ -204,13 +204,37 @@ def test_manifest_describes_plan() -> None:
     assert manifest["kind"] == "eufymake_import_assets"
     assert "native_empf_project" in manifest["open_questions"]
     assert manifest["profile_contract"]["status"] == "provisional"
-    assert manifest["profile_contract"]["target_environment"]["studio_version"] == "4.2.2"
+    environment = manifest["profile_contract"]["target_environment"]
+    assert environment["studio_version"] == "4.3.3"
+    assert environment["firmware_version"] == "4.0.9"
+    assert {
+        "bidirectional_print_direction_calibration",
+        "gloss_x_field_semantics_and_physical_registration",
+    } <= set(manifest["profile_contract"]["open_properties"])
+    assert "epic-681-preflight-2026-09-07" in manifest["profile_contract"][
+        "dimensions"
+    ]["evidence_ids"]
     assert manifest["producer"]["application"] == "BgRemover"
     assert manifest["producer"]["version"]
     height = manifest["assets"][1]
     assert height["channel_interpretation"]["value_range"] == [0, 65535]
     assert height["channel_interpretation"]["direction"] == "light_is_high"
     assert height["channel_interpretation"]["semantics_status"] == "provisional"
+
+
+def test_writer_can_still_emit_unchanged_v1_contract(tmp_path: Path) -> None:
+    dest = write_export(
+        _color_project(), tmp_path / "v1", profile=TARGET_PROFILE_V1
+    )
+    manifest = json.loads((dest / MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    assert manifest["profile_version"] == 1
+    assert manifest["profile_contract"] == TARGET_PROFILE_V1.to_dict()
+    assert manifest["profile_contract"]["target_environment"] == {
+        "device": "eufyMake E1",
+        "studio_version": "4.2.2",
+        "firmware_version": None,
+        "status": "observed",
+    }
 
 
 def test_8bit_height_manifest_uses_8bit_channel_range() -> None:
@@ -261,7 +285,7 @@ def test_writer_consumes_selected_profile_without_hardcoded_filename(tmp_path: P
         assets=(color_rule, *DEFAULT_TARGET_PROFILE.assets[1:]),
     )
     dest = tmp_path / "future"
-    write_export(_color_project(), dest, profile=profile)
+    write_export(_color_project(), dest, profile=profile, confirm_warnings=True)
     assert (dest / "future_color.png").is_file()
     manifest = json.loads((dest / MANIFEST_FILENAME).read_text(encoding="utf-8"))
     assert manifest["profile"] == "test-future-profile"
@@ -280,7 +304,9 @@ def test_writer_rejects_profile_filename_that_escapes_destination(tmp_path: Path
     )
     dest = tmp_path / "unsafe"
     with pytest.raises(ValueError, match="Asset-Dateiname"):
-        write_export(_color_project(), dest, profile=profile)
+        write_export(
+            _color_project(), dest, profile=profile, confirm_warnings=True
+        )
     assert not dest.exists()
     assert not (tmp_path / "outside.png").exists()
 
@@ -288,11 +314,11 @@ def test_writer_rejects_profile_filename_that_escapes_destination(tmp_path: Path
 def test_existing_target_without_overwrite_raises(tmp_path: Path) -> None:
     project = _color_project()
     dest = tmp_path / "export"
-    write_export(project, dest)
+    write_export(project, dest, confirm_warnings=True)
     marker = dest / "color_motif.png"
     original = marker.read_bytes()
     with pytest.raises(ExportTargetExistsError):
-        write_export(project, dest)
+        write_export(project, dest, confirm_warnings=True)
     # Vorhandenes Ziel unverändert, kein Temp-Rest.
     assert marker.read_bytes() == original
     assert not _temp_leftovers(tmp_path, dest)
@@ -337,7 +363,7 @@ def test_publish_dir_itself_never_replaces_a_file_target(tmp_path: Path) -> None
 
 def test_overwrite_replaces_target(tmp_path: Path) -> None:
     dest = tmp_path / "export"
-    write_export(_color_project((4, 2)), dest)
+    write_export(_color_project((4, 2)), dest, confirm_warnings=True)
     # Anderes Projekt mit zusätzlicher Height-Ebene überschreibt.
     project2 = _color_project((4, 2))
     _add_height(project2)
@@ -494,7 +520,7 @@ def test_render_error_leaves_no_partial_target(tmp_path: Path, monkeypatch) -> N
 
 def test_replace_error_preserves_existing_target(tmp_path: Path, monkeypatch) -> None:
     dest = tmp_path / "export"
-    write_export(_color_project((4, 2)), dest)
+    write_export(_color_project((4, 2)), dest, confirm_warnings=True)
     original = (dest / "color_motif.png").read_bytes()
     manifest_before = (dest / MANIFEST_FILENAME).read_text(encoding="utf-8")
 
@@ -517,7 +543,7 @@ def test_replace_error_preserves_existing_target(tmp_path: Path, monkeypatch) ->
 
 def test_replace_restore_path_recovers_existing(tmp_path: Path, monkeypatch) -> None:
     dest = tmp_path / "export"
-    write_export(_color_project((4, 2)), dest)
+    write_export(_color_project((4, 2)), dest, confirm_warnings=True)
     original = (dest / "color_motif.png").read_bytes()
 
     import bgremover.eufymake_writer as writer
@@ -594,7 +620,7 @@ def test_existing_file_target_is_rejected_even_with_overwrite(tmp_path: Path) ->
     dest.write_text("wichtige Datei", encoding="utf-8")
     project = _color_project()
     with pytest.raises(ExportTargetNotDirectoryError):
-        write_export(project, dest, overwrite=True)
+        write_export(project, dest, overwrite=True, confirm_warnings=True)
     # Die Originaldatei bleibt unversehrt, kein Temp-Rest.
     assert dest.is_file() and dest.read_text(encoding="utf-8") == "wichtige Datei"
     assert not _temp_leftovers(tmp_path, dest)

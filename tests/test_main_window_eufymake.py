@@ -52,8 +52,13 @@ def export_win(qapp, tmp_path):
         w.close()
 
 
-def _fake_dialog_cls(*, accept=True, roles=(), bits=8, dest="", confirm=False):
-    """Baut eine Dialog-Attrappe mit der Schnittstelle von ``EufyMakeExportDialog``."""
+def _fake_dialog_cls(*, accept=True, roles=(), bits=8, dest="", confirm=True):
+    """Baut eine realistische Attrappe des ``EufyMakeExportDialog``.
+
+    Ein akzeptierter v2-Dialog ohne physische Projektgröße kann nur nach der
+    sichtbaren Warnungsbestätigung entstehen. Einzelne Tests überschreiben den
+    Wert weiterhin explizit, wenn gerade der unbestätigte Pfad relevant ist.
+    """
 
     class _Fake:
         def __init__(self, project, **kwargs):

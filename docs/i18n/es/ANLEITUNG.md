@@ -815,10 +815,12 @@ importación** para EufyMake Studio — **no** un archivo `.empf` terminado:
 - **Máscara de gloss** (opcional, experimental) como activo auxiliar –
   disponible solo si una capa tiene el rol *Gloss*.
 
-El diálogo muestra el **perfil de destino provisional, la versión del contrato
-y el entorno de Studio**. Eliges la carpeta, los activos y la **profundidad de
-bits**: 16 bits es el valor conservador; 8 bits sigue como opción heredada.
-Ningún portador está confirmado físicamente. Una profundidad de bits guardada
+El **perfil de destino v2** aditivo para Studio 4.3.3, Editor 1.20.0 y firmware
+4.0.9 está preseleccionado en el diálogo. El **perfil v1** congelado para Studio
+4.2.2 sigue disponible como referencia histórica. Ambos perfiles son
+provisionales hasta completar las pruebas físicas de impresión. Eliges la
+carpeta, los activos y la **profundidad de bits**: 16 bits es el valor
+conservador; 8 bits sigue como opción heredada. Una profundidad de bits guardada
 anteriormente se mantiene preseleccionada hasta que la cambies en el diálogo. El
 contrato completo del perfil está en
 [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md). Con medidas
@@ -827,20 +829,38 @@ ejecuta de forma continua e informa de los hallazgos según su
 gravedad:
 
 - **Errores** (⛔) bloquean la exportación hasta que se corrigen – p.
-  ej. un motivo de color ausente o tamaños que no coinciden.
+  ej. un motivo de color ausente, tamaños que no coinciden o parámetros de
+  destino mal formados (`INVALID_TARGET_PARAMS`).
 - **Advertencias** (⚠️) deben confirmarse de forma deliberada – p. ej.
   datos vacíos, uso HEIGHT abierto, la asignación gloss nativa en Studio,
   un motivo mayor que la bandeja plana estándar de eufyMake
   (335 × 420 mm) o la pérdida de precisión al cuantizar alturas reales de
-  16 bits a un destino de 8 bits.
+  16 bits a un destino de 8 bits. El perfil v2 informa además de
+  `physical_size_missing` cuando el proyecto no tiene tamaño físico; define
+  la anchura/altura en mm o la resolución en *Cambiar tamaño…*.
 
 `manifest.json` es procedencia interna con versiones de perfil/app,
-interpretación de canales, píxeles/mm y DPI X/Y; Studio 4.2.2 no lo interpreta
-como paquete. Las propiedades de hardware abiertas siguen marcadas como tales.
-Los propios archivos PNG llevan los DPI X e Y derivados de las medidas del
-proyecto como `pHYs`; Studio 4.2.2 usa este valor como tamaño inicial. Sin
-medidas de proyecto falta el valor y Studio empieza a 72 dpi: un motivo de
+interpretación de canales, píxeles/mm y DPI X/Y, pero no es un paquete de
+importación de Studio. En Studio 4.2.2 no se podía seleccionar en el diálogo de
+imagen; Studio 4.3.3 permite seleccionarlo y después responde
+`Unsupported file type.`. Los activos PNG se siguen importando por separado.
+Las propiedades de hardware abiertas siguen marcadas como tales en el
+manifiesto. Los propios archivos PNG llevan los DPI X e Y derivados de las
+medidas del proyecto como `pHYs`; Studio usa este valor como tamaño inicial.
+Sin medidas de proyecto falta el valor y Studio empieza a 72 dpi: un motivo de
 1200 px mediría 423 mm.
+
+**Estado de la interfaz probado el 2026-09-07:** La matriz completa de
+importación sin procesar se ejecutó con Studio 4.3.3, Editor 1.20.0 y firmware
+4.0.9; sus **29/29** celdas se comportaron funcionalmente como en Studio 4.2.2,
+salvo el flujo I-06 de `manifest.json` recién descrito. Se cargaron los
+**13/13** proyectos nativos preparados y los doce proyectos activos llegaron a
+la vista previa sin advertencias con `Unidirectional`. Solo el proyecto 03 no
+pudo estimar tiempo y tinta por segunda vez tras `Retry`. `Bidirectional` no se
+ha probado. **No se inició ninguna impresión**: la tinta Y, el raspador y el
+filtro de aire del dispositivo estaban caducados; había cartón negro de 0,1 mm.
+Por ello siguen abiertas las pruebas físicas E1 de HEIGHT, tamaño, gloss y
+registro.
 
 Después, importa y posiciona los activos en EufyMake Studio, asigna
 allí los modos de tinta/capas y guarda el proyecto de Studio tú mismo
@@ -997,8 +1017,10 @@ solo se alcanzan mediante el menú o el inspector de tarjetas.
 - La **vista previa 2D** es una visualización en pantalla pura; la
   exportación de imagen escribe sin cambios el composite de color.
 - La **exportación a EufyMake** solo genera activos de importación,
-  **no** un `.empf` nativo. El perfil v1 es provisional; uso HEIGHT,
-  medidas físicas y semántica gloss esperan las pruebas de hardware.
+  **no** un `.empf` nativo. El perfil v2 es el predeterminado para Studio
+  4.3.3/firmware 4.0.9; el perfil v1 sigue disponible como referencia congelada
+  de Studio 4.2.2. Las rutas de importación de la interfaz están probadas;
+  HEIGHT, medidas físicas y semántica gloss esperan las pruebas de impresión.
 - El **paquete de aplicación** (`BgRemover.app`) es específico de
   macOS; en Linux la aplicación se ejecuta mediante el inicio directo
   del programa. Windows no forma parte actualmente de la matriz

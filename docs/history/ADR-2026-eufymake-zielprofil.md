@@ -1,7 +1,7 @@
 # ADR: Ein versioniertes Zielprofil für den EufyMake-Export
 
-**Status:** angenommen, Profil v1 vorläufig · **Datum:** 2026-09-02 ·
-**Bezug:** #681, #687–#691
+**Status:** angenommen, Profile v1 und v2 vorläufig · **Datum:** 2026-09-02,
+Nachtrag 2026-09-07 · **Bezug:** #681, #687–#691
 
 ## Kontext
 
@@ -45,3 +45,28 @@ werden größer, bleiben durch ihre Legacy-Felder aber kompatibel. HEIGHT-Export
 benötigen vorerst auch bei 16 Bit eine Warnungsbestätigung. Die Profilfreigabe
 bleibt fachlich blockiert, bis die genehmigten physischen Tests dokumentiert
 sind; diese ADR autorisiert keinen Druck.
+
+## Nachtrag 2026-09-07: additives Profil v2
+
+Profil v1 bleibt unverändert als historische Studio-4.2.2-Referenz registriert.
+Zusätzlich wird `bgremover-eufymake-import@2` zum Defaultprofil. Es übernimmt
+den v1-Rollen- und Kanalvertrag, setzt die beobachtete Zielumgebung auf Studio
+4.3.3 und Firmware 4.0.9 und ergänzt die Warnung `physical_size_missing` mit
+der Abhilfe `set_project_physical_size`.
+
+Für v2 ist `Unidirectional` die am 2026-09-07 verwendete Vorschau-Baseline;
+`Bidirectional` bleibt ungetestet. Der
+[zugehörige Preflight](EUFYMAKE-681-PREFLIGHT-2026-09-07.md) dokumentiert für
+G-05 eine **mehrdeutige X-Feld-Semantik**: Im gespeicherten Canvas haben COLOR
+und Gloss dieselbe linke Position X = 122,345 mm. Das Eigenschaftenfeld der
+45,16 mm breiten Glossmaske zeigt X = 167,50 mm und damit die sichtbare rechte
+Kante; Canvas, Auswahlbox und Vorschau stellen die Maske linksbündig dar. Ein
+tatsächlicher Runtime- oder Preview-Versatz ist nicht belegt. Das Projekt wurde
+nicht in den kanonischen Projektsatz zurückgespeichert. Der getrennte
+G-05-Rohimport entspricht der historischen Studio-4.2.2-Baseline. Die
+druckfreie Regression ist mit 29/29 Rohimportzellen vollständig; funktional
+entsprechen alle Zellen der Baseline. Bei I-06 ist `manifest.json` in 4.3.3
+auswählbar und wird erst danach mit `Unsupported file type.` abgewiesen,
+bleibt also wie zuvor fail-closed. Die Gloss-Registrierungsabnahme unter v2
+und die physischen Hardwaretests aus #688–#690 bleiben offen; dieser Lauf
+löste keinen Druck aus.

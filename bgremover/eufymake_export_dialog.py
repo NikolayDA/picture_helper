@@ -270,6 +270,17 @@ class EufyMakeExportDialog(QDialog):
         else:  # pragma: no cover - Enum wird bewusst vollständig behandelt
             raise AssertionError(f"Unbekannter Profilstatus: {profile.status!r}")
         environment = profile.target_environment
+        if environment.firmware_version is not None:
+            self._environment_label.setText(
+                tr(
+                    "eufymake.dialog.profile.environment_with_firmware",
+                    device=environment.device,
+                    studio=environment.studio_version,
+                    firmware=environment.firmware_version,
+                    status=status,
+                )
+            )
+            return
         self._environment_label.setText(
             tr(
                 "eufymake.dialog.profile.environment",

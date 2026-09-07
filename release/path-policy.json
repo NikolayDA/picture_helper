@@ -484,6 +484,14 @@
       "evidence": ["Der A4-Generator nennt nur den Dokumentpfad als Warnhinweis und liest keine Werte daraus", "Projekte und Fixture-Hashes werden unabhängig über projects.json und fixtures_manifest.json geprüft"]
     },
     {
+      "id": "eufymake-681-preflight-2026-09-07",
+      "kind": "exact",
+      "path": "docs/history/EUFYMAKE-681-PREFLIGHT-2026-09-07.md",
+      "sample_path": "docs/history/EUFYMAKE-681-PREFLIGHT-2026-09-07.md",
+      "reason": "Datierte lokale Preflight-Evidenz zum Studio- und Firmwarestand für Epic #681; der Profilvertrag verweist auf den Pfad, ihr Inhalt steuert jedoch keine Produkt-, Build- oder Gate-Semantik.",
+      "evidence": ["tests/test_eufymake_profile.py prüft für lokale Evidenzreferenzen ausschließlich, dass das Linkziel als Datei existiert", "Kein Code, Build-Skript, Test oder Workflow interpretiert den Inhalt dieser Datei semantisch als Produkt-, Build- oder Gate-Eingang"]
+    },
+    {
       "id": "eufymake-687-druck-checkliste",
       "kind": "exact",
       "path": "docs/history/EUFYMAKE-687-DRUCK-CHECKLISTE.md",

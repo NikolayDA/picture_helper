@@ -11,6 +11,21 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Perfil de destino EufyMake v2 aditivo y preflight completo en Studio 4.3.3
+  (#681, #691).** El perfil v2 es el predeterminado para Studio 4.3.3,
+  Editor 1.20.0 y el firmware 4.0.9; el perfil v1 sigue disponible como
+  referencia congelada de Studio 4.2.2. v2 añade `physical_size_missing`
+  cuando falta el tamaño físico del proyecto, mientras los valores mal
+  formados siguen bloqueando con `INVALID_TARGET_PARAMS`. Las 29/29 celdas de
+  importación directa se comportan funcionalmente como en 4.2.2; solo I-06
+  permite ahora seleccionar `manifest.json` antes de mostrar
+  `Unsupported file type.`. Los 13/13 proyectos nativos se cargan y los doce
+  activos llegan a la vista previa sin avisos con `Unidirectional`; el proyecto
+  03 vuelve a fallar en la estimación tras `Retry`. `Bidirectional` sigue sin
+  probar. No se inició ninguna impresión: la tinta Y, el rascador y el filtro
+  de aire estaban caducados, y había cartulina negra de 0,1 mm; las pruebas
+  físicas E1 siguen abiertas. Detalles: [preflight](../../history/EUFYMAKE-681-PREFLIGHT-2026-09-07.md);
+  [contrato](../../EUFYMAKE_TARGET_PROFILE.md).
 - **Perfil de destino EufyMake versionado (#691).** Planificador, validador,
   diálogo y writer consumen un contrato único para roles, archivos, canales,
   medidas, entorno, evidencias y correcciones estables. El diálogo muestra la

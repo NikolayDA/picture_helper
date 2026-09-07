@@ -10,6 +10,20 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Additive EufyMake target profile v2 and complete Studio 4.3.3 preflight
+  (#681, #691).** Profile v2 is the default for Studio 4.3.3, Editor 1.20.0,
+  and firmware 4.0.9; profile v1 remains selectable as the frozen Studio 4.2.2
+  reference. v2 adds `physical_size_missing` when the physical project size is
+  absent, while malformed values remain blocking `INVALID_TARGET_PARAMS`
+  errors. All 29/29 raw-import cells behave functionally like 4.2.2; only I-06
+  now lets users select `manifest.json` before reporting
+  `Unsupported file type.`. All 13/13 native projects load, and the twelve
+  active projects reach preview without warnings under `Unidirectional`;
+  project 03 fails the estimate a second time after `Retry`. `Bidirectional`
+  remains untested. No prints were started: the Y ink, scraper, and air filter
+  were expired, while 0.1 mm black cardstock was available; the physical E1
+  tests remain open. Details: [preflight](../../history/EUFYMAKE-681-PREFLIGHT-2026-09-07.md);
+  [contract](../../EUFYMAKE_TARGET_PROFILE.md).
 - **Versioned EufyMake target profile (#691).** Planner, validator, dialog, and
   writer now consume one machine-readable contract for roles, filenames,
   channels, dimensions, target environment, evidence status, and stable finding

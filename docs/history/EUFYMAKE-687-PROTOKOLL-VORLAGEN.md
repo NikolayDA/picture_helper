@@ -201,9 +201,9 @@ Dateinamen prüfen, nicht nur den Hash.
 | I-03 (16 Bit) | `height_wedge_16bit.png` | `45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41` | `45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | I-04 (Referenz) | `height_wedge_16bit.png` | `45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41` | `45cabeedc8215b9318fb7ff356aa52fc2287b1be4741f14720a3bb71faa6ca41` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | I-04 (halbierte Kopie) | `height_wedge_16bit_half.png` | `17ab1efde6ee96be20cf4fa1de935d52f8dcf1d06d8516adf08e7a72f48a59cf` | `17ab1efde6ee96be20cf4fa1de935d52f8dcf1d06d8516adf08e7a72f48a59cf` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 128×128, präzisionserhaltend aus `height_wedge_16bit.png` resized (siehe Ergänzung oben); gleiches Seitenverhältnis wie die 256×256-Referenz |
-| I-05 (ohne `pHYs`) | `mm_klein_no_phys.png` | `24e7b0ded8a855673cc0188d6e6eb9aea2e75af1b977d3379f0d4d4a9a7914e6` | `24e7b0ded8a855673cc0188d6e6eb9aea2e75af1b977d3379f0d4d4a9a7914e6` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| I-05 (konsistent) | `mm_klein_phys.png` | `2c9231761c55a9f6c4ee2141960a761155614f3ea4a5f44f4590a1861b88b697` | `2c9231761c55a9f6c4ee2141960a761155614f3ea4a5f44f4590a1861b88b697` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 150 dpi → 150,012 ist Rundungsartefakt des `pHYs`-Ganzzahlformats, kein Fehler |
-| I-05 (widersprüchlich) | `mm_klein_phys_conflict.png` | `a3362711dd6c5165a88cf206175c2cddfcea3dfe13255d8c844addef1900abf0` | `a3362711dd6c5165a88cf206175c2cddfcea3dfe13255d8c844addef1900abf0` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_klein_*`, `pHYs` bewusst auf 300 statt 150 dpi gesetzt |
+| I-05 (ohne `pHYs`) | `mm_typisch_no_phys.png` | `248b71c11e35a3e255035fcfb92de3ce4514d1b2c7c1a46a0948a323453e945f` | `248b71c11e35a3e255035fcfb92de3ce4514d1b2c7c1a46a0948a323453e945f` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 1200×1200 px; entspricht der tatsächlich in Studio protokollierten I-05-Variante |
+| I-05 (konsistent) | `mm_typisch_phys.png` | `c0525c34ab4b689c59031551ecb2e5ea869724f74ef4a6f5870b619c5dd0f2a3` | `c0525c34ab4b689c59031551ecb2e5ea869724f74ef4a6f5870b619c5dd0f2a3` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 1200×1200 px; 300 dpi → 101,60×101,60 mm |
+| I-05 (widersprüchlich) | `mm_typisch_phys_conflict.png` | `ec30dfac21d1ca4695b4c811f3764cb4fd874e2b096811e813c940b5423af8d8` | `ec30dfac21d1ca4695b4c811f3764cb4fd874e2b096811e813c940b5423af8d8` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_typisch_*`; `pHYs` bewusst auf 150 statt nominal 300 dpi gesetzt |
 | I-05 (X/Y getrennt) | `mm_typisch_phys_xy.png` | `2eb364226343cc0ba8c58b3df8d2962d34793922f401bb4182ce660b573f2660` | `2eb364226343cc0ba8c58b3df8d2962d34793922f401bb4182ce660b573f2660` | color_motif | RGBA | 8 Bit | vorhanden (11811×5906 px/m ≈ 299.999×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 1200×1200 px; `pHYs` impliziert 101,600×203,183 mm und prüft beide Achsen getrennt |
 | I-06 (`manifest.json` allein) | `export_mm_dpi_conflict/manifest.json` | `67c6310f49a5f6ce93f38dcccce60383d03829143bea6b5372305a1d0aa95128` | `67c6310f49a5f6ce93f38dcccce60383d03829143bea6b5372305a1d0aa95128` | – | JSON | – | Manifest: 300×300 dpi, 21,674666… mm | – | ✅ OK (Hash + Semantik) | Echtes BgRemover-Exportmanifest; **nicht** `fixtures_manifest.json` |
 | I-06 (kompletter Ordner) | exakt vier Dateien in `export_mm_dpi_conflict/` | siehe Bundle-Einträge in `fixtures_manifest.json` | siehe Bundle-Einträge in `fixtures_manifest.json` | COLOR/HEIGHT/GLOSS + Manifest | RGBA/I;16/L/JSON | 8/16/8 Bit | PNGs: ca. 150×150 dpi; Manifest: 300×300 dpi | keine zusätzlichen PNG-Chunks | ✅ OK (4/4 Dateien, Manifestsemantik, Hashes) | Kontrollierter Prioritätstest: 256×256 px und identische Landmarkmasken, aber Manifest- und PNG-Größe widersprechen sich |
@@ -235,11 +235,12 @@ zugeordneten I-03-/I-14-Kontrollen; vollständig mitverifiziert):
 | I-14 (direkte 128×128-Kontrolle) | `height_impulse_edge_direct_half_16bit.png` | `969b33b181dd0bffa5c0444248d7f08d73e05c7451b2e2fc73dcd2d1bfef8a0d` | `969b33b181dd0bffa5c0444248d7f08d73e05c7451b2e2fc73dcd2d1bfef8a0d` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 1/4…3/4 mit denselben 4096 Sollstufen; direkt bei 128×128 erzeugt, kein Resize/keine Vorfilterung |
 | zusätzlich | `height_wedge_inverted_8bit.png` | `885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c` | `885c911ff6fc532ad19141c5a12be65513d54deaccc3e41ed47819ffc840151c` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_wedge_inverted.png` |
 | zusätzlich | `height_wedge_inverted_16bit.png` | `7a1a9989196f74464f48d2496a65240d616d9c6c32662505b685435038142f9b` | `7a1a9989196f74464f48d2496a65240d616d9c6c32662505b685435038142f9b` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
+| zusätzlich | `mm_klein_no_phys.png` | `24e7b0ded8a855673cc0188d6e6eb9aea2e75af1b977d3379f0d4d4a9a7914e6` | `24e7b0ded8a855673cc0188d6e6eb9aea2e75af1b977d3379f0d4d4a9a7914e6` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | 300×300-px-Zusatzfixture; nicht die tatsächlich importierte I-05-Variante |
+| zusätzlich | `mm_klein_phys.png` | `2c9231761c55a9f6c4ee2141960a761155614f3ea4a5f44f4590a1861b88b697` | `2c9231761c55a9f6c4ee2141960a761155614f3ea4a5f44f4590a1861b88b697` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 300×300-px-Zusatzfixture; 150 dpi → 50,80×50,80 mm |
+| zusätzlich | `mm_klein_phys_conflict.png` | `a3362711dd6c5165a88cf206175c2cddfcea3dfe13255d8c844addef1900abf0` | `a3362711dd6c5165a88cf206175c2cddfcea3dfe13255d8c844addef1900abf0` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 300×300-px-Zusatzfixture; `pHYs` bewusst auf 300 statt nominal 150 dpi gesetzt |
 | zusätzlich | `mm_gross_no_phys.png` | `5e43da317812d3fca68ded78a6576237f10622a724449485429afeb6da6f8a92` | `5e43da317812d3fca68ded78a6576237f10622a724449485429afeb6da6f8a92` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | zusätzlich | `mm_gross_phys_conflict.png` | `a83a8e3f3df2ea3d752a228006f61a3f6edbd57d125597d8f3415333fbf6c00a` | `a83a8e3f3df2ea3d752a228006f61a3f6edbd57d125597d8f3415333fbf6c00a` | color_motif | RGBA | 8 Bit | vorhanden (23622×23622 px/m ≈ 599.999×599.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_gross_*`, `pHYs` bewusst auf 600 statt 300 dpi gesetzt |
 | zusätzlich | `mm_gross_phys.png` | `145bf93d8e1bbc6bc0967bcaccd4fdf6d845d9dc7b1fc3fc446ad3d17e1c6863` | `145bf93d8e1bbc6bc0967bcaccd4fdf6d845d9dc7b1fc3fc446ad3d17e1c6863` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Nach Entkonfundierung von I-08 weiterhin als zusätzliche mm/DPI-Fixture verifiziert |
-| zusätzlich | `mm_typisch_no_phys.png` | `248b71c11e35a3e255035fcfb92de3ce4514d1b2c7c1a46a0948a323453e945f` | `248b71c11e35a3e255035fcfb92de3ce4514d1b2c7c1a46a0948a323453e945f` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| zusätzlich | `mm_typisch_phys_conflict.png` | `ec30dfac21d1ca4695b4c811f3764cb4fd874e2b096811e813c940b5423af8d8` | `ec30dfac21d1ca4695b4c811f3764cb4fd874e2b096811e813c940b5423af8d8` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_typisch_*`, `pHYs` bewusst auf 150 statt 300 dpi gesetzt |
 | zusätzlich | `color_gloss_height_cross.png` | `aef6004a6efe91876df31a2cd934f5440489fa5fb30517e92faac72f039b67aa` | `aef6004a6efe91876df31a2cd934f5440489fa5fb30517e92faac72f039b67aa` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Konstantes opakes COLOR für die isolierte HEIGHT×Gloss-Zelle G-07 |
 | zusätzlich | `height_gloss_cross_16bit.png` | `b655327cf42f8dd29a0c6c969ac1e67c61f45f3f7ec56c5ed761b6350e0a983b` | `b655327cf42f8dd29a0c6c969ac1e67c61f45f3f7ec56c5ed761b6350e0a983b` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | Drei Felder 0/32768/65535 für G-07 |
 | zusätzlich | `gloss_min.png` | `94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03` | `94c35c51dc6f9e7bf6c98e14d5864781c654e5f2373e033e669b0b0a39143c03` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_zero_8bit.png` |
@@ -382,6 +383,34 @@ Fehlermeldung, aber auch kein sichtbares Ergebnis) – bei „Ja" zusätzlich
 festhalten: Wartezeit bis zum Abbruch, ob ein Neustart von Studio das Problem
 behebt, und ob das Motiv beim erneuten Öffnen des Projekts sichtbar wird.
 
+### 2.3 Abgeschlossene Regression unter Studio 4.3.3
+
+Am 2026-09-07 wurden nach vollständigem Studio-Neustart alle **29/29
+verpflichtenden druckfreien Rohimportzellen** mit Studio 4.3.3, Editor 1.20.0
+und der direkt angezeigten Firmware V4.0.9 erneut ausgeführt. Die historische
+4.2.2-Tabelle oben bleibt unverändert; die vollständige nummerierte Matrix und
+die nativen Vorschauwerte stehen im
+[`EUFYMAKE-681-PREFLIGHT-2026-09-07.md`](EUFYMAKE-681-PREFLIGHT-2026-09-07.md).
+Es wurde kein Druck ausgelöst.
+
+| Bereich | Ergebnis unter Studio 4.3.3 / Firmware V4.0.9 |
+| --- | --- |
+| Gesamtmatrix | 29/29 ausgeführt, 0 Rohimportzellen offen; funktional entsprechend der 4.2.2-Baseline |
+| I-05 mm/DPI | Ohne `pHYs`: Größenwarnung, nach „Originalgröße behalten“ 423,33×423,33 mm bei X/Y −44,17/−1,67 mm. Konsistentes `pHYs`: 101,60×101,60 mm; Konflikt-`pHYs`: 203,18×203,18 mm; X/Y-`pHYs`: 101,60×203,18 mm. |
+| I-06 Manifest | Geänderte Bedienfolge: `manifest.json` ist auswählbar, danach Toast `Unsupported file type.` und kein importiertes Objekt. Das ist weiterhin fail-closed; in 4.2.2 war die Datei bereits im Dialog ausgegraut. |
+| HEIGHT | I-02 mit `Color Raised`, 2,50 mm; 8-/16-Bit, halbe Pixelkante, Null/Maximum, Treppenstufen, Alpha+Mean sowie I-14 mit 256×256 und 128×128 akzeptiert. I-12 bleibt mit `Depth image ratio does not match the original image` abgelehnt. |
+| I-08 Crop | Vor Crop alle drei Rollen 90,31×90,31 mm bei X/Y 122,34/164,84 mm. Danach COLOR/HEIGHT 44,86×90,31 mm bei X/Y 167,80/164,84 mm; separates Gloss unverändert 90,31×90,31 mm bei X/Y 122,34/164,84 mm. |
+| Gloss G-01–G-08 | Alle tatsächlich importierten Assets sichtbar, getrennt und `Flat`; keine automatische Gloss-Rolle oder Kopplung. G-05 entspricht mit COLOR 90,31×90,31 mm bei X/Y 122,34/164,84 mm und Gloss 45,16×90,31 mm bei X/Y 144,91/164,84 mm der Baseline. |
+| I-10 | Normal und invertiert mit denselben beiden G-02-Dateien geprüft; beide Rohimporte entsprechen der Baseline. |
+| Native Projekte/Vorschau | Strukturprüfung 13/13; alle zwölf aktiven Projekte erreichten die Vorschau ohne Warnung. Nur bei Projekt 03 schlug `Estimate Ink & Time` zweimal mit `Estimation failed` fehl. Bei Projekt 10 / G-05 bleibt die X-Feld-Semantik mehrdeutig: Canvas, Auswahlbox und Preview zeigen Gloss linksbündig; X = 167,50 mm im Feld entspricht der sichtbaren rechten Kante, nicht einem belegten Versatz. |
+
+Diese GUI-Regression bestätigt keinen physischen HEIGHT-, Maß-, Gloss- oder
+Registrierungsvertrag. Sichtbar blieben die Sperren wegen abgelaufener
+Y-Tinte, abgelaufenem `Scraper` und abgelaufenem `Air Filter`. Verfügbar ist
+schwarzer Karton mit 0,1 mm Dicke; seine Charge ist nicht protokolliert und er
+wurde nicht bedruckt. Die Vorschau-Baseline ist `Unidirectional`;
+`Bidirectional` bleibt ungetestet.
+
 ---
 
 ## 3. Druckprotokoll
@@ -397,7 +426,15 @@ abgelaufener Y-Kartusche `Unavailable`. Cardboard erzeugt eine Gloss-Warnung.
 Option A ist gewählt (I-10 entfällt). Vollständiger, von einem Drucktag
 getrennter Status samt Schätzung für I-08:
 [`EUFYMAKE-681-VORBEREITUNG-2026-09-05.md`](EUFYMAKE-681-VORBEREITUNG-2026-09-05.md).
-Die folgenden leeren Tagesfelder sind deshalb noch keine Druckfreigabe.
+Der Nachtrag vom 2026-09-07 bestätigt Studio 4.3.3, Editor 1.20.0 und
+Firmware V4.0.9. Alle darin erfassten Vorschauen verwenden fest
+`Unidirectional`; `Bidirectional` bleibt eine ungetestete Profilgrenze:
+[`EUFYMAKE-681-PREFLIGHT-2026-09-07.md`](EUFYMAKE-681-PREFLIGHT-2026-09-07.md).
+Die Rohimportmatrix ist 29/29 abgeschlossen; es wurde kein Druck ausgelöst.
+Weiter sichtbar sind die Sperren wegen abgelaufener Y-Tinte, abgelaufenem
+`Scraper` und abgelaufenem `Air Filter`. Als Substrat steht schwarzer Karton
+mit 0,1 mm Dicke bereit; die Charge ist noch einzutragen. Die folgenden leeren
+Tagesfelder sind deshalb noch keine Druckfreigabe.
 
 Die **Tagesparameter** gelten für alle Zellen eines Testtags. Die
 **Reihenparameter** gelten je Vergleichsreihe – etwa die HEIGHT-Stammvarianten
@@ -416,11 +453,12 @@ steht in
 | Parameter | Wert (am Testtag eintragen) | Vorgabe/Quelle |
 | --- | --- | --- |
 | Datum/Testtag | | |
-| Studio-/Editor-Version | | Phase 1 lief mit 4.2.2 / 1.20.0 |
-| E1-Firmware | | am Gerät bzw. in den Geräteinformationen ablesen; „nicht angezeigt" ist hier unzulässig |
-| Gerätewarnungen (Scraper, Luftfilter, Tinte) | | behoben oder mit Begründung als unkritisch protokolliert |
+| Studio-/Editor-Version | | Import-Baseline 4.2.2 / 1.20.0; Regression 4.3.3 / 1.20.0; am Drucktag erneut ablesen |
+| E1-Firmware | | V4.0.9 nach Neustart am 2026-09-07 direkt bestätigt; am Drucktag erneut ablesen |
+| Print Direction / Richtungskalibrierung | | Baseline `Unidirectional`; alle Vorschauen vom 2026-09-07 liefen damit. `Bidirectional` ist ungetestet und erfordert eine eigene Profil- und Kalibrierungsevidenz. |
+| Gerätewarnungen (Scraper, Luftfilter, Tinte) | | Stand 2026-09-07: Y-Tinte, `Scraper` und `Air Filter` abgelaufen; vor Druck behoben oder mit Begründung protokolliert |
 | Tintenstände je Kanal (Start / Ende des Testtags) | | |
-| Substrat (Material, Farbe, Dicke, Charge) | | nicht-weiß für I-13 und G-06; weicht eine Reihe ab, steht das in ihrer Zeile |
+| Substrat (Material, Farbe, Dicke, Charge) | | vorhanden: schwarzer Karton, 0,1 mm; Charge offen. Nicht-weiß für I-13 und G-06; weicht eine Reihe ab, steht das in ihrer Zeile |
 | Messmittel Reliefhöhe (Gerät, Anzeigeauflösung, Messunsicherheit einschließlich Wiederholpräzision) | | HEIGHT-Akte §4.0: Unsicherheit ≤ 0,05 mm |
 | Messmittel Höhenprofil I-14 (Methode, laterale und vertikale Unsicherheit) | | HEIGHT-Akte §4.0: lateral ≤ 0,1 mm, vertikal ≤ 0,05 mm |
 | Messmittel Länge/Breite (mm/DPI) | | Messbereich ≥ 150 mm, Unsicherheit ≤ 0,1 mm |
@@ -433,7 +471,7 @@ bis sie in der Spalte „bestätigt am" datiert sind):**
 | Reihe | Zellen | Layoutgröße und Position (mm) | Texturmodus / Ink Mode / Texturhöhe | Qualitätsprofil, weitere Optionen | Gloss-Pfad (Gloss-Akte §6.1) mit Ursprung, Skalierung, Rotation, Registrierung | Substrat (falls abweichend) | bestätigt am |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | H1 | I-02, I-03 (8/16 Bit), I-04, I-07, I-11, I-13, I-14 | Vorgabe 90,31 × 90,31, X/Y 122,34/164,84 | Vorgabe `Customize Texture`, `Color Raised`, 2,50 mm | | – | | |
-| H2 | I-08 (vor/nach Crop): COLOR/HEIGHT-Objekt wie H1, Gloss-Objekt wie G1 im selben Auftrag | wie H1; nach Crop W/H 44,86/90,31, X/Y 167,79/164,84 | wie H1 | | wie G1; Gloss-Ebene nach der festen Regel in §3.2 unverändert | | |
+| H2 | I-08 (vor/nach Crop): COLOR/HEIGHT-Objekt wie H1, Gloss-Objekt wie G1 im selben Auftrag | wie H1; nach Crop W/H 44,86/90,31, X/Y 167,80/164,84 unter 4.3.3 (historische 4.2.2-Anzeige: X 167,79) | wie H1 | | wie G1; Gloss-Ebene nach der festen Regel in §3.2 unverändert | | |
 | M1 | I-05 (konsistent) | 101,60 × 101,60 aus `pHYs` | flach, kein Relief | | – | | |
 | G1 | G-01 … G-08 | 90,31 × 90,31, X/Y 122,34/164,84 | nativer Ink Mode `Gloss Varnish` (Pfad 1) | | Pfad 1; je Zelle Ursprung/Skalierung/Rotation/Registrierung eintragen | | |
 | G2 (nur bei Option B) | I-10 normal/invertiert | wie G1 | Spot-UV-Zweipass (Pfad 2) | | Pfad 2; Registrierung zwischen den Durchgängen über G-08-Marken | | |
@@ -504,7 +542,8 @@ Materialbudget in
 [`EUFYMAKE-687-TESTGOVERNANCE.md`](EUFYMAKE-687-TESTGOVERNANCE.md).
 
 **I-08 nach Crop:** Studio koppelt den bestätigten Crop nur an das native
-COLOR/HEIGHT-Objekt (W/H 44,86/90,31 mm, X/Y 167,79/164,84 mm); die separate
+COLOR/HEIGHT-Objekt (unter 4.3.3 W/H 44,86/90,31 mm,
+X/Y 167,80/164,84 mm; historische 4.2.2-Anzeige X 167,79 mm); die separate
 Gloss-Ebene blieb bei 90,31 × 90,31 mm und X/Y 122,34/164,84 mm. Für die
 Druckvariante „nach Crop" bleibt die Gloss-Ebene unverändert, weder
 beschnitten noch verschoben. Weil der Crop die rechte Objektkante festhielt,
@@ -518,11 +557,11 @@ Begründung und
 Rechnung stehen in
 [`EUFYMAKE-689-MM-DPI-VERTRAG.md`](EUFYMAKE-689-MM-DPI-VERTRAG.md).
 
-**I-10 gesperrt bis zur Owner-Entscheidung:** I-10 normal/invertiert und
-G-02 verwenden dieselben Dateien über denselben Gloss-Pfad. Die Zeilen
-bleiben in dieser Tabelle erhalten, werden aber erst nach dem Freigabe-Vermerk
-in `EUFYMAKE-687-TESTGOVERNANCE.md` §4 gedruckt oder gestrichen (Optionen in
-Governance Abschnitt 5 und in der Druck-Checkliste).
+**I-10 gemäß Option A ohne Druck:** I-10 normal/invertiert und G-02 verwenden
+dieselben beiden Dateien. Beide I-10-Rohimporte wurden unter Studio 4.3.3
+ausgeführt und entsprechen der 4.2.2-Baseline. Die Zeilen bleiben zur
+Nachvollziehbarkeit in der Tabelle, werden gemäß der am 2026-09-05 gewählten
+Option A aber nicht gedruckt und erhalten keinen Materialplatz.
 
 **I-12 ist import-only:** Studio lehnt die 256×128-HEIGHT-Datei am
 256×256-COLOR-Objekt fail-closed ab und erzeugt deshalb kein druckbares

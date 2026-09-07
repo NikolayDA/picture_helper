@@ -9,7 +9,7 @@ bestätigten Druckeigenschaften hochgestuft.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from pathlib import PurePosixPath, PureWindowsPath
 from typing import Any
@@ -76,6 +76,7 @@ class ExportCheckCode(Enum):
     BIT_DEPTH_UNCONFIRMED = "bit_depth_unconfirmed"
     HEIGHT_PRECISION_LOSS = "height_precision_loss"
     GLOSS_INK_MODE = "gloss_ink_mode"
+    PHYSICAL_SIZE_MISSING = "physical_size_missing"
     PHYSICAL_SIZE_UNVERIFIED = "physical_size_unverified"
     PRINT_AREA_EXCEEDED = "print_area_exceeded"
 
@@ -236,6 +237,10 @@ class EufyMakeTargetProfile:
                 return rule
         raise KeyError(f"Profil {self.reference} enthält Befundcode {code!r} nicht")
 
+    def supports_validation(self, code: str) -> bool:
+        """Gibt an, ob dieser Profil-Snapshot einen Befundcode aktiviert."""
+        return any(rule.code == code for rule in self.validation_rules)
+
     @property
     def reference(self) -> str:
         return f"{self.profile_id}@{self.profile_version}"
@@ -326,6 +331,10 @@ class ProfileRegistry:
                 f"{missing}"
             )
         evidence_ids = {item.evidence_id for item in profile.evidence}
+        if not set(profile.dimensions.evidence_ids) <= evidence_ids:
+            raise ValueError(
+                f"Profil {profile.reference}: unbekannte Evidenz-ID für Dimensionen"
+            )
         normalized_filenames: set[str] = set()
         for asset in profile.assets:
             filename = asset.filename
@@ -369,10 +378,14 @@ class ProfileRegistry:
                     f"Profil {profile.reference}: unbekannte Evidenz-ID für {asset.role.value}"
                 )
         codes = [rule.code for rule in profile.validation_rules]
-        expected_codes = {code.value for code in ExportCheckCode}
+        known_codes = {code.value for code in ExportCheckCode}
+        # Der unveränderliche v1-Regelsatz ist die gemeinsame Mindestmenge.
+        # Spätere profilspezifische Codes dürfen v1 nicht rückwirkend ungültig
+        # machen, müssen aber als ExportCheckCode bekannt sein.
+        required_codes = {rule.code for rule in _VALIDATION_RULES_V1}
         if (
             len(set(codes)) != len(codes)
-            or set(codes) != expected_codes
+            or not required_codes <= set(codes) <= known_codes
             or any(not rule.remedy for rule in profile.validation_rules)
         ):
             raise ValueError(
@@ -402,7 +415,7 @@ class ProfileRegistry:
         )
 
 
-_VALIDATION_RULES = (
+_VALIDATION_RULES_V1 = (
     ValidationRule("color_motif_missing", ValidationSeverity.ERROR, "assign_color_motif"),
     ValidationRule("optional_role_missing", ValidationSeverity.ERROR, "assign_requested_role"),
     ValidationRule("asset_size_mismatch", ValidationSeverity.ERROR, "match_canvas_dimensions"),
@@ -416,8 +429,17 @@ _VALIDATION_RULES = (
     ValidationRule("print_area_exceeded", ValidationSeverity.WARNING, "fit_standard_flatbed"),
 )
 
+_VALIDATION_RULES_V2 = (
+    *_VALIDATION_RULES_V1,
+    ValidationRule(
+        "physical_size_missing",
+        ValidationSeverity.WARNING,
+        "set_project_physical_size",
+    ),
+)
 
-DEFAULT_TARGET_PROFILE = EufyMakeTargetProfile(
+
+TARGET_PROFILE_V1 = EufyMakeTargetProfile(
     profile_id="bgremover-eufymake-import",
     profile_version=1,
     display_name="eufyMake E1 / Studio 4.2.2",
@@ -487,7 +509,7 @@ DEFAULT_TARGET_PROFILE = EufyMakeTargetProfile(
         print_size_status=EvidenceStatus.OPEN,
         evidence_ids=("issue-689-studio-import",),
     ),
-    validation_rules=_VALIDATION_RULES,
+    validation_rules=_VALIDATION_RULES_V1,
     open_properties=(
         "height_map_bit_depth_utilization",
         "height_grayscale_to_mm_mapping",
@@ -537,7 +559,47 @@ DEFAULT_TARGET_PROFILE = EufyMakeTargetProfile(
     ),
 )
 
-DEFAULT_PROFILE_REGISTRY = ProfileRegistry((DEFAULT_TARGET_PROFILE,))
+TARGET_PROFILE_V2 = replace(
+    TARGET_PROFILE_V1,
+    profile_version=2,
+    display_name="eufyMake E1 / Studio 4.3.3",
+    target_environment=TargetEnvironment(
+        device="eufyMake E1",
+        studio_version="4.3.3",
+        firmware_version="4.0.9",
+        status=EvidenceStatus.OBSERVED,
+    ),
+    dimensions=replace(
+        TARGET_PROFILE_V1.dimensions,
+        evidence_ids=(
+            *TARGET_PROFILE_V1.dimensions.evidence_ids,
+            "epic-681-preflight-2026-09-07",
+        ),
+    ),
+    validation_rules=_VALIDATION_RULES_V2,
+    open_properties=(
+        *TARGET_PROFILE_V1.open_properties,
+        "bidirectional_print_direction_calibration",
+        "gloss_x_field_semantics_and_physical_registration",
+    ),
+    evidence=(
+        *TARGET_PROFILE_V1.evidence,
+        EvidenceReference(
+            "epic-681-preflight-2026-09-07",
+            EvidenceStatus.OBSERVED,
+            "Studio 4.3.3 / Firmware 4.0.9; nur Unidirectional geprüft, "
+            "Bidirectional-Kalibrierung offen; G-05: Canvas-left=122,345, "
+            "Auswahlbox und Print-Preview linksbündig; Properties-X=167,50 entspricht "
+            "bei W=45,16 der sichtbaren rechten Kante; X-Feld-Semantik und physische "
+            "Registrierung offen, kein Runtime-/Preview-Versatz belegt",
+            "docs/history/EUFYMAKE-681-PREFLIGHT-2026-09-07.md",
+        ),
+    ),
+)
+
+DEFAULT_TARGET_PROFILE = TARGET_PROFILE_V2
+
+DEFAULT_PROFILE_REGISTRY = ProfileRegistry((TARGET_PROFILE_V1, TARGET_PROFILE_V2))
 
 
 @dataclass(frozen=True)

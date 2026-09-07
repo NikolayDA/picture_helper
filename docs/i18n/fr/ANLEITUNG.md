@@ -820,31 +820,51 @@ d'import** pour EufyMake Studio – **pas** un fichier `.empf` fini :
 - **Masque de gloss** (facultatif, expérimental) comme asset auxiliaire –
   disponible uniquement lorsqu'un calque porte le rôle *Gloss*.
 
-La boîte de dialogue affiche le **profil cible provisoire, sa version de contrat
-et l'environnement Studio**. Vous choisissez le dossier, les assets et la
-**profondeur** : 16 bits est le défaut prudent, 8 bits reste l'option héritée.
-Aucun support n'est physiquement confirmé. Une profondeur de bits enregistrée
-auparavant reste présélectionnée jusqu'à ce que vous la changiez dans la boîte
-de dialogue. Le contrat complet du profil est décrit dans
+Le **profil cible v2** additif pour Studio 4.3.3, Editor 1.20.0 et le firmware
+4.0.9 est présélectionné dans la boîte de dialogue. Le **profil v1** figé pour
+Studio 4.2.2 reste sélectionnable comme référence historique. Les deux profils
+restent provisoires jusqu'aux tests d'impression physiques. Vous choisissez le
+dossier, les assets et la **profondeur** : 16 bits est le défaut prudent, 8 bits
+reste l'option héritée. Une profondeur de bits enregistrée auparavant reste
+présélectionnée jusqu'à ce que vous la changiez dans la boîte de dialogue. Le
+contrat complet du profil est décrit dans
 [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md). Avec des
 dimensions de projet, pixels, mm et DPI X/Y effectifs sont affichés séparément. Une **vérification** s'exécute
 en continu et signale les constats par gravité :
 
 - **Erreurs** (⛔) bloquent l'export jusqu'à correction – p. ex. un motif
-  couleur manquant ou des tailles non concordantes.
+  couleur manquant, des tailles non concordantes ou des paramètres cibles mal
+  formés (`INVALID_TARGET_PARAMS`).
 - **Avertissements** (⚠️) doivent être confirmés délibérément – p. ex. des
   données vides, l'usage HEIGHT ouvert, l'affectation gloss native dans
   Studio, un motif dépassant le plateau standard eufyMake
   (335 × 420 mm) ou la perte de précision lorsque de véritables hauteurs
-  16 bits sont quantifiées vers une cible 8 bits.
+  16 bits sont quantifiées vers une cible 8 bits. Le profil v2 signale aussi
+  `physical_size_missing` lorsque le projet n'a pas de taille physique ;
+  définissez sa largeur/hauteur en mm ou sa résolution via *Redimensionner…*.
 
 `manifest.json` est une provenance interne avec versions profil/app,
-interprétation des canaux, pixels/mm et DPI X/Y ; Studio 4.2.2 ne le traite pas
-comme paquet. Les propriétés matérielles ouvertes restent signalées. Les
+interprétation des canaux, pixels/mm et DPI X/Y, mais ce n'est pas un paquet
+d'import Studio. Dans Studio 4.2.2, il n'était pas sélectionnable dans la boîte
+de dialogue d'image ; Studio 4.3.3 permet de le sélectionner puis répond
+`Unsupported file type.`. Les assets PNG restent donc à importer séparément.
+Les propriétés matérielles ouvertes restent signalées dans le manifeste. Les
 fichiers PNG eux-mêmes portent les DPI X et Y dérivés des dimensions du projet
-en `pHYs` ; Studio 4.2.2 utilise cette valeur comme taille de départ. Sans
-dimensions de projet, la valeur manque et Studio démarre à 72 dpi : un motif
-de 1200 px mesurerait 423 mm.
+en `pHYs` ; Studio utilise cette valeur comme taille de départ. Sans dimensions
+de projet, la valeur manque et Studio démarre à 72 dpi : un motif de 1200 px
+mesurerait 423 mm.
+
+**État de l'interface testé le 2026-09-07 :** La matrice complète d'import brut
+a été exécutée avec Studio 4.3.3, Editor 1.20.0 et le firmware 4.0.9 ; ses
+**29/29** cellules se comportent fonctionnellement comme sous Studio 4.2.2,
+hormis le parcours I-06 de `manifest.json` décrit ci-dessus. Les **13/13**
+projets natifs préparés ont été chargés et les douze projets actifs ont atteint
+l'aperçu sans avertissement avec `Unidirectional`. Seul le projet 03 a échoué
+une seconde fois à estimer le temps et l'encre après `Retry`. `Bidirectional`
+n'est pas testé. **Aucune impression** n'a été lancée : l'encre Y, le racleur et
+le filtre à air de l'appareil étaient expirés ; du carton noir de 0,1 mm était
+disponible. Les tests physiques E1 des effets de HEIGHT, de dimension, de gloss
+et de repérage restent donc ouverts.
 
 Ensuite, vous importez et positionnez les assets dans EufyMake Studio, y
 attribuez les modes d'encre/calques et enregistrez le projet Studio
@@ -1004,8 +1024,10 @@ accessibles que via le menu ou l'inspecteur de cartes.
 - L'**aperçu 2D** est un affichage à l'écran pur ; l'export d'image écrit
   sans changement le composite couleur.
 - L'**export EufyMake** ne produit que des assets d'import, **pas** un
-  `.empf` natif. Le profil v1 est provisoire ; usage HEIGHT, mesures physiques
-  et sémantique gloss attendent les tests matériels.
+  `.empf` natif. Le profil v2 est le défaut pour Studio 4.3.3/firmware 4.0.9 ;
+  le profil v1 reste sélectionnable comme référence figée de Studio 4.2.2. Les
+  chemins d'import de l'interface sont testés ; usage HEIGHT, mesures physiques
+  et sémantique gloss attendent toujours les tests d'impression.
 - Le **bundle d'application** (`BgRemover.app`) est spécifique à macOS ;
   sous Linux, l'application se lance directement. Windows ne fait
   actuellement pas partie de la matrice officiellement testée.

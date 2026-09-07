@@ -26,11 +26,12 @@ jedem Fehlerfall aufgeräumt.
 
 Physische Größe im PNG (#689/#691): Jedes Asset erhält die aus der physischen
 Projektgröße abgeleiteten **X- und Y-DPI getrennt** als ``pHYs``-Chunk
-(:func:`png_dpi_for`). Studio 4.2.2 übernimmt ``pHYs`` beobachtet je Achse als
-Startgröße und fällt ohne den Chunk auf 72 dpi zurück (#689-Protokoll); ohne
-gesetzte physische Größe schreibt der Writer deshalb bewusst **keinen** Chunk
-statt einer erfundenen Auflösung. Die Pixeldaten und ``manifest.json`` bleiben
-davon unberührt – das Manifest trägt weiterhin die ungerundeten Zielwerte.
+(:func:`png_dpi_for`). Studio 4.2.2 sowie Studio 4.3.3 mit Firmware 4.0.9
+übernehmen ``pHYs`` beobachtet je Achse als Startgröße und fallen ohne den Chunk
+auf 72 dpi zurück (#689-Protokoll und Epic-#681-Preflight); ohne gesetzte
+physische Größe schreibt der Writer deshalb bewusst **keinen** Chunk statt einer
+erfundenen Auflösung. Die Pixeldaten und ``manifest.json`` bleiben davon
+unberührt – das Manifest trägt weiterhin die ungerundeten Zielwerte.
 """
 from __future__ import annotations
 
@@ -295,7 +296,8 @@ def png_dpi_for(target: ExportTarget) -> tuple[float, float] | None:
 
     Einzige Quelle dieser Regel: Es ist genau die im Manifest ausgewiesene
     Zielauflösung (``target.dpi``, aus ``physical_size_mm`` und Pixelmaß, #376),
-    je Achse getrennt – Studio 4.2.2 wertet X und Y unabhängig aus (#689).
+    je Achse getrennt – Studio 4.2.2 sowie Studio 4.3.3 mit Firmware 4.0.9
+    werten X und Y beobachtet unabhängig aus (#689 und Epic-#681-Preflight).
     ``None`` ohne physische Projektgröße: dann entsteht **kein** ``pHYs`` und
     Studio startet beobachtet mit 72 dpi; eine erfundene Auflösung wäre
     schlechter als ein sichtbar fehlender Wert.

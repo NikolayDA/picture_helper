@@ -109,10 +109,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from bgremover.eufymake_export import (  # noqa: E402
-    EXPORT_PROFILE,
-    EXPORT_PROFILE_VERSION,
-)
+from bgremover.eufymake_profile import TARGET_PROFILE_V1  # noqa: E402
 from bgremover.eufymake_writer import (  # noqa: E402
     MANIFEST_FILENAME as EXPORT_MANIFEST_FILENAME,
 )
@@ -133,6 +130,11 @@ from scripts.eufymake_fixture_inspector import (  # noqa: E402
     inspect_bundle,
     validate_bundles,
 )
+
+# Die eingecheckten Hardwarepakete dokumentieren den historischen Studio-4.2.2-
+# Vertrag. Ein Wechsel des produktiven Standardprofils darf sie nicht umdeuten.
+EXPORT_PROFILE = TARGET_PROFILE_V1.profile_id
+EXPORT_PROFILE_VERSION = TARGET_PROFILE_V1.profile_version
 
 DEFAULT_OUT_DIR = ROOT / "tests" / "fixtures" / "eufymake_hardware"
 MANIFEST_FILENAME = "fixtures_manifest.json"
@@ -1004,6 +1006,7 @@ def _write_mm_dpi_export_bundle(out_dir: Path) -> dict[str, Any]:
         project,
         bundle_dir,
         bit_depth=16,
+        profile=TARGET_PROFILE_V1,
         overwrite=True,
         confirm_warnings=True,
     )
@@ -1168,6 +1171,7 @@ def _write_gloss_scenario_bundle(
         project,
         bundle_dir,
         bit_depth=16,
+        profile=TARGET_PROFILE_V1,
         overwrite=True,
         confirm_warnings=True,
     )

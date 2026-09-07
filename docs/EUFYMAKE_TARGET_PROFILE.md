@@ -1,16 +1,19 @@
 # Versioniertes EufyMake-Zielprofil
 
-Stand: 2026-09-05 · Profil `bgremover-eufymake-import@1` · Schema 1
+Stand: 2026-09-07 · Profil `bgremover-eufymake-import@1` und `@2` · Schema 1
 
 ## Zweck und Status
 
 BgRemover verwendet für Planung, Prüfung, Dialog, Writer und Manifest dasselbe
-unveränderliche Zielprofil aus `bgremover/eufymake_profile.py`. Das Profil ist
-eine **BgRemover-Konvention für manuell importierbare Dateien**, keine offizielle
-EufyMake-Spezifikation und kein `.empf`-Containervertrag.
+unveränderliche, versionierte Zielprofil aus `bgremover/eufymake_profile.py`.
+Das Profil ist eine **BgRemover-Konvention für manuell importierbare Dateien**,
+keine offizielle EufyMake-Spezifikation und kein `.empf`-Containervertrag.
 
-Profil v1 ist **vorläufig**. Studio-Importbeobachtungen aus Version 4.2.2 sind
-erfasst; die physischen Druckmessungen aus #688–#690 fehlen. Deshalb werden
+Profil v1 bleibt die unveränderte historische Referenz für Studio 4.2.2. Das
+additive Profil v2 ist das aktuelle Defaultprofil für Studio 4.3.3 und Firmware
+4.0.9. Beide Profile sind **vorläufig**. Die physischen Druckmessungen aus
+#688–#690 fehlen; zusätzlich bleibt die unter 4.3.3 beobachtete
+G-05-X-Feld-Semantik mehrdeutig. Deshalb werden
 16-Bit-Nutzung, Grauwert→mm-Abbildung, Druckmaß/Registrierung sowie
 Gloss-Polarität und -Intensität nicht als bestätigt ausgegeben.
 
@@ -19,10 +22,11 @@ Gloss-Polarität und -Intensität nicht als bestätigt ausgegeben.
 | Feld | Wert | Status |
 | --- | --- | --- |
 | Profilschema | 1 | interner Maschinenvertrag |
-| Profil-ID / Version | `bgremover-eufymake-import` / `1` | stabil |
+| Profil-ID | `bgremover-eufymake-import` | stabil |
+| Profil v1 | `1`; Studio 4.2.2; Firmware nicht protokolliert | historische, vorläufige Referenz |
+| Profil v2 | `2`; Studio 4.3.3; Firmware 4.0.9 | aktuelles Defaultprofil, vorläufig |
 | Gerät | eufyMake E1 | Zielgrenze |
-| Studio | 4.2.2 | beobachtet |
-| Firmware | nicht protokolliert | offen |
+| Print Direction v2 | `Unidirectional` | beobachtete Vorschau-Baseline; `Bidirectional` ungetestet |
 | BgRemover-Version | zur Laufzeit im Manifest | ausdrücklich getrennt vom Zielprofil |
 
 Eine neue Semantik oder Zielumgebung verändert nicht rückwirkend v1. Sie erhält
@@ -33,10 +37,13 @@ werden getrennt und verständlich abgewiesen.
 Die Registry akzeptiert nur intern konsistente Verträge: Profilversionen sind
 echte Integer (keine booleschen Ersatzwerte), COLOR und HEIGHT sind als von den
 aktuellen Consumern benötigte Rollen vorhanden, Asset-Dateinamen sind
-eindeutige Basenames außerhalb des reservierten `manifest.json`, jede
-unterstützte Bittiefe besitzt genau einen Wertebereich und sämtliche stabilen
-Validator-Codes sind mit Abhilfe definiert. Als `required` markierte Rollen
-werden unabhängig von einer optionalen UI-Auswahl immer geprüft und exportiert.
+eindeutige Basenames außerhalb des reservierten `manifest.json` und jede
+unterstützte Bittiefe besitzt genau einen Wertebereich. Jede Version enthält
+den eingefrorenen v1-Basissatz stabiler Validator-Codes samt Abhilfe; spätere
+Versionen dürfen daraus nur bekannte additive `ExportCheckCode`-Regeln
+aktivieren. Profil v2 ergänzt so `physical_size_missing`, ohne den v1-Vertrag
+zu verändern. Als `required` markierte Rollen werden unabhängig von einer
+optionalen UI-Auswahl immer geprüft und exportiert.
 
 ## Rollen- und Kanalvertrag
 
@@ -73,9 +80,10 @@ Vertrag dieses Assets.
   Extremwerte (0 bzw. > 2^32 − 1 Pixel pro Meter, nur über handeditierte
   Projektmetadaten erreichbar) brechen mit `EufyMakeWriteError` ab.
 - Ohne physische Projektgröße entsteht **kein** `pHYs` – keine erfundene
-  Auflösung. Studio startet dann beobachtet mit 72 dpi (1200 px → 423,33 mm
-  samt Arbeitsflächenwarnung). Ein eigener Validator-Befund für diesen Fall ist
-  noch nicht Teil von Profil v1 (neue Regel = Profilversionsentscheidung, #691).
+  Auflösung. Studio 4.2.2 und 4.3.3 starten dann beobachtet mit 72 dpi
+  (1200 px → 423,33 mm samt Arbeitsflächenwarnung). Profil v1 enthält für
+  diesen Fall keinen eigenen Befund; Profil v2 warnt mit
+  `physical_size_missing` und der Abhilfe `set_project_physical_size`.
   Manuelle Studio-Maße können den aus `pHYs` übernommenen Startwert ersetzen
   (#689-Beobachtung).
 - Priorität im vollständigen Rollenverbund, Rundung, Registrierung und
@@ -95,7 +103,8 @@ kanonischen Dateinamen und eine maschinenlesbare Abhilfe. Die Regel selbst liegt
 im Profil. Fehler blockieren; Warnungen benötigen eine bewusste Bestätigung.
 Beispiele sind `asset_size_mismatch` + `match_canvas_dimensions`,
 `bit_depth_unconfirmed` + `confirm_height_carrier` und `gloss_ink_mode` +
-`assign_native_gloss_in_studio`.
+`assign_native_gloss_in_studio`. Profil v2 ergänzt `physical_size_missing` +
+`set_project_physical_size`; v1 bleibt unverändert.
 
 ## Manifest und Legacy-Zuordnung
 
@@ -116,9 +125,36 @@ Snapshot-/Evidenzfelder werden nicht erfunden und das Manifest wird nicht
 stillschweigend umgeschrieben. Das Manifest bleibt interne Provenienz; Studio
 4.2.2 hat es im Bildimport nicht als Paketvertrag verwendet.
 
+## Studio-4.3.3-Abnahmegrenze
+
+Der [Preflight vom 2026-09-07](history/EUFYMAKE-681-PREFLIGHT-2026-09-07.md)
+belegt Studio 4.3.3, Editor 1.20.0 und die direkt angezeigte Firmware 4.0.9.
+Die protokollierten Vorschauen liefen mit `Unidirectional`; `Bidirectional` ist
+keine abgedeckte Profilvariante.
+
+Die verpflichtende druckfreie Rohimportmatrix ist unter dieser Zielumgebung mit
+**29/29 Zellen vollständig**. Alle Zellen entsprechen funktional der
+Studio-4.2.2-Baseline. Nur die Bedienfolge von I-06 änderte sich:
+`manifest.json` ist auswählbar und wird anschließend mit
+`Unsupported file type.` abgewiesen; der Import bleibt damit fail-closed.
+Die 13 nativen Projekte bestanden die Strukturprüfung, und alle zwölf aktiven
+Projekte erreichten die Vorschau ohne Warnung. Bei Projekt 03 schlug lediglich
+die Zeit-/Tintenschätzung zweimal mit `Estimation failed` fehl.
+
+Bei G-05 bleibt die **X-Feld-Semantik mehrdeutig**: Im gespeicherten Canvas
+haben COLOR und Gloss dieselbe linke Position X = 122,345 mm. Das
+Gloss-Eigenschaftenfeld zeigt bei W = 45,16 mm X = 167,50 mm und damit die
+sichtbare rechte Kante. Canvas, Auswahlbox und Vorschau stellen die Glossmaske
+linksbündig dar; ein tatsächlicher Runtime- oder Preview-Versatz ist nicht
+belegt. Das betroffene Projekt wurde nicht in den kanonischen Projektsatz
+zurückgespeichert, und v2 darf daraus keine bestätigte Gloss-Registrierung
+ableiten. G-05 entspricht beim getrennten Rohimport der historischen
+Studio-4.2.2-Baseline. Sämtliche physischen HEIGHT-, Maß-, Gloss- und
+Registrierungstests bleiben offen; im GUI-Lauf wurde kein Druck ausgelöst.
+
 ## Evidenz- und Freigaberegel
 
-Der Golden-Test fixiert den serialisierten v1-Vertrag. Automatisierte
+Golden-Tests fixieren die serialisierten v1- und v2-Verträge. Automatisierte
 Roundtrip-/Writer-/Validator-/UI-Tests sichern den internen Vertrag. Reale
 Studio-Beobachtungen sind `observed`, Herstellerhinweise je nach Beleg
 `confirmed` oder `provisional`, ausstehende Druckeigenschaften `open`.
@@ -129,11 +165,11 @@ Profil- und Golden-Review; widersprechende Ergebnisse erzeugen eine neue
 Profilversion statt einer stillen Bedeutungsänderung.
 
 Der Snapshot in `profile_contract` wird beim Lesen strikt mit dem registrierten
-Vertrag verglichen (`resolve_manifest_profile`): Jede Änderung an v1 – auch an
-Freitextfeldern wie `scope` oder `reference` – macht früher geschriebene
-Manifeste derselben Version unlesbar (`ProfileContractMismatchError`). Deshalb
-erhält jede inhaltliche Änderung eine neue Profilversion; der Golden-Test
-erzwingt diese bewusste Entscheidung.
+Vertrag verglichen (`resolve_manifest_profile`): Jede Änderung an einer
+registrierten Version – auch an Freitextfeldern wie `scope` oder `reference` –
+macht früher geschriebene Manifeste derselben Version unlesbar
+(`ProfileContractMismatchError`). Deshalb erhält jede inhaltliche Änderung eine
+neue Profilversion; die Golden-Tests erzwingen diese bewusste Entscheidung.
 
 Einmalige Korrektur innerhalb von v1 (2026-09-02): Die Evidenzreferenz
 `manufacturer-height-direction` zeigte auf eine nie angelegte Datei
