@@ -70,7 +70,7 @@ def test_no_check_escapes_the_hermetic_fixture(monkeypatch: pytest.MonkeyPatch) 
             )
     # Zweiter Durchgang ohne Kurzschluss – sonst bliebe ungeprüft, ob die
     # Sonde selbst erfasst ist (sie käme nie zum Zug).
-    for name in ("check_graphical_session", "check_gl"):
+    for name in ("check_graphical_session", "check_gl", "check_libc"):
         monkeypatch.setattr(preflight, name, lambda *a, **k: None)
     for platform in preflight.KNOWN_PLATFORMS:
         values = dict(preflight.run_preflight(platform))
@@ -703,6 +703,94 @@ def test_run_preflight_includes_deb_sudo_only_on_linux(hermetic_preflight: None)
     macos_names = [name for name, _ in preflight.run_preflight("macos-arm64")]
     assert "deb-sudo" in linux_names
     assert "deb-sudo" not in macos_names
+
+
+# ── glibc-Untergrenze der gebuendelten Wheels (#1008) ──────────────────
+
+
+@pytest.mark.parametrize("libc", ["glibc 2.39", "glibc 2.41", "glibc 3.0"])
+def test_check_libc_passes_on_and_above_the_floor(libc: str) -> None:
+    assert preflight.check_libc("linux-arm64", libc_version=lambda: libc) is None
+
+
+def test_check_libc_names_the_measured_version_floor_and_repair_path() -> None:
+    """Der Fall aus #1008: ein Bookworm-Pi (glibc 2.36) unter den 2.39-Wheels.
+
+    Bisher scheiterte erst der Runtime-Bau mit pips ``No matching
+    distribution`` – ohne Ursache und ohne Reparaturweg. Der Befund muss
+    beides nennen, damit ein Heartbeat den Blocker selbst erklaert.
+    """
+    error = preflight.check_libc("linux-arm64", libc_version=lambda: "glibc 2.36")
+    assert error is not None
+    assert "2.36" in error and "2.39" in error
+    assert "Debian 13" in error and "RUNNER_SETUP.md" in error
+
+
+def test_check_libc_floor_is_per_platform() -> None:
+    """x86_64 kommt als manylinux_2_34 – Debian 12 bleibt dort zulaessig."""
+    assert preflight.check_libc("linux-x86_64", libc_version=lambda: "glibc 2.36") is None
+    assert preflight.check_libc("linux-arm64", libc_version=lambda: "glibc 2.36") is not None
+    assert preflight.check_libc("linux-x86_64", libc_version=lambda: "glibc 2.28") is not None
+    # Ohne Eintrag keine Grenze – der Aufrufer haengt den Check dort nicht an.
+    assert preflight.check_libc("macos-arm64", libc_version=lambda: "") is None
+
+
+@pytest.mark.parametrize("libc", ["", "   ", "musl 1.2.4", "libc"])
+def test_check_libc_is_fail_closed_without_a_glibc(libc: str) -> None:
+    """Eine nicht ermittelbare oder fremde C-Bibliothek ist ein Befund, kein Skip:
+    manylinux-Wheels setzen glibc voraus."""
+    error = preflight.check_libc("linux-arm64", libc_version=lambda: libc)
+    assert error is not None and "2.39" in error
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="glibc-Messung gibt es nur unter Linux")
+def test_check_libc_reads_the_real_libc_of_the_host() -> None:
+    """Die echte Messung liefert das Format, das der Parser erwartet, und der
+    Check urteilt konsistent dazu – ohne den Test an die Host-glibc zu binden."""
+    import re as _re
+
+    libc = preflight._libc_version()
+    match = _re.fullmatch(r"glibc (\d+)\.(\d+)", libc)
+    assert match, libc
+    found = (int(match.group(1)), int(match.group(2)))
+    for platform_name, floor in preflight.LIBC_FLOORS.items():
+        verdict = preflight.check_libc(platform_name)
+        assert (verdict is None) == (found >= floor), (platform_name, libc, verdict)
+
+
+def test_the_provenance_line_and_the_libc_check_share_one_measurement(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Zeile und Befund duerfen nie verschiedene Staende nennen."""
+    monkeypatch.setattr(preflight, "_libc_version", lambda: "glibc 2.36")
+    if sys.platform != "darwin":
+        assert "glibc 2.36" in preflight.platform_provenance()
+    error = preflight.check_libc("linux-arm64")
+    assert error is not None and "glibc 2.36" in error
+
+
+def test_libc_runs_only_on_linux_and_short_circuits_the_probe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Auf macOS gibt es keine Grenze und deshalb auch kein ``ok: libc`` (ein
+    ungeprueftes ok waere ein stiller Pass). Unter Linux steht der Check vor
+    der Sonde und schaltet sie bei Befund kurz – ihr Runtime-Bau scheiterte
+    sonst nur erneut an pip, mit einem Befund ohne Ursache."""
+    for name in _check_names():
+        monkeypatch.setattr(preflight, name, lambda *a, **k: None)
+    assert "libc" not in dict(preflight.run_preflight("macos-arm64"))
+    linux_names = [name for name, _ in preflight.run_preflight("linux-arm64")]
+    assert linux_names.index("gl") < linux_names.index("libc") < linux_names.index("qt-gl")
+
+    monkeypatch.setattr(preflight, "check_libc", lambda *a, **k: "glibc 2.36 ist zu alt")
+
+    def _must_not_run(*_a, **_kw) -> str | None:
+        raise AssertionError("Sonde lief trotz beanstandeter glibc")
+
+    monkeypatch.setattr(preflight, "check_qt_gl", _must_not_run)
+    values = dict(preflight.run_preflight("linux-arm64"))
+    assert values["libc"] == "glibc 2.36 ist zu alt"
+    assert values["qt-gl"] == preflight.PROBE_SKIPPED
 
 
 # ── Geraete-Haertung (#921) ────────────────────────────────────────────

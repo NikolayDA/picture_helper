@@ -353,6 +353,36 @@ def test_deb_build_produces_valid_package(tmp_path) -> None:
         assert expected in contents, f"missing from .deb: {expected}"
 
 
+def test_preflight_libc_floors_match_the_deb_declaration() -> None:
+    """Zweite handgepflegte Kopie derselben Zahlen (#1008).
+
+    ``scripts/abnahme_preflight.py`` prueft die glibc des Runners gegen
+    ``LIBC_FLOORS``, das ``.deb`` deklariert ``libc6 (>= LIBC_MIN)``. Beide
+    muessen dieselbe Grenze fuehren, sonst bestuende ein Runner den Heartbeat,
+    der das Paket gar nicht installieren kann – oder umgekehrt.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "abnahme_preflight_floors", ROOT / "scripts" / "abnahme_preflight.py"
+    )
+    assert spec is not None and spec.loader is not None
+    preflight = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(preflight)
+
+    txt = BUILD_DEB.read_text(encoding="utf-8")
+    deb_floors = dict(re.findall(r'(x86_64|aarch64|armv7l)\)\s+DEB_ARCH=\S+;'
+                                 r'\s+PLATFORM_TAG="[^"]+";\s+LIBC_MIN="([^"]+)"', txt))
+    preflight_floors = {
+        platform: f"{major}.{minor}"
+        for platform, (major, minor) in preflight.LIBC_FLOORS.items()
+    }
+    assert preflight_floors == {
+        "linux-arm64": deb_floors["aarch64"],
+        "linux-x86_64": deb_floors["x86_64"],
+    }, (preflight_floors, deb_floors)
+
+
 def test_deb_libc_floor_matches_the_pinned_qt_wheels() -> None:
     """Handgepflegte Kopie gegen ihre Quelle (#994, Muster der Drift-Disziplin).
 

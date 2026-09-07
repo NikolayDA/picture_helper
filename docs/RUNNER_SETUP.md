@@ -308,7 +308,12 @@ Releases kommen als `manylinux_2_39`-Wheels, und der Abnahme-Preflight
 installiert ausschließlich Wheels (`--only-binary=:all:`). Auf einem
 Bookworm-Gerät findet `pip` kein passendes Wheel; der Plattform-Job
 scheitert dann schon im Preflight. Welchen Stand ein Gerät fährt, weist der
-Preflight seit #994 selbst aus (Zeile `[preflight] ok: python (…)`). Die
+Preflight seit #994 selbst aus (Zeile
+`[preflight] system: Debian GNU/Linux 13 (trixie) / glibc 2.41 / aarch64`),
+und seit #1008 **bewertet** er die Grenze: Der Check `libc` schlägt unter
+glibc 2.39 mit benanntem Reparaturweg fehl, bevor der Runtime-Bau der
+`qt-gl`-Sonde überhaupt versucht wird (die Sonde wird dann sichtbar
+übersprungen). Die
 Qt-/GL-Systembibliotheken der Desktop-Session sind Voraussetzung. Der im
 Imager bzw. Erststart-Assistenten angelegte Benutzer ist der
 Runner-Benutzer (§1). Dann:
@@ -542,7 +547,8 @@ Bevor ein „offline"-Runner neu registriert wird
 |---|---|
 | `status=offline`, Gerät läuft | Dienst neu starten: macOS `cd ~/actions-runner && ./svc.sh stop && ./svc.sh start`; Pi `sudo ./svc.sh stop && sudo ./svc.sh start` |
 | Mac nach Neustart offline | Am Gerät **anmelden** – der LaunchAgent lebt in der GUI-Sitzung und startet erst mit ihr |
-| Heartbeat rot: `session`/`gl`/`qt-gl` | Pi: Autologin/Drop-in prüfen (§3.4); Mac: Konsolenbenutzer prüfen (§2.2). Folgt `qt-gl` mit „Übersprungen" auf einen `session`-/`gl`-Befund, zuerst diesen beheben |
+| Heartbeat rot: `session`/`gl`/`qt-gl` | Pi: Autologin/Drop-in prüfen (§3.4); Mac: Konsolenbenutzer prüfen (§2.2). Folgt `qt-gl` mit „Übersprungen" auf einen `session`-/`gl`-/`libc`-Befund, zuerst diesen beheben |
+| Heartbeat rot: `libc` (Pi) | Das Betriebssystem ist zu alt für die Qt-Wheels des Releases (Bookworm, glibc 2.36 < 2.39; #1008) – die Zeile `[preflight] system:` nennt den Stand. Gerät nach §3 auf Debian 13 „Trixie" neu aufsetzen; ein Upgrade der Pins zurück ist kein Weg |
 | Heartbeat rot: `qt-gl` Stufe `plugin`, Sitzung ist aber da | Ein im Profil des Runner-Benutzers gesetztes `QT_QPA_PLATFORM` (z. B. `offscreen`) entfernen – die Sonde akzeptiert nur die Sitzungs-Plugins `cocoa`/`xcb`/`wayland`/`wayland-egl` |
 | Heartbeat rot: `qt-gl` Stufe `renderer` nach einem Treiber-/Mesa-Update | Das Gerät rendert nur noch in Software (llvmpipe & Co.) – GPU-Treiber der Desktop-Session reparieren; ein Software-Renderer gilt nirgends als Hardware-Nachweis |
 | Heartbeat rot: `sleep-schutz`, obwohl `caffeinate` läuft | Der Wrapper muss **beide** Schlafarten halten (`caffeinate -dimsu`, nicht nur `-i`) und selbst der Assertion-Eigentümer sein |

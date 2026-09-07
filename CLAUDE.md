@@ -1260,9 +1260,14 @@ weitere Plugins ohne Sitzung liefert, die trotzdem hardwarebeschleunigt sind
 (`eglfs` & Co.). Die gesamte Qt-Sequenz nach dem Anwendungsstart ist
 abgesichert, damit der „kein JSON"-Zweig der reine `qFatal`-Fall bleibt; ein
 reiner ES-Kontext wird wie im Produktivpfad abgewiesen (ADR #591), und Erfolg
-setzt alle drei Provenienzfelder voraus. Sind `session`/`gl` schon
+setzt alle drei Provenienzfelder voraus. Sind `session`/`gl`/`libc` schon
 beanstandet, wird die Sonde übersprungen und das als Folgebefund ausgewiesen —
-sie könnte dort nur `plugin` melden und zahlte den Runtime-Bau umsonst.
+sie könnte dort nur `plugin` melden und zahlte den Runtime-Bau umsonst. Der
+Check `libc` (#1008) hält unter Linux die glibc des Runners gegen die
+Untergrenze der gebündelten Wheels (`LIBC_FLOORS`, aarch64 2.39 / x86_64
+2.34), fail-closed auch ohne ermittelbare oder ohne glibc: Ein Bookworm-Pi
+scheiterte sonst erst im Runtime-Bau an pips „No matching distribution",
+ohne dass der Befund Ursache oder Reparaturweg (Debian 13) nannte.
 
 Die gemessene Provenienz überlebt auch den **grünen** Lauf: Der Erfolgsfall
 druckt `[preflight] ok: qt-gl (<Vendor> / <Renderer> / <Version>)` statt nur
@@ -1426,9 +1431,11 @@ die Kopie mit; sonst bleibt `make check` grün und die Doku still falsch:
 - `tests/test_abnahme_preflight.py`/`tests/test_qt_gl_probe.py` (#992): die
   Fehlertexte je Sonden-Stufe (`PROBE_STAGE_HINTS`) und die `_fail`-Literale
   der Sonde gegen `qt_gl_probe.STAGES`, inklusive Prüfreihenfolge.
-- `tests/test_linux_packaging.py` (#994): die glibc-Untergrenzen (`LIBC_MIN`)
-  in `packaging/linux/build_deb.sh` gegen **beide** Qt-Pins und gegen das
-  tatsächlich gebaute `.deb`. Maßgeblich ist das **Maximum über alle
+- `tests/test_linux_packaging.py` (#994/#1008): die glibc-Untergrenzen
+  (`LIBC_MIN`) in `packaging/linux/build_deb.sh` gegen **beide** Qt-Pins,
+  gegen das tatsächlich gebaute `.deb` und gegen die zweite Kopie
+  `LIBC_FLOORS` im Abnahme-Preflight (`scripts/abnahme_preflight.py`), der
+  damit die glibc des Runners bewertet. Maßgeblich ist das **Maximum über alle
   gebündelten Binärwheels**, nicht eine einzelne Distribution; derzeit setzen
   `PyQt6` und `PyQt6-Qt6` es gemeinsam (2.34 auf x86_64, 2.39 auf aarch64), die
   nächsthöheren liegen bei 2.27. Netzfrei prüfbar ist davon nur die Bindung an
