@@ -328,8 +328,12 @@ läuft je angeforderter Plattform ein Preflight-Job
 (`scripts/abnahme_preflight.py`) auf dem Self-hosted Runner: grafische
 Sitzung, ladbare GL-Bibliothek, freier Speicher (≥ 2 GB), `python3` ≥ 3.10
 mit venv, Netzzugang zu `api.github.com`, unter Linux das eng begrenzte
-`sudo` für den `.deb`-Zyklus (§3) — und seit #934 ein **echter Qt-/GL-Smoke**
-(siehe unten).
+`sudo` für den `.deb`-Zyklus (§3) und seit #1008 die **glibc-Untergrenze**
+der gebündelten Wheels (`libc`: aarch64 ≥ 2.39, x86_64 ≥ 2.34 — dieselben
+Zahlen, die das `.deb` als `libc6 (>= …)` deklariert; ein Bookworm-Pi
+scheiterte sonst erst im Runtime-Bau der Sonde an pips „No matching
+distribution", ohne dass der Befund die Ursache nannte) — und seit #934 ein
+**echter Qt-/GL-Smoke** (siehe unten).
 **Echter Qt-/GL-Probeaufruf im Preflight (#934).** Der ursprüngliche
 Ladetest prüfte nur, ob `libGL.so.1` beziehungsweise das
 macOS-OpenGL-Framework **ladbar** ist. Das fand den real beobachteten Fehler
@@ -381,7 +385,7 @@ den Preflight, das der 3D-Viewer anschließend nicht bedienen kann — real
 beobachtet auf einem Raspberry Pi 5 mit Broadcom V3D + Mesa.
 
 Einen stillen Skip gibt es nicht — ein nicht erbrachter Nachweis ist ein
-Fehler, keine Auslassung. Sind `session` oder `gl` bereits beanstandet, wird
+Fehler, keine Auslassung. Sind `session`, `gl` oder `libc` bereits beanstandet, wird
 die Sonde allerdings **übersprungen und das sichtbar als Folgebefund
 ausgewiesen**: Sie könnte dort nur `plugin` melden, und der erste Lauf zahlte
 dafür den vollen Runtime-Bau.

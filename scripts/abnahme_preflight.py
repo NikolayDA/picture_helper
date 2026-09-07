@@ -58,6 +58,20 @@ MACOS_OPENGL_FRAMEWORK = Path("/System/Library/Frameworks/OpenGL.framework")
 # ausgeführt wird nichts.
 DEB_SUDO_CHECKS = (("apt-get", ("install", "bgremover")), ("dpkg", ("-r", "bgremover")))
 
+# ── glibc-Untergrenze der gebuendelten Wheels (#994/#1008) ─────────────
+# Handgepflegte Kopie der ``LIBC_MIN``-Literale aus
+# ``packaging/linux/build_deb.sh``, je Preflight-Plattform: dieselbe Zahl, die
+# das ``.deb`` als ``libc6 (>= …)`` deklariert. Massgeblich ist das Maximum
+# ueber alle gebuendelten Binaerwheels – derzeit ``manylinux_2_39_aarch64``
+# bzw. ``manylinux_2_34_x86_64`` von PyQt6/PyQt6-Qt6 (Review PR #999). Der
+# Waechter ``tests/test_linux_packaging.py`` haelt beide Kopien gegeneinander;
+# eine dritte Quelle darf es nicht geben.
+LIBC_FLOORS: Mapping[str, tuple[int, int]] = {
+    "linux-arm64": (2, 39),
+    "linux-x86_64": (2, 34),
+}
+_LIBC_VERSION = re.compile(r"(\d+)\.(\d+)")
+
 # ── Echter Qt-/GL-Probeaufruf (#934) ───────────────────────────────────
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROBE_SCRIPT = REPO_ROOT / "scripts" / "qt_gl_probe.py"
@@ -161,22 +175,88 @@ def _platform_provenance() -> str:
                 pretty = zeile.split("=", 1)[1].strip().strip('"')
                 break
         teile.append(pretty or platform.system() or "unbekannt")
-        try:
-            # ``os.confstr`` liefert "glibc 2.36"; ``platform.libc_ver`` liest
-            # dafuer die Binaerdatei und ist auf manchen Staenden leer.
-            libc = os.confstr("CS_GNU_LIBC_VERSION") or ""
-        except (OSError, ValueError):
-            libc = ""
-        if not libc:
-            try:
-                name, version = platform.libc_ver()
-            except OSError:
-                name, version = "", ""
-            libc = f"{name} {version}".strip()
+        libc = _libc_version()
         if libc:
             teile.append(libc)
     teile.append(platform.machine() or "unbekannte Architektur")
     return " / ".join(teile)
+
+
+def _libc_version() -> str:
+    """C-Bibliothek des Runners als ``"glibc 2.41"``; leer, wenn nicht ermittelbar.
+
+    Gemeinsame Messung fuer die Provenienzzeile und :func:`check_libc` – beide
+    muessen dieselbe Zahl sehen, sonst nennt der Befund einen anderen Stand
+    als die Zeile darueber.
+
+    Vorrang hat ``os.confstr``, das den Systemstand liefert. Der Fallback
+    ``platform.libc_ver()`` liest dagegen die hoechste im Interpreter-Binary
+    geforderte ``GLIBC_x.y``-Symbolversion – eine **Untergrenze** des
+    tatsaechlichen Stands, nicht der Stand selbst (Review PR #1012). Auf
+    glibc-Linux greift er praktisch nie (``confstr`` antwortet dort), auf musl
+    liefert er leer und der fail-closed Befund bleibt korrekt.
+    """
+    try:
+        # ``os.confstr`` liefert "glibc 2.36"; ``platform.libc_ver`` liest
+        # dafuer die Binaerdatei und ist auf manchen Staenden leer.
+        libc = os.confstr("CS_GNU_LIBC_VERSION") or ""
+    except (OSError, ValueError):
+        libc = ""
+    if not libc:
+        try:
+            name, version = platform.libc_ver()
+        except OSError:
+            name, version = "", ""
+        libc = f"{name} {version}".strip()
+    return libc
+
+
+def check_libc(
+    platform_name: str, *, libc_version: Callable[[], str] | None = None,
+) -> str | None:
+    """glibc des Runners erreicht die Untergrenze der gebuendelten Wheels (#1008).
+
+    Die Qt-Pins kommen seit #994 als ``manylinux_2_39``-Wheels (aarch64) bzw.
+    ``manylinux_2_34`` (x86_64), und der Preflight installiert ausschliesslich
+    Wheels (``--only-binary=:all:``). Auf einem zu alten System scheiterte
+    bisher erst der Runtime-Bau mit pips ``No matching distribution`` – ein
+    Befund, der weder die Ursache (Betriebssystem zu alt) noch den
+    Reparaturweg (RUNNER_SETUP §3.1: Debian 13) nennt. Genau das war die
+    Lage aus #1008: Ein Bookworm-Pi (glibc 2.36) haette den Kandidatenbau
+    blockiert, ohne dass ein Heartbeat den Grund gesagt haette.
+
+    Fail-closed: Eine nicht ermittelbare oder fremde C-Bibliothek (musl) ist
+    ein Befund, kein Skip – manylinux-Wheels setzen glibc voraus. Plattformen
+    ohne Eintrag in :data:`LIBC_FLOORS` (macOS) haben keine Grenze; der
+    Aufrufer haengt den Check dort gar nicht erst an (dasselbe Gate, damit
+    ein fehlender Eintrag nie als ``ok`` erscheint).
+    """
+    floor = LIBC_FLOORS.get(platform_name)
+    if floor is None:
+        return None
+    wanted = f"{floor[0]}.{floor[1]}"
+    repair = (
+        f"Betriebssystem mit glibc >= {wanted} noetig (Raspberry Pi: Debian 13 "
+        "„Trixie“, docs/RUNNER_SETUP.md §3.1)"
+    )
+    # Erst zur Laufzeit aufgeloest, damit Zeile und Befund dieselbe (auch
+    # eine in Tests ersetzte) Messung sehen.
+    libc = (libc_version or _libc_version)().strip()
+    if not libc:
+        return f"C-Bibliothek nicht ermittelbar – {repair}."
+    match = _LIBC_VERSION.search(libc)
+    if not libc.lower().startswith("glibc") or match is None:
+        return (
+            f"C-Bibliothek {libc!r} ist keine glibc – die manylinux-Wheels der "
+            f"Qt-Pins brauchen sie; {repair}."
+        )
+    found = (int(match.group(1)), int(match.group(2)))
+    if found >= floor:
+        return None
+    return (
+        f"glibc {found[0]}.{found[1]} ist zu alt fuer die Qt-Pins des Releases "
+        f"(Wheels verlangen >= {wanted}) – {repair}."
+    )
 
 
 def check_venv() -> str | None:
@@ -430,12 +510,13 @@ def _run_build(
 
 
 #: Folgebefund statt stiller Auslassung: Ohne Sitzung oder GL-Bibliothek kann
-#: die Sonde nur ``plugin`` melden – die Information steht schon im
-#: vorangehenden Befund. Der erste Lauf zahlte dafuer aber den ~100-MB-Bau der
-#: Runtime. Uebersprungen heisst hier **nicht** bestanden.
+#: die Sonde nur ``plugin`` melden, mit zu alter glibc (#1008) findet pip kein
+#: Wheel fuer ihre Runtime – die Information steht schon im vorangehenden
+#: Befund. Der erste Lauf zahlte dafuer aber den ~100-MB-Bau der Runtime.
+#: Uebersprungen heisst hier **nicht** bestanden.
 PROBE_SKIPPED = (
-    "Uebersprungen – Sitzung/GL sind bereits beanstandet; der Nachweis ist "
-    "damit nicht erbracht. Nach deren Behebung erneut laufen lassen."
+    "Uebersprungen – Sitzung/GL/C-Bibliothek sind bereits beanstandet; der "
+    "Nachweis ist damit nicht erbracht. Nach deren Behebung erneut laufen lassen."
 )
 
 #: Fehlertexte je benannter Sonden-Stufe. Der Preflight meldet damit einen
@@ -777,6 +858,13 @@ def run_preflight(
     """
     session = check_graphical_session(platform, os.environ)
     gl = check_gl(platform)
+    # Nur Plattformen mit Eintrag in LIBC_FLOORS tragen eine glibc-Grenze
+    # (#1008); auf macOS gaebe es dafuer keine Messung, und ein "ok: libc" ohne
+    # Pruefung waere ein stiller Pass. Das Gate haengt bewusst an der Tabelle,
+    # nicht an "nicht macOS" (Review PR #1012): Eine neue Linux-Plattform
+    # ohne Eintrag druckte sonst "ok: libc" ohne Messung. Dass jede
+    # Linux-Plattform einen Eintrag hat, haelt ein Mengen-Waechter in den Tests.
+    libc = check_libc(platform) if platform in LIBC_FLOORS else None
 
     def _note(text: str) -> None:
         if notes is not None:
@@ -787,10 +875,18 @@ def run_preflight(
         ("speicher", check_disk(Path.cwd(), min_free_gb)),
         ("session", session),
         ("gl", gl),
+    ]
+    if platform in LIBC_FLOORS:
+        checks.append(("libc", libc))
+    checks += [
         # Kurzschluss statt Doppelbefund: Ohne Sitzung oder GL koennte die
-        # Sonde nur "plugin" melden – und zahlte dafuer beim ersten Lauf den
-        # vollen Runtime-Bau.
-        ("qt-gl", PROBE_SKIPPED if (session or gl) else check_qt_gl(platform, note=_note)),
+        # Sonde nur "plugin" melden, mit zu alter glibc scheiterte ihr
+        # Runtime-Bau an pip – und beides zahlte beim ersten Lauf den vollen
+        # Runtime-Bau bzw. den vergeblichen Versuch.
+        (
+            "qt-gl",
+            PROBE_SKIPPED if (session or gl or libc) else check_qt_gl(platform, note=_note),
+        ),
         ("netz", check_network(default_api_url())),
     ]
     if platform != MACOS_PLATFORM:
