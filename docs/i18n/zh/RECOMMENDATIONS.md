@@ -85,6 +85,9 @@
 | [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] 发布流程：runner、自动化证据、解除 main 冻结 | 🟠 高（发布运维；实现基本完成） | 🟢 低（一项按事件产生的证据） | – （史诗） | 接近完成：2026-09-03 首次定时 dry-run 已成功运行（run 33737226157）；仅剩下一次真实发布中包含 #918 的端到端证据 |
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | 用发布 ref 取代 main 冻结（ADR + fail-closed 保障） | 🟠 高（发布期间 `main` 保持可合并） | 🟢 低（代码、文档与 ruleset 均已就位） | – （无代理；下一次发布运行） | 受阻（外部）：2026-08-31 收尾检查后重新开启；PR #936 与生效的 ruleset 21941216 均有记录，仅差一次发布后验收可证明从 `release/vX.Y.Z` 启动的运行 |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | 运维：自托管 runner（heartbeat 告警通道） | 🟡 中（运维通道，非产品代码） | 🟢 低（仅观察） | – （无代理；仓库 owner） | 长期开启：请勿关闭（`RUNNER_HEARTBEAT_ISSUE`）；2026-08-31 的 FAIL 是计划中的告警通道测试，清理步骤已完成（计划运行 33496675995 通过，x86_64 跳过，Mac 与 Pi 均合格） |
+| [#1008](https://github.com/NikolayDA/picture_helper/issues/1008) | 将 arm64 验收 runner 迁移到 Debian 13（Trixie） | 🔴 严重（阻塞 `LINUX-ARM-APPIMAGE-01`/`LINUX-ARM-DEB-01`，二者均为 MUST） | 🟡 中（按 RUNNER_SETUP §3 重装设备） | – （无代理；仓库 owner，硬件） | 通过 `[preflight] system:` 行确认已注册 Pi 的系统版本；若为 Bookworm，则在下一次候选构建前重装为 Trixie，并以 heartbeat 运行加以证明 |
+| [#1009](https://github.com/NikolayDA/picture_helper/issues/1009) | 在 Raspberry Pi 上补跑完整 `make check`（#1001/#1002/#1003） | 🟡 中（离屏 CI 无法提供的唯一反向验证） | 🟢 低（一次测试运行，无代码改动） | – （无代理；仓库 owner，硬件） | 在 `de_DE.UTF-8` 下运行，将测试数与跳过项评论到 #1002；偏差另立发现 |
+| [#1010](https://github.com/NikolayDA/picture_helper/issues/1010) | 在 macOS（cocoa）上测量 `frameSwapped` 渲染证明 | 🟠 高（未测量；误报会波及 `MACOS-ARM-DMG-01`） | 🟡 中（在 Mac runner 上测量 + 文档跟进） | Sonnet，小 + 硬件 | 在 `cocoa` 上按事件循环轮次记录计数器，补充 ADR 附录与 PACKAGING_SMOKE；之后再决定检查清单 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
 
 ### 接下来推荐
