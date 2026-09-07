@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 16,
+  "policy_version": 17,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -564,6 +564,7 @@
     {"id": "tests", "kind": "prefix", "path": "tests/", "sample_path": "tests/test_release_freeze.py", "reason": "Tests definieren Gate-Semantik und müssen Kandidatenänderungen absichern."},
     {"id": "dependency-constraints", "kind": "prefix", "path": "requirements/", "sample_path": "requirements/constraints.txt", "reason": "Gepinnte Build- und Laufzeitabhängigkeiten beeinflussen Artefakte und Audits."},
     {"id": "release-workflows", "kind": "prefix", "path": ".github/workflows/", "sample_path": ".github/workflows/release-linux.yml", "reason": "Workflows definieren Build-, Scan-, Abnahme- und Publish-Verhalten."},
+    {"id": "epic-582-abnahme", "kind": "exact", "path": "docs/history/EPIC-582-ABNAHME.md", "sample_path": "docs/history/EPIC-582-ABNAHME.md", "reason": "Die Abnahme-Matrix des 3D-Vorschau-Epics benennt je Kriterium den tragenden Nachweis und ist damit Evidenzsemantik wie docs/PACKAGING_SMOKE.md."},
     {"id": "packaging-smoke-contract", "kind": "exact", "path": "docs/PACKAGING_SMOKE.md", "sample_path": "docs/PACKAGING_SMOKE.md", "reason": "Dieses Dokument definiert verbindliche Release-Abnahmekriterien."},
     {"id": "release-automation-runbook", "kind": "exact", "path": "docs/RELEASE_AUTOMATION.md", "sample_path": "docs/RELEASE_AUTOMATION.md", "reason": "Das Runbook definiert Betrieb und Evidenzsemantik der Hardware-Abnahme."},
     {"id": "release-process-runbook", "kind": "exact", "path": "docs/RELEASE_PROCESS.md", "sample_path": "docs/RELEASE_PROCESS.md", "reason": "Der für #745 geplante kanonische Release-Prozess ist bewusst kandidatenrelevant klassifiziert."},

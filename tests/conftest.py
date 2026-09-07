@@ -160,6 +160,23 @@ def qapp():
 
 
 @pytest.fixture(scope="session")
+def gl_capability_ok(qapp) -> bool:
+    """Ob diese Umgebung einen nutzbaren OpenGL-Kontext liefert.
+
+    Mehrere Tests belegen den dokumentierten 3D-*Fallback* und setzten dafür
+    „offscreen" mit „kein GL" gleich. Das gilt nicht überall: auf einem
+    Raspberry Pi (Broadcom V3D + Mesa) liefert auch die Offscreen-Plattform
+    einen Kontext, und die Tests scheiterten, statt sich zu überspringen.
+    Gefragt wird deshalb die produktive Regel selbst statt des
+    Plattformnamens; ``use_cache=False`` liest und schreibt den Sitzungscache
+    nicht, die Weiche bleibt also nebenwirkungsfrei.
+    """
+    from bgremover.preview3d_capability import probe_3d_capability
+
+    return probe_3d_capability(use_cache=False).ok
+
+
+@pytest.fixture(scope="session")
 def settings_isolated() -> bool:
     """Ob die QSettings-Umlenkung auf dieser Plattform greift (siehe oben)."""
     return SETTINGS_ISOLATED

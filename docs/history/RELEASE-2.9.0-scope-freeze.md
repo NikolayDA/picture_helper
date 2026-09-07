@@ -12,7 +12,7 @@ maschinenlesbare Provenienz außerhalb der Git-Historie gespeichert (siehe
 - **Basis-Tag:** `v2.8.0` (= `1bf95b08453b92a6d66cfc13622211bdf47cc5e2`)
 - **Kandidatenversion:** `2.9.0`
 - **Release-Scope:** `minor-release-2.9.0`
-- **Pfadpolicy:** `release/path-policy.json` (Version `16`)
+- **Pfadpolicy:** `release/path-policy.json` (Version `17`)
 
 Der volle Basis-SHA ist unveränderlich. Der Tagname allein genügt nicht: Das
 Gate weist ein verschobenes Tag zurück. Die Policy-Version bindet die Semantik,
@@ -149,10 +149,16 @@ erzwungen wird. Ohne Eintrag blieb der Pfad unbekannt und blockierte
 fail-closed — genau die vorgesehene Wirkung, hier im PR statt im
 Kandidatenbau.
 
+Version `17` klassifiziert [`EPIC-582-ABNAHME.md`](EPIC-582-ABNAHME.md) als
+kandidatenrelevant – dieselbe Vertragsklasse wie `docs/PACKAGING_SMOKE.md`:
+Die Abnahme-Matrix benennt je Kriterium den tragenden Nachweis. Ohne Eintrag
+blieb der Pfad unbekannt und blockierte fail-closed, sobald ein PR die Matrix
+anfasst – genau die vorgesehene Wirkung, hier im PR statt im Kandidatenbau.
+
 Der **veröffentlichte** Kandidat v2.9.0 (`d31073c7495ae9fd55501f595e8bda6cbcf4007b`, Tag `v2.9.0`) wurde noch
 unter Policy-Version `6` gebaut, abgenommen und veröffentlicht; die
 unveränderliche Freeze-Provenienz jenes Kandidatenlaufs hält diesen Stand
-fest. Die Versionen `7` und `8` greifen erst ab dem nächsten Kandidatenbau.
+fest. Die Versionen ab `7` greifen erst ab dem nächsten Kandidatenbau.
 
 ## Verbindliche Konsistenzprüfungen
 

@@ -149,6 +149,44 @@ _LABEL_RAW: Final = "Rohdatei"
 _LABEL_PAYLOAD: Final = "entpackte Nutzlast"
 # ``clamscan --version`` liefert "ClamAV <engine>/<sigs>/<Signaturdatum>".
 _CLAMAV_VERSION_DATE = re.compile(r"/(\w{3} \w{3}\s+\d{1,2} \d{2}:\d{2}:\d{2} \d{4})$")
+# ``clamscan`` schreibt das Datum immer englisch (C-Locale des Programms).
+# ``strptime`` mit ``%a``/``%b`` liest es dagegen in der Locale des *Aufrufers*
+# und wirft unter z. B. ``LC_TIME=de_DE`` ``ValueError``: ``age_days`` bliebe
+# ``None``, und die Warnung vor einer veralteten Signaturdatenbank fiele still
+# aus. Deshalb hier eine eigene Tabelle statt eines Locale-Direktivenformats.
+_CLAMAV_MONTHS: Final = {
+    name: number
+    for number, name in enumerate(
+        ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"), start=1)
+}
+# ``\s+`` statt einzelner Leerzeichen: das ctime-Format setzt bei einstelligem
+# Tag zwei Leerzeichen ("Fri Aug  1 08:32:01 2026"). Die Funktion ist Modul-API
+# und darf das nicht der Vorbehandlung des Aufrufers ueberlassen.
+_CLAMAV_SIGNATURE_DATE = re.compile(
+    r"^\w{3}\s+(?P<month>\w{3})\s+(?P<day>\d{1,2})\s+"
+    r"(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})\s+(?P<year>\d{4})$"
+)
+
+
+def parse_clamav_signature_date(text: str) -> datetime | None:
+    """Liest das Signaturdatum locale-unabhaengig; ``None`` heisst unlesbar."""
+    match = _CLAMAV_SIGNATURE_DATE.match(text)
+    if match is None:
+        return None
+    month = _CLAMAV_MONTHS.get(match.group("month"))
+    if month is None:
+        return None
+    try:
+        return datetime(
+            int(match.group("year")), month, int(match.group("day")),
+            int(match.group("hour")), int(match.group("minute")),
+            int(match.group("second")), tzinfo=timezone.utc,
+        )
+    except ValueError:  # z. B. 31. Februar
+        return None
+
+
 _SIGNATURE_MAX_AGE_DAYS: Final = 14
 # Genau die vier Schreibweisen, die ``clamscan`` erzeugt: ``loggBytes`` in
 # clamav/clamscan/clamscan.c kennt nur ``GiB``/``MiB``/``KiB``/``B`` und rechnet
@@ -462,11 +500,8 @@ def clamav_signature_state(
     if match is None:
         return state
     text = re.sub(r"\s+", " ", match.group(1))
-    try:
-        signature_date = datetime.strptime(text, "%a %b %d %H:%M:%S %Y").replace(
-            tzinfo=timezone.utc
-        )
-    except ValueError:
+    signature_date = parse_clamav_signature_date(text)
+    if signature_date is None:
         return state
     reference = now or datetime.now(timezone.utc)
     age_days = (reference - signature_date).days

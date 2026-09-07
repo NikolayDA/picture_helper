@@ -67,8 +67,19 @@ def test_headless_fallback_reports_unavailable_without_writing_file(
     qapp,
     qtbot,
     tmp_path: Path,
+    gl_capability_ok,
 ) -> None:  # type: ignore[no-untyped-def]
-    """Offscreen erreicht den dokumentierten Fallback statt eines Fehlers."""
+    """Ohne nativen GL-Frame entsteht keine Datei – und kein stiller Erfolg.
+
+    Der Test beschreibt ausschliesslich den Fallback-Zweig und laeuft daher nur
+    ohne GL-Capability. Mit Capability meldet der Viewer ``ready``: auf echter
+    Hardware mit Sitzung entsteht dann ein Screenshot (das deckt der
+    ``gl_smoke``-Test unten ab), auf dem Raspberry Pi unter „offscreen"
+    scheitert erst der Frame (``No fbo``) – beides ist hier nicht die Aussage.
+    """
+    if gl_capability_ok:
+        pytest.skip("GL-Capability vorhanden – der Fallback-Zweig ist hier nicht pruefbar")
+
     win = MainWindow()
     qtbot.addWidget(win)
     win.show()

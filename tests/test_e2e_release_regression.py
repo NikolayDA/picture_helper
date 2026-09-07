@@ -119,8 +119,18 @@ def _emit_evidence(status: str, notes: list[str], native_3d_state: str) -> None:
 
 def _assert_preview3d_state(
     win: MainWindow, qtbot, *, require_native: bool, phase: str,  # type: ignore[no-untyped-def]
+    gl_capability_ok: bool = False,
 ) -> str:
-    """Aktiviert 3D und belegt je nach Umgebung Ready oder Headless-Fallback."""
+    """Aktiviert 3D und belegt je nach Umgebung Ready oder Headless-Fallback.
+
+    Ohne ``ABNAHME_REQUIRE_NATIVE_3D`` wurde bisher ``unavailable`` verlangt –
+    das setzt „headless" mit „kein GL-Kontext" gleich. Auf einem Raspberry Pi
+    (Broadcom V3D + Mesa) trifft das nicht zu: die Probe meldet Erfolg, der
+    Viewer geht auf ``ready``, und erst das Rendern scheitert (``No fbo``).
+    Die strenge Zusicherung gilt deshalb nur dort, wo sie messbar ist; mit
+    Capability bleibt ``error`` trotzdem ein Befund (Shader-/Bufferfehler,
+    vgl. #711) – zugelassen sind dann nur ``ready`` und ``unavailable``.
+    """
     win._set_preview3d_mode(True)
     qtbot.waitUntil(
         lambda: win._relief3d_view.state in {"ready", "unavailable", "error"},
@@ -128,7 +138,12 @@ def _assert_preview3d_state(
     )
     state = win._relief3d_view.state
     if not require_native:
-        assert state == "unavailable", f"unerwarteter Headless-3D-Zustand ({phase}): {state}"
+        if gl_capability_ok:
+            # Mit Kontext ist "ready" moeglich (Pi: Kontext ja, FBO nein) –
+            # "error" bleibt aber auch dort ein Befund.
+            assert state in {"ready", "unavailable"}, f"3D-Fehlerzustand ({phase}): {state}"
+        else:
+            assert state == "unavailable", f"unerwarteter Headless-3D-Zustand ({phase}): {state}"
         return state
 
     assert state == "ready", f"nativer 3D-Zweig nicht bereit ({phase}): {state}"
@@ -154,7 +169,9 @@ def _assert_preview3d_state(
     return state
 
 
-def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], str]:  # type: ignore[no-untyped-def]
+def _run_scenario(  # type: ignore[no-untyped-def]
+    win: MainWindow, tmp_path: Path, qtbot, *, gl_capability_ok: bool = False,
+) -> tuple[list[str], str]:
     notes: list[str] = []
 
     # 1) Bild über die öffentliche MainWindow-Fassade und den echten
@@ -189,11 +206,14 @@ def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], st
     require_native = os.environ.get("ABNAHME_REQUIRE_NATIVE_3D") == "1"
     state = _assert_preview3d_state(
         win, qtbot, require_native=require_native, phase="vor Save/Open",
+        gl_capability_ok=gl_capability_ok,
     )
     if require_native:
         notes.append("Nativer 3D-GL-Zweig ready; Mesh hochgeladen und Frame gerendert.")
-    else:
+    elif not gl_capability_ok:
         notes.append("Dokumentierter Headless-3D-Fallback erreicht.")
+    else:
+        notes.append(f"GL-Kontext vorhanden; 3D-Zustand ohne Abnahmemodus: {state}.")
     # 2D↔3D-Wechsel mutiert die Höhendaten nicht.
     assert _payload_hash(win) == hash_after_generate
     win._set_preview3d_mode(False)
@@ -246,6 +266,7 @@ def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], st
     # darf die 16-Bit-Payload ebenfalls nicht mutieren.
     state = _assert_preview3d_state(
         win, qtbot, require_native=require_native, phase="nach Save/Open",
+        gl_capability_ok=gl_capability_ok,
     )
     assert _payload_hash(win) == hash_after_op, "3D nach Save/Open mutiert die Payload"
     notes.append(
@@ -331,13 +352,16 @@ def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], st
     return notes, state
 
 
-def test_e2e_release_regression(qapp, qtbot, tmp_path) -> None:  # type: ignore[no-untyped-def]
+def test_e2e_release_regression(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path, gl_capability_ok,
+) -> None:
     win = MainWindow()
     native_3d_state = "nicht-erreicht"
     qtbot.addWidget(win)
     win.show()
     try:
-        notes, native_3d_state = _run_scenario(win, tmp_path, qtbot)
+        notes, native_3d_state = _run_scenario(
+            win, tmp_path, qtbot, gl_capability_ok=gl_capability_ok)
     except Exception as exc:  # noqa: BLE001 - Evidenz auch bei Fehlschlag schreiben.
         native_3d_state = win._relief3d_view.state
         _emit_evidence("fehlgeschlagen", [f"Abbruch: {exc}"], native_3d_state)

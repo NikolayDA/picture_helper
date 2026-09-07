@@ -36,7 +36,7 @@ speichern", EufyMake- und Projekt-Export bleiben unverändert, die
 
 | Kriterium | Nachweis |
 |---|---|
-| Fehlender Kontext / nicht unterstützte API → kontrollierter Zustand | `tests/test_preview3d_capability.py::test_offscreen_default_probe_reports_unavailable`, `tests/test_preview3d_controller.py::test_unavailable_capability_shows_unavailable` |
+| Fehlender Kontext / nicht unterstützte API → kontrollierter Zustand | `tests/test_preview3d_capability.py::test_default_probe_keeps_its_contract` (laeuft ueberall), `tests/test_preview3d_capability.py::test_offscreen_default_probe_reports_unavailable` (nur ohne GL-Capability), `tests/test_preview3d_controller.py::test_unavailable_capability_shows_unavailable` |
 | Shader-/Init-Fehler ohne Prozessabsturz → 2D-/Fehlerdarstellung | `tests/test_viewer_3d.py::test_gl_viewer_reports_init_failure_without_propagating`, `::test_show_mesh_reaches_ready_or_error` |
 | Buffer-/Build-Fehler sicher wiederholbar/abbrechbar | `tests/test_preview3d_controller.py::test_mesh_build_error_shows_error_state`, `tests/test_viewer_3d.py::test_failed_viewer_is_recreated_on_retry`, `tests/test_relief_mesh.py::test_cancel_raises_and_yields_no_mesh` |
 | Kontextverlust → Reupload ohne Nutzung freigegebener Objekte | `tests/test_viewer_3d.py::test_context_loss_requeues_cpu_mesh_for_upload` |
