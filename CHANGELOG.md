@@ -63,18 +63,23 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Broadcom V3D + Mesa) gelingen alle vier, `QOpenGLWidget` protokollierte
   gleichzeitig aber `No fbo, cannot render` – der 3D-Tab schaltete auf
   „bereit" und blieb dann leer, statt den dokumentierten Zustand „nicht
-  verfügbar" mit Erklärung und „Erneut versuchen" zu zeigen. Die Probe
-  erbringt jetzt zusätzlich einen minimalen Render-Nachweis: Ein
-  4 × 4-Framebuffer-Objekt derselben Bauart, die `QOpenGLWidget` für seinen
-  Widget-Framebuffer anlegt (`CombinedDepthStencil`), wird erzeugt, gebunden
-  und geleert. Weil das bitgenau die Folge des Viewers ist, kann der Nachweis
-  nie strenger sein als der Viewer selbst – funktionierende Hardware wird
-  nicht ausgesperrt. Die Runner-Sonde des Abnahme-Preflights
-  (`scripts/qt_gl_probe.py`) übernimmt dieselbe Regel unter ihrer bestehenden
-  Stufe `kontext`; die Renderer-Provenienz steht jetzt auch im Fehlerfall im
-  Log. Der Text des Zustands „nicht verfügbar" nennt jetzt das Ergebnis
-  („kann kein OpenGL 2.1 rendern") statt nur eine der beiden möglichen
-  Ursachen.
+  verfügbar" mit Erklärung und „Erneut versuchen" zu zeigen. Ursache ist die
+  Qt-Plattform, nicht der Treiber: `QOpenGLWidget` braucht eine
+  Plattformintegration, die Widget-Rendering trägt; unter `offscreen`,
+  `minimal` und `vnc` fehlt sie, und Qt erklärt das Widget selbst für nicht
+  unterstützt. Die Probe weist diese Plattformen jetzt **zuerst** ab, noch vor
+  jedem GL-Aufruf. Zusätzlich erbringt sie einen minimalen Render-Nachweis –
+  ein 4 × 4-Framebuffer-Objekt derselben Bauart, die `QOpenGLWidget` für
+  seinen Widget-Framebuffer anlegt, wird erzeugt, gebunden und geleert –, der
+  eine andere Klasse abdeckt: Treiber, die auf einer echten Sitzung kein
+  vollständiges Render-Ziel liefern. Beide Regeln können 3D auf tauglicher
+  Hardware nicht abschalten; im Zweifel bleibt 3D an. Die Runner-Sonde des
+  Abnahme-Preflights (`scripts/qt_gl_probe.py`) übernimmt den Render-Nachweis
+  unter ihrer bestehenden Stufe `kontext`; die Renderer-Provenienz steht jetzt
+  auch im Fehlerfall im Log. Der Text des Zustands „nicht verfügbar" nennt
+  jetzt das Ergebnis („kann kein OpenGL 2.1 rendern") statt nur einer der
+  möglichen Ursachen. Nebenbei behoben: Ohne laufende `QGuiApplication` stürzte
+  die Probe mit SIGSEGV ab, statt einen Grund zu melden.
 
 ## [2.9.0] – 2026-08-26
 

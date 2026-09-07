@@ -159,20 +159,38 @@ Ein Paket, `bgremover/`:
   `probe_fn` mockbar) für Desktop-GL ≥ 2.1; wirft nie, liefert strukturiertes
   `RendererCapability`, je Sitzung gecacht (`reset_capability_cache` = „Erneut
   versuchen"). Gemessen wird seit #1002 **Renderfähigkeit**, nicht bloß
-  Kontextexistenz: Nach Kontext/Oberfläche/GL-2.1-Funktionen läuft
-  `_render_probe` — ein 4 × 4-`QOpenGLFramebufferObject` mit
-  `CombinedDepthStencil`, gebunden und per `glClear` geleert. Das ist bitgenau
-  die Folge, die `QOpenGLWidgetPrivate::recreateFbos` für den
-  Widget-Framebuffer fährt; die Probe kann damit **nie strenger** sein als der
-  Viewer (kein Falsch-Negativ), fängt aber den real beobachteten Zustand
-  „Kontext ja, kein Framebuffer" (Raspberry Pi 5, Broadcom V3D + Mesa), in dem
-  der 3D-Tab bereit meldete und leer blieb. Notwendige, nicht hinreichende
-  Bedingung: Bleibt der Widget-Framebuffer aus Gründen des
-  Widget-Lebenszyklus aus, sieht ihn keine Probe. Die Provenienz
-  (`diagnostic`) steht seither auch im Fehlerfall, sobald sie gemessen wurde.
-  Ob `offscreen` einen Kontext liefert, ist eine Eigenschaft des Rechners,
-  keine der Plattform — die GitHub-Runner treffen dort real den
-  Fallback-Zweig, ein Pi nicht.
+  Kontextexistenz — in **zwei** Regeln für verschiedene Ausfallklassen.
+  (1) **Plattformregel** `NON_RENDERABLE_PLATFORMS` (`offscreen`/`minimal`/
+  `vnc`), zuerst und ohne jeden GL-Aufruf: `QOpenGLWidget` braucht eine
+  Plattformintegration mit `RhiBasedRendering`; fehlt sie, warnt Qt im
+  Widget-Konstruktor und `render()` bricht mit „No fbo, cannot render" ab.
+  Die Fähigkeit ist in PyQt6 nicht abfragbar, der Plugin-Name ist der
+  Stellvertreter. **Das ist der Ausfall aus #1002** — mit `xvfb-run` +
+  `QT_QPA_PLATFORM=offscreen` reproduziert: Kontext, Funktionssatz *und*
+  Framebuffer-Objekt gelingen alle, `defaultFramebufferObject()` bleibt 0.
+  Bewusst eine **Blockliste**: Ein unbekanntes Plugin bleibt erlaubt.
+  (2) **Render-Nachweis** `_render_probe` — ein 4 × 4-`QOpenGLFramebufferObject`
+  mit `CombinedDepthStencil`, gebunden und per `glClear` geleert, bitgenau die
+  Folge von `QOpenGLWidgetPrivate::recreateFbos`. Er deckt eine *andere* Klasse
+  ab (Treiber ohne vollständiges Render-Ziel auf einer Sitzungsplattform) und
+  ausdrücklich **nicht** den Fall oben. Beide sind fail-open: Sie können 3D auf
+  tauglicher Hardware nicht abschalten (gegengeprüft: unter `xcb` bleibt die
+  Probe `ok=True`). Zusammen bleiben sie **notwendig, nicht hinreichend** —
+  bleibt der Widget-Framebuffer aus Gründen des Widget-Lebenszyklus aus, sieht
+  ihn keine Probe. Die Provenienz (`diagnostic`) steht seither auch im
+  Fehlerfall, sobald sie gemessen wurde. Die Probe setzt eine laufende
+  `QGuiApplication` voraus und sagt das jetzt: Ohne Instanz meldet
+  `platformName()` gemessen einen Vorgabewert (`'xcb'`) statt der gesetzten
+  Plattform, und `ctx.create()` endete mit **SIGSEGV** — jetzt ein benannter
+  Befund statt eines Absturzes. `NON_RENDERABLE_PLATFORMS` ist die geteilte
+  Quelle: `scripts/gl_stress_probe.py` re-exportiert sie, die Skip-Weichen von
+  `tests/test_viewer_3d_gl.py`, `tests/test_screenshot3d.py` und
+  `tests/test_benchmark_preview3d_live.py` beziehen sie von dort (vorher vier
+  eigenständige Kopien); `test_no_second_source_declares_the_non_renderable_platforms`
+  scannt `bgremover/`, `scripts/` und `tests/` gegen eine fünfte. Ob `offscreen`
+  einen *Kontext* liefert, bleibt eine Eigenschaft des Rechners, keine der
+  Plattform — die GitHub-Runner treffen dort real `create() == False`, ein Pi
+  nicht; renderfähig ist `offscreen` in beiden Fällen nicht.
   `renderer_provenance.py` — Qt-freie, geteilte Regel `is_software_renderer`
   (#642, ADR #639): **einzige** Quelle der Wahrheit für die Erkennung reiner
   CPU-Rasterizer (llvmpipe & Co.) in einer GL-Diagnose. Release-Abnahme-Smokes
@@ -1206,7 +1224,9 @@ Pillow nach, das die schlanke Runtime bewusst nicht hat. Die GL-Konstanten
 `tests/test_qt_gl_probe.py` gegen `preview3d_capability`, damit Preflight und
 Plattform-Job nicht verschiedene Werte auslesen; für die drei vom
 Produktivpfad übernommenen Regeln (ES-Abweisung, vollständige Provenienz,
-Render-Nachweis #1002) bindet derselbe Test beide Quelltexte aneinander.
+Render-Nachweis #1002) bindet derselbe Test beide Quelltexte aneinander. Die
+**Plattformregel** aus #1002 braucht die Sonde nicht: Ihre
+`NATIVE_PLATFORMS`-Whitelist ist strenger und weist `offscreen` bereits ab.
 
 Die Runtime ist **nicht** das Release-venv, sondern ein zwischengespeichertes
 venv mit nur den Qt-Pins (`~/.cache/bgremover/preflight-qt`, überschreibbar

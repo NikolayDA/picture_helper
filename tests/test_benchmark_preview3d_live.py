@@ -114,12 +114,17 @@ def test_real_hook_renders_and_measures_real_metrics(qapp) -> None:  # type: ign
     from PyQt6.QtWidgets import QApplication
 
     from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
-    from bgremover.preview3d_capability import probe_3d_capability, reset_capability_cache
+    from bgremover.preview3d_capability import (
+        NON_RENDERABLE_PLATFORMS,
+        probe_3d_capability,
+        reset_capability_cache,
+    )
     from bgremover.relief_mesh import MeshQuality, build_relief_mesh
 
     app = QApplication.instance()
     assert app is not None
-    if app.platformName() in {"offscreen", "minimal", "vnc"}:
+    # Geteilte Regel statt eigener Kopie (#1002).
+    if app.platformName() in NON_RENDERABLE_PLATFORMS:
         pytest.skip(f"Plattform {app.platformName()!r} kann keinen echten GL-Kontext rendern")
     reset_capability_cache()
     if not probe_3d_capability(use_cache=False).ok:

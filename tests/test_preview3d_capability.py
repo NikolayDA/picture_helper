@@ -10,10 +10,12 @@ from __future__ import annotations
 import pytest
 
 from bgremover.preview3d_capability import (
+    NON_RENDERABLE_PLATFORMS,
     UNAVAILABLE_KEY,
     RendererCapability,
     _default_probe,
     _gl_string,
+    _platform_render_support,
     _render_probe,
     probe_3d_capability,
     reset_capability_cache,
@@ -84,13 +86,24 @@ def test_default_probe_keeps_its_contract(qapp) -> None:
         assert cap.error_key == UNAVAILABLE_KEY
 
 
-def test_offscreen_default_probe_reports_unavailable(qapp, gl_capability_ok) -> None:
-    # Der echte Fallback-Zweig – nur dort messbar, wo es keinen GL-Kontext gibt.
-    if gl_capability_ok:
-        pytest.skip("Umgebung liefert einen GL-Kontext; Fallback-Zweig nicht erreichbar")
+def test_offscreen_default_probe_reports_unavailable(qapp) -> None:
+    """Der echte Fallback-Zweig – seit #1002 ohne Umgebungs-Vorbehalt.
+
+    Bis #1001 stand hier ein hartes ``assert not cap.ok`` mit der Begründung
+    „offscreen ohne X"; auf einem Raspberry Pi mit GL-Kontext scheiterte das,
+    weshalb #1001 einen Skip einbaute. Beides ist erledigt: Unter einer
+    Plattform ohne OpenGL-Widget-Fläche ist das Ergebnis jetzt **deterministisch**
+    „nicht verfügbar" – genau der Zustand, den #1002 gemeldet hat. Der Test
+    misst damit wieder etwas.
+    """
+    from PyQt6.QtGui import QGuiApplication
+
+    if QGuiApplication.platformName() not in NON_RENDERABLE_PLATFORMS:
+        pytest.skip("Testlauf auf einer renderfähigen Plattform")
     cap = probe_3d_capability(use_cache=False)
     assert not cap.ok
     assert cap.error_key == UNAVAILABLE_KEY
+    assert "trägt keine OpenGL-Widget-Fläche" in cap.detail
 
 
 # ── Spätere Fehlerzweige von ``_default_probe`` (#659, O8) ────────────────
@@ -101,6 +114,32 @@ def test_offscreen_default_probe_reports_unavailable(qapp, gl_capability_ok) -> 
 # PyQt6-Klassen erreicht – ``_default_probe`` importiert seine Qt-Klassen
 # lokal je Aufruf, ein Patch auf dem Modulattribut wirkt daher sofort
 # (Konvention aus ``test_app.py``, ``monkeypatch.setattr("PyQt6....", ...)``).
+
+def _force_platform(monkeypatch, name: str) -> None:
+    """Setzt den gemeldeten Qt-Plattformnamen für die Plattformregel (#1002).
+
+    Die Testumgebung läuft unter ``offscreen``; ohne diese Weiche griffe die
+    Plattformregel zuerst, und die tieferen Zweige von ``_default_probe``
+    wären gar nicht mehr erreichbar.
+    """
+
+    class _App:
+        @staticmethod
+        def instance() -> object:
+            return object()  # eine laufende Anwendung vortäuschen
+
+        @staticmethod
+        def platformName() -> str:  # noqa: N802
+            return name
+
+    monkeypatch.setattr("PyQt6.QtGui.QGuiApplication", _App)
+
+
+@pytest.fixture
+def session_platform(monkeypatch):
+    """Stellt eine renderfähige Sitzungs-Plattform für die GL-Mock-Tests."""
+    _force_platform(monkeypatch, "xcb")
+
 
 class _FakeContext:
     """Minimaler ``QOpenGLContext``-Stand-in: Kontext erzeugbar, aber tot."""
@@ -135,7 +174,7 @@ class _FakeSurface:
         return True
 
 
-def test_default_probe_reports_unavailable_when_makecurrent_fails(monkeypatch) -> None:
+def test_default_probe_reports_unavailable_when_makecurrent_fails(monkeypatch, session_platform) -> None:
     monkeypatch.setattr("PyQt6.QtGui.QOpenGLContext", _FakeContext)
     monkeypatch.setattr("PyQt6.QtGui.QOffscreenSurface", _FakeSurface)
 
@@ -146,7 +185,7 @@ def test_default_probe_reports_unavailable_when_makecurrent_fails(monkeypatch) -
     assert cap.detail == "Kein aktueller Offscreen-Kontext"
 
 
-def test_default_probe_reports_unavailable_for_opengl_es_context(monkeypatch) -> None:
+def test_default_probe_reports_unavailable_for_opengl_es_context(monkeypatch, session_platform) -> None:
     class _ESContext(_FakeContext):
         def makeCurrent(self, surface: object) -> bool:  # noqa: N802
             return True
@@ -164,7 +203,7 @@ def test_default_probe_reports_unavailable_for_opengl_es_context(monkeypatch) ->
     assert cap.detail == "Nur OpenGL-ES-Kontext verfügbar"
 
 
-def test_default_probe_reports_unavailable_without_version_functions(monkeypatch) -> None:
+def test_default_probe_reports_unavailable_without_version_functions(monkeypatch, session_platform) -> None:
     class _ReadyContext(_FakeContext):
         def makeCurrent(self, surface: object) -> bool:  # noqa: N802
             return True
@@ -187,7 +226,7 @@ def test_default_probe_reports_unavailable_without_version_functions(monkeypatch
     assert cap.detail == "Keine GL-2.1-Versionsfunktionen verfügbar"
 
 
-def test_default_probe_never_propagates_outer_exception(monkeypatch) -> None:
+def test_default_probe_never_propagates_outer_exception(monkeypatch, session_platform) -> None:
     class _RaisingContext:
         def __init__(self) -> None:
             raise RuntimeError("Treiber explodiert")
@@ -316,7 +355,7 @@ def fake_fbo(monkeypatch):
     return cls
 
 
-def test_render_proof_mirrors_the_widget_framebuffer(monkeypatch, fake_fbo) -> None:
+def test_render_proof_mirrors_the_widget_framebuffer(monkeypatch, fake_fbo, session_platform) -> None:
     """Der Nachweis stellt genau nach, was ``QOpenGLWidget`` selbst anlegt.
 
     ``QOpenGLWidgetPrivate::recreateFbos`` erzeugt ein
@@ -341,7 +380,7 @@ def test_render_proof_mirrors_the_widget_framebuffer(monkeypatch, fake_fbo) -> N
 
 
 def test_default_probe_reports_unavailable_without_a_usable_framebuffer(
-    monkeypatch, fake_fbo
+    monkeypatch, fake_fbo, session_platform
 ) -> None:
     """Der eigentliche #1002-Fall: Kontext vorhanden, Render-Ziel unvollständig."""
     fake_fbo.valid = False
@@ -358,7 +397,7 @@ def test_default_probe_reports_unavailable_without_a_usable_framebuffer(
 
 
 def test_default_probe_reports_unavailable_when_the_framebuffer_cannot_bind(
-    monkeypatch, fake_fbo
+    monkeypatch, fake_fbo, session_platform
 ) -> None:
     fake_fbo.bindable = False
     _install_ready_context(monkeypatch, _FakeFunctions())
@@ -371,7 +410,7 @@ def test_default_probe_reports_unavailable_when_the_framebuffer_cannot_bind(
 
 
 def test_default_probe_reports_unavailable_when_the_render_proof_raises(
-    monkeypatch, fake_fbo
+    monkeypatch, fake_fbo, session_platform
 ) -> None:
     """Ein Treiber, der beim Leeren abstürzt, ist ein Befund – kein App-Absturz."""
     _install_ready_context(monkeypatch, _FakeFunctions(clear_error=RuntimeError("GPU weg")))
@@ -385,7 +424,7 @@ def test_default_probe_reports_unavailable_when_the_render_proof_raises(
 
 
 def test_default_probe_reports_unavailable_when_the_framebuffer_is_not_constructible(
-    monkeypatch, fake_fbo
+    monkeypatch, fake_fbo, session_platform
 ) -> None:
     fake_fbo.construct_error = RuntimeError("kein FBO-Support")
     _install_ready_context(monkeypatch, _FakeFunctions())
@@ -416,3 +455,147 @@ def test_render_proof_refuses_without_a_current_context(monkeypatch, fake_fbo) -
 
     assert _render_probe(object()) == "Render-Nachweis ohne aktuellen Kontext angefordert"
     assert fake_fbo.last is None  # kein Konstruktoraufruf ohne Kontext
+
+
+# ── Plattformregel: der eigentliche #1002-Fall ───────────────────────────
+#
+# Reproduziert mit ``xvfb-run -a`` + ``QT_QPA_PLATFORM=offscreen``: Kontext,
+# GL-2.1-Funktionssatz **und** der Render-Nachweis gelingen dort alle, Qt meldet
+# aber „QOpenGLWidget is not supported on this platform." / „No fbo, cannot
+# render" und ``defaultFramebufferObject()`` bleibt 0. Der FBO-Nachweis kann
+# diesen Ausfall prinzipiell nicht sehen – die Plattformregel schon.
+
+@pytest.mark.parametrize("name", sorted(NON_RENDERABLE_PLATFORMS))
+def test_platform_without_widget_surface_blocks_before_any_gl_call(
+    monkeypatch, name: str
+) -> None:
+    """Die Regel greift **vor** dem GL-Aufbau – und ohne ihn."""
+    _force_platform(monkeypatch, name)
+
+    def _explode() -> object:
+        raise AssertionError("Die Plattformregel muss vor jedem GL-Aufruf greifen")
+
+    monkeypatch.setattr("PyQt6.QtGui.QOpenGLContext", _explode)
+
+    cap = _default_probe()
+
+    assert cap.ok is False
+    assert cap.error_key == UNAVAILABLE_KEY
+    assert name in cap.detail
+
+
+def test_platform_rule_lets_a_session_platform_through(monkeypatch) -> None:
+    """Kein Falsch-Negativ: Sitzungs-Plattformen passieren die Regel.
+
+    Gemessen gegengeprüft (``xvfb-run`` + ``QT_QPA_PLATFORM=xcb``, llvmpipe):
+    Dort meldet die Probe ``ok=True`` und ``QOpenGLWidget`` hält einen
+    Framebuffer. Die Regel darf 3D auf tauglicher Hardware nie abschalten.
+    """
+    for name in ("xcb", "wayland", "wayland-egl", "cocoa", "windows"):
+        _force_platform(monkeypatch, name)
+        assert _platform_render_support() is None, name
+
+
+def test_platform_rule_is_fail_open_for_unknown_names(monkeypatch) -> None:
+    """Blockliste statt Whitelist.
+
+    Ein künftiges oder unbekanntes Plugin darf nicht blockieren – im Zweifel
+    landet der Viewer im Fehlerzustand [F], statt dass 3D grundlos verschwindet.
+    ``eglfs``/``minimalegl`` sind hier ausdrücklich erwünscht: Sie belegen keine
+    Sitzung (deshalb weist die Preflight-Whitelist sie ab), sind aber
+    hardwarebeschleunigt.
+    """
+    for name in ("", "eglfs", "minimalegl", "irgendwas-neues"):
+        _force_platform(monkeypatch, name)
+        assert _platform_render_support() is None, name
+
+
+def test_platform_rule_refuses_without_a_running_application(monkeypatch) -> None:
+    """Ohne Anwendung gibt es keine Aussage – und keinen Absturz.
+
+    Gemessen: ``QGuiApplication.platformName()`` liefert ohne laufende Instanz
+    einen Vorgabewert (``'xcb'``) und ignoriert ``QT_QPA_PLATFORM`` – die Regel
+    prüfte also eine Plattform, die gar nicht läuft. Der Probelauf endete in
+    diesem Zustand zuvor mit SIGSEGV in ``ctx.create()`` (Exit 139, ohne jede
+    Ausgabe); jetzt ist es ein benannter Befund.
+    """
+
+    class _NoApp:
+        @staticmethod
+        def instance() -> None:
+            return None
+
+        @staticmethod
+        def platformName() -> str:  # noqa: N802
+            return "xcb"  # die gemessene Falschauskunft
+
+    monkeypatch.setattr("PyQt6.QtGui.QGuiApplication", _NoApp)
+
+    assert _platform_render_support() == (
+        "Keine laufende QGuiApplication – Plattform nicht bestimmbar"
+    )
+
+
+def test_platform_set_is_the_shared_source() -> None:
+    """Eine Quelle statt vier Kopien (#1002).
+
+    ``scripts/gl_stress_probe.py`` sowie die Skip-Weichen von
+    ``tests/test_viewer_3d_gl.py`` und ``tests/test_screenshot3d.py`` führten
+    dieselbe Menge je einzeln. Driftete eine, hielten Sonde und Anwendung
+    verschiedene Plattformen für renderfähig.
+    """
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    import tests.test_screenshot3d as shot
+    import tests.test_viewer_3d_gl as gl
+
+    root = Path(__file__).resolve().parent.parent
+    spec = importlib.util.spec_from_file_location(
+        "gl_stress_probe", root / "scripts" / "gl_stress_probe.py"
+    )
+    assert spec is not None and spec.loader is not None
+    stress = importlib.util.module_from_spec(spec)
+    # Vor ``exec_module`` registrieren: ``dataclasses`` löst Annotationen über
+    # ``sys.modules[cls.__module__]`` auf und stürbe sonst mit AttributeError.
+    sys.modules["gl_stress_probe"] = stress
+    spec.loader.exec_module(stress)
+
+    assert stress.NON_RENDERABLE_PLATFORMS is NON_RENDERABLE_PLATFORMS
+    assert gl._NON_RENDERABLE is NON_RENDERABLE_PLATFORMS
+    assert shot._NON_RENDERABLE is NON_RENDERABLE_PLATFORMS
+
+
+def test_no_second_source_declares_the_non_renderable_platforms() -> None:
+    """Drift-Wächter: die Menge wird genau **einmal** literal deklariert (#1002).
+
+    Vor #1002 stand die Menge offscreen/minimal/vnc viermal im Repo (neben dem
+    Produktivpfad: ``scripts/gl_stress_probe.py`` und die Skip-Weichen von
+    ``test_viewer_3d_gl``, ``test_screenshot3d`` und
+    ``test_benchmark_preview3d_live``). Driftete eine Kopie, hielten Sonde und
+    Anwendung verschiedene Plattformen für renderfähig – und das wäre still
+    geblieben. Der Wächter fängt auch eine künftige fünfte Kopie, nicht nur die
+    vier bekannten; gesucht wird die Mengenliteral-Schreibweise, nicht der
+    Plattformname allein.
+    """
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    source = root / "bgremover" / "preview3d_capability.py"
+    # Bewusst zusammengesetzt: Stünde das Muster hier ausgeschrieben, meldete
+    # der Wächter diese Datei als eigene zweite Quelle.
+    literal = re.compile(r"\{\s*[\"']" + "offscreen" + r"[\"']")
+
+    offenders = []
+    for folder in ("bgremover", "scripts", "tests"):
+        for path in sorted((root / folder).rglob("*.py")):
+            if path == source:
+                continue
+            if literal.search(path.read_text(encoding="utf-8")):
+                offenders.append(str(path.relative_to(root)))
+    assert not offenders, (
+        "Zweite Quelle der Plattformmenge – aus "
+        f"preview3d_capability.NON_RENDERABLE_PLATFORMS beziehen: {offenders}"
+    )

@@ -74,6 +74,9 @@ if str(_REPO_ROOT) not in sys.path:  # Direktaufruf ohne installiertes Paket
     sys.path.insert(0, str(_REPO_ROOT))
 
 from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField  # noqa: E402
+from bgremover.preview3d_capability import (  # noqa: E402
+    NON_RENDERABLE_PLATFORMS as _NON_RENDERABLE_PLATFORMS,
+)
 from bgremover.relief_mesh import MeshQuality, ReliefMesh, build_relief_mesh  # noqa: E402
 from bgremover.viewer_3d import (  # noqa: E402
     GLBufferError,
@@ -91,7 +94,11 @@ MAX_LIVE_PER_VIEWER: Final = 4
 MIN_LIVE_PER_VIEWER: Final = 3
 
 #: Qt-Plattformen ohne renderbaren FBO – dort ist ``--mode gl`` unmöglich.
-NON_RENDERABLE_PLATFORMS: Final = frozenset({"offscreen", "minimal", "vnc"})
+#: Re-Export der produktiven Regel: Seit #1002 entscheidet dieselbe Menge das
+#: 3D-Gating (``preview3d_capability.NON_RENDERABLE_PLATFORMS``). Eine zweite
+#: Kopie hier hätte bedeutet, dass Sonde und Anwendung verschiedene Plattformen
+#: für renderfähig halten können.
+NON_RENDERABLE_PLATFORMS: Final = _NON_RENDERABLE_PLATFORMS
 
 #: Standard-Datensätze: klein / typisch / groß (Akzeptanzkriterium 9 aus #684).
 DEFAULT_SIZES: Final[tuple[tuple[str, int, MeshQuality], ...]] = (

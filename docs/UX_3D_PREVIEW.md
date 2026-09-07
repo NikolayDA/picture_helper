@@ -41,10 +41,14 @@ Kombiniert) bleibt semantisch unverändert; 3D liegt als eigene Ebene
 - **Gating:** Das 3D-Segment ist nur aktiv, wenn (a) eine HEIGHT-Ebene mit
   gültigen Daten existiert und (b) die Capability-Probe des ADR nicht
   fehlgeschlagen ist. Die Probe misst dabei **Renderfähigkeit**, nicht nur
-  Kontextexistenz: Sie erzeugt zusätzlich ein kleines Framebuffer-Objekt
-  derselben Bauart, die `QOpenGLWidget` für seinen Widget-Framebuffer nutzt
-  (#1002). Ohne diesen Nachweis meldete sie auf Geräten mit Kontext, aber ohne
-  nutzbares Render-Ziel „verfügbar", und der Viewer blieb im Zustand [R] leer. Sonst bleibt es deaktiviert mit erklärendem Text
+  Kontextexistenz (#1002): Sie weist zuerst Qt-Platform-Plugins ab, unter denen
+  `QOpenGLWidget` grundsätzlich keinen Frame erzeugt (`offscreen`, `minimal`,
+  `vnc`), und erbringt danach einen Render-Nachweis in ein Framebuffer-Objekt
+  derselben Bauart, die das Widget für sich selbst anlegt. Ohne die erste Regel
+  meldete sie auf solchen Plattformen „verfügbar", und der Viewer blieb im
+  Zustand [R] leer, während Qt nur ins Log schrieb. Beide Regeln sind
+  fail-open — sie können 3D auf tauglicher Hardware nicht abschalten; im
+  Zweifel landet der Viewer im Fehlerzustand [F], nie grundlos in [U]. Sonst bleibt es deaktiviert mit erklärendem Text
   (Zustände E/U unten). **2D bleibt immer direkt erreichbar** – auch ohne
   3D-fähige Hardware ändert sich am bestehenden Workflow nichts.
 - **Moduswechsel** mutiert nie Bild-/Höhendaten und beeinflusst nie den
@@ -148,12 +152,13 @@ Farbe oder Spinner. Verbindliche Formulierungen (de / en):
 | [F] Aktion 1 | `preview3d.error.show_2d` | „2D-Relief anzeigen" | "Show 2D relief" |
 | [F] Aktion 2 | `preview3d.error.retry` | „Erneut versuchen" | "Try again" |
 
-- [U] deckt **beide** Ursachen ab, die die Probe unterscheiden kann: gar kein
-  Desktop-OpenGL 2.1 und ein Kontext, in den sich nicht rendern lässt (#1002).
-  Der Nutzertext nennt deshalb das Ergebnis („kann kein OpenGL 2.1 rendern"),
-  nicht die Teilursache; der technische Kurzgrund steht im Log. Ein zweiter
-  sichtbarer Zustand wäre ohne Nutzen – die Handlungsoption ist in beiden
-  Fällen dieselbe (2D weiterverwenden oder „Erneut versuchen").
+- [U] deckt **alle** Ursachen ab, die die Probe unterscheiden kann: eine
+  Plattform ohne OpenGL-Widget-Fläche, gar kein Desktop-OpenGL 2.1 und ein
+  Kontext, in den sich nicht rendern lässt (#1002). Der Nutzertext nennt
+  deshalb das Ergebnis („kann kein OpenGL 2.1 rendern"), nicht die Teilursache;
+  der technische Kurzgrund steht im Log. Ein zweiter sichtbarer Zustand wäre
+  ohne Nutzen – die Handlungsoption ist in allen Fällen dieselbe (2D
+  weiterverwenden oder „Erneut versuchen").
 - Der Ladezustand erscheint erst nach 300 ms (kein Flackern bei
   Cache-Treffern); [A] zeigt das **alte** Mesh weiter (kein Schwarzbild).
 - Das Decimation-Badge erscheint immer, wenn das Grid kleiner als die

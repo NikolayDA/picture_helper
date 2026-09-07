@@ -61,17 +61,23 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   Pi 5 (Debian 13 «Trixie», Broadcom V3D + Mesa) los cuatro tienen éxito, pero
   `QOpenGLWidget` registraba `No fbo, cannot render`: la pestaña 3D pasaba a
   «lista» y luego quedaba vacía en lugar de mostrar el estado documentado «no
-  disponible» con explicación y «Reintentar». Ahora la sonda añade una prueba
-  mínima de renderizado: se crea, se enlaza y se limpia un objeto de
-  framebuffer de 4 × 4 exactamente del tipo que `QOpenGLWidget` crea para su
-  framebuffer de widget (`CombinedDepthStencil`). Como es literalmente la
-  misma secuencia del visor, la prueba nunca puede ser más estricta que el
-  propio visor: el hardware que funciona no queda excluido. La sonda del
-  preflight de aceptación (`scripts/qt_gl_probe.py`) adopta la misma regla
-  bajo su etapa existente `kontext`; la procedencia del renderizador también
-  se registra ahora en caso de fallo. El texto de «no disponible» nombra ahora
-  el resultado («no puede renderizar con OpenGL 2.1») en lugar de solo una de
-  las dos causas posibles.
+  disponible» con explicación y «Reintentar». La causa es la plataforma Qt, no
+  el controlador: `QOpenGLWidget` necesita una integración de plataforma que
+  admita el renderizado de widgets; `offscreen`, `minimal` y `vnc` carecen de
+  ella, y el propio Qt declara el widget no compatible allí. Ahora la sonda
+  rechaza esas plataformas **primero**, antes de cualquier llamada GL. Además
+  realiza una prueba mínima de renderizado —se crea, se enlaza y se limpia un
+  objeto de framebuffer de 4 × 4 exactamente del tipo que `QOpenGLWidget` crea
+  para su framebuffer de widget— que cubre otra clase: controladores que no
+  ofrecen un destino de renderizado completo en una sesión real. Ninguna de las
+  dos reglas puede desactivar el 3D en hardware apto; en caso de duda, el 3D
+  sigue activo. La sonda del preflight de aceptación
+  (`scripts/qt_gl_probe.py`) adopta la prueba de renderizado bajo su etapa
+  existente `kontext`; la procedencia del renderizador también se registra
+  ahora en caso de fallo. El texto de «no disponible» nombra ahora el resultado
+  («no puede renderizar con OpenGL 2.1») en lugar de solo una de las causas
+  posibles. Corregido de paso: sin una `QGuiApplication` en ejecución la sonda
+  se bloqueaba con SIGSEGV en lugar de informar un motivo.
 
 ## [2.9.0] – 2026-08-26
 

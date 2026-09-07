@@ -475,55 +475,114 @@ Normalen, uint32-Grid-Indizes; llvmpipe-Draw: interleaved VBO (pos+normal,
 kein reiner ES-Kontext, GL-2.1-Versionsfunktionen. Auf einem Raspberry Pi 5
 (Debian 13 „Trixie", Broadcom V3D + Mesa) gelingen unter
 `QT_QPA_PLATFORM=offscreen` alle vier, während `QOpenGLWidget` gleichzeitig
-`No fbo, cannot render` protokolliert: Es entsteht kein Frame, der Viewer
-stand aber im Zustand [R] „bereit". Die Probe maß „Kontext vorhanden", der
-Viewer braucht „renderfähig"; auf dieser Plattform fallen beide auseinander.
+`No fbo, cannot render` protokolliert: Es entsteht kein Frame, der Viewer stand
+aber im Zustand [R] „bereit". Die Probe maß „Kontext vorhanden", der Viewer
+braucht „renderfähig".
 
-**Entscheidung.** `_default_probe` erbringt zusätzlich einen minimalen
-Render-Nachweis: ein 4 × 4-`QOpenGLFramebufferObject` mit
-`CombinedDepthStencil` wird erzeugt, gebunden und per `glClear` geleert – das
-ist bitgenau die Folge, die `QOpenGLWidgetPrivate::recreateFbos` für den
-Widget-Framebuffer fährt. Daraus folgt die tragende Eigenschaft: **Die Probe
-kann nie strenger sein als der Viewer.** Ein Kontext, der den Nachweis
-besteht, hätte auch dessen Framebuffer bekommen; ein Falsch-Negativ (3D auf
-funktionierender Hardware grundlos abgeschaltet) ist ausgeschlossen – und
-wäre schlimmer gewesen als der Ausgangsbefund.
+**Was den Ausfall wirklich verursacht – gemessen, nicht vermutet.** Der im
+Issue vorgeschlagene FBO-Nachweis fängt ihn **nicht**. Reproduktion mit
+`xvfb-run -a` + `QT_QPA_PLATFORM=offscreen` (Mesa 25.2.8/llvmpipe):
 
-**Grenze, ausdrücklich.** Der Nachweis ist eine **notwendige, keine
-hinreichende** Bedingung. `No fbo, cannot render` bedeutet im Qt-Quelltext
-`initialized == true` bei `fbos[LeftBuffer] == nullptr`; dieser Zustand kann
-auch aus dem Widget-Lebenszyklus entstehen (kein Resize mit nicht-leerer
-Größe, kein RHI-fähiges Platform-Plugin), und den sieht keine Probe. Der
-Fallback-Tabelle unten ändert das nichts: Ein Viewer-Init-Fehler bleibt der
-Zustand [F].
+```
+PROBE ok=True  diag='Mesa / llvmpipe (LLVM 20.1.2) / 4.5 … Mesa 25.2.8'
+QOpenGLWidget is not supported on this platform.
+QOpenGLWidget: No fbo, cannot render
+defaultFramebufferObject = 0
+```
+
+Kontext, Funktionssatz **und** ein 4 × 4-`QOpenGLFramebufferObject` gelingen
+dort alle. Der Qt-Quelltext (`src/openglwidgets/qopenglwidget.cpp`, 6.7) erklärt
+warum: `render()` meldet „No fbo" bei `initialized == true` und
+`fbos[LeftBuffer] == nullptr`; `recreateFbos()` läuft aus `resizeEvent` und aus
+`event()`/`Show`, letzteres nur `if (d->rhi())`. Der Widget-Konstruktor warnt
+zuvor, wenn die Plattformintegration kein `RhiBasedRendering` meldet. Es ist also
+eine Eigenschaft des **QPA-Plugins**, nicht des Treibers.
+
+**Entscheidung: zwei benannte Regeln, verschiedene Ausfallklassen.**
+
+1. **Plattformregel** (`NON_RENDERABLE_PLATFORMS`, zuerst geprüft, ohne jeden
+   GL-Aufruf). `RhiBasedRendering` ist in PyQt6 nicht abfragbar; der Plugin-Name
+   ist der verfügbare, deterministische Stellvertreter. Bewusst eine
+   **Blockliste** (`offscreen`/`minimal`/`vnc`), keine Whitelist: Ein
+   unbekanntes Plugin bleibt erlaubt. **Diese Regel schließt #1002** – gemessen
+   greift sie unter `offscreen` und lässt `xcb` (llvmpipe,
+   `defaultFramebufferObject() == 1`) unverändert durch.
+2. **Render-Nachweis** (`_render_probe`, nach dem Funktionssatz): ein
+   4 × 4-`QOpenGLFramebufferObject` mit `CombinedDepthStencil`, gebunden und per
+   `glClear` geleert – bitgenau die Folge von
+   `QOpenGLWidgetPrivate::recreateFbos`. Er deckt eine **andere** Klasse ab:
+   Treiber, die auf einer Sitzungsplattform kein vollständiges Render-Ziel
+   liefern. Ausdrücklich **nicht** der Fall aus #1002.
+
+**Fehlerrichtung, beide Regeln gleich.** Keine kann 3D auf tauglicher Hardware
+abschalten: Die Blockliste nennt nur Plugins, unter denen Qt selbst das Widget
+für nicht unterstützt erklärt; der Render-Nachweis fährt exakt die Folge des
+Viewers und kann deshalb nie strenger sein als er. Im Zweifel bleibt 3D an, und
+der Viewer landet im dokumentierten Zustand [F] – nie grundlos in [U].
+
+**Grenze, ausdrücklich.** Beide zusammen bleiben **notwendig, nicht
+hinreichend**: Ein Sitzungs-Plugin mit kaputtem Widget-Framebuffer oder ein
+Widget-Lebenszyklus ohne Resize führt weiterhin zu „ready ohne Frame". Der
+Viewer hat dafür keinen Selbsttest (`show_mesh` setzt `ready` unbedingt,
+`initFailed` feuert nur bei Ausnahmen). Ein beobachtender Renderbeweis am
+Viewer (`frameSwapped`, `defaultFramebufferObject()`) wurde erwogen und
+bewusst **nicht** in diesen Schritt genommen: Er ist eine eigene Zustandsmaschine
+mit Timer-Semantik und berührt die Abnahmekriterien der nativen
+3D-Screenshots. Das gehört in ein eigenes Issue, nicht in diesen Fix.
 
 **Kein zweiter sichtbarer Zustand.** Erwogen und verworfen wurde ein eigener
 i18n-Key „Kontext ja, kein Framebuffer" neben `preview3d.unavailable`. Die
-Handlungsoption ist in beiden Fällen dieselbe (2D weiterverwenden oder
-„Erneut versuchen"), der Preis wären sechs Sprachtabellen und eine zweite
-Zeile im UX-Vertrag. Stattdessen nennt der Text jetzt das Ergebnis („kann
-kein OpenGL 2.1 rendern") statt einer der beiden Ursachen; der technische
-Kurzgrund steht in `RendererCapability.detail`, die Renderer-Provenienz
-seither auch im Fehlerfall in `diagnostic`.
+Handlungsoption ist in allen Fällen dieselbe (2D weiterverwenden oder „Erneut
+versuchen"), der Preis wären sechs Sprachtabellen und eine zweite Zeile im
+UX-Vertrag. Stattdessen nennt der Text jetzt das Ergebnis („kann kein
+OpenGL 2.1 rendern") statt einer der Ursachen; der technische Kurzgrund steht
+in `RendererCapability.detail`, die Renderer-Provenienz seither auch im
+Fehlerfall in `diagnostic`.
+
+**Eine Quelle statt vier Kopien.** `NON_RENDERABLE_PLATFORMS` lebt in
+`preview3d_capability`; `scripts/gl_stress_probe.py` re-exportiert sie, die
+Skip-Weichen von `tests/test_viewer_3d_gl.py`, `tests/test_screenshot3d.py`
+und `tests/test_benchmark_preview3d_live.py` beziehen sie von dort. Vorher
+führte jede der vier Stellen dieselbe Menge eigenständig – eine Drift hätte
+bedeutet, dass Sonde und Anwendung verschiedene Plattformen für renderfähig
+halten, und das wäre still geblieben. Der Wächter
+`test_no_second_source_declares_the_non_renderable_platforms` scannt
+`bgremover/`, `scripts/` und `tests/` auf das Mengenliteral und fängt damit
+auch eine künftige fünfte Kopie, nicht nur die vier bekannten. Die vierte
+Kopie hat genau dieser Wächter gefunden – von Hand übersehen.
 
 **Evidenz Nr. 1 gilt für die Runner, nicht für „offscreen".** Der Satz
-„`offscreen` ohne X liefert real `QOpenGLContext.create() == False`" bleibt
-für die GitHub-Runner richtig und ist dort weiterhin der echte
-Fallback-Nachweis. Er ist aber keine Eigenschaft der Plattform: Derselbe
-Aufruf gelingt auf dem Pi. Modul-Docstring und Tests sagen das seit #1002
-so; die Testweiche ist die produktive Regel (`gl_capability_ok` in
-`tests/conftest.py`), nicht der Plattformname (#1001).
+„`offscreen` ohne X liefert real `QOpenGLContext.create() == False`" bleibt für
+die GitHub-Runner richtig. Er ist aber keine Eigenschaft der Plattform:
+Derselbe Aufruf gelingt auf dem Pi und unter `xvfb`. Modul-Docstring, Tests und
+der Fixture-Kommentar sagen das seit #1002 so. Nebeneffekt der Plattformregel:
+`gl_capability_ok` ist unter `offscreen` wieder **deterministisch** falsch, der
+Skip aus #1001 im Fallback-Test damit gegenstandslos – der Test misst wieder.
 
-**Preflight-Sonde.** `scripts/qt_gl_probe.py` übernimmt dieselbe Regel als
-dritte vom Produktivpfad geerbte Regel (neben ES-Abweisung und vollständiger
-GL-Provenienz) und meldet sie unter der bestehenden Stufe `kontext` – der
-Reparaturweg ist derselbe (GPU-Treiber der angemeldeten Sitzung), der
-konkrete Grund steht im `detail`. Eine fünfte Stufe hätte vier Kopien
-(`STAGES`, `PROBE_STAGE_HINTS`, CLAUDE.md, RELEASE_AUTOMATION §4.1) für
-denselben Befund nach sich gezogen.
+**Preflight-Sonde.** `scripts/qt_gl_probe.py` braucht die Plattformregel nicht:
+Ihre `NATIVE_PLATFORMS`-**Whitelist** (`cocoa`/`xcb`/`wayland`/`wayland-egl`)
+ist strenger und weist `offscreen` bereits ab. Sie übernimmt nur den
+Render-Nachweis als dritte vom Produktivpfad geerbte Regel (neben ES-Abweisung
+und vollständiger GL-Provenienz) und meldet ihn unter der bestehenden Stufe
+`kontext` – der Reparaturweg ist derselbe (GPU-Treiber der angemeldeten
+Sitzung). Eine fünfte Stufe hätte vier Kopien (`STAGES`, `PROBE_STAGE_HINTS`,
+CLAUDE.md, RELEASE_AUTOMATION §4.1) für denselben Befund nach sich gezogen.
 
-**Nachweis.** Der Zustand „Kontext ohne Framebuffer" lässt sich nicht überall
-herstellen; die Zweige sind deshalb in `tests/test_preview3d_capability.py`
-und `tests/test_qt_gl_probe.py` über gefakte Qt-Klassen abgedeckt, inklusive
-der Bindung an Größe, Attachment und `glClear`-Maske des Viewers. Die
-Gegenprobe auf echter Hardware ist ein `make check` auf dem Pi.
+**Nebenbefund: die Probe setzt eine laufende `QGuiApplication` voraus.**
+Gemessen: Ohne Instanz liefert `QGuiApplication.platformName()` einen
+Vorgabewert (hier `'xcb'`) und ignoriert `QT_QPA_PLATFORM` – die Plattformregel
+prüfte also eine Plattform, die gar nicht läuft. Der Probelauf endete in diesem
+Zustand ohnehin mit **SIGSEGV** in `ctx.create()` (Exit 139, ohne jede
+Ausgabe; Qt dereferenziert dort ungeprüft). Statt in diesen Absturz zu laufen,
+ist „keine laufende Anwendung" jetzt ein benannter Befund. Im Anwendungsprozess
+existiert die Instanz immer; `scripts/abnahme_probe.py`,
+`scripts/abnahme_scale_probe.py` und `scripts/benchmark.py` legen sie vorher an
+– dieses Muster muss jeder künftige Aufrufer beibehalten.
+
+**Nachweis.** Plattformregel und Render-Nachweis sind in
+`tests/test_preview3d_capability.py` und `tests/test_qt_gl_probe.py` über
+gefakte Qt-Klassen abgedeckt – inklusive der Gegenprobe, dass Sitzungs-Plugins
+und unbekannte Namen passieren, und der Bindung des FBO an Größe, Attachment
+und `glClear`-Maske des Viewers. Der Zustand „Sitzungsplattform, Kontext ohne
+Framebuffer" ist nicht überall herstellbar; die Gegenprobe auf echter Hardware
+ist ein `make check` auf dem Pi.

@@ -13,7 +13,11 @@ import pytest
 from PyQt6.QtWidgets import QApplication
 
 from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
-from bgremover.preview3d_capability import probe_3d_capability, reset_capability_cache
+from bgremover.preview3d_capability import (
+    NON_RENDERABLE_PLATFORMS,
+    probe_3d_capability,
+    reset_capability_cache,
+)
 from bgremover.relief_mesh import MeshQuality, build_relief_mesh
 from bgremover.viewer_3d import GLReliefViewer, gl_resource_stats, reset_gl_resource_stats
 
@@ -23,7 +27,9 @@ pytestmark = pytest.mark.gl_smoke
 _STRESS_CYCLES = 110
 
 # QPA-Plattformen ohne QOpenGLWidget-FBO – dort ist kein echtes Rendern möglich.
-_NON_RENDERABLE = {"offscreen", "minimal", "vnc"}
+# Seit #1002 kommt die Menge aus dem Produktivpfad: Dieselbe Regel entscheidet
+# das 3D-Gating, eine eigene Kopie hier könnte davon abdriften.
+_NON_RENDERABLE = NON_RENDERABLE_PLATFORMS
 
 
 def _require_renderable(qapp) -> None:

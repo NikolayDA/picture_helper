@@ -7,15 +7,29 @@ Mock getestet werden kann; die Standard-Probe kapselt den Qt-Zugriff und wirft
 **nie** – jeder Fehler wird als strukturierte :class:`RendererCapability`
 (``ok=False`` + i18n-Key) zurückgegeben.
 
-Gemessen wird **Renderfähigkeit**, nicht bloß Kontextexistenz (#1002): Nach
-Kontext, Oberfläche und GL-2.1-Funktionssatz folgt ein minimaler Render-Nachweis
-in ein ``QOpenGLFramebufferObject``. ``QOpenGLWidget`` legt seinen
-Widget-Framebuffer genau so an (``CombinedDepthStencil``, anschließend
-``glClear``); ein Kontext ohne nutzbares Framebuffer-Objekt meldete sonst
-„verfügbar", während der Viewer keinen Frame erzeugt und Qt nur
-``QOpenGLWidget: No fbo, cannot render`` protokolliert. Der Nachweis ist eine
-**notwendige**, keine hinreichende Bedingung: Bleibt der Widget-Framebuffer aus
-Gründen des Widget-Lebenszyklus aus, sieht ihn keine Probe.
+Gemessen wird **Renderfähigkeit**, nicht bloß Kontextexistenz (#1002) – in
+zwei Regeln, die verschiedene Ausfälle fangen:
+
+1. **Plattformregel** (:data:`NON_RENDERABLE_PLATFORMS`, zuerst geprüft, ohne
+   jeden GL-Aufruf). ``QOpenGLWidget`` braucht eine Plattformintegration mit
+   ``RhiBasedRendering``; fehlt sie, warnt Qt im Widget-Konstruktor
+   („QOpenGLWidget is not supported on this platform."), ``initialize()``
+   gelingt trotzdem, und erst ``render()`` meldet
+   ``QOpenGLWidget: No fbo, cannot render``. **Das ist der Ausfall aus #1002**
+   – reproduziert mit ``xvfb-run`` + ``QT_QPA_PLATFORM=offscreen``: Kontext,
+   Funktionssatz und Framebuffer-Objekt gelingen alle, der Viewer rendert
+   trotzdem nie (``defaultFramebufferObject() == 0``).
+2. **Render-Nachweis** (:func:`_render_probe`, nach dem GL-2.1-Funktionssatz):
+   ein kleines ``QOpenGLFramebufferObject`` derselben Bauart, die
+   ``QOpenGLWidget`` für seinen Widget-Framebuffer anlegt. Er fängt eine
+   **andere** Klasse – Treiber, die auf einer Sitzungsplattform kein
+   vollständiges Render-Ziel liefern – und ausdrücklich **nicht** den Fall
+   oben.
+
+Beide Regeln sind fail-open gebaut: Sie können 3D auf tauglicher Hardware
+nicht abschalten. Zusammen bleiben sie **notwendig, nicht hinreichend** –
+bleibt der Widget-Framebuffer aus Gründen des Widget-Lebenszyklus aus, sieht
+ihn keine Probe.
 
 Ob ``offscreen`` einen GL-Kontext liefert, ist eine Eigenschaft des Rechners,
 keine der Plattform: Die GitHub-Runner liefern real
@@ -33,6 +47,24 @@ from bgremover.constants import logger
 
 # i18n-Key für den „nicht verfügbar"-Zustand (UX §5, Zustand [U]).
 UNAVAILABLE_KEY = "preview3d.unavailable"
+
+#: Qt-Platform-Plugins, unter denen ``QOpenGLWidget`` grundsätzlich keinen
+#: Frame erzeugt – **die** geteilte Quelle dieser Regel (#1002). Die
+#: Plattformintegration dieser Plugins meldet kein ``RhiBasedRendering``; Qt
+#: warnt im Widget-Konstruktor („QOpenGLWidget is not supported on this
+#: platform.") und ``render()`` bricht später mit „No fbo, cannot render" ab.
+#: Die zugrunde liegende Fähigkeit ist in PyQt6 nicht abfragbar, der
+#: Plugin-Name ist der verfügbare, deterministische Stellvertreter.
+#:
+#: Bewusst eine **Blockliste**, keine Whitelist: Ein unbekanntes oder neues
+#: Plugin bleibt erlaubt. Die Fehlerrichtung ist damit dieselbe wie beim
+#: Render-Nachweis – 3D auf tauglicher Hardware wird nie abgeschaltet; im
+#: Zweifel landet der Viewer im dokumentierten Fehlerzustand [F] statt
+#: grundlos im Zustand [U]. Ergänzt wird nur mit beobachteter Qt-Meldung.
+#:
+#: ``scripts/gl_stress_probe.py`` und ``tests/test_viewer_3d_gl.py`` führten
+#: dieselbe Menge je als eigene Kopie; beide beziehen sie jetzt von hier.
+NON_RENDERABLE_PLATFORMS: frozenset[str] = frozenset({"offscreen", "minimal", "vnc"})
 
 
 @dataclass(frozen=True)
@@ -61,11 +93,11 @@ _cached: RendererCapability | None = None
 def _default_probe() -> RendererCapability:
     """Standard-Qt-Probe: erzeugt lazy einen Offscreen-GL-2.1-Kontext.
 
-    Kapselt jeden Qt-/Treiberfehler in eine ``ok=False``-Capability. Ein reiner
-    OpenGL-ES-Kontext gilt als „nicht 3D-fähig" (PyQt6 bindet keine ES-
-    Funktionssätze, ADR) → Fallback. Zuletzt läuft der Render-Nachweis
-    (:func:`_render_probe`) – ohne ihn meldete die Probe „verfügbar" für einen
-    Kontext, in den der Viewer nicht zeichnen kann (#1002).
+    Prüfreihenfolge: Plattformregel (ohne GL-Aufruf), Kontext, Oberfläche +
+    ``makeCurrent()``, ES-Abweisung, GL-2.1-Funktionssatz, Provenienz,
+    Render-Nachweis. Kapselt jeden Qt-/Treiberfehler in eine
+    ``ok=False``-Capability. Ein reiner OpenGL-ES-Kontext gilt als „nicht
+    3D-fähig" (PyQt6 bindet keine ES-Funktionssätze, ADR) → Fallback.
     """
     try:
         from PyQt6.QtGui import QOffscreenSurface, QOpenGLContext, QSurfaceFormat
@@ -74,6 +106,11 @@ def _default_probe() -> RendererCapability:
             QOpenGLVersionProfile,
         )
 
+        platform_error = _platform_render_support()
+        if platform_error is not None:
+            return RendererCapability(
+                ok=False, error_key=UNAVAILABLE_KEY, detail=platform_error,
+            )
         fmt = QSurfaceFormat()
         fmt.setVersion(2, 1)
         fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
@@ -138,6 +175,33 @@ _GL_COLOR_BUFFER_BIT = 0x00004000
 #: Kantenlänge des Nachweis-Framebuffers. Vier Pixel genügen: geprüft wird, ob
 #: der Kontext ein vollständiges Render-Ziel liefert, nicht dessen Inhalt.
 _RENDER_PROBE_PX = 4
+
+
+def _platform_render_support() -> str | None:
+    """Trägt das aktive Qt-Platform-Plugin überhaupt eine GL-Widget-Fläche?
+
+    Die eigentliche Bedingung ist ``QPlatformIntegration::RhiBasedRendering``;
+    PyQt6 bindet sie nicht, der Plugin-Name ist der Stellvertreter (siehe
+    :data:`NON_RENDERABLE_PLATFORMS`). Liefert ``None``, wenn nichts dagegen
+    spricht.
+
+    **Ohne laufende ``QGuiApplication`` gibt es keine Aussage.** Gemessen:
+    ``QGuiApplication.platformName()`` liefert dann einen Vorgabewert (hier
+    ``'xcb'``) und ignoriert ``QT_QPA_PLATFORM`` – die Regel prüfte also eine
+    Plattform, die gar nicht läuft. Der ganze Probelauf setzt die Anwendung
+    ohnehin voraus (``ctx.create()`` endet sonst mit SIGSEGV, reproduziert);
+    statt in diesen Absturz zu laufen, ist das hier ein benannter Befund. Im
+    Anwendungsprozess existiert die Instanz immer, die Skripte in ``scripts/``
+    legen sie vorher an.
+    """
+    from PyQt6.QtGui import QGuiApplication
+
+    if QGuiApplication.instance() is None:
+        return "Keine laufende QGuiApplication – Plattform nicht bestimmbar"
+    name = str(QGuiApplication.platformName() or "")
+    if name in NON_RENDERABLE_PLATFORMS:
+        return f"Qt-Plattform {name!r} trägt keine OpenGL-Widget-Fläche"
+    return None
 
 
 def _render_probe(fns: object) -> str | None:
