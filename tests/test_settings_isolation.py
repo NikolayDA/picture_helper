@@ -53,12 +53,20 @@ def test_umlenkung_greift_ausserhalb_von_macos(settings_isolated) -> None:
     assert settings_isolated or sys.platform == "darwin"
 
 
-def test_subprozesse_erben_ein_umgelenktes_konfigverzeichnis() -> None:
-    """Die App-Smoke-Tests starten eigene Prozesse; die Umlenkung im Prozess
-    wirkt dort nicht. Für sie trägt allein ``XDG_CONFIG_HOME`` (Linux)."""
-    xdg = os.environ.get("XDG_CONFIG_HOME")
-    assert xdg, "XDG_CONFIG_HOME ist nicht gesetzt – Subprozesse schreiben real."
-    assert not Path(xdg).resolve().is_relative_to((Path.home() / ".config").resolve())
+@pytest.mark.parametrize(
+    ("variable", "echter_ort"),
+    [
+        ("XDG_CONFIG_HOME", ".config"),   # QSettings der Subprozesse
+        ("XDG_DATA_HOME", ".local"),      # Log-Verzeichnis aus logging_config
+        ("XDG_CACHE_HOME", ".cache"),
+    ],
+)
+def test_subprozesse_erben_umgelenkte_standardpfade(variable, echter_ort) -> None:
+    """Die App-Smoke-Tests starten eigene Prozesse; die Umlenkungen im Prozess
+    wirken dort nicht. Für sie tragen allein die XDG-Variablen (Linux)."""
+    wert = os.environ.get(variable)
+    assert wert, f"{variable} ist nicht gesetzt – Subprozesse schreiben real."
+    assert not Path(wert).resolve().is_relative_to((Path.home() / echter_ort).resolve())
 
 
 def test_locale_startet_je_test_auf_dem_default() -> None:

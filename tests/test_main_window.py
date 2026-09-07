@@ -526,7 +526,7 @@ def test_inspector_ai_button_disabled_when_rembg_missing(tmp_path, qapp, monkeyp
     from bgremover.i18n import tr
 
     monkeypatch.setattr(mw, "REMBG_AVAILABLE", False)
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         _load_dummy_image(win, tmp_path)
         assert not win._right_panel.ai_button.isEnabled()
@@ -543,7 +543,7 @@ def test_ai_controls_stay_in_sync_for_warmup_and_running_ai(tmp_path, qapp, monk
     from bgremover.i18n import tr
 
     monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         _load_dummy_image(win, tmp_path)
         assert win._right_panel.ai_button.isEnabled()
@@ -576,12 +576,12 @@ def test_ai_controls_stay_in_sync_for_warmup_and_running_ai(tmp_path, qapp, monk
         win.close()
 
 
-def test_ai_button_tooltip_explains_missing_image(tmp_path, qapp, monkeypatch):
+def test_ai_button_tooltip_explains_missing_image(qapp, monkeypatch):
     """#531: Ohne geladenes Bild erklärt der Tooltip den Sperrgrund."""
     from bgremover.i18n import tr
 
     monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         assert not win._right_panel.ai_button.isEnabled()
         assert (
@@ -901,14 +901,14 @@ def test_open_recent_path_dispatches_image_vs_project(win, monkeypatch):
     ]
 
 
-def _isolated_window(tmp_path):
+def _isolated_window():
     win = MainWindow()
     win._recent_files.clear()
     return win
 
 
 def test_save_project_remembers_recent_and_directory(tmp_path, qapp, monkeypatch):
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         _load_dummy_image(win, tmp_path)
         target = str(tmp_path / "p")            # ohne Endung → wird ergänzt
@@ -924,7 +924,7 @@ def test_save_project_remembers_recent_and_directory(tmp_path, qapp, monkeypatch
 
 
 def test_open_project_from_recent_round_trips(tmp_path, qapp, monkeypatch):
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         _load_dummy_image(win, tmp_path, color=(7, 8, 9, 255))
         win._canvas.add_layer()
@@ -945,12 +945,12 @@ def test_open_project_from_recent_round_trips(tmp_path, qapp, monkeypatch):
         win.close()
 
 
-def test_adopt_project_syncs_inline_resize_fields(tmp_path, qapp):
+def test_adopt_project_syncs_inline_resize_fields(qapp):
     """#448: Projektpfade spiegeln ihre Größe ebenfalls in Schritt 4."""
     from bgremover.project_model import LayerKind, Project
     from bgremover.stepper import WorkflowStep
 
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         project = Project(77, 66)
         project.create_layer(
@@ -970,7 +970,7 @@ def test_adopt_project_syncs_inline_resize_fields(tmp_path, qapp):
 
 # ── Theme-Umschaltung (Epic #424, Issue #428) ────────────────
 
-def test_toggle_light_mode_switches_palette_rebuilds_panel_and_persists(tmp_path, qapp):
+def test_toggle_light_mode_switches_palette_rebuilds_panel_and_persists(qapp):
     """Hell schalten wechselt die Palette, baut das Panel neu auf, merkt den Modus."""
     from PyQt6.QtWidgets import QApplication
 
@@ -984,7 +984,7 @@ def test_toggle_light_mode_switches_palette_rebuilds_panel_and_persists(tmp_path
     original_sheet = app.styleSheet() if app is not None else ""
     original_palette = app.palette() if app is not None else None
     set_active_palette(DARK)
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         old_frame = win._right_frame
 
@@ -1028,7 +1028,7 @@ def test_theme_rebuild_restores_selection_controls(tmp_path, qapp):
     original_sheet = app.styleSheet() if app is not None else ""
     original_palette = app.palette() if app is not None else None
     set_active_palette(DARK)
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         _load_dummy_image(win, tmp_path)
         win._right_panel.tolerance_slider.setValue(42)
@@ -1051,7 +1051,7 @@ def test_theme_rebuild_restores_selection_controls(tmp_path, qapp):
         win.close()
 
 
-def test_ai_status_icon_recolors_on_theme_toggle(tmp_path, qapp):
+def test_ai_status_icon_recolors_on_theme_toggle(qapp):
     """Die KI-Hinweis-Grafik der Statuszeile folgt der Palette (``text3``) beim
     Theme-Wechsel, statt in der alten Schemafarbe hängen zu bleiben."""
     from PyQt6.QtWidgets import QApplication
@@ -1062,7 +1062,7 @@ def test_ai_status_icon_recolors_on_theme_toggle(tmp_path, qapp):
     original_sheet = app.styleSheet() if app is not None else ""
     original_palette = app.palette() if app is not None else None
     set_active_palette(DARK)
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         # ``_light_mode`` kommt aus QSettings und muss trotz isolierter
         # Settings-Datei nicht zwingend Dunkel als Ausgangszustand haben –
@@ -1087,12 +1087,12 @@ def test_ai_status_icon_recolors_on_theme_toggle(tmp_path, qapp):
         win.close()
 
 
-def test_toggle_light_mode_noop_when_already_active(tmp_path, qapp):
+def test_toggle_light_mode_noop_when_already_active(qapp):
     """Ein Umschalten auf den bereits aktiven Modus baut nichts neu auf."""
     from bgremover.theme import DARK, set_active_palette
 
     set_active_palette(DARK)
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         frame = win._right_frame
         win._toggle_light_mode(win._light_mode)  # bereits aktiver Modus
@@ -1104,13 +1104,13 @@ def test_toggle_light_mode_noop_when_already_active(tmp_path, qapp):
 
 # ── Standard-/Experten-Umschalter (#806, Epic #805) ──────────────────────
 
-def test_expert_mode_defaults_to_standard_and_persists_on_toggle(tmp_path, qapp):
+def test_expert_mode_defaults_to_standard_and_persists_on_toggle(qapp):
     """Default ist Standard-Modus; Umschalten merkt sich den Zustand (QSettings)."""
     from bgremover.settings_schema import EXPERT_MODE_KEY
 
     # Beobachtbar sind der Umschalter und der persistierte Wert; das private
     # ``_expert_mode`` sagte darüber hinaus nichts aus (#869).
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         assert not win._right_panel.expert_toggle.isChecked()
 
@@ -1125,9 +1125,9 @@ def test_expert_mode_defaults_to_standard_and_persists_on_toggle(tmp_path, qapp)
         win.close()
 
 
-def test_expert_mode_restored_from_settings_on_next_launch(tmp_path, qapp):
+def test_expert_mode_restored_from_settings_on_next_launch(qapp):
     """Ein neu erzeugtes ``MainWindow`` liest den zuletzt gemerkten Modus."""
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         win._right_panel.expert_toggle.setChecked(True)
     finally:
@@ -1140,12 +1140,12 @@ def test_expert_mode_restored_from_settings_on_next_launch(tmp_path, qapp):
         win2.close()
 
 
-def test_expert_mode_survives_theme_rebuild(tmp_path, qapp):
+def test_expert_mode_survives_theme_rebuild(qapp):
     """#806-AC: der Modus bleibt beim (Theme-getriebenen) Panel-Neuaufbau erhalten."""
     from bgremover.theme import DARK, set_active_palette
 
     set_active_palette(DARK)
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         win._right_panel.expert_toggle.setChecked(True)
         win._toggle_light_mode(True)
@@ -1254,20 +1254,20 @@ def test_update_check_result_available_opens_release_page(win, monkeypatch):
 
 # ── Automatischer Start-Update-Check (#566) ─────────────────────────────
 
-def test_no_startup_update_check_when_setting_disabled(tmp_path, qapp, monkeypatch):
+def test_no_startup_update_check_when_setting_disabled(qapp, monkeypatch):
     """Default aus: kein Netzwerkzugriff (start_update_check) beim Start."""
     calls: list[str] = []
     monkeypatch.setattr(
         mw.WorkerController, "start_update_check",
         lambda self, *a, **kw: calls.append("started") or True)
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         assert calls == []
     finally:
         win.close()
 
 
-def test_startup_update_check_runs_when_setting_enabled(tmp_path, qapp, monkeypatch):
+def test_startup_update_check_runs_when_setting_enabled(qapp, monkeypatch):
     from bgremover.settings_schema import AUTO_UPDATE_CHECK_KEY
 
     calls: list[str] = []
@@ -1279,7 +1279,7 @@ def test_startup_update_check_runs_when_setting_enabled(tmp_path, qapp, monkeypa
     presettings.setValue(AUTO_UPDATE_CHECK_KEY, True)
     presettings.sync()
 
-    win = _isolated_window(tmp_path)
+    win = _isolated_window()
     try:
         assert calls == ["started"]
     finally:

@@ -17,16 +17,21 @@ from pathlib import Path
 if os.environ.get("ABNAHME_REQUIRE_NATIVE_3D") != "1":
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-# Konfigurationspfad der *Subprozesse* umlenken: die App-Smoke-Tests starten
+# Standardpfade der *Subprozesse* umlenken: die App-Smoke-Tests starten
 # ``python -m bgremover`` bzw. ein eigenes ``MainWindow`` in einem eigenen
-# Prozess, den der Qt-Testmodus weiter unten nicht erreicht (der wirkt nur
-# prozesslokal). Ohne diese Zeile schreibt der Testlauf ``recent_files`` &
-# Co. in die echte Nutzerkonfiguration. ``XDG_CONFIG_HOME`` wird sonst
-# nirgends ausgewertet, das Setzen ist also nebenwirkungsfrei -- deckt aber
-# nur Linux ab; unter macOS legt Qt seine Preferences unabhängig davon an.
-_XDG_CONFIG_TMP = tempfile.mkdtemp(prefix="bgremover-tests-config-")
-os.environ["XDG_CONFIG_HOME"] = _XDG_CONFIG_TMP
-atexit.register(shutil.rmtree, _XDG_CONFIG_TMP, ignore_errors=True)
+# Prozess. Die Umlenkungen unten wirken nur prozesslokal und erreichen ihn
+# nicht; ohne diese Zeilen schreibt der Testlauf ``recent_files`` & Co. in
+# die echte Nutzerkonfiguration und legt sein Log unter
+# ``~/.local/share/BgRemover/`` an (``logging_config`` nutzt
+# ``AppDataLocation``, also ``XDG_DATA_HOME`` -- nicht ``XDG_CONFIG_HOME``).
+# Deckt nur Linux ab: unter macOS legt Qt seine Preferences unabhängig von
+# XDG an. Nebenwirkung, bewusst in Kauf genommen: ``git`` liest
+# ``$XDG_CONFIG_HOME/git/config``; es fällt hier auf ``~/.gitconfig``
+# zurück, was die Doku-Governance-Tests nicht stört.
+_XDG_TMP = tempfile.mkdtemp(prefix="bgremover-tests-xdg-")
+atexit.register(shutil.rmtree, _XDG_TMP, ignore_errors=True)
+for _xdg_var in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"):
+    os.environ[_xdg_var] = str(Path(_XDG_TMP) / _xdg_var.lower())
 
 # QStandardPaths-Testmodus: verlegt die schreibbaren Standardpfade in einen
 # eigenen Zweig (``~/.qttest``). Betrifft hier vor allem den Log-Pfad aus
