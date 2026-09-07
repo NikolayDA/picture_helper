@@ -158,7 +158,21 @@ Ein Paket, `bgremover/`:
   `preview3d_capability.py` — Laufzeit-Probe (`probe_3d_capability`, über
   `probe_fn` mockbar) für Desktop-GL ≥ 2.1; wirft nie, liefert strukturiertes
   `RendererCapability`, je Sitzung gecacht (`reset_capability_cache` = „Erneut
-  versuchen"). Der Offscreen-CI-Pfad trifft real den Fallback-Zweig.
+  versuchen"). Gemessen wird seit #1002 **Renderfähigkeit**, nicht bloß
+  Kontextexistenz: Nach Kontext/Oberfläche/GL-2.1-Funktionen läuft
+  `_render_probe` — ein 4 × 4-`QOpenGLFramebufferObject` mit
+  `CombinedDepthStencil`, gebunden und per `glClear` geleert. Das ist bitgenau
+  die Folge, die `QOpenGLWidgetPrivate::recreateFbos` für den
+  Widget-Framebuffer fährt; die Probe kann damit **nie strenger** sein als der
+  Viewer (kein Falsch-Negativ), fängt aber den real beobachteten Zustand
+  „Kontext ja, kein Framebuffer" (Raspberry Pi 5, Broadcom V3D + Mesa), in dem
+  der 3D-Tab bereit meldete und leer blieb. Notwendige, nicht hinreichende
+  Bedingung: Bleibt der Widget-Framebuffer aus Gründen des
+  Widget-Lebenszyklus aus, sieht ihn keine Probe. Die Provenienz
+  (`diagnostic`) steht seither auch im Fehlerfall, sobald sie gemessen wurde.
+  Ob `offscreen` einen Kontext liefert, ist eine Eigenschaft des Rechners,
+  keine der Plattform — die GitHub-Runner treffen dort real den
+  Fallback-Zweig, ein Pi nicht.
   `renderer_provenance.py` — Qt-freie, geteilte Regel `is_software_renderer`
   (#642, ADR #639): **einzige** Quelle der Wahrheit für die Erkennung reiner
   CPU-Rasterizer (llvmpipe & Co.) in einer GL-Diagnose. Release-Abnahme-Smokes
@@ -1146,7 +1160,14 @@ schweren Plattform-Job aus.
 `scripts/qt_gl_probe.py` ist die Sonde: eigener Prozess mit
 `QGuiApplication`/`QOffscreenSurface`/`QOpenGLContext`, liest
 Vendor/Renderer/Version und meldet **vier benannte** Stufen (`import`,
-`plugin`, `kontext`, `renderer`) als eine JSON-Zeile. `qt_gl_probe.STAGES`
+`plugin`, `kontext`, `renderer`) als eine JSON-Zeile. `kontext` deckt dabei
+bewusst mehr ab als „kein Kontext": Wie im Produktivpfad gelten auch ein
+reiner ES-Kontext, eine unvollständige GL-Provenienz und seit #1002 ein
+Kontext ohne nutzbares Framebuffer-Objekt als unbrauchbarer Kontext — der
+Grund steht im `detail`. Eine eigene Stufe je Teilregel führte denselben
+Reparaturweg (GPU-Treiber der Sitzung) unter vier Namen und zöge vier
+Kopien in `PROBE_STAGE_HINTS`, CLAUDE.md und RELEASE_AUTOMATION nach sich.
+`qt_gl_probe.STAGES`
 ist die Quelle dieses Stufenvertrags (#992): `_fail` nimmt nur diese Namen
 an, und die Hinweistabelle `abnahme_preflight.PROBE_STAGE_HINTS` wird in
 `tests/test_abnahme_preflight.py` gegen genau diese Menge gehalten. Die
@@ -1181,8 +1202,11 @@ still (`make check` grün, im Joblog wieder nur `ok: qt-gl`).
 Die Software-Renderer-Regel kommt aus `renderer_provenance` (#642) — geladen
 über den **Dateipfad**, nicht als Paketimport: `bgremover.constants` zöge
 Pillow nach, das die schlanke Runtime bewusst nicht hat. Die GL-Konstanten
-hält `tests/test_qt_gl_probe.py` gegen `preview3d_capability`, damit
-Preflight und Plattform-Job nicht verschiedene Werte auslesen.
+(`glGetString`-Namen, `glClear`-Masken, Kantenlänge des Nachweis-FBO) hält
+`tests/test_qt_gl_probe.py` gegen `preview3d_capability`, damit Preflight und
+Plattform-Job nicht verschiedene Werte auslesen; für die drei vom
+Produktivpfad übernommenen Regeln (ES-Abweisung, vollständige Provenienz,
+Render-Nachweis #1002) bindet derselbe Test beide Quelltexte aneinander.
 
 Die Runtime ist **nicht** das Release-venv, sondern ein zwischengespeichertes
 venv mit nur den Qt-Pins (`~/.cache/bgremover/preflight-qt`, überschreibbar

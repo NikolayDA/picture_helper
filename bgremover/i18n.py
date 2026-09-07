@@ -484,7 +484,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "um die 3D-Vorschau zu nutzen."
         ),
         "preview3d.unavailable": (
-            "3D-Vorschau nicht verfügbar: Diese Umgebung bietet kein OpenGL 2.1. "
+            "3D-Vorschau nicht verfügbar: Diese Umgebung kann kein OpenGL 2.1 rendern. "
             "Die 2D-Reliefvorschau steht weiterhin zur Verfügung."
         ),
         "preview3d.loading": "3D-Vorschau wird berechnet…",
@@ -1407,7 +1407,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "3D preview."
         ),
         "preview3d.unavailable": (
-            "3D preview unavailable: this environment does not provide OpenGL 2.1. "
+            "3D preview unavailable: this environment cannot render OpenGL 2.1. "
             "The 2D relief preview remains available."
         ),
         "preview3d.loading": "Computing 3D preview…",
@@ -2337,7 +2337,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "para usar la vista previa 3D."
         ),
         "preview3d.unavailable": (
-            "Vista previa 3D no disponible: este entorno no ofrece OpenGL 2.1. "
+            "Vista previa 3D no disponible: este entorno no puede renderizar con OpenGL 2.1. "
             "La vista previa de relieve 2D sigue disponible."
         ),
         "preview3d.loading": "Calculando vista previa 3D…",
@@ -3271,7 +3271,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Hauteur pour utiliser l'aperçu 3D."
         ),
         "preview3d.unavailable": (
-            "Aperçu 3D indisponible : cet environnement ne fournit pas OpenGL 2.1. "
+            "Aperçu 3D indisponible : cet environnement ne peut pas rendre en OpenGL 2.1. "
             "L'aperçu du relief 2D reste disponible."
         ),
         "preview3d.loading": "Calcul de l'aperçu 3D…",
@@ -4205,7 +4205,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "користуватися 3D-переглядом."
         ),
         "preview3d.unavailable": (
-            "3D-перегляд недоступний: це середовище не надає OpenGL 2.1. "
+            "3D-перегляд недоступний: це середовище не може виконати рендеринг OpenGL 2.1. "
             "2D-перегляд рельєфу залишається доступним."
         ),
         "preview3d.loading": "Обчислення 3D-перегляду…",
@@ -5118,7 +5118,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "尚无高度图。请在“高度”标签页中创建高度图，以使用 3D 预览。"
         ),
         "preview3d.unavailable": (
-            "3D 预览不可用：此环境不提供 OpenGL 2.1。2D 浮雕预览仍然可用。"
+            "3D 预览不可用：此环境无法使用 OpenGL 2.1 渲染。2D 浮雕预览仍然可用。"
         ),
         "preview3d.loading": "正在计算 3D 预览…",
         "preview3d.ready_hint": (

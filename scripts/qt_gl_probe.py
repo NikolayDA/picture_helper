@@ -27,8 +27,14 @@ melden kann statt als "irgendwas mit Qt":
 
 ``import``    PyQt-/Qt-Runtime fehlt oder ist unbrauchbar
 ``plugin``    kein Sitzungs-Plugin (Headless oder anderes Nicht-Sitzungs-Plugin)
-``kontext``   kein gueltiger, aktueller GL-Kontext
+``kontext``   kein gueltiger, aktueller, renderfaehiger GL-Kontext
 ``renderer``  Kontext laeuft auf einem Software-Rasterizer
+
+``kontext`` deckt bewusst mehr ab als "kein Kontext": Wie im Produktivpfad
+gelten auch ein reiner ES-Kontext, eine unvollstaendige GL-Provenienz und seit
+#1002 ein Kontext ohne nutzbares Framebuffer-Objekt als unbrauchbarer Kontext.
+Der Grund steht jeweils im ``detail`` - eine eigene Stufe je Teilregel haette
+denselben Reparaturweg (GPU-Treiber der Sitzung) unter vier Namen gefuehrt.
 
 Ein Abbruch **ohne** JSON-Zeile ist ebenfalls ein Befund: Qt beendet den
 Prozess bei fehlendem Platform-Plugin hart (``qFatal``), statt eine Ausnahme
@@ -74,6 +80,13 @@ NATIVE_PLATFORMS: tuple[str, ...] = ("cocoa", "xcb", "wayland", "wayland-egl")
 GL_VENDOR = 0x1F00
 GL_RENDERER = 0x1F01
 GL_VERSION = 0x1F02
+
+#: Rohe ``glClear``-Masken und die Kantenlaenge des Nachweis-Framebuffers -
+#: ebenfalls identisch zum Produktivpfad (``preview3d_capability``).
+GL_DEPTH_BUFFER_BIT = 0x00000100
+GL_STENCIL_BUFFER_BIT = 0x00000400
+GL_COLOR_BUFFER_BIT = 0x00004000
+RENDER_PROBE_PX = 4
 
 
 def load_software_renderer_rule() -> Callable[[str], bool]:
@@ -246,6 +259,16 @@ def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
                 f"GL-Provenienz unvollstaendig – ohne {', '.join(missing)}",
                 platform=platform_name,
             )
+        # Dritte vom Produktivpfad uebernommene Regel (#1002): Ein Kontext, in
+        # den sich kein Framebuffer-Objekt binden und leeren laesst, traegt
+        # keine ``QOpenGLWidget``-Darstellung - das Artefakt stuft denselben
+        # Runner als nicht 3D-faehig ein, die Sonde meldete bis dahin Erfolg.
+        render_error = render_probe(fns)
+        if render_error is not None:
+            return _fail(
+                "kontext", render_error, platform=platform_name,
+                vendor=vendor, renderer=renderer, version=version,
+            )
         payload = success_payload(
             platform=platform_name, vendor=vendor, renderer=renderer, version=version,
         )
@@ -268,6 +291,57 @@ def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
         if ctx is not None:
             with contextlib.suppress(Exception):
                 ctx.doneCurrent()
+
+
+def render_probe(fns: object) -> str | None:
+    """Minimaler Render-Nachweis im aktuellen Kontext - wie im Produktivpfad.
+
+    ``QOpenGLWidget`` legt seinen Widget-Framebuffer als
+    ``QOpenGLFramebufferObject`` mit ``CombinedDepthStencil`` an, bindet ihn und
+    leert ihn; genau das wird hier in 4 x 4 Pixeln nachgestellt. Die Regel ist
+    damit nie strenger als der Viewer - ein Runner, der sie besteht, bekommt
+    dessen Framebuffer ebenfalls.
+
+    Liefert ``None`` bei Erfolg, sonst den Kurzgrund fuer die Stufe ``kontext``.
+    Wirft nie: Ein Treiberfehler ist hier ein Befund, und ein Wurf hinterliesse
+    keine JSON-Zeile.
+
+    **Setzt einen aktuellen Kontext voraus.** Qt dereferenziert in
+    ``QOpenGLFramebufferObjectPrivate::init`` den ``currentContext()``
+    ungeprueft - ohne Kontext endet der Prozess mit SIGSEGV, und ein
+    abgestuerzter Prozess hinterliesse ebenfalls keine JSON-Zeile. Die
+    Schranke unten haelt das fail-closed, obwohl ``probe`` den Kontext
+    nachweislich aktuell hat.
+    """
+    from PyQt6.QtGui import QOpenGLContext
+    from PyQt6.QtOpenGL import QOpenGLFramebufferObject
+
+    if QOpenGLContext.currentContext() is None:
+        return "Render-Nachweis ohne aktuellen Kontext angefordert"
+
+    fbo = None
+    try:
+        fbo = QOpenGLFramebufferObject(
+            RENDER_PROBE_PX, RENDER_PROBE_PX,
+            QOpenGLFramebufferObject.Attachment.CombinedDepthStencil,
+        )
+        if not fbo.isValid():
+            return "Kontext ohne vollstaendiges Framebuffer-Objekt"
+        if not fbo.bind():
+            return "Framebuffer-Objekt nicht bindbar"
+        try:
+            fns.glClear(  # type: ignore[attr-defined]
+                GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT
+            )
+        finally:
+            fbo.release()
+    except Exception as exc:  # noqa: BLE001 - Treiberfehler ist ein Befund
+        return f"Render-Nachweis fehlgeschlagen: {type(exc).__name__}: {exc}"
+    finally:
+        # Freigabe noch im aktuellen Kontext (``probe`` ruft gleich
+        # ``doneCurrent()``).
+        del fbo
+    return None
 
 
 def _gl_string(fns: object, name: int) -> str:

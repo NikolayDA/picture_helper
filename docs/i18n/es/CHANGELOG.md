@@ -52,6 +52,27 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   admitidos Debian 12, Ubuntu 22.04 y RHEL 9, mientras que Debian 11,
   Ubuntu 20.04 y RHEL 8 quedan fuera. macOS no se ve afectado.
 
+### Corregido
+
+- **La vista previa 3D indicaba «lista» aunque el entorno no podía renderizar
+  ningún fotograma (#1002).** `probe_3d_capability` solo comprobaba hechos del
+  contexto: creación del contexto, superficie offscreen actual, ausencia de un
+  contexto OpenGL ES puro y el conjunto de funciones GL 2.1. En una Raspberry
+  Pi 5 (Debian 13 «Trixie», Broadcom V3D + Mesa) los cuatro tienen éxito, pero
+  `QOpenGLWidget` registraba `No fbo, cannot render`: la pestaña 3D pasaba a
+  «lista» y luego quedaba vacía en lugar de mostrar el estado documentado «no
+  disponible» con explicación y «Reintentar». Ahora la sonda añade una prueba
+  mínima de renderizado: se crea, se enlaza y se limpia un objeto de
+  framebuffer de 4 × 4 exactamente del tipo que `QOpenGLWidget` crea para su
+  framebuffer de widget (`CombinedDepthStencil`). Como es literalmente la
+  misma secuencia del visor, la prueba nunca puede ser más estricta que el
+  propio visor: el hardware que funciona no queda excluido. La sonda del
+  preflight de aceptación (`scripts/qt_gl_probe.py`) adopta la misma regla
+  bajo su etapa existente `kontext`; la procedencia del renderizador también
+  se registra ahora en caso de fallo. El texto de «no disponible» nombra ahora
+  el resultado («no puede renderizar con OpenGL 2.1») en lugar de solo una de
+  las dos causas posibles.
+
 ## [2.9.0] – 2026-08-26
 
 ### Añadido

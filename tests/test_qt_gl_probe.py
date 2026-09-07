@@ -200,6 +200,122 @@ def test_an_opengl_es_context_is_rejected_like_in_production() -> None:
     assert "isOpenGLES()" in source and "isOpenGLES()" in production
 
 
+def _patch_current_context(monkeypatch, *, present: bool) -> None:
+    """Stellt ``QOpenGLContext.currentContext()`` fuer ``render_probe`` ein.
+
+    Ohne aktuellen Kontext stirbt Qt beim FBO-Bau mit SIGSEGV; die Sonde fragt
+    deshalb vorher. Fuer den Test genuegt ein Stand-in.
+    """
+
+    class _Ctx:
+        @staticmethod
+        def currentContext() -> object | None:  # noqa: N802
+            return object() if present else None
+
+    monkeypatch.setattr("PyQt6.QtGui.QOpenGLContext", _Ctx)
+
+
+def test_render_probe_refuses_without_a_current_context(monkeypatch) -> None:
+    """Fail-closed statt Prozessabsturz ohne JSON-Zeile."""
+    _patch_current_context(monkeypatch, present=False)
+    assert probe_module.render_probe(object()) == (
+        "Render-Nachweis ohne aktuellen Kontext angefordert"
+    )
+
+
+def test_a_context_without_framebuffer_is_rejected_like_in_production() -> None:
+    """Dritte geteilte Regel (#1002): Kontext ja, Render-Ziel nein.
+
+    Der Produktivpfad weist seit #1002 einen Kontext ab, in den sich kein
+    ``QOpenGLFramebufferObject`` binden und leeren laesst — das ist genau der
+    Framebuffer, den ``QOpenGLWidget`` selbst anlegt. Meldete die Sonde hier
+    Erfolg, bestuende ein Runner den Preflight, den das Artefakt anschliessend
+    als nicht 3D-faehig einstuft.
+    """
+    source = (ROOT / "scripts" / "qt_gl_probe.py").read_text(encoding="utf-8")
+    production = (ROOT / "bgremover" / "preview3d_capability.py").read_text(encoding="utf-8")
+    for needle in ("QOpenGLFramebufferObject", "CombinedDepthStencil", "glClear"):
+        assert needle in source and needle in production, needle
+
+
+def test_render_probe_reports_the_same_reasons_as_production(monkeypatch) -> None:
+    """Die drei Ausgaenge des Nachweises, ohne echten GL-Kontext."""
+
+    class _Fbo:
+        valid = True
+        bindable = True
+
+        class Attachment:
+            CombinedDepthStencil = "combined"
+
+        def __init__(self, w: int, h: int, attachment: object) -> None:
+            self.size = (w, h)
+            self.attachment = attachment
+            _Fbo.last = self
+
+        def isValid(self) -> bool:  # noqa: N802
+            return _Fbo.valid
+
+        def bind(self) -> bool:
+            return _Fbo.bindable
+
+        def release(self) -> None:
+            _Fbo.released = True
+
+    class _Fns:
+        def __init__(self) -> None:
+            self.masks: list[int] = []
+
+        def glClear(self, mask: int) -> None:  # noqa: N802
+            self.masks.append(mask)
+
+    monkeypatch.setattr("PyQt6.QtOpenGL.QOpenGLFramebufferObject", _Fbo)
+    _patch_current_context(monkeypatch, present=True)
+
+    fns = _Fns()
+    assert probe_module.render_probe(fns) is None
+    assert _Fbo.last.size == (probe_module.RENDER_PROBE_PX,) * 2
+    assert _Fbo.last.attachment == _Fbo.Attachment.CombinedDepthStencil
+    assert fns.masks == [
+        probe_module.GL_COLOR_BUFFER_BIT
+        | probe_module.GL_DEPTH_BUFFER_BIT
+        | probe_module.GL_STENCIL_BUFFER_BIT
+    ]
+
+    _Fbo.valid = False
+    assert probe_module.render_probe(_Fns()) == "Kontext ohne vollstaendiges Framebuffer-Objekt"
+
+    _Fbo.valid, _Fbo.bindable = True, False
+    assert probe_module.render_probe(_Fns()) == "Framebuffer-Objekt nicht bindbar"
+
+
+def test_render_probe_never_propagates(monkeypatch) -> None:
+    """Ein Wurf hinterliesse keine JSON-Zeile — der Preflight meldete ``plugin``."""
+
+    class _Boom:
+        class Attachment:
+            CombinedDepthStencil = "combined"
+
+        def __init__(self, w: int, h: int, attachment: object) -> None:
+            raise RuntimeError("Treiber weg")
+
+    monkeypatch.setattr("PyQt6.QtOpenGL.QOpenGLFramebufferObject", _Boom)
+    _patch_current_context(monkeypatch, present=True)
+
+    detail = probe_module.render_probe(object())
+    assert detail is not None
+    assert detail.startswith("Render-Nachweis fehlgeschlagen: RuntimeError")
+    assert "Treiber weg" in detail
+
+
+def test_the_render_proof_uses_the_shared_gl_masks() -> None:
+    """Handgepflegte Kopie gegen ihre Quelle — wie bei den ``glGetString``-Namen."""
+    assert probe_module.GL_COLOR_BUFFER_BIT == preview3d_capability._GL_COLOR_BUFFER_BIT
+    assert probe_module.GL_DEPTH_BUFFER_BIT == preview3d_capability._GL_DEPTH_BUFFER_BIT
+    assert probe_module.GL_STENCIL_BUFFER_BIT == preview3d_capability._GL_STENCIL_BUFFER_BIT
+    assert probe_module.RENDER_PROBE_PX == preview3d_capability._RENDER_PROBE_PX
+
+
 def test_hardware_is_never_claimed_without_all_three_gl_strings() -> None:
     """Fällt ausgerechnet der Renderer aus, hat die Software-Regel nichts zu
     bewerten – Erfolg wäre dann eine Behauptung ohne Beleg (#937-Review)."""

@@ -14,6 +14,7 @@ from bgremover.preview3d_capability import (
     RendererCapability,
     _default_probe,
     _gl_string,
+    _render_probe,
     probe_3d_capability,
     reset_capability_cache,
 )
@@ -223,3 +224,195 @@ def test_gl_string_decodes_bytes() -> None:
             return b"Mesa"
 
     assert _gl_string(_BytesReturning(), 0x1F00) == "Mesa"
+
+
+# ── Render-Nachweis: „Kontext ja, aber kein Framebuffer" (#1002) ──────────
+#
+# Der reale Zustand („QOpenGLWidget: No fbo, cannot render" bei gelungener
+# Kontexterzeugung) tritt nur auf bestimmter Hardware auf (beobachtet: Raspberry
+# Pi 5, Broadcom V3D + Mesa, `QT_QPA_PLATFORM=offscreen`). Hier wird er über
+# dieselben lokalen Qt-Importe gestellt wie die Fehlerzweige oben.
+
+class _ReadyContext(_FakeContext):
+    """Kontext, der bis zum Render-Nachweis alles besteht.
+
+    ``currentContext`` gehört dazu: ``_render_probe`` fragt es ab, bevor es ein
+    Framebuffer-Objekt baut – Qt dereferenziert den aktuellen Kontext dort
+    ungeprüft (ohne ihn SIGSEGV statt Ausnahme).
+    """
+
+    def makeCurrent(self, surface: object) -> bool:  # noqa: N802
+        return True
+
+    @staticmethod
+    def currentContext() -> object:  # noqa: N802
+        return object()
+
+
+class _FakeFunctions:
+    """GL-2.1-Funktionssatz-Stand-in: liefert Provenienz und zählt ``glClear``."""
+
+    def __init__(self, clear_error: Exception | None = None) -> None:
+        self.clear_masks: list[int] = []
+        self._clear_error = clear_error
+
+    def glGetString(self, name: int) -> bytes:  # noqa: N802
+        return {0x1F00: b"Broadcom", 0x1F01: b"V3D 7.1", 0x1F02: b"2.1 Mesa"}[name]
+
+    def glClear(self, mask: int) -> None:  # noqa: N802
+        if self._clear_error is not None:
+            raise self._clear_error
+        self.clear_masks.append(mask)
+
+
+def _install_ready_context(monkeypatch, fns: _FakeFunctions) -> None:
+    """Patcht Kontext, Oberfläche und Funktions-Factory auf den Erfolgspfad."""
+
+    class _Factory:
+        @staticmethod
+        def get(profile: object, ctx: object) -> _FakeFunctions:
+            return fns
+
+    monkeypatch.setattr("PyQt6.QtGui.QOpenGLContext", _ReadyContext)
+    monkeypatch.setattr("PyQt6.QtGui.QOffscreenSurface", _FakeSurface)
+    monkeypatch.setattr("PyQt6.QtOpenGL.QOpenGLVersionFunctionsFactory", _Factory)
+
+
+class _FakeFbo:
+    """``QOpenGLFramebufferObject``-Stand-in mit steuerbarem Ausgang."""
+
+    valid = True
+    bindable = True
+    construct_error: Exception | None = None
+    last: _FakeFbo | None = None
+
+    class Attachment:
+        CombinedDepthStencil = "combined-depth-stencil"
+
+    def __init__(self, width: int, height: int, attachment: object) -> None:
+        if type(self).construct_error is not None:
+            raise type(self).construct_error
+        self.size = (width, height)
+        self.attachment = attachment
+        self.released = 0
+        type(self).last = self
+
+    def isValid(self) -> bool:  # noqa: N802
+        return type(self).valid
+
+    def bind(self) -> bool:
+        return type(self).bindable
+
+    def release(self) -> None:
+        self.released += 1
+
+
+@pytest.fixture
+def fake_fbo(monkeypatch):
+    """Frische ``_FakeFbo``-Klasse je Test (die Schalter sind Klassenattribute)."""
+    cls = type("_Fbo", (_FakeFbo,), {"valid": True, "bindable": True,
+                                     "construct_error": None, "last": None})
+    monkeypatch.setattr("PyQt6.QtOpenGL.QOpenGLFramebufferObject", cls)
+    return cls
+
+
+def test_render_proof_mirrors_the_widget_framebuffer(monkeypatch, fake_fbo) -> None:
+    """Der Nachweis stellt genau nach, was ``QOpenGLWidget`` selbst anlegt.
+
+    ``QOpenGLWidgetPrivate::recreateFbos`` erzeugt ein
+    ``QOpenGLFramebufferObject`` mit ``CombinedDepthStencil``, bindet es und
+    leert es per ``glClear``. Weil die Probe dieselbe Folge fährt, kann sie
+    **nie strenger** sein als der Viewer – ein Falsch-Negativ (3D grundlos
+    abgeschaltet) ist damit ausgeschlossen. Genau diese Bindung hält der Test.
+    """
+    fns = _FakeFunctions()
+    _install_ready_context(monkeypatch, fns)
+
+    cap = _default_probe()
+
+    assert cap.ok is True
+    assert cap.diagnostic == "Broadcom / V3D 7.1 / 2.1 Mesa"
+    assert fake_fbo.last is not None
+    assert fake_fbo.last.size == (4, 4)
+    assert fake_fbo.last.attachment == fake_fbo.Attachment.CombinedDepthStencil
+    assert fake_fbo.last.released == 1  # Bindung wieder gelöst
+    # Farbe + Tiefe + Stencil, wie recreateFbos() leert.
+    assert fns.clear_masks == [0x00004000 | 0x00000100 | 0x00000400]
+
+
+def test_default_probe_reports_unavailable_without_a_usable_framebuffer(
+    monkeypatch, fake_fbo
+) -> None:
+    """Der eigentliche #1002-Fall: Kontext vorhanden, Render-Ziel unvollständig."""
+    fake_fbo.valid = False
+    _install_ready_context(monkeypatch, _FakeFunctions())
+
+    cap = _default_probe()
+
+    assert cap.ok is False
+    assert cap.error_key == UNAVAILABLE_KEY
+    assert cap.detail == "Kontext ohne vollständiges Framebuffer-Objekt"
+    # Die Provenienz überlebt den Fehlerfall – sonst wäre das Gerät, das genau
+    # hier scheitert, aus dem Log nicht einzuordnen.
+    assert cap.diagnostic == "Broadcom / V3D 7.1 / 2.1 Mesa"
+
+
+def test_default_probe_reports_unavailable_when_the_framebuffer_cannot_bind(
+    monkeypatch, fake_fbo
+) -> None:
+    fake_fbo.bindable = False
+    _install_ready_context(monkeypatch, _FakeFunctions())
+
+    cap = _default_probe()
+
+    assert cap.ok is False
+    assert cap.error_key == UNAVAILABLE_KEY
+    assert cap.detail == "Framebuffer-Objekt nicht bindbar"
+
+
+def test_default_probe_reports_unavailable_when_the_render_proof_raises(
+    monkeypatch, fake_fbo
+) -> None:
+    """Ein Treiber, der beim Leeren abstürzt, ist ein Befund – kein App-Absturz."""
+    _install_ready_context(monkeypatch, _FakeFunctions(clear_error=RuntimeError("GPU weg")))
+
+    cap = _default_probe()
+
+    assert cap.ok is False
+    assert cap.error_key == UNAVAILABLE_KEY
+    assert cap.detail.startswith("Render-Nachweis fehlgeschlagen: RuntimeError")
+    assert "GPU weg" in cap.detail
+
+
+def test_default_probe_reports_unavailable_when_the_framebuffer_is_not_constructible(
+    monkeypatch, fake_fbo
+) -> None:
+    fake_fbo.construct_error = RuntimeError("kein FBO-Support")
+    _install_ready_context(monkeypatch, _FakeFunctions())
+
+    cap = _default_probe()
+
+    assert cap.ok is False
+    assert cap.error_key == UNAVAILABLE_KEY
+    assert "kein FBO-Support" in cap.detail
+
+
+def test_render_proof_refuses_without_a_current_context(monkeypatch, fake_fbo) -> None:
+    """Fail-closed statt SIGSEGV.
+
+    ``QOpenGLFramebufferObjectPrivate::init`` dereferenziert
+    ``QOpenGLContext::currentContext()`` ungeprüft; ohne aktuellen Kontext
+    stirbt der Prozess mit SIGSEGV – kein ``except`` fängt das. ``_default_probe``
+    hat den Kontext immer (``makeCurrent()`` ist geprüft), die Schranke sichert
+    einen künftigen zweiten Aufrufer ab.
+    """
+
+    class _NoCurrent:
+        @staticmethod
+        def currentContext() -> None:  # noqa: N802
+            return None
+
+    monkeypatch.setattr("PyQt6.QtGui.QOpenGLContext", _NoCurrent)
+
+    assert _render_probe(object()) == "Render-Nachweis ohne aktuellen Kontext angefordert"
+    assert fake_fbo.last is None  # kein Konstruktoraufruf ohne Kontext

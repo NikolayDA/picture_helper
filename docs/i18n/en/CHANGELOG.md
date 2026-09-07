@@ -50,6 +50,25 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   2.28 to 2.34: Debian 12, Ubuntu 22.04 and RHEL 9 stay supported, while
   Debian 11, Ubuntu 20.04 and RHEL 8 drop out. macOS is unaffected.
 
+### Fixed
+
+- **3D preview reported "ready" although the environment could not render a
+  frame (#1002).** `probe_3d_capability` only checked context facts: context
+  creation, a current offscreen surface, no pure OpenGL ES context, and the
+  GL 2.1 function set. On a Raspberry Pi 5 (Debian 13 "Trixie", Broadcom V3D +
+  Mesa) all four succeed, yet `QOpenGLWidget` logged `No fbo, cannot render` –
+  the 3D tab switched to "ready" and then stayed blank instead of showing the
+  documented "unavailable" state with an explanation and "Try again". The
+  probe now also performs a minimal render proof: a 4 × 4 framebuffer object
+  of exactly the kind `QOpenGLWidget` creates for its widget framebuffer
+  (`CombinedDepthStencil`) is created, bound, and cleared. Because that is
+  bit-for-bit the viewer's own sequence, the proof can never be stricter than
+  the viewer itself – working hardware is not locked out. The acceptance
+  preflight's runner probe (`scripts/qt_gl_probe.py`) adopts the same rule
+  under its existing `kontext` stage; renderer provenance is now logged in the
+  failure case too. The "unavailable" text now names the outcome ("cannot
+  render OpenGL 2.1") instead of only one of the two possible causes.
+
 ## [2.9.0] – 2026-08-26
 
 ### Added

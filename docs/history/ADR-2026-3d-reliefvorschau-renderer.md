@@ -467,3 +467,63 @@ Mesh-Build-Benchmark: `uint16`-Zufallsfeld → float32-`z`, `np.gradient`-
 Normalen, uint32-Grid-Indizes; llvmpipe-Draw: interleaved VBO (pos+normal,
 24 B/Vertex), Lambert-Fragment-Shader, `glDrawElements` + `glFinish` in ein
 800×600-FBO mit Depth-Attachment; Zeiten `time.perf_counter()`.
+
+## Nachtrag (2026-09-07, #1002): Die Probe misst Renderfähigkeit, nicht Kontextexistenz
+
+**Befund.** Die oben festgehaltene Laufzeit-Probe prüfte vier Dinge –
+`QOpenGLContext.create()`, gültige `QOffscreenSurface` + `makeCurrent()`,
+kein reiner ES-Kontext, GL-2.1-Versionsfunktionen. Auf einem Raspberry Pi 5
+(Debian 13 „Trixie", Broadcom V3D + Mesa) gelingen unter
+`QT_QPA_PLATFORM=offscreen` alle vier, während `QOpenGLWidget` gleichzeitig
+`No fbo, cannot render` protokolliert: Es entsteht kein Frame, der Viewer
+stand aber im Zustand [R] „bereit". Die Probe maß „Kontext vorhanden", der
+Viewer braucht „renderfähig"; auf dieser Plattform fallen beide auseinander.
+
+**Entscheidung.** `_default_probe` erbringt zusätzlich einen minimalen
+Render-Nachweis: ein 4 × 4-`QOpenGLFramebufferObject` mit
+`CombinedDepthStencil` wird erzeugt, gebunden und per `glClear` geleert – das
+ist bitgenau die Folge, die `QOpenGLWidgetPrivate::recreateFbos` für den
+Widget-Framebuffer fährt. Daraus folgt die tragende Eigenschaft: **Die Probe
+kann nie strenger sein als der Viewer.** Ein Kontext, der den Nachweis
+besteht, hätte auch dessen Framebuffer bekommen; ein Falsch-Negativ (3D auf
+funktionierender Hardware grundlos abgeschaltet) ist ausgeschlossen – und
+wäre schlimmer gewesen als der Ausgangsbefund.
+
+**Grenze, ausdrücklich.** Der Nachweis ist eine **notwendige, keine
+hinreichende** Bedingung. `No fbo, cannot render` bedeutet im Qt-Quelltext
+`initialized == true` bei `fbos[LeftBuffer] == nullptr`; dieser Zustand kann
+auch aus dem Widget-Lebenszyklus entstehen (kein Resize mit nicht-leerer
+Größe, kein RHI-fähiges Platform-Plugin), und den sieht keine Probe. Der
+Fallback-Tabelle unten ändert das nichts: Ein Viewer-Init-Fehler bleibt der
+Zustand [F].
+
+**Kein zweiter sichtbarer Zustand.** Erwogen und verworfen wurde ein eigener
+i18n-Key „Kontext ja, kein Framebuffer" neben `preview3d.unavailable`. Die
+Handlungsoption ist in beiden Fällen dieselbe (2D weiterverwenden oder
+„Erneut versuchen"), der Preis wären sechs Sprachtabellen und eine zweite
+Zeile im UX-Vertrag. Stattdessen nennt der Text jetzt das Ergebnis („kann
+kein OpenGL 2.1 rendern") statt einer der beiden Ursachen; der technische
+Kurzgrund steht in `RendererCapability.detail`, die Renderer-Provenienz
+seither auch im Fehlerfall in `diagnostic`.
+
+**Evidenz Nr. 1 gilt für die Runner, nicht für „offscreen".** Der Satz
+„`offscreen` ohne X liefert real `QOpenGLContext.create() == False`" bleibt
+für die GitHub-Runner richtig und ist dort weiterhin der echte
+Fallback-Nachweis. Er ist aber keine Eigenschaft der Plattform: Derselbe
+Aufruf gelingt auf dem Pi. Modul-Docstring und Tests sagen das seit #1002
+so; die Testweiche ist die produktive Regel (`gl_capability_ok` in
+`tests/conftest.py`), nicht der Plattformname (#1001).
+
+**Preflight-Sonde.** `scripts/qt_gl_probe.py` übernimmt dieselbe Regel als
+dritte vom Produktivpfad geerbte Regel (neben ES-Abweisung und vollständiger
+GL-Provenienz) und meldet sie unter der bestehenden Stufe `kontext` – der
+Reparaturweg ist derselbe (GPU-Treiber der angemeldeten Sitzung), der
+konkrete Grund steht im `detail`. Eine fünfte Stufe hätte vier Kopien
+(`STAGES`, `PROBE_STAGE_HINTS`, CLAUDE.md, RELEASE_AUTOMATION §4.1) für
+denselben Befund nach sich gezogen.
+
+**Nachweis.** Der Zustand „Kontext ohne Framebuffer" lässt sich nicht überall
+herstellen; die Zweige sind deshalb in `tests/test_preview3d_capability.py`
+und `tests/test_qt_gl_probe.py` über gefakte Qt-Klassen abgedeckt, inklusive
+der Bindung an Größe, Attachment und `glClear`-Maske des Viewers. Die
+Gegenprobe auf echter Hardware ist ein `make check` auf dem Pi.

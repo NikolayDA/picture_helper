@@ -1,15 +1,26 @@
 """Laufzeit-Capability-Probe für die 3D-Reliefvorschau (#593, ADR #591).
 
-Ermittelt, ob die Umgebung einen nutzbaren Desktop-OpenGL-Kontext (≥ 2.1)
-bietet. Die eigentliche Qt-Probe (``QOpenGLContext`` + ``QOffscreenSurface``)
+Ermittelt, ob die Umgebung Desktop-OpenGL (≥ 2.1) nicht nur bereitstellt,
+sondern damit auch **rendern** kann. Die eigentliche Qt-Probe (``QOpenGLContext`` + ``QOffscreenSurface``)
 ist über ``probe_fn`` **injizierbar**, damit die Gating-Logik Qt-frei mit einem
 Mock getestet werden kann; die Standard-Probe kapselt den Qt-Zugriff und wirft
 **nie** – jeder Fehler wird als strukturierte :class:`RendererCapability`
 (``ok=False`` + i18n-Key) zurückgegeben.
 
-Der Repo-Standard-Testpfad (``offscreen`` ohne X) liefert real
-``QOpenGLContext.create() == False`` – dort testet die Probe den Fallback-Zweig
-unverfälscht echt (ADR-Evidenz Nr. 1). Das Ergebnis wird je Sitzung gecacht;
+Gemessen wird **Renderfähigkeit**, nicht bloß Kontextexistenz (#1002): Nach
+Kontext, Oberfläche und GL-2.1-Funktionssatz folgt ein minimaler Render-Nachweis
+in ein ``QOpenGLFramebufferObject``. ``QOpenGLWidget`` legt seinen
+Widget-Framebuffer genau so an (``CombinedDepthStencil``, anschließend
+``glClear``); ein Kontext ohne nutzbares Framebuffer-Objekt meldete sonst
+„verfügbar", während der Viewer keinen Frame erzeugt und Qt nur
+``QOpenGLWidget: No fbo, cannot render`` protokolliert. Der Nachweis ist eine
+**notwendige**, keine hinreichende Bedingung: Bleibt der Widget-Framebuffer aus
+Gründen des Widget-Lebenszyklus aus, sieht ihn keine Probe.
+
+Ob ``offscreen`` einen GL-Kontext liefert, ist eine Eigenschaft des Rechners,
+keine der Plattform: Die GitHub-Runner liefern real
+``QOpenGLContext.create() == False`` (ADR-Evidenz Nr. 1), ein Raspberry Pi mit
+Broadcom V3D + Mesa dagegen einen Kontext. Das Ergebnis wird je Sitzung gecacht;
 :func:`reset_capability_cache` verwirft den Cache für die „Erneut versuchen"-
 Aktion des UX-Vertrags.
 """
@@ -28,10 +39,12 @@ UNAVAILABLE_KEY = "preview3d.unavailable"
 class RendererCapability:
     """Ergebnis der Capability-Probe.
 
-    ``ok`` = nutzbarer Desktop-GL-Kontext vorhanden. ``diagnostic`` trägt
-    Vendor/Renderer/Version als Klartext für Logs (nie Bild-/Nutzerdaten);
-    ``error_key`` ist der i18n-Key des Fehlerzustands (nur bei ``ok=False``),
-    ``detail`` ein technischer Kurzgrund fürs Log.
+    ``ok`` = renderfähiger Desktop-GL-Kontext vorhanden. ``diagnostic`` trägt
+    Vendor/Renderer/Version als Klartext für Logs (nie Bild-/Nutzerdaten) und
+    steht seit #1002 auch bei ``ok=False``, sobald die Probe so weit kam – ein
+    Gerät, das erst am Render-Nachweis scheitert, ist ohne diese Angabe nicht
+    einzuordnen. ``error_key`` ist der i18n-Key des Fehlerzustands (nur bei
+    ``ok=False``), ``detail`` ein technischer Kurzgrund fürs Log.
     """
 
     ok: bool
@@ -50,7 +63,9 @@ def _default_probe() -> RendererCapability:
 
     Kapselt jeden Qt-/Treiberfehler in eine ``ok=False``-Capability. Ein reiner
     OpenGL-ES-Kontext gilt als „nicht 3D-fähig" (PyQt6 bindet keine ES-
-    Funktionssätze, ADR) → Fallback.
+    Funktionssätze, ADR) → Fallback. Zuletzt läuft der Render-Nachweis
+    (:func:`_render_probe`) – ohne ihn meldete die Probe „verfügbar" für einen
+    Kontext, in den der Viewer nicht zeichnen kann (#1002).
     """
     try:
         from PyQt6.QtGui import QOffscreenSurface, QOpenGLContext, QSurfaceFormat
@@ -95,6 +110,12 @@ def _default_probe() -> RendererCapability:
             renderer = _gl_string(fns, _GL_RENDERER)
             version = _gl_string(fns, _GL_VERSION)
             diagnostic = f"{vendor} / {renderer} / {version}".strip(" /")
+            render_error = _render_probe(fns)
+            if render_error is not None:
+                return RendererCapability(
+                    ok=False, error_key=UNAVAILABLE_KEY, diagnostic=diagnostic,
+                    detail=render_error,
+                )
             return RendererCapability(ok=True, diagnostic=diagnostic)
         finally:
             ctx.doneCurrent()
@@ -108,6 +129,67 @@ def _default_probe() -> RendererCapability:
 _GL_VENDOR = 0x1F00
 _GL_RENDERER = 0x1F01
 _GL_VERSION = 0x1F02
+
+# Rohe glClear-Masken (ebenfalls OpenGL-Vertrag; identisch zu ``viewer_3d``).
+_GL_DEPTH_BUFFER_BIT = 0x00000100
+_GL_STENCIL_BUFFER_BIT = 0x00000400
+_GL_COLOR_BUFFER_BIT = 0x00004000
+
+#: Kantenlänge des Nachweis-Framebuffers. Vier Pixel genügen: geprüft wird, ob
+#: der Kontext ein vollständiges Render-Ziel liefert, nicht dessen Inhalt.
+_RENDER_PROBE_PX = 4
+
+
+def _render_probe(fns: object) -> str | None:
+    """Minimaler Render-Nachweis im aktuellen Kontext (#1002).
+
+    ``QOpenGLWidgetPrivate::recreateFbos`` legt den Widget-Framebuffer als
+    ``QOpenGLFramebufferObject`` mit ``CombinedDepthStencil`` an, bindet ihn und
+    leert ihn per ``glClear`` – genau diese Folge wird hier in 4 × 4 Pixeln
+    nachgestellt. Die Prüfung kann damit **nie strenger** sein als der Viewer:
+    Ein Kontext, der sie besteht, hätte auch dessen Framebuffer bekommen; ein
+    Falsch-Negativ (3D grundlos abgeschaltet) ist ausgeschlossen.
+
+    Liefert ``None`` bei Erfolg, sonst den technischen Kurzgrund. Wirft nie –
+    ein Treiber, der hier abstürzt, ist ein Befund, kein Absturz der App.
+
+    **Setzt einen aktuellen Kontext voraus.** Qt dereferenziert in
+    ``QOpenGLFramebufferObjectPrivate::init`` den ``currentContext()``
+    ungeprüft: Ohne Kontext endet der Prozess mit SIGSEGV, und das fängt kein
+    ``except``. Der Aufrufer hat ihn hier immer (``makeCurrent()`` ist geprüft);
+    die Schranke unten ist die fail-closed Absicherung gegen einen künftigen
+    zweiten Aufrufer.
+    """
+    from PyQt6.QtGui import QOpenGLContext
+    from PyQt6.QtOpenGL import QOpenGLFramebufferObject
+
+    if QOpenGLContext.currentContext() is None:
+        return "Render-Nachweis ohne aktuellen Kontext angefordert"
+
+    fbo = None
+    try:
+        fbo = QOpenGLFramebufferObject(
+            _RENDER_PROBE_PX, _RENDER_PROBE_PX,
+            QOpenGLFramebufferObject.Attachment.CombinedDepthStencil,
+        )
+        if not fbo.isValid():
+            return "Kontext ohne vollständiges Framebuffer-Objekt"
+        if not fbo.bind():
+            return "Framebuffer-Objekt nicht bindbar"
+        try:
+            fns.glClear(  # type: ignore[attr-defined]
+                _GL_COLOR_BUFFER_BIT | _GL_DEPTH_BUFFER_BIT | _GL_STENCIL_BUFFER_BIT
+            )
+        finally:
+            fbo.release()
+    except Exception as exc:  # noqa: BLE001 – Treiberfehler ist ein Befund
+        return f"Render-Nachweis fehlgeschlagen: {type(exc).__name__}: {exc}"
+    finally:
+        # Freigabe noch im aktuellen Kontext: Der Aufrufer ruft gleich
+        # ``doneCurrent()``; ein danach eingesammeltes FBO verlöre seine
+        # GL-Objekte nicht sauber.
+        del fbo
+    return None
 
 
 def _gl_string(fns: object, name: int) -> str:

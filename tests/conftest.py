@@ -161,7 +161,7 @@ def qapp():
 
 @pytest.fixture(scope="session")
 def gl_capability_ok(qapp) -> bool:
-    """Ob diese Umgebung einen nutzbaren OpenGL-Kontext liefert.
+    """Ob diese Umgebung nutzbar mit OpenGL rendern kann.
 
     Mehrere Tests belegen den dokumentierten 3D-*Fallback* und setzten dafür
     „offscreen" mit „kein GL" gleich. Das gilt nicht überall: auf einem
@@ -170,6 +170,10 @@ def gl_capability_ok(qapp) -> bool:
     Gefragt wird deshalb die produktive Regel selbst statt des
     Plattformnamens; ``use_cache=False`` liest und schreibt den Sitzungscache
     nicht, die Weiche bleibt also nebenwirkungsfrei.
+
+    Seit #1002 schließt diese Regel den Render-Nachweis ein (Framebuffer-Objekt
+    der Bauart, die ``QOpenGLWidget`` selbst anlegt) – die Weiche folgt damit
+    weiterhin genau dem, was das Gating produktiv entscheidet.
     """
     from bgremover.preview3d_capability import probe_3d_capability
 
