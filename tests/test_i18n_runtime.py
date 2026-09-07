@@ -118,9 +118,7 @@ def test_canvas_operations_use_english_locale(qapp) -> None:
     assert statuses[-1] == "🔄  Original restored"
 
 
-def test_main_window_initializes_locale_from_settings(qapp, tmp_path, monkeypatch) -> None:
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
+def test_main_window_initializes_locale_from_settings(qapp, monkeypatch) -> None:
     settings = QSettings("BgRemover", "BgRemover")
     settings.clear()
     settings.setValue(SETTINGS_LOCALE_KEY, "zz")

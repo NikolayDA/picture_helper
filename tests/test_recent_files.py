@@ -1,7 +1,7 @@
 """Tests für Recent-Files und Quick-Save (A5 + A9).
 
-QSettings wird per ``setPath`` auf ein temporäres Verzeichnis umgeleitet,
-damit die Tests nicht den realen Nutzer-Cache verändern.
+Die QSettings-Isolation leistet zentral ``tests/conftest.py``; hier wird nur
+ein temporäres Verzeichnis für die Testdateien gebraucht.
 """
 from pathlib import Path
 
@@ -20,10 +20,7 @@ from bgremover.recent_files import (
 
 @pytest.fixture
 def isolated_settings(tmp_path, monkeypatch):
-    """Isoliert QSettings in einem temporären Verzeichnis."""
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat,
-                      QSettings.Scope.UserScope, str(tmp_path))
+    """Temporäres Verzeichnis für Testdateien (QSettings isoliert conftest.py)."""
     yield tmp_path
 
 

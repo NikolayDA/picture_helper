@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import pytest
 from PIL import Image
-from PyQt6.QtCore import QSettings
 from PyQt6.QtGui import QKeySequence, QShortcut
 
 from bgremover import TOOL_BRUSH, TOOL_ERASER, TOOL_LASSO, TOOL_WAND, MainWindow
@@ -28,9 +27,7 @@ def _shortcut_by_key(window: MainWindow) -> dict[str, QShortcut]:
 
 
 @pytest.fixture
-def window(qapp, qtbot, tmp_path, monkeypatch) -> MainWindow:
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
+def window(qapp, qtbot, monkeypatch) -> MainWindow:
     monkeypatch.setattr(MainWindow, "_start_rembg_warmup", lambda self: None)
     win = MainWindow()
     qtbot.addWidget(win)
