@@ -53,6 +53,34 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   charge, Debian 11, Ubuntu 20.04 et RHEL 8 sortent du champ. macOS n'est pas
   concerné.
 
+### Corrigé
+
+- **L'aperçu 3D annonçait « prêt » alors que l'environnement ne pouvait rendre
+  aucune image (#1002).** `probe_3d_capability` ne vérifiait que des faits liés
+  au contexte : création du contexte, surface hors écran courante, absence de
+  contexte OpenGL ES pur et jeu de fonctions GL 2.1. Sur un Raspberry Pi 5
+  (Debian 13 « Trixie », Broadcom V3D + Mesa), les quatre réussissent, mais
+  `QOpenGLWidget` journalisait `No fbo, cannot render` : l'onglet 3D passait à
+  « prêt » puis restait vide au lieu d'afficher l'état documenté
+  « indisponible » avec explication et « Réessayer ». La cause est la
+  plateforme Qt, pas le pilote : `QOpenGLWidget` a besoin d'une intégration de
+  plateforme prenant en charge le rendu des widgets ; `offscreen`, `minimal` et
+  `vnc` ne l'ont pas, et Qt lui-même y déclare le widget non pris en charge. La
+  sonde rejette désormais ces plateformes **en premier**, avant tout appel GL.
+  Elle effectue en outre une preuve de rendu minimale — un objet framebuffer de
+  exactement du type et de la taille minimale que `QOpenGLWidget` crée pour son
+  framebuffer de widget est créé, lié et effacé, puis le code d'erreur GL est
+  vérifié —, qui couvre une autre classe : les pilotes
+  qui ne fournissent pas de cible de rendu complète dans une vraie session.
+  Aucune des deux règles ne peut désactiver la 3D sur du matériel apte ; en cas
+  de doute, la 3D reste active. La sonde du préflight de recette
+  (`scripts/qt_gl_probe.py`) reprend la preuve de rendu sous son étape
+  existante `kontext` ; la provenance du moteur de rendu est désormais
+  journalisée aussi en cas d'échec. Le texte « indisponible » nomme maintenant
+  le résultat (« ne peut pas rendre en OpenGL 2.1 ») au lieu d'une seule des
+  causes possibles. Corrigé au passage : sans `QGuiApplication` en cours
+  d'exécution, la sonde plantait avec SIGSEGV au lieu d'indiquer un motif.
+
 ## [2.9.0] – 2026-08-26
 
 ### Ajouté

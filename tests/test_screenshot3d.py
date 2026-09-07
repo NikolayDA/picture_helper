@@ -24,7 +24,11 @@ from PyQt6.QtWidgets import QApplication
 
 from bgremover import MainWindow
 from bgremover import screenshot3d as screenshot3d_module
-from bgremover.preview3d_capability import probe_3d_capability, reset_capability_cache
+from bgremover.preview3d_capability import (
+    NON_RENDERABLE_PLATFORMS,
+    probe_3d_capability,
+    reset_capability_cache,
+)
 from bgremover.screenshot3d import (
     Preview3DControlsEvidence,
     Screenshot3DResult,
@@ -35,7 +39,9 @@ from bgremover.stepper import WorkflowStep
 
 pytestmark = pytest.mark.ui_smoke
 
-_NON_RENDERABLE = {"offscreen", "minimal", "vnc"}
+# Geteilte Regel statt eigener Kopie (#1002): dieselbe Menge entscheidet das
+# produktive 3D-Gating.
+_NON_RENDERABLE = NON_RENDERABLE_PLATFORMS
 _REQUIRED_CONTROLS = {
     "preview3d_azimuth",
     "preview3d_elevation",

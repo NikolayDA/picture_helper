@@ -348,7 +348,7 @@ Fehlerzustände statt eines pauschalen „Qt kaputt":
 |---|---|
 | `import` | PyQt-/Qt-Runtime fehlt oder ist unbrauchbar |
 | `plugin` | natives Platform-Plugin startet nicht (oder Headless erzwungen) |
-| `kontext` | kein gültiger, aktueller GL-Kontext |
+| `kontext` | kein gültiger, aktueller, renderfähiger GL-Kontext |
 | `renderer` | Software-Rasterizer statt Hardware (`renderer_provenance`) |
 
 Ein Abbruch **ohne** Ergebniszeile ist ebenfalls ein Befund: Qt beendet den
@@ -367,12 +367,18 @@ hardwarebeschleunigt sind (`eglfs`, `minimalegl`, `vnc`, `linuxfb`,
 Desktop-Sitzung den Preflight bestehen und erst in den nativen
 Abnahme-Schritten scheitern.
 
-Zwei weitere Regeln übernimmt die Sonde vom Produktivpfad, damit Preflight
+Drei weitere Regeln übernimmt die Sonde vom Produktivpfad, damit Preflight
 und Artefakt denselben Vertrag prüfen: Ein reiner **OpenGL-ES-Kontext** wird
-abgewiesen (PyQt6 bindet keine ES-Funktionssätze, ADR #591), und Erfolg setzt
+abgewiesen (PyQt6 bindet keine ES-Funktionssätze, ADR #591), Erfolg setzt
 **alle drei** Provenienzfelder voraus — fiele ausgerechnet der Renderer aus,
 hätte die Software-Regel nichts zu bewerten und die Sonde meldete Hardware
-ohne Beleg.
+ohne Beleg —, und seit #1002 muss sich ein **Framebuffer-Objekt** derselben
+Bauart erzeugen, binden und leeren lassen, die `QOpenGLWidget` für seinen
+Widget-Framebuffer nutzt. Alle drei melden die Stufe `kontext`: Der
+Reparaturweg ist derselbe (GPU-Treiber der angemeldeten Sitzung), und der
+konkrete Grund steht im `detail`. Ohne die dritte Regel bestünde ein Gerät
+den Preflight, das der 3D-Viewer anschließend nicht bedienen kann — real
+beobachtet auf einem Raspberry Pi 5 mit Broadcom V3D + Mesa.
 
 Einen stillen Skip gibt es nicht — ein nicht erbrachter Nachweis ist ein
 Fehler, keine Auslassung. Sind `session` oder `gl` bereits beanstandet, wird

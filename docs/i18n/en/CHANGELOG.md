@@ -50,6 +50,32 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   2.28 to 2.34: Debian 12, Ubuntu 22.04 and RHEL 9 stay supported, while
   Debian 11, Ubuntu 20.04 and RHEL 8 drop out. macOS is unaffected.
 
+### Fixed
+
+- **3D preview reported "ready" although the environment could not render a
+  frame (#1002).** `probe_3d_capability` only checked context facts: context
+  creation, a current offscreen surface, no pure OpenGL ES context, and the
+  GL 2.1 function set. On a Raspberry Pi 5 (Debian 13 "Trixie", Broadcom V3D +
+  Mesa) all four succeed, yet `QOpenGLWidget` logged `No fbo, cannot render` –
+  the 3D tab switched to "ready" and then stayed blank instead of showing the
+  documented "unavailable" state with an explanation and "Try again". The cause
+  is the Qt platform, not the driver: `QOpenGLWidget` needs a platform
+  integration that supports widget rendering; `offscreen`, `minimal`, and `vnc`
+  lack it, and Qt itself declares the widget unsupported there. The probe now
+  rejects those platforms **first**, before any GL call. It additionally
+  performs a minimal render proof – a framebuffer object of exactly the kind
+  and minimum size `QOpenGLWidget` creates for its widget framebuffer is
+  created, bound, and cleared, and the GL error code checked afterwards – which
+  covers a different class: drivers that provide no
+  complete render target on a real session. Neither rule can disable 3D on
+  capable hardware; when in doubt, 3D stays on. The acceptance preflight's
+  runner probe (`scripts/qt_gl_probe.py`) adopts the render proof under its
+  existing `kontext` stage; renderer provenance is now logged in the failure
+  case too. The "unavailable" text now names the outcome ("cannot render
+  OpenGL 2.1") instead of only one of the possible causes. Fixed along the way:
+  without a running `QGuiApplication` the probe crashed with SIGSEGV instead of
+  reporting a reason.
+
 ## [2.9.0] – 2026-08-26
 
 ### Added

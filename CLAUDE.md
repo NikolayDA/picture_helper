@@ -158,7 +158,45 @@ Ein Paket, `bgremover/`:
   `preview3d_capability.py` — Laufzeit-Probe (`probe_3d_capability`, über
   `probe_fn` mockbar) für Desktop-GL ≥ 2.1; wirft nie, liefert strukturiertes
   `RendererCapability`, je Sitzung gecacht (`reset_capability_cache` = „Erneut
-  versuchen"). Der Offscreen-CI-Pfad trifft real den Fallback-Zweig.
+  versuchen"). Gemessen wird seit #1002 **Renderfähigkeit**, nicht bloß
+  Kontextexistenz — in **zwei** Regeln für verschiedene Ausfallklassen.
+  (1) **Plattformregel** `NON_RENDERABLE_PLATFORMS` (`offscreen`/`minimal`/
+  `vnc`), zuerst und ohne jeden GL-Aufruf: `QOpenGLWidget` braucht eine
+  Plattformintegration mit `RhiBasedRendering`; fehlt sie, warnt Qt im
+  Widget-Konstruktor und `render()` bricht mit „No fbo, cannot render" ab.
+  Die Fähigkeit ist in PyQt6 nicht abfragbar, der Plugin-Name ist der
+  Stellvertreter. **Das ist der Ausfall aus #1002** — mit `xvfb-run` +
+  `QT_QPA_PLATFORM=offscreen` reproduziert: Kontext, Funktionssatz *und*
+  Framebuffer-Objekt gelingen alle, `defaultFramebufferObject()` bleibt 0.
+  Bewusst eine **Blockliste**: Ein unbekanntes Plugin bleibt erlaubt.
+  (2) **Render-Nachweis** `_render_probe` — ein `QOpenGLFramebufferObject` mit
+  `CombinedDepthStencil` in der **Viewer-Mindestgröße** `MIN_VIEWER_SIZE_PX`
+  (geteilt mit `GLReliefViewer.setMinimumSize`), gebunden und per `glClear`
+  geleert, bitgenau die Folge von `QOpenGLWidgetPrivate::recreateFbos`; ein
+  winziges Ziel gelang auf einer speicherarmen GPU noch, wenn die echte
+  Widget-Fläche schon scheiterte. Weil `glClear` nicht wirft, sondern einen
+  Fehlercode ablegt, wird die GL-Warteschlange vorher geleert und danach
+  `glGetError` ausgewertet — sonst meldete der Nachweis Erfolg, wo kein Frame
+  entsteht. Er deckt eine *andere* Klasse
+  ab (Treiber ohne vollständiges Render-Ziel auf einer Sitzungsplattform) und
+  ausdrücklich **nicht** den Fall oben. Beide sind fail-open: Sie können 3D auf
+  tauglicher Hardware nicht abschalten (gegengeprüft: unter `xcb` bleibt die
+  Probe `ok=True`). Zusammen bleiben sie **notwendig, nicht hinreichend** —
+  bleibt der Widget-Framebuffer aus Gründen des Widget-Lebenszyklus aus, sieht
+  ihn keine Probe. Die Provenienz (`diagnostic`) steht seither auch im
+  Fehlerfall, sobald sie gemessen wurde. Die Probe setzt eine laufende
+  `QGuiApplication` voraus und sagt das jetzt: Ohne Instanz meldet
+  `platformName()` gemessen einen Vorgabewert (`'xcb'`) statt der gesetzten
+  Plattform, und `ctx.create()` endete mit **SIGSEGV** — jetzt ein benannter
+  Befund statt eines Absturzes. `NON_RENDERABLE_PLATFORMS` ist die geteilte
+  Quelle: `scripts/gl_stress_probe.py` re-exportiert sie, die Skip-Weichen von
+  `tests/test_viewer_3d_gl.py`, `tests/test_screenshot3d.py` und
+  `tests/test_benchmark_preview3d_live.py` beziehen sie von dort (vorher vier
+  eigenständige Kopien); `test_no_second_source_declares_the_non_renderable_platforms`
+  scannt `bgremover/`, `scripts/` und `tests/` gegen eine fünfte. Ob `offscreen`
+  einen *Kontext* liefert, bleibt eine Eigenschaft des Rechners, keine der
+  Plattform — die GitHub-Runner treffen dort real `create() == False`, ein Pi
+  nicht; renderfähig ist `offscreen` in beiden Fällen nicht.
   `renderer_provenance.py` — Qt-freie, geteilte Regel `is_software_renderer`
   (#642, ADR #639): **einzige** Quelle der Wahrheit für die Erkennung reiner
   CPU-Rasterizer (llvmpipe & Co.) in einer GL-Diagnose. Release-Abnahme-Smokes
@@ -1146,7 +1184,14 @@ schweren Plattform-Job aus.
 `scripts/qt_gl_probe.py` ist die Sonde: eigener Prozess mit
 `QGuiApplication`/`QOffscreenSurface`/`QOpenGLContext`, liest
 Vendor/Renderer/Version und meldet **vier benannte** Stufen (`import`,
-`plugin`, `kontext`, `renderer`) als eine JSON-Zeile. `qt_gl_probe.STAGES`
+`plugin`, `kontext`, `renderer`) als eine JSON-Zeile. `kontext` deckt dabei
+bewusst mehr ab als „kein Kontext": Wie im Produktivpfad gelten auch ein
+reiner ES-Kontext, eine unvollständige GL-Provenienz und seit #1002 ein
+Kontext ohne nutzbares Framebuffer-Objekt als unbrauchbarer Kontext — der
+Grund steht im `detail`. Eine eigene Stufe je Teilregel führte denselben
+Reparaturweg (GPU-Treiber der Sitzung) unter vier Namen und zöge vier
+Kopien in `PROBE_STAGE_HINTS`, CLAUDE.md und RELEASE_AUTOMATION nach sich.
+`qt_gl_probe.STAGES`
 ist die Quelle dieses Stufenvertrags (#992): `_fail` nimmt nur diese Namen
 an, und die Hinweistabelle `abnahme_preflight.PROBE_STAGE_HINTS` wird in
 `tests/test_abnahme_preflight.py` gegen genau diese Menge gehalten. Die
@@ -1181,8 +1226,13 @@ still (`make check` grün, im Joblog wieder nur `ok: qt-gl`).
 Die Software-Renderer-Regel kommt aus `renderer_provenance` (#642) — geladen
 über den **Dateipfad**, nicht als Paketimport: `bgremover.constants` zöge
 Pillow nach, das die schlanke Runtime bewusst nicht hat. Die GL-Konstanten
-hält `tests/test_qt_gl_probe.py` gegen `preview3d_capability`, damit
-Preflight und Plattform-Job nicht verschiedene Werte auslesen.
+(`glGetString`-Namen, `glClear`-Masken, Kantenlänge des Nachweis-FBO) hält
+`tests/test_qt_gl_probe.py` gegen `preview3d_capability`, damit Preflight und
+Plattform-Job nicht verschiedene Werte auslesen; für die drei vom
+Produktivpfad übernommenen Regeln (ES-Abweisung, vollständige Provenienz,
+Render-Nachweis #1002) bindet derselbe Test beide Quelltexte aneinander. Die
+**Plattformregel** aus #1002 braucht die Sonde nicht: Ihre
+`NATIVE_PLATFORMS`-Whitelist ist strenger und weist `offscreen` bereits ab.
 
 Die Runtime ist **nicht** das Release-venv, sondern ein zwischengespeichertes
 venv mit nur den Qt-Pins (`~/.cache/bgremover/preflight-qt`, überschreibbar

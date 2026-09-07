@@ -27,8 +27,14 @@ melden kann statt als "irgendwas mit Qt":
 
 ``import``    PyQt-/Qt-Runtime fehlt oder ist unbrauchbar
 ``plugin``    kein Sitzungs-Plugin (Headless oder anderes Nicht-Sitzungs-Plugin)
-``kontext``   kein gueltiger, aktueller GL-Kontext
+``kontext``   kein gueltiger, aktueller, renderfaehiger GL-Kontext
 ``renderer``  Kontext laeuft auf einem Software-Rasterizer
+
+``kontext`` deckt bewusst mehr ab als "kein Kontext": Wie im Produktivpfad
+gelten auch ein reiner ES-Kontext, eine unvollstaendige GL-Provenienz und seit
+#1002 ein Kontext ohne nutzbares Framebuffer-Objekt als unbrauchbarer Kontext.
+Der Grund steht jeweils im ``detail`` - eine eigene Stufe je Teilregel haette
+denselben Reparaturweg (GPU-Treiber der Sitzung) unter vier Namen gefuehrt.
 
 Ein Abbruch **ohne** JSON-Zeile ist ebenfalls ein Befund: Qt beendet den
 Prozess bei fehlendem Platform-Plugin hart (``qFatal``), statt eine Ausnahme
@@ -74,6 +80,18 @@ NATIVE_PLATFORMS: tuple[str, ...] = ("cocoa", "xcb", "wayland", "wayland-egl")
 GL_VENDOR = 0x1F00
 GL_RENDERER = 0x1F01
 GL_VERSION = 0x1F02
+
+#: Rohe ``glClear``-Masken, der Fehler-Nullwert und die Maße des
+#: Nachweis-Framebuffers - ebenfalls identisch zum Produktivpfad
+#: (``preview3d_capability``). Die Groesse ist die Mindestflaeche des Viewers,
+#: nicht ein Minimalwert: Ein winziges Ziel gelang auf einer speicherarmen GPU
+#: auch dann noch, wenn die echte Widget-Flaeche schon scheiterte.
+GL_NO_ERROR = 0x0000
+GL_DEPTH_BUFFER_BIT = 0x00000100
+GL_STENCIL_BUFFER_BIT = 0x00000400
+GL_COLOR_BUFFER_BIT = 0x00004000
+GL_ERROR_DRAIN_LIMIT = 32
+MIN_VIEWER_SIZE_PX: tuple[int, int] = (240, 200)
 
 
 def load_software_renderer_rule() -> Callable[[str], bool]:
@@ -246,6 +264,23 @@ def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
                 f"GL-Provenienz unvollstaendig – ohne {', '.join(missing)}",
                 platform=platform_name,
             )
+        # Dritte vom Produktivpfad uebernommene Regel (#1002): Ein Kontext, in
+        # den sich kein Framebuffer-Objekt binden und leeren laesst, traegt
+        # keine ``QOpenGLWidget``-Darstellung - das Artefakt stuft denselben
+        # Runner als nicht 3D-faehig ein, die Sonde meldete bis dahin Erfolg.
+        render_error = render_probe(fns)
+        if render_error is not None:
+            # Provenienz in den ``detail``-Text, wie es der ``renderer``-Zweig
+            # unten tut: ``abnahme_preflight`` rendert den Fehlerfall als
+            # "<Hinweis>: <detail>" und liest ``diagnostic`` nur im
+            # Erfolgszweig. Als eigenes Payload-Feld waere die Angabe hier
+            # still wirkungslos (Review PR #1003).
+            return _fail(
+                "kontext",
+                f"{render_error} ({vendor} / {renderer} / {version})",
+                platform=platform_name,
+                vendor=vendor, renderer=renderer, version=version,
+            )
         payload = success_payload(
             platform=platform_name, vendor=vendor, renderer=renderer, version=version,
         )
@@ -268,6 +303,75 @@ def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
         if ctx is not None:
             with contextlib.suppress(Exception):
                 ctx.doneCurrent()
+
+
+def _drain_gl_errors(fns: object) -> None:
+    """Leert die GL-Fehlerwarteschlange (hart begrenzt, wirft nie)."""
+    for _ in range(GL_ERROR_DRAIN_LIMIT):
+        if int(fns.glGetError()) == GL_NO_ERROR:  # type: ignore[attr-defined]
+            return
+
+
+def render_probe(fns: object) -> str | None:
+    """Minimaler Render-Nachweis im aktuellen Kontext - wie im Produktivpfad.
+
+    ``QOpenGLWidget`` legt seinen Widget-Framebuffer als
+    ``QOpenGLFramebufferObject`` mit ``CombinedDepthStencil`` an, bindet ihn und
+    leert ihn; genau das wird hier in der Viewer-Mindestgroesse nachgestellt.
+    Die Regel bleibt damit nie strenger als der Viewer - ein Runner, der sie
+    besteht, bekommt dessen Framebuffer ebenfalls.
+
+    ``glClear`` wirft nicht, sondern legt einen Fehlercode in die
+    GL-Warteschlange; ohne die ``glGetError``-Abfrage meldete der Nachweis
+    genau dort Erfolg, wo kein Frame entsteht. Vorher wird die Warteschlange
+    geleert, damit ein Altfehler nicht dem eigenen Aufruf angelastet wird.
+
+    Liefert ``None`` bei Erfolg, sonst den Kurzgrund fuer die Stufe ``kontext``.
+    Wirft nie - fuer die **ganze** Funktion, Importe eingeschlossen: Ein
+    Treiberfehler ist hier ein Befund, und ein Wurf hinterliesse keine
+    JSON-Zeile.
+
+    **Setzt einen aktuellen Kontext voraus.** Qt dereferenziert in
+    ``QOpenGLFramebufferObjectPrivate::init`` den ``currentContext()``
+    ungeprueft - ohne Kontext endet der Prozess mit SIGSEGV, und ein
+    abgestuerzter Prozess hinterliesse ebenfalls keine JSON-Zeile. Die
+    Schranke unten haelt das fail-closed, obwohl ``probe`` den Kontext
+    nachweislich aktuell hat.
+    """
+    fbo = None
+    try:
+        from PyQt6.QtGui import QOpenGLContext
+        from PyQt6.QtOpenGL import QOpenGLFramebufferObject
+
+        if QOpenGLContext.currentContext() is None:
+            return "Render-Nachweis ohne aktuellen Kontext angefordert"
+
+        width, height = MIN_VIEWER_SIZE_PX
+        fbo = QOpenGLFramebufferObject(
+            width, height,
+            QOpenGLFramebufferObject.Attachment.CombinedDepthStencil,
+        )
+        if not fbo.isValid():
+            return "Kontext ohne vollstaendiges Framebuffer-Objekt"
+        if not fbo.bind():
+            return "Framebuffer-Objekt nicht bindbar"
+        try:
+            _drain_gl_errors(fns)
+            fns.glClear(  # type: ignore[attr-defined]
+                GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT
+            )
+            error = int(fns.glGetError())  # type: ignore[attr-defined]
+        finally:
+            fbo.release()
+        if error != GL_NO_ERROR:
+            return f"glClear meldete GL-Fehler 0x{error:04X}"
+    except Exception as exc:  # noqa: BLE001 - Treiberfehler ist ein Befund
+        return f"Render-Nachweis fehlgeschlagen: {type(exc).__name__}: {exc}"
+    finally:
+        # Freigabe noch im aktuellen Kontext (``probe`` ruft gleich
+        # ``doneCurrent()``).
+        del fbo
+    return None
 
 
 def _gl_string(fns: object, name: int) -> str:

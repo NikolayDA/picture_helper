@@ -200,6 +200,130 @@ def test_an_opengl_es_context_is_rejected_like_in_production() -> None:
     assert "isOpenGLES()" in source and "isOpenGLES()" in production
 
 
+def _patch_current_context(monkeypatch, *, present: bool) -> None:
+    """Stellt ``QOpenGLContext.currentContext()`` fuer ``render_probe`` ein.
+
+    Ohne aktuellen Kontext stirbt Qt beim FBO-Bau mit SIGSEGV; die Sonde fragt
+    deshalb vorher. Fuer den Test genuegt ein Stand-in.
+    """
+
+    class _Ctx:
+        @staticmethod
+        def currentContext() -> object | None:  # noqa: N802
+            return object() if present else None
+
+    monkeypatch.setattr("PyQt6.QtGui.QOpenGLContext", _Ctx)
+
+
+def test_render_probe_refuses_without_a_current_context(monkeypatch) -> None:
+    """Fail-closed statt Prozessabsturz ohne JSON-Zeile."""
+    _patch_current_context(monkeypatch, present=False)
+    assert probe_module.render_probe(object()) == (
+        "Render-Nachweis ohne aktuellen Kontext angefordert"
+    )
+
+
+def test_a_context_without_framebuffer_is_rejected_like_in_production() -> None:
+    """Dritte geteilte Regel (#1002): Kontext ja, Render-Ziel nein.
+
+    Der Produktivpfad weist seit #1002 einen Kontext ab, in den sich kein
+    ``QOpenGLFramebufferObject`` binden und leeren laesst — das ist genau der
+    Framebuffer, den ``QOpenGLWidget`` selbst anlegt. Meldete die Sonde hier
+    Erfolg, bestuende ein Runner den Preflight, den das Artefakt anschliessend
+    als nicht 3D-faehig einstuft.
+    """
+    source = (ROOT / "scripts" / "qt_gl_probe.py").read_text(encoding="utf-8")
+    production = (ROOT / "bgremover" / "preview3d_capability.py").read_text(encoding="utf-8")
+    for needle in (
+        "QOpenGLFramebufferObject", "CombinedDepthStencil", "glClear", "glGetError",
+    ):
+        assert needle in source and needle in production, needle
+
+
+def test_render_probe_reports_the_same_reasons_as_production(monkeypatch) -> None:
+    """Die drei Ausgaenge des Nachweises, ohne echten GL-Kontext."""
+
+    class _Fbo:
+        valid = True
+        bindable = True
+
+        class Attachment:
+            CombinedDepthStencil = "combined"
+
+        def __init__(self, w: int, h: int, attachment: object) -> None:
+            self.size = (w, h)
+            self.attachment = attachment
+            _Fbo.last = self
+
+        def isValid(self) -> bool:  # noqa: N802
+            return _Fbo.valid
+
+        def bind(self) -> bool:
+            return _Fbo.bindable
+
+        def release(self) -> None:
+            _Fbo.released = True
+
+    class _Fns:
+        def __init__(self, gl_errors: list[int] | None = None) -> None:
+            self.masks: list[int] = []
+            self._errors = list(gl_errors or [])
+
+        def glClear(self, mask: int) -> None:  # noqa: N802
+            self.masks.append(mask)
+
+        def glGetError(self) -> int:  # noqa: N802
+            return self._errors.pop(0) if self._errors else 0
+
+    monkeypatch.setattr("PyQt6.QtOpenGL.QOpenGLFramebufferObject", _Fbo)
+    _patch_current_context(monkeypatch, present=True)
+
+    fns = _Fns()
+    assert probe_module.render_probe(fns) is None
+    assert _Fbo.last.size == probe_module.MIN_VIEWER_SIZE_PX
+    assert _Fbo.last.attachment == _Fbo.Attachment.CombinedDepthStencil
+    assert fns.masks == [
+        probe_module.GL_COLOR_BUFFER_BIT
+        | probe_module.GL_DEPTH_BUFFER_BIT
+        | probe_module.GL_STENCIL_BUFFER_BIT
+    ]
+
+    _Fbo.valid = False
+    assert probe_module.render_probe(_Fns()) == "Kontext ohne vollstaendiges Framebuffer-Objekt"
+
+    _Fbo.valid, _Fbo.bindable = True, False
+    assert probe_module.render_probe(_Fns()) == "Framebuffer-Objekt nicht bindbar"
+
+
+def test_render_probe_never_propagates(monkeypatch) -> None:
+    """Ein Wurf hinterliesse keine JSON-Zeile — der Preflight meldete ``plugin``."""
+
+    class _Boom:
+        class Attachment:
+            CombinedDepthStencil = "combined"
+
+        def __init__(self, w: int, h: int, attachment: object) -> None:
+            raise RuntimeError("Treiber weg")
+
+    monkeypatch.setattr("PyQt6.QtOpenGL.QOpenGLFramebufferObject", _Boom)
+    _patch_current_context(monkeypatch, present=True)
+
+    detail = probe_module.render_probe(object())
+    assert detail is not None
+    assert detail.startswith("Render-Nachweis fehlgeschlagen: RuntimeError")
+    assert "Treiber weg" in detail
+
+
+def test_the_render_proof_uses_the_shared_gl_masks() -> None:
+    """Handgepflegte Kopie gegen ihre Quelle — wie bei den ``glGetString``-Namen."""
+    assert probe_module.GL_COLOR_BUFFER_BIT == preview3d_capability._GL_COLOR_BUFFER_BIT
+    assert probe_module.GL_DEPTH_BUFFER_BIT == preview3d_capability._GL_DEPTH_BUFFER_BIT
+    assert probe_module.GL_STENCIL_BUFFER_BIT == preview3d_capability._GL_STENCIL_BUFFER_BIT
+    assert probe_module.MIN_VIEWER_SIZE_PX == preview3d_capability.MIN_VIEWER_SIZE_PX
+    assert probe_module.GL_NO_ERROR == preview3d_capability._GL_NO_ERROR
+    assert probe_module.GL_ERROR_DRAIN_LIMIT == preview3d_capability._GL_ERROR_DRAIN_LIMIT
+
+
 def test_hardware_is_never_claimed_without_all_three_gl_strings() -> None:
     """Fällt ausgerechnet der Renderer aus, hat die Software-Regel nichts zu
     bewerten – Erfolg wäre dann eine Behauptung ohne Beleg (#937-Review)."""
@@ -236,3 +360,51 @@ def test_the_probe_runs_standalone_without_the_release_venv() -> None:
         capture_output=True, text=True, check=False, env={"QT_QPA_PLATFORM": "offscreen"},
     )
     assert json.loads(result.stdout.strip())["stage"] == "plugin"
+
+
+def test_render_probe_reports_a_gl_error_raised_by_the_clear(monkeypatch) -> None:
+    """``glClear`` wirft nicht, es legt einen Fehlercode ab (Codex-Review #1003)."""
+
+    class _Fbo:
+        class Attachment:
+            CombinedDepthStencil = "combined"
+
+        def __init__(self, w: int, h: int, attachment: object) -> None:
+            pass
+
+        def isValid(self) -> bool:  # noqa: N802
+            return True
+
+        def bind(self) -> bool:
+            return True
+
+        def release(self) -> None:
+            pass
+
+    class _Fns:
+        def __init__(self) -> None:
+            self._errors = [0, 0x0506]
+
+        def glClear(self, mask: int) -> None:  # noqa: N802
+            pass
+
+        def glGetError(self) -> int:  # noqa: N802
+            return self._errors.pop(0) if self._errors else 0
+
+    monkeypatch.setattr("PyQt6.QtOpenGL.QOpenGLFramebufferObject", _Fbo)
+    _patch_current_context(monkeypatch, present=True)
+
+    assert probe_module.render_probe(_Fns()) == "glClear meldete GL-Fehler 0x0506"
+
+
+def test_a_context_finding_carries_the_measured_provenance() -> None:
+    """Die Provenienz muss im ``detail`` stehen, nicht nur im Payload.
+
+    ``abnahme_preflight`` rendert den Fehlerfall als "<Hinweis>: <detail>" und
+    liest ``diagnostic`` nur im Erfolgszweig - ein eigenes Payload-Feld waere
+    still wirkungslos (Review PR #1003). Der ``renderer``-Zweig loest das
+    bereits so; der Render-Nachweis folgt jetzt demselben Muster.
+    """
+    source = (ROOT / "scripts" / "qt_gl_probe.py").read_text(encoding="utf-8")
+    marker = "f\"{render_error} ({vendor} / {renderer} / {version})\""
+    assert marker in source, "Render-Befund ohne Provenienz im detail-Text"

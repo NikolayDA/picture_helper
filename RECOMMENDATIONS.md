@@ -11,7 +11,7 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-09-06, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
+## Aktueller Stand (2026-09-07, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
 
 **Tagesaudit 2026-09-02 (Stand `91b32b4`):** Alle 42 offenen Issues wurden mit
 Code, Merges, Kommentaren und – beim Mac-App-Store-Epic – aktuellen
@@ -93,6 +93,7 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Release-Ref statt main-Freeze (ADR + fail-closed Absicherung) | 🟠 Hoch (`main` bleibt während eines Releases mergebar) | 🟢 Niedrig (Code, Doku und Ruleset stehen) | – (kein Agent; nächster Release-Lauf) | Blocked (extern) – am 2026-08-31 nach der Abschlussprüfung wiedereröffnet; PR #936 und der aktive Ruleset 21941216 sind belegt, offen ist nur ein Lauf, dessen Post-Release-Abnahme nachweislich auf `release/vX.Y.Z` startete |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Betrieb: Self-hosted-Runner (Heartbeat-Alarmkanal) | 🟡 Mittel (Betriebskanal, kein Produktcode) | 🟢 Niedrig (reine Beobachtung) | – (kein Agent; Repo-Owner) | Dauerhaft offen – nicht schließen (`RUNNER_HEARTBEAT_ISSUE`); der FAIL vom 2026-08-31 war der geplante Meldeweg-Test, der Aufräumschritt ist erledigt (planmäßiger Lauf 33496675995 grün, x86_64 übersprungen, Mac und Pi bestanden) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
+| [#1004](https://github.com/NikolayDA/picture_helper/issues/1004) | 3D-Viewer meldet „ready", ohne dass je ein Frame entstanden ist – Renderbeweis am Viewer fehlt | 🟡 Mittel (Restfall aus #1002; betrifft Geräte mit Sitzungsplattform, aber kaputtem Widget-Framebuffer) | 🟠 Hoch (die Zeugenregel muss Falsch-Negative ausschließen: ein gesunder *verborgener* Viewer ist messgleich zum kaputten) | Opus, hoch | Startbereit – Zeugenregel entwerfen (`frameSwapped`, Bewaffnung erst im `showEvent`), `has_rendered` als geteilte Quelle für UI und `screenshot3d`, Rückwirkung auf die drei nativen Screenshot-Kriterien einplanen |
 
 ### Als Nächstes empfohlen
 

@@ -52,6 +52,34 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   admitidos Debian 12, Ubuntu 22.04 y RHEL 9, mientras que Debian 11,
   Ubuntu 20.04 y RHEL 8 quedan fuera. macOS no se ve afectado.
 
+### Corregido
+
+- **La vista previa 3D indicaba «lista» aunque el entorno no podía renderizar
+  ningún fotograma (#1002).** `probe_3d_capability` solo comprobaba hechos del
+  contexto: creación del contexto, superficie offscreen actual, ausencia de un
+  contexto OpenGL ES puro y el conjunto de funciones GL 2.1. En una Raspberry
+  Pi 5 (Debian 13 «Trixie», Broadcom V3D + Mesa) los cuatro tienen éxito, pero
+  `QOpenGLWidget` registraba `No fbo, cannot render`: la pestaña 3D pasaba a
+  «lista» y luego quedaba vacía en lugar de mostrar el estado documentado «no
+  disponible» con explicación y «Reintentar». La causa es la plataforma Qt, no
+  el controlador: `QOpenGLWidget` necesita una integración de plataforma que
+  admita el renderizado de widgets; `offscreen`, `minimal` y `vnc` carecen de
+  ella, y el propio Qt declara el widget no compatible allí. Ahora la sonda
+  rechaza esas plataformas **primero**, antes de cualquier llamada GL. Además
+  realiza una prueba mínima de renderizado —se crea, se enlaza y se limpia un
+  objeto de framebuffer exactamente del tipo y tamaño mínimo que
+  `QOpenGLWidget` crea para su framebuffer de widget, y después se comprueba el
+  código de error de GL— que cubre otra clase: controladores que no
+  ofrecen un destino de renderizado completo en una sesión real. Ninguna de las
+  dos reglas puede desactivar el 3D en hardware apto; en caso de duda, el 3D
+  sigue activo. La sonda del preflight de aceptación
+  (`scripts/qt_gl_probe.py`) adopta la prueba de renderizado bajo su etapa
+  existente `kontext`; la procedencia del renderizador también se registra
+  ahora en caso de fallo. El texto de «no disponible» nombra ahora el resultado
+  («no puede renderizar con OpenGL 2.1») en lugar de solo una de las causas
+  posibles. Corregido de paso: sin una `QGuiApplication` en ejecución la sonda
+  se bloqueaba con SIGSEGV en lugar de informar un motivo.
+
 ## [2.9.0] – 2026-08-26
 
 ### Añadido

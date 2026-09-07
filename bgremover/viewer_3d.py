@@ -68,6 +68,7 @@ except Exception:  # noqa: BLE001 – ohne GL-Klassen bleibt nur der Fallback
 from bgremover.constants import _ZOOM_CTRL_MAX_PCT, _ZOOM_CTRL_MIN_PCT, logger
 from bgremover.i18n import tr
 from bgremover.preview3d_camera import OrbitCamera
+from bgremover.preview3d_capability import MIN_VIEWER_SIZE_PX
 from bgremover.relief_mesh import ReliefMesh
 from bgremover.theme import Palette, active_palette
 from bgremover.zoom_control import ZoomControl
@@ -229,7 +230,7 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         self._last_pos: tuple[float, float] | None = None
         self._palette = active_palette()
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setMinimumSize(240, 200)
+        self.setMinimumSize(*MIN_VIEWER_SIZE_PX)
         self.setAccessibleName(tr("preview3d.a11y.name"))
         self.setAccessibleDescription(tr("preview3d.a11y.desc"))
 

@@ -43,6 +43,15 @@ Kombiniert) bleibt semantisch unverändert; 3D liegt als eigene Ebene
   fehlgeschlagen ist. Sonst bleibt es deaktiviert mit erklärendem Text
   (Zustände E/U unten). **2D bleibt immer direkt erreichbar** – auch ohne
   3D-fähige Hardware ändert sich am bestehenden Workflow nichts.
+  - *Was (b) misst (#1002):* **Renderfähigkeit**, nicht nur Kontextexistenz.
+    Zuerst werden Qt-Platform-Plugins abgewiesen, unter denen `QOpenGLWidget`
+    grundsätzlich keinen Frame erzeugt (`offscreen`, `minimal`, `vnc`); danach
+    folgt ein Render-Nachweis in ein Framebuffer-Objekt derselben Bauart und
+    Mindestgröße, die das Widget für sich selbst anlegt. Ohne die erste Regel
+    meldete die Probe auf solchen Plattformen „verfügbar", und der Viewer blieb
+    im Zustand [R] leer, während Qt nur ins Log schrieb. Beide Regeln sind
+    fail-open – sie können 3D auf tauglicher Hardware nicht abschalten; im
+    Zweifel landet der Viewer im Fehlerzustand [F], nie grundlos in [U].
 - **Moduswechsel** mutiert nie Bild-/Höhendaten und beeinflusst nie den
   Export; der 2D-Zoomzustand bleibt beim Rückwechsel erhalten.
 
@@ -135,7 +144,7 @@ Farbe oder Spinner. Verbindliche Formulierungen (de / en):
 | Zustand | Key (Vorschlag) | Text de | Text en |
 |---|---|---|---|
 | [E] Keine HEIGHT-Ebene | `preview3d.empty` | „Keine Höhenkarte vorhanden. Erzeugen Sie im Höhen-Tab eine Höhenkarte, um die 3D-Vorschau zu nutzen." | "No height map yet. Create a height map in the Height tab to use the 3D preview." |
-| [U] Nicht verfügbar (Capability) | `preview3d.unavailable` | „3D-Vorschau nicht verfügbar: Diese Umgebung bietet kein OpenGL 2.1. Die 2D-Reliefvorschau steht weiterhin zur Verfügung." | "3D preview unavailable: this environment does not provide OpenGL 2.1. The 2D relief preview remains available." |
+| [U] Nicht verfügbar (Capability) | `preview3d.unavailable` | „3D-Vorschau nicht verfügbar: Diese Umgebung kann kein OpenGL 2.1 rendern. Die 2D-Reliefvorschau steht weiterhin zur Verfügung." | "3D preview unavailable: this environment cannot render OpenGL 2.1. The 2D relief preview remains available." |
 | [L] Laden (erster Aufbau, erst nach 300 ms sichtbar) | `preview3d.loading` | „3D-Vorschau wird berechnet…" | "Computing 3D preview…" |
 | [A] Aktualisieren (Rebuild; altes Mesh bleibt sichtbar) | `preview3d.updating` | „Aktualisieren…" | "Updating…" |
 | [R] Bereit (Statusleiste, einmalig je Wechsel) | `preview3d.ready_hint` | „3D-Vorschau aktiv – gespeicherte Bilder und Exporte bleiben unverändert." | "3D preview active – saved images and exports remain unchanged." |
@@ -144,6 +153,13 @@ Farbe oder Spinner. Verbindliche Formulierungen (de / en):
 | [F] Aktion 1 | `preview3d.error.show_2d` | „2D-Relief anzeigen" | "Show 2D relief" |
 | [F] Aktion 2 | `preview3d.error.retry` | „Erneut versuchen" | "Try again" |
 
+- [U] deckt **alle** Ursachen ab, die die Probe unterscheiden kann: eine
+  Plattform ohne OpenGL-Widget-Fläche, gar kein Desktop-OpenGL 2.1 und ein
+  Kontext, in den sich nicht rendern lässt (#1002). Der Nutzertext nennt
+  deshalb das Ergebnis („kann kein OpenGL 2.1 rendern"), nicht die Teilursache;
+  der technische Kurzgrund steht im Log. Ein zweiter sichtbarer Zustand wäre
+  ohne Nutzen – die Handlungsoption ist in allen Fällen dieselbe (2D
+  weiterverwenden oder „Erneut versuchen").
 - Der Ladezustand erscheint erst nach 300 ms (kein Flackern bei
   Cache-Treffern); [A] zeigt das **alte** Mesh weiter (kein Schwarzbild).
 - Das Decimation-Badge erscheint immer, wenn das Grid kleiner als die
