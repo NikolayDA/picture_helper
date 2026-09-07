@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-from PyQt6.QtCore import Qt, pyqtBoundSignal, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtBoundSignal, pyqtSignal
 from PyQt6.QtGui import QMatrix4x4, QSurfaceFormat
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -81,6 +81,34 @@ _GL_DEPTH_BUFFER_BIT = 0x00000100
 _GL_TRIANGLES = 0x0004
 _GL_UNSIGNED_INT = 0x1405
 _GL_FLOAT = 0x1406
+
+#: Wie oft Qt eine Paint-Anforderung nacheinander **ohne Widget-Framebuffer**
+#: abweisen darf, bevor der Viewer den Fehlerzustand meldet (#1004).
+#: ``QOpenGLWidgetPrivate::render`` bricht in diesem Fall mit
+#: ``QOpenGLWidget: No fbo, cannot render`` ab – eine ``qWarning``, keine
+#: Ausnahme, weshalb der bisherige rein exception-basierte Fehlerpfad sie nicht
+#: sah. Drei aufeinanderfolgende Abweisungen, weil eine einzelne auch ein
+#: Übergang sein kann: Gemessen zeigt selbst der kaputte Fall beim **ersten**
+#: Paint noch einen Framebuffer und erst beim zweiten keinen mehr. Ein einziger
+#: gelungener Paint setzt den Zähler zurück, ein bestätigter Frame beendet die
+#: Bewertung dauerhaft (Review PR #1005: den eigentlichen Schutz gegen einen
+#: Übergang trägt ``_has_rendered``, nicht die Zählung – auf gesunder Hardware
+#: steht der Freispruch schon nach dem allerersten Ereignisdurchlauf, gemessen
+#: auch vor einem Reparenting).
+_MAX_REFUSED_PAINTS = 3
+
+#: Die fünf Zustandsnamen von :class:`Relief3DView`. Seit #1004 liest der
+#: Controller ``state`` **steuernd** (nicht mehr nur beobachtend) über die
+#: Modulgrenze; ``state`` ist als ``str`` typisiert, ein Tippfehler bliebe
+#: also still (Review PR #1005). Deshalb hier die geteilte Quelle – auch für
+#: die beobachtenden Leser in ``screenshot3d``.
+STATE_EMPTY = "empty"
+STATE_UNAVAILABLE = "unavailable"
+STATE_LOADING = "loading"
+STATE_ERROR = "error"
+STATE_READY = "ready"
+#: Die Zustände, in denen der Aufbau abgeschlossen ist (kein Warten mehr).
+SETTLED_STATES = frozenset({STATE_READY, STATE_UNAVAILABLE, STATE_ERROR})
 
 # GLSL 1.20 (OpenGL 2.1). ``abs(dot(...))`` beleuchtet doppelseitig, damit ein
 # Orbit unter das Relief die Struktur weiter sichtbar hält.
@@ -223,6 +251,24 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         self._index_count = 0
         self._gl_ready = False
         self._failed = False
+        self._failure_reason = ""
+        # Renderbeweis (#1004): ``_has_rendered`` wird nur von Qt selbst gesetzt
+        # (``frameSwapped``) und spricht den Viewer dauerhaft frei;
+        # ``_refused_paints`` zählt die Gegenrichtung.
+        self._has_rendered = False
+        self._refused_paints = 0
+        self._repaint_timer = QTimer(self)
+        self._repaint_timer.setSingleShot(True)
+        self._repaint_timer.timeout.connect(self.update)
+        # ``_fail`` blendet über ``initFailed`` die Ready-Seite aus – ein
+        # ``hide()`` mitten in Qts Paint-Zustellung dieses Widgets (Review
+        # PR #1005). Der Befund verlässt die Zustellung deshalb über einen
+        # eigenen Kind-Timer; ``_fail_pending`` sperrt die Bewertung sofort,
+        # damit die Absagen bis dahin nicht weiterzählen.
+        self._fail_pending = False
+        self._fail_timer = QTimer(self)
+        self._fail_timer.setSingleShot(True)
+        self._fail_timer.timeout.connect(self._report_missing_framebuffer)
         # Fixier-Lock der Zoom-Pille (#464): reiner UI-Zustand, friert den
         # Kamera-Zoom gegen Mausrad, +/−-Tasten und Pillen-Buttons ein.
         self._zoom_locked = False
@@ -231,6 +277,7 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         self._palette = active_palette()
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMinimumSize(*MIN_VIEWER_SIZE_PX)
+        self.frameSwapped.connect(self._on_frame_swapped)
         self.setAccessibleName(tr("preview3d.a11y.name"))
         self.setAccessibleDescription(tr("preview3d.a11y.desc"))
 
@@ -348,6 +395,71 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
     def has_failed(self) -> bool:
         return self._failed
 
+    def _on_frame_swapped(self) -> None:
+        """Qt hat einen Frame komponiert – der einzige positive Zeuge (#1004).
+
+        Wird ausschließlich von Qt ausgelöst und ist damit **freisprechend**:
+        Ab hier gilt der Viewer als renderfähig, und die Abweisungszählung
+        unten kann ihn nicht mehr abstufen.
+        """
+        self._has_rendered = True
+        self._refused_paints = 0
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
+        """Erkennt, dass Qt den Frame verweigert hat (#1004).
+
+        Bis hierher war der Fehlerzustand [F] rein exception-basiert. Qts
+        Absage ist aber eine ``qWarning`` aus ``QOpenGLWidgetPrivate::render``
+        (``fbos[LeftBuffer] == nullptr``), keine Ausnahme – der 3D-Tab blieb
+        deshalb im Zustand [R] und leer. Nach ``super().paintEvent()`` steht
+        genau diese Absage fest: ``defaultFramebufferObject()`` ist dann 0.
+
+        Die Regel ist bewusst asymmetrisch (UX §5, Fehlerrichtung wie bei den
+        Probe-Regeln aus #1002): Ein **verborgener** Viewer bekommt gar keinen
+        Paint und wird deshalb nie bewertet – gemessen, und der Grund, warum
+        hier kein ``isVisible()`` steht (ein verdecktes Fenster wäre sichtbar
+        und malte trotzdem nicht). Ein Viewer, der je einen Frame geliefert
+        hat, wird nie abgestuft. Und eine einzelne Absage genügt nicht.
+        """
+        super().paintEvent(event)
+        if (
+            self._failed
+            or self._fail_pending
+            or self._has_rendered
+            or not self.updatesEnabled()
+        ):
+            return
+        if self.defaultFramebufferObject() != 0:
+            self._refused_paints = 0
+            return
+        self._refused_paints += 1
+        if self._refused_paints < _MAX_REFUSED_PAINTS:
+            # Ohne diese Anforderung endet der kaputte Fall nach zwei Paints,
+            # und der Zähler erreicht seine Schwelle nie. Der Aufruf ist
+            # begrenzt: Ab der Schwelle schaltet ``_fail`` und
+            # ``_safe_update`` stellt das Nachfordern ein.
+            #
+            # Über den Nullzeit-Timer statt direkt (Review PR #1005): Ein
+            # ``update()`` postet sofort eine Paint-Anforderung, die noch vor
+            # einem bereits anstehenden Resize zugestellt werden könnte – die
+            # Zählung nähme dann dreimal denselben Augenblick statt drei
+            # unabhängiger Runden. Qt stellt Timer erst nach den geposteten
+            # Ereignissen zu; ein reparierender Resize kommt damit gemessen
+            # zuerst. Der Timer ist ein **Kind** des Viewers und stirbt mit
+            # ihm; ``QTimer.singleShot`` kennt in PyQt6 keine Kontext-Variante
+            # und liefe sonst auf ein gelöschtes Widget.
+            self._repaint_timer.start(0)
+            return
+        self._fail_pending = True
+        self._fail_timer.start(0)
+
+    def _report_missing_framebuffer(self) -> None:
+        """Meldet den Befund **außerhalb** von Qts Paint-Zustellung (#1004)."""
+        self._fail(
+            "paintEvent: Qt hält keinen Widget-Framebuffer "
+            f"({self._refused_paints} Anforderungen abgewiesen, kein Frame)"
+        )
+
     @property
     def gl_object_count(self) -> int:
         """Zahl der aktuell gehaltenen GL-Objekte (0–4: drei Puffer + VAO, #684).
@@ -412,6 +524,14 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         mesh = self._mesh
         self.cleanup_gl()
         self._pending_mesh = mesh
+        # Der neue Kontext baut seinen Framebuffer erst wieder auf; eine
+        # Abweisung aus dem alten darf ihn nicht belasten (#1004). Umgekehrt
+        # gilt auch der Freispruch nur für den Kontext, der ihn gegeben hat
+        # (Review PR #1005): Bliebe ``_has_rendered`` stehen, kehrte jeder
+        # Paint des Ersatzkontexts vor der Framebuffer-Prüfung um, und genau
+        # der Zustand, den dieser Beweis sucht, bliebe an ihm unentdeckt.
+        self._refused_paints = 0
+        self._has_rendered = False
 
     def _init_gl(self) -> None:
         program = QOpenGLShaderProgram(self)
@@ -546,10 +666,20 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         program.enableAttributeArray(loc)
         program.setAttributeBuffer(loc, _GL_FLOAT, 0, components, 0)
 
+    @property
+    def failure_reason(self) -> str:
+        """Die Meldung des ersten Fehlers, sonst leer (#1004, Review PR #1005).
+
+        Der native 3D-Screenshot trägt ein Abnahmekriterium; ohne den Grund
+        sähe dort ein Wächter-Fehlalarm wie ein Renderfehler aus.
+        """
+        return self._failure_reason
+
     def _fail(self, message: str) -> None:
         if self._failed:
             return
         self._failed = True
+        self._failure_reason = message
         logger.warning("3D-Viewer-Fehler: %s", message)
         self.initFailed.emit(message)
 
@@ -700,8 +830,12 @@ class Relief3DView(QStackedWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._state = "empty"
+        self._state = STATE_EMPTY
         self._viewer: GLReliefViewer | None = None
+        # Gibt der ausdrückliche Retry frei (#1004, Review PR #1005): Ein
+        # Viewer, der den Renderbeweis verloren hat, wird nicht bei jeder
+        # Inhaltsänderung neu gebaut.
+        self._retry_requested = False
         self._palette = active_palette()
 
         self._empty_label = self._make_message_page(tr("preview3d.empty"))
@@ -750,35 +884,52 @@ class Relief3DView(QStackedWidget):
     def viewer(self) -> GLReliefViewer | None:
         return self._viewer
 
+    def allow_viewer_retry(self) -> None:
+        """Gibt den Neuaufbau eines fehlgeschlagenen Viewers frei (#1004).
+
+        Der Gegenpart zu ``reset_capability_cache``: Ohne diesen ausdrücklichen
+        Schritt bleibt ein Viewer, der den Renderbeweis verloren hat, verworfen
+        – sonst entstünde bei jeder Inhaltsänderung ein neuer GL-Kontext, der
+        genauso scheitert (Review PR #1005).
+        """
+        self._retry_requested = True
+
     def show_empty(self) -> None:
-        self._state = "empty"
+        self._state = STATE_EMPTY
         self.setCurrentWidget(self._empty_label)
         self._sync_zoom_overlay()
 
     def show_unavailable(self) -> None:
-        self._state = "unavailable"
+        self._state = STATE_UNAVAILABLE
         self.setCurrentWidget(self._unavailable_page)
         self._sync_zoom_overlay()
 
     def show_loading(self) -> None:
-        self._state = "loading"
+        self._state = STATE_LOADING
         self.setCurrentWidget(self._loading_label)
         self._sync_zoom_overlay()
 
     def show_error(self) -> None:
-        self._state = "error"
+        self._state = STATE_ERROR
         self.setCurrentWidget(self._error_page)
         self._sync_zoom_overlay()
 
     def show_mesh(self, mesh: ReliefMesh) -> None:
-        """Zeigt ein Mesh im GL-Viewer; ein GL-Init-Fehler wechselt zu ``error``."""
+        """Zeigt ein Mesh im GL-Viewer; ein GL-Fehler wechselt zu ``error``.
+
+        ``ready`` gilt hier zunächst als Annahme: Ob Qt wirklich einen Frame
+        erzeugt, steht erst beim ersten Paint fest. Weist Qt ihn ab, meldet der
+        Renderbeweis in :meth:`GLReliefViewer.paintEvent` das über ``initFailed``
+        und der Container wechselt nach ``error`` (#1004) – bisher blieb er in
+        diesem Fall auf ``ready`` und zeigte eine leere Fläche.
+        """
         viewer = self._ensure_viewer()
         if viewer is None:
             self.show_error()
             return
         viewer.set_mesh(mesh)
         self._update_badge(mesh)
-        self._state = "ready"
+        self._state = STATE_READY
         self.setCurrentWidget(self._ready_page)
         self._sync_zoom_overlay()
 
@@ -826,12 +977,22 @@ class Relief3DView(QStackedWidget):
     # ── intern ───────────────────────────────────────────────────────────
     def _ensure_viewer(self) -> GLReliefViewer | None:
         if self._viewer is not None:
-            # Ein bereits fehlgeschlagener Viewer (initializeGL/paintGL-Fehler)
-            # kann nicht wieder rendern – vor einem Retry verwerfen und neu
-            # aufbauen, sonst bliebe der Container fälschlich „ready" ohne Bild
-            # (Review #620, P2).
+            # Ein bereits fehlgeschlagener Viewer (initializeGL/paintGL-Fehler,
+            # seit #1004 auch ein ausbleibender Frame) kann nicht wieder
+            # rendern – vor einem Retry verwerfen und neu aufbauen, sonst
+            # bliebe der Container fälschlich „ready" ohne Bild (Review #620,
+            # P2). **Nur** vor einem Retry: Ohne diese Bedingung baute jede
+            # Layer-/Inhaltsänderung auf einer dauerhaft render-unfähigen
+            # Anzeige einen kompletten ``QOpenGLWidget`` samt Kontext neu auf,
+            # und die UI sprünge sichtbar zwischen leerer Ready-Fläche und
+            # Fehlerseite hin und her (Review PR #1005). Analog zum
+            # Capability-Cache ist der ausdrückliche Retry der einzige Weg
+            # zurück.
             if not self._viewer.has_failed:
                 return self._viewer
+            if not self._retry_requested:
+                return None
+            self._retry_requested = False
             self._discard_viewer()
         if not _HAS_GL_WIDGET:
             return None
@@ -881,7 +1042,7 @@ class Relief3DView(QStackedWidget):
     def _sync_zoom_overlay(self) -> None:
         """Zeigt die Zoom-Pille nur im Ready-Zustand; Anzeige/Position aktuell."""
         viewer = self._viewer
-        visible = self._state == "ready" and viewer is not None
+        visible = self._state == STATE_READY and viewer is not None
         self._zoom_ctrl.setVisible(visible)
         if visible and viewer is not None:
             self._zoom_ctrl.set_percent(viewer.zoom_percent)

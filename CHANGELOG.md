@@ -81,6 +81,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   jetzt das Ergebnis („kann kein OpenGL 2.1 rendern") statt nur einer der
   möglichen Ursachen. Nebenbei behoben: Ohne laufende `QGuiApplication` stürzte
   die Probe mit SIGSEGV ab, statt einen Grund zu melden.
+- **3D-Vorschau blieb leer, wenn Qt den Frame verweigerte (#1004).** Die
+  Vorab-Prüfungen aus #1002 sind notwendig, aber nicht hinreichend: Bleibt der
+  Widget-Framebuffer aus Gründen des Fenster-Lebenszyklus aus, sieht das keine
+  Probe. Qt weist den Frame dann mit einer Log-Warnung ab, nicht mit einem
+  Fehler – der 3D-Tab meldete „bereit" und zeigte eine leere Fläche. Der
+  Viewer beweist seinen Frame jetzt selbst: Er erkennt beim Zeichnen, dass Qt
+  keinen Framebuffer hält, und wechselt nach drei aufeinanderfolgenden Absagen
+  in den Fehlerzustand mit Erklärung und „2D-Relief anzeigen". Die Regel kann
+  funktionierende Hardware nicht abstufen – bestätigt Qt je einen Frame, gilt
+  der Viewer dauerhaft als in Ordnung; ein nicht gezeichneter Viewer wird gar
+  nicht bewertet, und eine einzelne Absage genügt nicht.
 
 ## [2.9.0] – 2026-08-26
 

@@ -223,10 +223,47 @@ Ein Paket, `bgremover/`:
   Datensatzgröße, inkl. Negativkontrolle) und der `gl_smoke`-Langzeittest in
   `tests/test_viewer_3d_gl.py`; Messwerte, Grenzen und Hardware-Prozedur in
   [`docs/history/RELEASE-2.7.1-gl-langzeittest.md`](docs/history/RELEASE-2.7.1-gl-langzeittest.md).
+  Seit #1004 **beweist** der Viewer seinen Frame, statt ihn anzunehmen: Der
+  Fehlerzustand war rein exception-basiert, Qts Absage ist aber eine `qWarning`
+  aus `QOpenGLWidgetPrivate::render` (`No fbo, cannot render`) – der 3D-Tab
+  blieb dann auf `ready` und leer. `paintEvent` prüft nach `super()`, ob
+  `defaultFramebufferObject()` 0 ist, und schaltet nach
+  `_MAX_REFUSED_PAINTS` (3) aufeinanderfolgenden Absagen über `_fail` in den
+  Fehlerzustand; unterhalb der Schwelle fordert es einen weiteren Paint an,
+  weil der kaputte Fall sonst nach zwei Paints endet. Drei Asymmetrien halten
+  die Fehlerrichtung wie bei den Probe-Regeln aus #1002: `frameSwapped` setzt
+  `_has_rendered` und spricht **dauerhaft** frei, ohne Paint gibt es kein
+  Urteil (ein verborgener Viewer wird von Qt nie gemalt – deshalb steht dort
+  bewusst kein `isVisible()`), und eine einzelne Absage genügt nicht; ein
+  Kontextverlust setzt den Zähler zurück. Ein `QTimer.singleShot(0)` auf
+  `frameSwapped` war die erste Wahl und wurde **gemessen verworfen**: Dort
+  steht der Zähler auch im gesunden Fall noch auf 0. Damit ist die Lücke
+  geschlossen, die der #1002-Nachtrag benennt (Proben sind notwendig, nicht
+  hinreichend). Vier Ränder aus dem Review: Der Befund verlässt Qts
+  Paint-Zustellung über einen Kind-Timer (`_fail` blendet über `initFailed`
+  die Ready-Seite aus – ein `hide()` im eigenen Paint-Dispatch), der Freispruch
+  gilt nur für den Kontext, der ihn gab, ein Viewer ohne Renderbeweis wird
+  **nicht** bei jeder Inhaltsänderung neu gebaut (`allow_viewer_retry()` ist
+  der Gegenpart zu `reset_capability_cache` – sonst ein Zyklus aus neuem,
+  gleich scheiterndem GL-Kontext), und die Zustandsnamen liegen als geteilte
+  Konstanten (`STATE_*`/`SETTLED_STATES`) in `viewer_3d`, weil `state` seit
+  #1004 **steuernd** über die Modulgrenze gelesen wird und als `str` typisiert
+  ist. `bgremover/screenshot3d.py` bekommt bewusst **kein** eigenes Gate
+  (eigene Timer-Zustandsmaschine, trägt Abnahmekriterien, `frameSwapped` auf
+  `cocoa` ungemessen) – erreicht wird es vom neuen Fehlerpfad trotzdem, weil
+  es `state`/`has_failed` liest. Deshalb reicht der Viewer seine erste
+  Fehlermeldung als `failure_reason` durch: Ein blankes „Nativer GL-Frame
+  fehlgeschlagen" ließe einen Wächter-Fehlalarm wie einen Renderfehler
+  aussehen.
   `preview3d_controller.py` (`Preview3DController`, #594) orchestriert Gating,
   entprellten (200 ms) asynchronen Mesh-Build (`MeshBuildWorker` über den
   `WorkerController`) mit **Generation-IDs** (stale-result-Schutz) und einem
   **Ein-Mesh-Cache**; Kamera/Licht/Überhöhung sind reine Uniforms ohne Rebuild.
+  Ob gerade ein Mesh gezeigt wird, fragt er seit #1004 direkt an
+  `Relief3DView.state` statt an einer mitgeführten Kopie (`_displaying`,
+  entfallen): Der Renderbeweis kann den Zustand **asynchron** von `ready` auf
+  `error` ziehen, das Flag behauptete danach weiter das Gegenteil und
+  unterdrückte die Ladeseite über einer Fehlerseite.
   Verdrahtung im `MainWindow`: Canvas-Stack (2D-Leinwand ↔ 3D-Viewer), Segment
   **Darstellung [2D|3D]** oben im Höhen-Tab (`height_map_panel.Preview3DActions`)
   und „Ansicht → 3D-Relief anzeigen"; Qualität als QSettings-Präferenz

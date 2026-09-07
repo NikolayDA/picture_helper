@@ -79,6 +79,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   («no puede renderizar con OpenGL 2.1») en lugar de solo una de las causas
   posibles. Corregido de paso: sin una `QGuiApplication` en ejecución la sonda
   se bloqueaba con SIGSEGV en lugar de informar un motivo.
+- **La vista previa 3D quedaba vacía cuando Qt rechazaba el fotograma (#1004).**
+  Las comprobaciones previas de #1002 son necesarias, pero no suficientes: si
+  el framebuffer del widget falta por motivos del ciclo de vida de la ventana,
+  ninguna sonda lo detecta. Qt rechaza entonces el fotograma con una
+  advertencia de registro, no con un error: la pestaña 3D informaba «listo» y
+  mostraba una superficie vacía. Ahora el visor demuestra su propio fotograma:
+  detecta al dibujar que Qt no mantiene ningún framebuffer y pasa al estado de
+  error con explicación y «Mostrar relieve 2D» tras tres rechazos
+  consecutivos. La regla no puede degradar hardware que funciona: en cuanto Qt
+  confirma un fotograma, el visor queda validado de forma permanente; un visor
+  que nunca se dibuja nunca se evalúa, y un solo rechazo no basta.
 
 ## [2.9.0] – 2026-08-26
 

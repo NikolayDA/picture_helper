@@ -80,6 +80,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   le résultat (« ne peut pas rendre en OpenGL 2.1 ») au lieu d'une seule des
   causes possibles. Corrigé au passage : sans `QGuiApplication` en cours
   d'exécution, la sonde plantait avec SIGSEGV au lieu d'indiquer un motif.
+- **L'aperçu 3D restait vide lorsque Qt refusait l'image (#1004).** Les
+  contrôles préalables de #1002 sont nécessaires mais pas suffisants : si le
+  framebuffer du widget manque pour des raisons de cycle de vie de la fenêtre,
+  aucune sonde ne le voit. Qt refuse alors l'image par un avertissement de
+  journal et non par une erreur — l'onglet 3D annonçait « prêt » et affichait
+  une surface vide. La vue prouve désormais elle-même son image : elle détecte
+  pendant le dessin que Qt ne détient aucun framebuffer et bascule vers l'état
+  d'erreur avec explication et « Afficher le relief 2D » après trois refus
+  consécutifs. La règle ne peut pas déclasser du matériel fonctionnel : dès que
+  Qt confirme une image, la vue est validée durablement ; une vue jamais
+  dessinée n'est jamais jugée, et un seul refus ne suffit pas.
 
 ## [2.9.0] – 2026-08-26
 

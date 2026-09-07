@@ -26,7 +26,7 @@ from bgremover.preview3d_capability import (
     reset_capability_cache,
 )
 from bgremover.relief_mesh import MeshCacheKey, MeshQuality, ReliefMesh, mesh_cache_key
-from bgremover.viewer_3d import Relief3DView
+from bgremover.viewer_3d import STATE_READY, Relief3DView
 
 # Debounce der geometriewirksamen Änderungen (ADR: 200 ms nach der letzten).
 _DEBOUNCE_MS = 200
@@ -84,7 +84,6 @@ class Preview3DController(QObject):
         self._cache_key: MeshCacheKey | None = None
         self._cache_mesh: ReliefMesh | None = None
         self._pending_key: MeshCacheKey | None = None
-        self._displaying = False
 
         self._debounce = QTimer(self)
         self._debounce.setSingleShot(True)
@@ -160,6 +159,9 @@ class Preview3DController(QObject):
     def retry(self) -> None:
         """„Erneut versuchen": Capability-Cache verwerfen und neu bewerten."""
         reset_capability_cache()
+        # Zweiter Cache derselben Art: Erst hier darf ein Viewer, der den
+        # Renderbeweis verloren hat, neu aufgebaut werden (#1004).
+        self._view.allow_viewer_retry()
         if self._active:
             self._evaluate(force_rebuild=True)
 
@@ -177,14 +179,12 @@ class Preview3DController(QObject):
         if not capability.ok:
             self._debounce.stop()
             self._workers.cancel_mesh_build()
-            self._displaying = False
             self._view.show_unavailable()
             return
         field = self._canvas.height_preview_field()
         if field is None:
             self._debounce.stop()
             self._workers.cancel_mesh_build()
-            self._displaying = False
             self._view.show_empty()
             return
 
@@ -222,7 +222,13 @@ class Preview3DController(QObject):
         self._generation += 1
         self._workers.cancel_mesh_build()
         self._pending_key = key
-        if not self._displaying:
+        # Direkt an der Ansicht gefragt statt an einer mitgeführten Kopie
+        # (#1004): Der Renderbeweis in ``GLReliefViewer`` kann den Zustand
+        # **asynchron** von ``ready`` auf ``error`` ziehen, nachdem
+        # ``_show_cached`` gelaufen ist. Ein gemerktes Flag behauptete dann
+        # weiter „zeigt ein Mesh" und unterdrückte die Ladeseite über einer
+        # Fehlerseite.
+        if self._view.state != STATE_READY:
             self._view.show_loading()
         self._debounce.start()
 
@@ -238,7 +244,6 @@ class Preview3DController(QObject):
         field = self._canvas.height_preview_field()
         if field is None:
             self._view.show_empty()
-            self._displaying = False
             return
         generation = self._generation
         self._workers.start_mesh_build(
@@ -271,7 +276,6 @@ class Preview3DController(QObject):
         if not self._active or generation != self._generation:
             return
         logger.warning("3D-Mesh-Build fehlgeschlagen: %s", message)
-        self._displaying = False
         self._view.show_error()
 
     def _show_cached(self) -> None:
@@ -279,4 +283,3 @@ class Preview3DController(QObject):
         self._view.show_mesh(self._cache_mesh)
         self._view.set_exaggeration(self._exaggeration)
         self._view.set_light(*self._light)
-        self._displaying = self._view.state == "ready"

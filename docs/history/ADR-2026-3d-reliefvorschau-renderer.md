@@ -598,3 +598,108 @@ und unbekannte Namen passieren, und der Bindung des FBO an Größe, Attachment
 und `glClear`-Maske des Viewers. Der Zustand „Sitzungsplattform, Kontext ohne
 Framebuffer" ist nicht überall herstellbar; die Gegenprobe auf echter Hardware
 ist ein `make check` auf dem Pi.
+
+## Nachtrag (2026-09-07, #1004): Der Viewer beweist seinen Frame, statt ihn anzunehmen
+
+Der Nachtrag zu #1002 hält fest, dass Plattformregel und Render-Nachweis
+**notwendig, nicht hinreichend** sind: Bleibt der Widget-Framebuffer aus
+Gründen des Widget-Lebenszyklus aus, sieht ihn keine Probe. Dieser Schritt
+schließt genau diese Lücke – nicht durch eine dritte Vorab-Regel, sondern
+durch Beobachtung am einzigen Ort, an dem der Frame wirklich entsteht.
+
+**Der Befund.** Qts Absage ist eine `qWarning` aus
+`QOpenGLWidgetPrivate::render` (`fbos[LeftBuffer] == nullptr`,
+„QOpenGLWidget: No fbo, cannot render"), keine Ausnahme. Der Fehlerzustand [F]
+war bis hierher rein exception-basiert; der 3D-Tab blieb deshalb im Zustand [R]
+und zeigte eine leere Fläche, ohne Meldung und ohne Weg zurück nach 2D.
+
+**Messung (xvfb, llvmpipe, PyQt6/Qt 6.11).** Instrumentierter Viewer,
+`show_mesh` auf einem Mini-Mesh, je zwei Paint-Runden:
+
+| Lage | paintEvents | `defaultFramebufferObject()` je Paint | `paintGL` | `frameSwapped` |
+|---|---|---|---|---|
+| `xcb`, sichtbar (gesund) | 2 | 1, 1 | 2 | 2 |
+| `xcb`, verborgen (gesund) | 0 | – | 0 | 0 |
+| `offscreen`, sichtbar (kaputt) | 2 | 1, **0** | 1 | **0** |
+| `offscreen`, verborgen | 0 | – | 0 | 0 |
+
+Daraus folgen die drei tragenden Eigenschaften: `frameSwapped` trennt die
+Fälle sauber, ein verborgener Viewer wird von Qt gar nicht erst gemalt, und
+`defaultFramebufferObject() == 0` ist im kaputten Fall **nicht** schon beim
+ersten Paint sichtbar.
+
+**Warum ein Zähler und kein Timer.** Erwogen und **gemessen verworfen** wurde
+ein `QTimer.singleShot(0)` nach dem ersten Paint, der `frameSwapped` prüft:
+Auch im gesunden Fall steht der Zähler dort noch auf 0 – die Regel hätte
+funktionierende Hardware abgestuft. Ein längeres Zeitfenster hätte denselben
+Fehler nur unwahrscheinlicher gemacht und eine willkürliche Zeitkonstante in
+den UX-Vertrag getragen. Der Renderbeweis zählt deshalb **Ereignisse**, keine
+Millisekunden: drei aufeinanderfolgende abgewiesene Paints
+(`_MAX_REFUSED_PAINTS`). Eine einzelne Absage kann ein Übergang sein (nach
+einem Reparenting erzeugt Qt den Framebuffer erst im folgenden Resize); der
+kaputte Fall endet ohne Nachforderung nach zwei Paints, weshalb der Zähler
+unterhalb der Schwelle einen weiteren Paint anfordert – über einen
+Nullzeit-Timer statt direkt (Review PR #1005). Ein sofortiges `update()`
+könnte noch vor einem bereits anstehenden Resize zugestellt werden; die
+Zählung nähme dann dreimal denselben Augenblick statt drei unabhängiger
+Runden. Qt stellt Timer erst nach den geposteten Ereignissen zu — gemessen
+kommt der Resize damit zuerst. Der eigentliche Schutz gegen einen Übergang
+bleibt aber `_has_rendered`, nicht die Zählung: Auf gesunder Hardware steht
+der Freispruch gemessen schon nach dem allerersten Ereignisdurchlauf, also
+vor jedem Reparenting.
+
+**Drei Asymmetrien, alle in dieselbe Richtung.** Wie bei den Probe-Regeln aus
+#1002 darf der Beweis nur zusätzliche Fehler *finden*, nie welche *erfinden*:
+`frameSwapped` spricht dauerhaft frei (ein Viewer, der je einen Frame lieferte,
+wird nie abgestuft); ohne Paint gibt es kein Urteil; und eine einzelne Absage
+genügt nicht. Bewusst steht dort **kein** `isVisible()` – ein verdecktes
+Fenster ist sichtbar und malt trotzdem nicht.
+
+**Nebenbefund im Controller.** `Preview3DController` führte mit `_displaying`
+eine eigene Kopie von „zeigt gerade ein Mesh". Da der Renderbeweis den Zustand
+**asynchron** von `ready` auf `error` ziehen kann, behauptete das Flag danach
+weiter das Gegenteil und unterdrückte die Ladeseite über einer Fehlerseite. Es
+ist ersatzlos entfallen; gefragt wird jetzt die Ansicht selbst
+(`self._view.state != "ready"`) – dieselbe Drift-Disziplin wie bei den vier
+Kopien aus #1002, nur innerhalb eines Prozesses.
+
+**Vier Nachbesserungen aus dem Review (PR #1005).** Alle vier betreffen die
+Ränder der Regel, nicht ihre Aussage. (1) Der Befund verlässt Qts
+Paint-Zustellung über einen Kind-Timer: `_fail` blendet über `initFailed` die
+Ready-Seite aus – ein `hide()` mitten in der Zustellung des gerade gemalten
+Widgets. (2) Der Freispruch gilt nur für den Kontext, der ihn gab; sonst
+kehrte jeder Paint eines Ersatzkontexts vor der Prüfung um. (3) Ein Viewer,
+der den Beweis verloren hat, wird **nicht** bei jeder Inhaltsänderung neu
+gebaut – sonst entstünde bei jedem `refresh()` ein neuer, gleich scheiternder
+GL-Kontext und die Oberfläche spränge zwischen leerer Ready-Fläche und
+Fehlerseite. `Relief3DView.allow_viewer_retry()` ist der Gegenpart zu
+`reset_capability_cache`: nur der ausdrückliche Retry öffnet den Weg zurück.
+(4) Die Zustandsnamen liegen als geteilte Konstanten in `viewer_3d`, weil
+`state` mit diesem Schritt erstmals **steuernd** über die Modulgrenze gelesen
+wird und als `str` typisiert ist – ein Tippfehler bliebe sonst still.
+
+**`screenshot3d` bleibt unverändert – die Datei, nicht das Verhalten.** Der native Screenshot-Nachweis des
+gepackten Artefakts hat eine eigene Zustandsmaschine mit Timer-Semantik und
+trägt Abnahmekriterien (`docs/RELEASE_ACCEPTANCE_CHECKLIST.md`). Er profitiert
+vom Beweis, wo er den Viewer einbettet, bekommt aber kein neues Gate: Ein
+zusätzlicher Fehlerpfad in einem Release-Kriterium ohne Messung auf `cocoa`
+wäre ein Abnahmerisiko, kein Gewinn. Ob `frameSwapped` dort dieselbe Kadenz
+hat, ist offen und gehört an die Hardware-Abnahme, nicht in diesen Schritt.
+
+Der Review hat aber zu Recht darauf gezeigt, dass der neue Fehlerpfad das
+Abnahmekriterium trotzdem erreicht: `screenshot3d` liest `state` und
+`has_failed`, und beide kann der Renderbeweis ab sofort ziehen, ohne dass in
+`screenshot3d.py` eine Zeile steht. Getragen wird das, statt es zu bestreiten:
+Der Viewer merkt sich seine erste Fehlermeldung (`failure_reason`), und der
+Screenshot-Hook gibt sie wörtlich weiter. Ein blankes „Nativer GL-Frame
+fehlgeschlagen" ließe einen Wächter-Fehlalarm auf `cocoa` wie einen
+Renderfehler aussehen; jetzt steht „Qt hält keinen Widget-Framebuffer" im
+Ergebnis, und `docs/PACKAGING_SMOKE.md` sagt, dass dann erst die Messung oben
+auf dem Gerät nachzuziehen ist.
+
+**Nachweis.** `tests/test_viewer_3d.py` deckt die Regel GL-frei über einen
+gefakten Framebuffer-Zustand ab (Freispruch, Rücksetzung, Schwelle,
+Kontextverlust, Durchreichen an den Container); `tests/test_viewer_3d_gl.py`
+belegt sie als `gl_smoke` an echtem Kontext in beiden Richtungen (sichtbar →
+Frame bewiesen, verborgen → kein Urteil). Die Gegenprobe auf echter Hardware
+ist – wie bei #1002 – ein `make check` auf dem Pi.

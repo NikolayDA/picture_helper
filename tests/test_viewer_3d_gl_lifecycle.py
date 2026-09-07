@@ -808,14 +808,19 @@ def test_gl_scenario_rejects_a_failed_viewer(qapp, monkeypatch) -> None:
         probe.run_gl_scenario("gl", [_mesh(64)], 3, "64×64")
 
 
-def test_gl_scenario_rejects_a_platform_that_never_uploads(qapp) -> None:
+def test_gl_scenario_rejects_a_platform_that_never_renders(qapp) -> None:
     """Rendert die Plattform trotz Zusage nicht, ist das ein Abbruch – kein „ok".
 
     Offscreen ist genau dieser Fall real: ``QOpenGLWidget`` existiert, aber es
-    entsteht nie ein GL-Objekt.
+    entsteht nie ein Frame. Bis #1004 fiel das erst über die Messreihe auf
+    („kein einziger Upload"); seither meldet der Renderbeweis im Viewer den
+    Fehler schon vorher, und der frühere, benannte Abbruchgrund greift. Geprüft
+    wird deshalb der Abbruch selbst, nicht welcher der drei Gründe zuerst
+    zieht – die Alternative wäre, den Renderbeweis hier künstlich
+    stillzulegen.
     """
     if qapp.platformName() not in probe.NON_RENDERABLE_PLATFORMS:
         pytest.skip("Plattform rendert wirklich – hier greift der Abbruchpfad nicht")
 
-    with pytest.raises(probe.ProbeNotExecutable, match="kein einziger Upload"):
+    with pytest.raises(probe.ProbeNotExecutable, match="fehlgeschlagen|kein einziger Upload"):
         probe.run_gl_scenario("gl", [_mesh(64)], 3, "64×64")

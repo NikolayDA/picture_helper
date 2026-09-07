@@ -114,3 +114,51 @@ def test_repeated_uploads_do_not_accumulate_gl_objects(qapp) -> None:
     QApplication.processEvents()
 
     assert gl_resource_stats().live == 0
+
+
+# ── Renderbeweis unter echtem GL (#1004) ─────────────────────────────────
+
+def test_a_visible_viewer_proves_its_frame(qapp) -> None:
+    """Der positive Zeuge kommt von Qt, nicht von einer Zeitschranke.
+
+    Gemessen (``xvfb-run`` + ``xcb``, llvmpipe): ``frameSwapped`` feuert genau
+    im gesunden sichtbaren Fall. Unter ``offscreen`` – wo ``QOpenGLWidget``
+    laut Qt „not supported on this platform" ist – bleibt es aus, und Qt weist
+    stattdessen die Paints ab. Dieser Test läuft nur dort, wo wirklich
+    gerendert werden kann, und belegt die freisprechende Seite der Regel.
+    """
+    _require_renderable(qapp)
+    viewer = GLReliefViewer()
+    viewer.resize(240, 200)
+    viewer.set_mesh(_ramp_mesh())
+    viewer.show()
+    for _ in range(40):
+        QApplication.processEvents()
+
+    assert viewer._has_rendered is True, "kein frameSwapped trotz renderfähiger Plattform"
+    assert viewer.has_failed is False
+    assert viewer._refused_paints == 0
+    viewer.cleanup_gl()
+
+
+def test_a_hidden_viewer_is_never_downgraded(qapp) -> None:
+    """Die Gegenprobe, die den Wächter überhaupt erst zulässig macht.
+
+    Ein gesunder **verborgener** Viewer liefert dieselben Messwerte wie ein
+    kaputter (kein Swap, kein Framebuffer, keine GL-Objekte). Getrennt werden
+    sie allein dadurch, dass Qt ihm keinen ``paintEvent`` schickt – bliebe das
+    aus, stufte der Wächter funktionierende Hardware ab. Genau das hält dieser
+    Test fest.
+    """
+    _require_renderable(qapp)
+    viewer = GLReliefViewer()
+    viewer.resize(240, 200)
+    viewer.set_mesh(_ramp_mesh())
+    for _ in range(40):
+        QApplication.processEvents()
+
+    assert viewer.isVisible() is False
+    assert viewer._has_rendered is False   # nie gerendert …
+    assert viewer._refused_paints == 0     # … aber auch nie bewertet
+    assert viewer.has_failed is False
+    viewer.cleanup_gl()
