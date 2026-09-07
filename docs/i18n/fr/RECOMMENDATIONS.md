@@ -11,7 +11,7 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-09-06, v2.9.0 publiée, inventaire ouvert entièrement audité)
+## État actuel (2026-09-07, v2.9.0 publiée, inventaire ouvert entièrement audité)
 
 **Audit quotidien 2026-09-02 (état `91b32b4`) :** les 42 tickets ouverts ont
 été confrontés au code, aux fusions, aux commentaires et, pour l'épopée Mac App
@@ -93,6 +93,7 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Réf de publication au lieu du gel de main (ADR + garde-fous fail-closed) | 🟠 Élevé (`main` reste fusionnable pendant une publication) | 🟢 Faible (code, documentation et ruleset en place) | – (aucun agent ; prochaine publication) | Bloqué (externe) : rouvert le 2026-08-31 après son contrôle de clôture ; la PR #936 et le ruleset actif 21941216 sont documentés, il ne manque qu'une exécution dont la recette post-publication a démarré de façon démontrable sur `release/vX.Y.Z` |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Exploitation : runners auto-hébergés (canal d'alerte du heartbeat) | 🟡 Moyen (canal d'exploitation, pas de code produit) | 🟢 Faible (observation seule) | – (aucun agent ; owner du dépôt) | Ouvert en permanence : ne pas fermer (`RUNNER_HEARTBEAT_ISSUE`) ; le FAIL du 2026-08-31 était le test prévu du canal d'alerte et l'étape de nettoyage est faite (exécution planifiée 33496675995 verte, x86_64 ignoré, Mac et Pi réussis) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
+| [#1004](https://github.com/NikolayDA/picture_helper/issues/1004) | La vue 3D annonce « prêt » sans avoir jamais produit d'image – preuve de rendu manquante au niveau du visualiseur | 🟡 Moyenne (cas résiduel de #1002 ; concerne les machines avec plateforme de session mais framebuffer de widget cassé) | 🟠 Haute (la règle de témoins doit exclure les faux négatifs : un visualiseur sain *masqué* se mesure comme un visualiseur cassé) | Opus, haute | Prêt à démarrer – concevoir la règle de témoins (`frameSwapped`, armement seulement dans `showEvent`), faire de `has_rendered` la source partagée pour l'UI et `screenshot3d`, anticiper l'effet sur les trois critères de capture native |
 
 ### Recommandé ensuite
 
