@@ -25,8 +25,7 @@ import re
 from pathlib import Path
 
 import pytest
-
-yaml = pytest.importorskip("yaml")
+import yaml
 
 _ROOT = Path(__file__).resolve().parent.parent
 _WORKFLOW_DIR = _ROOT / ".github" / "workflows"

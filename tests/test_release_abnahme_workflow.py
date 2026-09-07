@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = ROOT / ".github" / "workflows" / "release-abnahme.yml"
@@ -332,7 +333,6 @@ def test_both_arm64_jobs_fetch_the_predecessor_for_the_update_proof() -> None:
     Vorher lud nur der Linux-Job das Vorgängerartefakt – die Checkliste
     deklarierte macOS trotzdem mit.
     """
-    yaml = pytest.importorskip("yaml")
     jobs = yaml.safe_load(_workflow_text())["jobs"]
     for job_id, platform in (
         ("abnahme-linux-arm64", "linux-arm64"),
@@ -405,7 +405,6 @@ def test_retired_platforms_are_skipped_surfaced_and_not_expected() -> None:
     Hinweis sichtbar. Der Bestand kommt aus den Labels des Betriebs-Issues
     (``retired-status``, ``issues: read``), nicht aus Repository-Variablen –
     ``GITHUB_TOKEN`` kann keine setzen (Review PR #981)."""
-    yaml = pytest.importorskip("yaml")
     jobs = yaml.safe_load(_workflow_text())["jobs"]
     status = jobs["retirement-status"]
     assert status["runs-on"] == "ubuntu-latest"

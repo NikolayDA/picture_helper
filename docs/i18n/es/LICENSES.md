@@ -3,7 +3,7 @@
 # Resumen de Licencias y Aspectos Legales – bgremover 2.9.0
 
 > Generado automáticamente – **una evaluación puramente técnica de los términos de licencia, no asesoramiento jurídico.**
-> A fecha de: 2026-08-27 · Licencia propia del proyecto: `GPL-3.0-or-later` · 45 dependencias analizadas.
+> A fecha de: 2026-09-07 · Licencia propia del proyecto: `GPL-3.0-or-later` · 46 dependencias analizadas.
 
 ## Evaluación general – usabilidad comercial
 
@@ -27,7 +27,7 @@ Licencia relevante más fuerte en la obra combinada: **Copyleft fuerte**.
 | Copyleft fuerte | 1 | PyQt6 |
 | Copyleft débil (biblioteca) | 1 | PyQt6-Qt6 |
 | Copyleft débil (archivo) | 3 | certifi, pathspec, tqdm |
-| Permisiva | 40 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
+| Permisiva | 41 | ImageIO, PyMatting, PyQt6_sip, PyYAML, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
 
 ## Dependencias en detalle
 
@@ -67,6 +67,7 @@ Licencia relevante más fuerte en la obra combinada: **Copyleft fuerte**.
 | PyQt6_sip | 13.11.1 | `BSD-2-Clause` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |
 | pytest | 9.0.3 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | pytest-qt | 4.5.0 | `MIT License` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
+| PyYAML | 6.0.3 | `MIT License` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | referencing | 0.37.0 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | rembg | 2.0.75 | `MIT License` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | requests | 2.33.1 | `Apache Software License` | Permisiva | Licencia permisiva con concesión de patente explícita. Se permite el uso comercial y propietario; deben conservarse el aviso de licencia/copyright y las notas de cambios (NOTICE). |
@@ -110,6 +111,7 @@ Licencia relevante más fuerte en la obra combinada: **Copyleft fuerte**.
 - **PyQt6_sip** – https://github.com/Python-SIP/sip
 - **pytest** – https://docs.pytest.org/en/latest/
 - **pytest-qt** – http://github.com/pytest-dev/pytest-qt
+- **PyYAML** – https://pyyaml.org/
 - **referencing** – https://github.com/python-jsonschema/referencing
 - **rembg** – https://github.com/danielgatis/rembg
 - **requests** – https://github.com/psf/requests

@@ -25,6 +25,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pytest
+import yaml
 
 _ROOT = Path(__file__).resolve().parent.parent
 _SCRIPT = _ROOT / "scripts" / "scan_release_artifacts.py"
@@ -989,7 +990,6 @@ def test_signature_state_survives_an_unparsable_version_line(monkeypatch, tmp_pa
 
 def test_known_platforms_match_the_release_matrix() -> None:
     """Ein Tippfehler machte einen Registereintrag sonst still wirkungslos."""
-    yaml = pytest.importorskip("yaml")
     workflow = yaml.safe_load(
         (_ROOT / ".github" / "workflows" / "release-linux.yml").read_text(encoding="utf-8")
     )
@@ -1001,7 +1001,6 @@ def test_known_platforms_match_the_release_matrix() -> None:
 
 
 def test_known_phases_match_the_logs_the_workflow_actually_writes() -> None:
-    yaml = pytest.importorskip("yaml")
     workflow = yaml.safe_load(
         (_ROOT / ".github" / "workflows" / "release-linux.yml").read_text(encoding="utf-8")
     )
@@ -1149,7 +1148,6 @@ def test_phase_to_platform_mapping_matches_the_workflow_legs() -> None:
     Welcher Schritt auf welchem Leg laeuft, steht in seiner ``if``-Bedingung;
     welches Log er schreibt, in seiner ``phase_log``-Zuweisung.
     """
-    yaml = pytest.importorskip("yaml")
     workflow = yaml.safe_load(
         (_ROOT / ".github" / "workflows" / "release-linux.yml").read_text(encoding="utf-8")
     )

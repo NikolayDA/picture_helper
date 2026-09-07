@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -364,7 +365,6 @@ def test_time_budget_ends_the_run_from_inside_with_a_written_report(tmp_path: Pa
 
 def test_budget_fits_into_the_proof_job_deadline() -> None:
     """Budget plus ein laufendes Socket-Zeitlimit muss unter dem Job-Limit bleiben."""
-    yaml = pytest.importorskip("yaml")
     workflow = yaml.safe_load(
         (ROOT / ".github" / "workflows" / "release-publish.yml").read_text(encoding="utf-8")
     )

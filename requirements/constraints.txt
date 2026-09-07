@@ -109,6 +109,7 @@ PyQt6-Qt6==6.11.2
 PyQt6_sip==13.11.1
 pytest==9.0.3
 pytest-qt==4.5.0
+PyYAML==6.0.3
 referencing==0.37.0
 rembg==2.0.75; python_version >= "3.11"
 requests==2.33.1

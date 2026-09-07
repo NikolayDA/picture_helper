@@ -20,6 +20,7 @@ import re
 from pathlib import Path
 
 import pytest
+import yaml
 
 _ROOT = Path(__file__).resolve().parent.parent
 _CI = _ROOT / ".github" / "workflows" / "ci.yml"
@@ -40,7 +41,6 @@ def _publish_text() -> str:
 
 
 def _load(path: Path) -> dict:
-    yaml = pytest.importorskip("yaml")
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert isinstance(doc, dict)
     return doc
@@ -902,7 +902,6 @@ def test_reusable_workflow_callers_grant_all_required_permissions() -> None:
     aufgerufene Workflow überhaupt ``workflow_call`` deklariert – fehlt das,
     lehnt GitHub den Run ebenfalls beim Start ab.
     """
-    yaml = pytest.importorskip("yaml")
     checked = 0
     for caller_path in _workflow_files():
         caller_doc = yaml.safe_load(caller_path.read_text(encoding="utf-8"))

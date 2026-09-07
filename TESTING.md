@@ -33,7 +33,8 @@ source .venv/bin/activate
 make install-test
 ```
 
-Damit stehen `pytest`, `pytest-qt`, `ruff` und `mypy` bereit. Auf macOS
+Damit stehen `pytest`, `pytest-qt`, `ruff`, `mypy` und `PyYAML` (für die
+Workflow-Wächter, #1016) bereit. Auf macOS
 sind **keine zusätzlichen System-Bibliotheken** nötig – die PyQt6-Wheels
 bringen Qt mit. Das Projekt staged die kleinen Qt-Platform-Plugins bei
 Bedarf in das System-Temp-Verzeichnis, damit lokale macOS-Headless-Läufe
