@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import QMessageBox
 
 from bgremover import MainWindow
 from bgremover import main_window as mw
-from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, TARGET_PROFILE_V1
 from bgremover.eufymake_writer import MANIFEST_FILENAME
 from bgremover.project_model import LayerKind, LayerRole
 from bgremover.settings_schema import (
@@ -23,6 +23,8 @@ from bgremover.settings_schema import (
     EXPORT_DIR_KEY,
     EXPORT_INCLUDE_GLOSS_KEY,
     EXPORT_INCLUDE_HEIGHT_KEY,
+    EXPORT_PROFILE_ID_KEY,
+    EXPORT_PROFILE_VERSION_KEY,
 )
 
 
@@ -52,13 +54,29 @@ def export_win(qapp, tmp_path):
         w.close()
 
 
-def _fake_dialog_cls(*, accept=True, roles=(), bits=8, dest="", confirm=False):
-    """Baut eine Dialog-Attrappe mit der Schnittstelle von ``EufyMakeExportDialog``."""
+def _fake_dialog_cls(
+    *,
+    accept=True,
+    roles=(),
+    bits=8,
+    dest="",
+    confirm=True,
+    profile=DEFAULT_TARGET_PROFILE,
+    captured_kwargs=None,
+):
+    """Baut eine realistische Attrappe des ``EufyMakeExportDialog``.
+
+    Ein akzeptierter v2-Dialog ohne physische Projektgröße kann nur nach der
+    sichtbaren Warnungsbestätigung entstehen. Einzelne Tests überschreiben den
+    Wert weiterhin explizit, wenn gerade der unbestätigte Pfad relevant ist.
+    """
 
     class _Fake:
         def __init__(self, project, **kwargs):
             self.project = project
             self.kwargs = kwargs
+            if captured_kwargs is not None:
+                captured_kwargs.append(kwargs)
 
         def exec(self):
             return 1 if accept else 0
@@ -70,7 +88,7 @@ def _fake_dialog_cls(*, accept=True, roles=(), bits=8, dest="", confirm=False):
             return bits
 
         def selected_profile(self):
-            return DEFAULT_TARGET_PROFILE
+            return profile
 
         def selected_destination(self):
             return dest
@@ -103,6 +121,8 @@ def test_export_cancel_is_side_effect_free(export_win, monkeypatch, tmp_path):
     assert called == []
     # Kein Exportziel in den Settings gemerkt.
     assert export_win._settings.value(EXPORT_DIR_KEY, "") == ""
+    assert export_win._settings.value(EXPORT_PROFILE_ID_KEY, None) is None
+    assert export_win._settings.value(EXPORT_PROFILE_VERSION_KEY, None) is None
 
 
 def test_export_success_writes_and_persists(export_win, monkeypatch, tmp_path):
@@ -128,6 +148,70 @@ def test_export_success_writes_and_persists(export_win, monkeypatch, tmp_path):
     assert export_win._settings.value(EXPORT_BIT_DEPTH_KEY, 0, type=int) == 8
     assert export_win._settings.value(EXPORT_INCLUDE_HEIGHT_KEY, True, type=bool) is False
     assert export_win._settings.value(EXPORT_INCLUDE_GLOSS_KEY, True, type=bool) is False
+    assert export_win._settings.value(EXPORT_PROFILE_ID_KEY) == DEFAULT_TARGET_PROFILE.profile_id
+    assert export_win._settings.value(
+        EXPORT_PROFILE_VERSION_KEY, 0, type=int
+    ) == DEFAULT_TARGET_PROFILE.profile_version
+
+
+def test_export_profile_selection_roundtrips_through_settings(
+    export_win, monkeypatch, tmp_path
+):
+    """Eine bestätigte v1-Auswahl ist beim nächsten Export wieder vorausgewählt."""
+    dest = tmp_path / "v1-export"
+    monkeypatch.setattr(
+        mw,
+        "EufyMakeExportDialog",
+        _fake_dialog_cls(accept=True, dest=str(dest), profile=TARGET_PROFILE_V1),
+    )
+    monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: None)
+
+    export_win._export_eufymake()
+
+    assert export_win._settings.value(EXPORT_PROFILE_ID_KEY) == TARGET_PROFILE_V1.profile_id
+    assert export_win._settings.value(
+        EXPORT_PROFILE_VERSION_KEY, 0, type=int
+    ) == TARGET_PROFILE_V1.profile_version
+
+    captured: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        mw,
+        "EufyMakeExportDialog",
+        _fake_dialog_cls(accept=False, captured_kwargs=captured),
+    )
+    export_win._export_eufymake()
+
+    assert captured[0]["profile"] is TARGET_PROFILE_V1
+
+
+@pytest.mark.parametrize(
+    ("profile_id", "profile_version"),
+    [
+        (None, None),
+        ("unknown-profile", 1),
+        (DEFAULT_TARGET_PROFILE.profile_id, 999),
+        (DEFAULT_TARGET_PROFILE.profile_id, "kaputt"),
+        (DEFAULT_TARGET_PROFILE.profile_id, True),
+        (DEFAULT_TARGET_PROFILE.profile_id, None),
+    ],
+)
+def test_invalid_saved_export_profile_falls_back_to_default(
+    export_win, monkeypatch, profile_id, profile_version
+):
+    if profile_id is not None:
+        export_win._settings.setValue(EXPORT_PROFILE_ID_KEY, profile_id)
+    if profile_version is not None:
+        export_win._settings.setValue(EXPORT_PROFILE_VERSION_KEY, profile_version)
+    captured: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        mw,
+        "EufyMakeExportDialog",
+        _fake_dialog_cls(accept=False, captured_kwargs=captured),
+    )
+
+    export_win._export_eufymake()
+
+    assert captured[0]["profile"] is DEFAULT_TARGET_PROFILE
 
 
 def test_export_with_height_persists_flag(export_win, monkeypatch, tmp_path):

@@ -138,9 +138,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Gloss ist nur ein Import-/Hilfsasset – Ink-Mode und Layerzuweisung "
             "erfolgen in EufyMake Studio."
         ),
+        "eufymake.export.physical_size_missing": (
+            "Im Projekt ist keine physische Größe festgelegt. Lege Breite und Höhe "
+            "in Millimetern fest, damit das Exportpaket eine eindeutige PNG-„pHYs“-"
+            "Auflösung für EufyMake Studio enthält."
+        ),
         "eufymake.export.physical_size_unverified": (
             "Physische Größe wird als PNG-„pHYs“ (X/Y getrennt) in alle Assets "
-            "geschrieben; Studio 4.2.2 nutzt sie beobachtet als Startgröße, manuelle "
+            "geschrieben; Studio nutzt sie beobachtet als Startgröße, manuelle "
             "Studio-Maße haben Vorrang. Das tatsächliche Druckmaß ist bis zur "
             "Hardwaremessung #689 nicht bestätigt."
         ),
@@ -197,6 +202,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.profile.option": "{name} · Vertrag v{version}",
         "eufymake.dialog.profile.environment": (
             "Ziel: {device}, Studio {studio} · Status: {status}"
+        ),
+        "eufymake.dialog.profile.environment_with_firmware": (
+            "Ziel: {device}, Studio {studio}, Firmware {firmware} · Status: {status}"
         ),
         "eufymake.dialog.profile.status.provisional": "vorläufig – Hardwaretests offen",
         "eufymake.dialog.profile.status.validated": "validiert – Hardwaretests bestätigt",
@@ -1063,9 +1071,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Gloss is only an import/helper asset – ink mode and layer assignment "
             "happen in EufyMake Studio."
         ),
+        "eufymake.export.physical_size_missing": (
+            "No physical size is set for the project. Set the width and height in "
+            "millimetres so the export package contains an unambiguous PNG \"pHYs\" "
+            "resolution for EufyMake Studio."
+        ),
         "eufymake.export.physical_size_unverified": (
             "Physical size is written to every asset as PNG \"pHYs\" (X/Y separately); "
-            "Studio 4.2.2 has been observed to use it as the start size, and manual "
+            "Studio has been observed to use it as the start size, and manual "
             "Studio dimensions take precedence. The actual print size remains "
             "unconfirmed until the hardware measurement in #689."
         ),
@@ -1121,6 +1134,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.profile.option": "{name} · contract v{version}",
         "eufymake.dialog.profile.environment": (
             "Target: {device}, Studio {studio} · status: {status}"
+        ),
+        "eufymake.dialog.profile.environment_with_firmware": (
+            "Target: {device}, Studio {studio}, firmware {firmware} · status: {status}"
         ),
         "eufymake.dialog.profile.status.provisional": "provisional – hardware tests open",
         "eufymake.dialog.profile.status.validated": "validated – hardware tests confirmed",
@@ -1986,9 +2002,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "El gloss es solo un asset auxiliar de importación – el modo de tinta y "
             "la asignación de capas se hacen en EufyMake Studio."
         ),
+        "eufymake.export.physical_size_missing": (
+            "El proyecto no tiene definido un tamaño físico. Define el ancho y el alto "
+            "en milímetros para que el paquete exportado contenga una resolución PNG "
+            "«pHYs» inequívoca para EufyMake Studio."
+        ),
         "eufymake.export.physical_size_unverified": (
             "El tamaño físico se escribe en todos los assets como «pHYs» PNG (X/Y por "
-            "separado); se ha observado que Studio 4.2.2 lo usa como tamaño inicial, y "
+            "separado); se ha observado que Studio lo usa como tamaño inicial, y "
             "las medidas manuales de Studio tienen prioridad. El tamaño de impresión "
             "real sigue sin confirmarse hasta la medición en hardware de #689."
         ),
@@ -2045,6 +2066,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.profile.option": "{name} · contrato v{version}",
         "eufymake.dialog.profile.environment": (
             "Destino: {device}, Studio {studio} · estado: {status}"
+        ),
+        "eufymake.dialog.profile.environment_with_firmware": (
+            "Destino: {device}, Studio {studio}, firmware {firmware} · estado: {status}"
         ),
         "eufymake.dialog.profile.status.provisional": (
             "provisional – pruebas de hardware pendientes"
@@ -2919,9 +2943,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Le gloss n'est qu'un asset d'import/d'aide – le mode d'encre et "
             "l'affectation des calques se font dans EufyMake Studio."
         ),
+        "eufymake.export.physical_size_missing": (
+            "Aucune taille physique n'est définie pour le projet. Définissez la largeur "
+            "et la hauteur en millimètres afin que le paquet exporté contienne une "
+            "résolution PNG « pHYs » non ambiguë pour EufyMake Studio."
+        ),
         "eufymake.export.physical_size_unverified": (
             "La taille physique est écrite dans chaque asset comme « pHYs » PNG (X/Y "
-            "séparément) ; d'après les observations, Studio 4.2.2 l'utilise comme taille "
+            "séparément) ; d'après les observations, Studio l'utilise comme taille "
             "de départ, et les dimensions saisies manuellement dans Studio ont priorité. "
             "La taille d'impression réelle reste non confirmée jusqu'à la mesure "
             "matérielle de #689."
@@ -2979,6 +3008,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.profile.option": "{name} · contrat v{version}",
         "eufymake.dialog.profile.environment": (
             "Cible : {device}, Studio {studio} · statut : {status}"
+        ),
+        "eufymake.dialog.profile.environment_with_firmware": (
+            "Cible : {device}, Studio {studio}, firmware {firmware} · statut : {status}"
         ),
         "eufymake.dialog.profile.status.provisional": (
             "provisoire – tests matériels en attente"
@@ -3853,9 +3885,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Глянець – лише допоміжний ресурс для імпорту: режим фарби та "
             "призначення шарів виконуються в EufyMake Studio."
         ),
+        "eufymake.export.physical_size_missing": (
+            "У проєкті не задано фізичний розмір. Укажіть ширину й висоту в міліметрах, "
+            "щоб пакет експорту містив однозначну роздільність PNG «pHYs» для "
+            "EufyMake Studio."
+        ),
         "eufymake.export.physical_size_unverified": (
             "Фізичний розмір записується в кожен ресурс як PNG «pHYs» (X/Y окремо); "
-            "Studio 4.2.2 за спостереженнями використовує його як початковий розмір, а "
+            "Studio за спостереженнями використовує його як початковий розмір, а "
             "ручні розміри в Studio мають пріоритет. Фактичний розмір друку лишається "
             "непідтвердженим до апаратного вимірювання в #689."
         ),
@@ -3911,6 +3948,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.profile.option": "{name} · контракт v{version}",
         "eufymake.dialog.profile.environment": (
             "Ціль: {device}, Studio {studio} · стан: {status}"
+        ),
+        "eufymake.dialog.profile.environment_with_firmware": (
+            "Ціль: {device}, Studio {studio}, прошивка {firmware} · стан: {status}"
         ),
         "eufymake.dialog.profile.status.provisional": (
             "попередній – апаратні тести ще відкриті"
@@ -4780,8 +4820,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.export.gloss_ink_mode": (
             "光泽只是导入辅助素材——墨水模式和图层分配在 EufyMake Studio 中完成。"
         ),
+        "eufymake.export.physical_size_missing": (
+            "项目未设置物理尺寸。请以毫米设置宽度和高度，使导出包包含供 EufyMake Studio "
+            "使用的明确 PNG「pHYs」分辨率。"
+        ),
         "eufymake.export.physical_size_unverified": (
-            "物理尺寸会以 PNG「pHYs」（X/Y 分别）写入每个素材；据观察 Studio 4.2.2 将其"
+            "物理尺寸会以 PNG「pHYs」（X/Y 分别）写入每个素材；据观察 Studio 将其"
             "用作起始尺寸，Studio 中手动设置的尺寸优先。实际打印尺寸在 #689 的硬件测量"
             "完成前仍未确认。"
         ),
@@ -4837,6 +4881,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.profile.option": "{name} · 合约 v{version}",
         "eufymake.dialog.profile.environment": (
             "目标：{device}，Studio {studio} · 状态：{status}"
+        ),
+        "eufymake.dialog.profile.environment_with_firmware": (
+            "目标：{device}，Studio {studio}，固件 {firmware} · 状态：{status}"
         ),
         "eufymake.dialog.profile.status.provisional": "暂定——硬件测试尚未完成",
         "eufymake.dialog.profile.status.validated": "已验证——硬件测试已确认",

@@ -15,9 +15,14 @@ from PIL import Image
 
 import bgremover.i18n as i18n
 from bgremover.eufymake_export_dialog import EufyMakeExportDialog
-from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, ProfileStatus
+from bgremover.eufymake_profile import (
+    DEFAULT_TARGET_PROFILE,
+    TARGET_PROFILE_V1,
+    TARGET_PROFILE_V2,
+    ProfileStatus,
+)
 from bgremover.eufymake_validate import ExportCheckCode
-from bgremover.project_model import LayerKind, LayerRole, Project
+from bgremover.project_model import META_PHYSICAL_SIZE_MM, LayerKind, LayerRole, Project
 
 
 def _solid(size: tuple[int, int], color: tuple[int, int, int, int]) -> Image.Image:
@@ -75,7 +80,34 @@ def test_dialog_shows_selected_profile_version_and_environment(qapp) -> None:
         assert f"v{DEFAULT_TARGET_PROFILE.profile_version}" in dlg._profile_combo.currentText()
         assert DEFAULT_TARGET_PROFILE.target_environment.device in dlg._environment_label.text()
         assert DEFAULT_TARGET_PROFILE.target_environment.studio_version in dlg._environment_label.text()
+        firmware = DEFAULT_TARGET_PROFILE.target_environment.firmware_version
+        assert firmware is not None
+        assert firmware in dlg._environment_label.text()
         assert DEFAULT_TARGET_PROFILE.status is ProfileStatus.PROVISIONAL
+    finally:
+        dlg.close()
+
+
+@pytest.mark.ui_smoke
+def test_dialog_keeps_v1_selectable_without_inventing_firmware(qapp) -> None:
+    dlg = EufyMakeExportDialog(_color_project())
+    try:
+        profiles = [
+            dlg._profile_combo.itemData(index)
+            for index in range(dlg._profile_combo.count())
+        ]
+        assert profiles == [TARGET_PROFILE_V1, TARGET_PROFILE_V2]
+        dlg._profile_combo.setCurrentIndex(profiles.index(TARGET_PROFILE_V1))
+        assert dlg.selected_profile() is TARGET_PROFILE_V1
+        assert "4.2.2" in dlg._environment_label.text()
+        assert "Firmware" not in dlg._environment_label.text()
+        assert dlg.current_findings() == ()
+
+        dlg._profile_combo.setCurrentIndex(profiles.index(TARGET_PROFILE_V2))
+        assert "4.0.9" in dlg._environment_label.text()
+        assert [finding.code for finding in dlg.current_findings()] == [
+            ExportCheckCode.PHYSICAL_SIZE_MISSING
+        ]
     finally:
         dlg.close()
 
@@ -129,13 +161,29 @@ def test_dialog_shows_effective_xy_dpi_separately(qapp) -> None:
 
 
 @pytest.mark.ui_smoke
+def test_dialog_does_not_describe_malformed_physical_size_as_missing(qapp) -> None:
+    project = _color_project()
+    project.metadata[META_PHYSICAL_SIZE_MM] = None
+    dlg = EufyMakeExportDialog(project)
+    try:
+        assert [finding.code for finding in dlg.current_findings()] == [
+            ExportCheckCode.INVALID_TARGET_PARAMS
+        ]
+        assert dlg._confirm.isHidden()
+    finally:
+        dlg.close()
+
+
+@pytest.mark.ui_smoke
 def test_optional_assets_disabled_without_layers(qapp) -> None:
     dlg = EufyMakeExportDialog(_color_project())
     try:
         assert not dlg._height_cb.isEnabled()
         assert not dlg._gloss_cb.isEnabled()
         assert dlg.selected_optional_roles() == []
-        assert dlg._findings_label.text() == "Keine Beanstandungen."
+        assert [finding.code for finding in dlg.current_findings()] == [
+            ExportCheckCode.PHYSICAL_SIZE_MISSING
+        ]
     finally:
         dlg.close()
 
@@ -194,6 +242,8 @@ def test_export_button_needs_destination(qapp) -> None:
     try:
         assert not dlg._export_btn.isEnabled()
         dlg._dest_edit.setText("/tmp/export")
+        assert not dlg._export_btn.isEnabled()
+        dlg._confirm.setChecked(True)
         assert dlg._export_btn.isEnabled()
         assert dlg.selected_destination() == "/tmp/export"
     finally:
@@ -214,6 +264,7 @@ def test_existing_file_destination_blocks_export(qapp, tmp_path) -> None:
         target_dir.mkdir()
         dlg._dest_edit.setText(str(target_dir))
         assert dlg._dest_hint.isHidden()
+        dlg._confirm.setChecked(True)
         assert dlg._export_btn.isEnabled()
     finally:
         dlg.close()
@@ -251,14 +302,18 @@ def test_height_carrier_warns_at_default_and_legacy_depth(qapp) -> None:
     try:
         assert dlg.selected_bit_depth() == 16
         codes = [finding.code for finding in dlg.current_findings()]
-        assert codes == [ExportCheckCode.BIT_DEPTH_UNCONFIRMED]
+        assert codes == [
+            ExportCheckCode.BIT_DEPTH_UNCONFIRMED,
+            ExportCheckCode.PHYSICAL_SIZE_MISSING,
+        ]
         assert not dlg._confirm.isHidden()
 
         dlg._bit_combo.setCurrentIndex(dlg._bit_combo.findData(8))
 
         assert dlg.selected_bit_depth() == 8
         assert [finding.code for finding in dlg.current_findings()] == [
-            ExportCheckCode.BIT_DEPTH_UNCONFIRMED
+            ExportCheckCode.BIT_DEPTH_UNCONFIRMED,
+            ExportCheckCode.PHYSICAL_SIZE_MISSING,
         ]
         assert not dlg._confirm.isHidden()
     finally:

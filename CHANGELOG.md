@@ -11,6 +11,20 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Additives EufyMake-Zielprofil v2 und vollständiger Studio-4.3.3-Preflight
+  (#681, #691).** Profil v2 ist für Studio 4.3.3, Editor 1.20.0 und Firmware
+  4.0.9 voreingestellt; Profil v1 bleibt als eingefrorene Studio-4.2.2-Referenz
+  auswählbar. v2 ergänzt `physical_size_missing` bei fehlender physischer
+  Projektgröße, während fehlerhafte Werte weiterhin mit
+  `INVALID_TARGET_PARAMS` blockieren. Alle 29/29 Rohimportzellen verhalten sich
+  funktional wie unter 4.2.2; nur I-06 erlaubt die Auswahl von `manifest.json`
+  und meldet danach `Unsupported file type.`. Alle 13/13 nativen Projekte laden,
+  die zwölf aktiven erreichen mit `Unidirectional` die Vorschau ohne Warnung;
+  Projekt 03 scheitert auch nach `Retry` ein zweites Mal an der Schätzung.
+  `Bidirectional` bleibt ungetestet. Es wurde nicht gedruckt: Y-Tinte, Scraper
+  und Luftfilter waren abgelaufen, schwarzer Karton (0,1 mm) war vorhanden; die
+  physischen E1-Tests bleiben offen. Details: [Preflight](docs/history/EUFYMAKE-681-PREFLIGHT-2026-09-07.md);
+  [Vertrag](docs/EUFYMAKE_TARGET_PROFILE.md).
 - **Versioniertes EufyMake-Zielprofil (#691).** Planer, Validator, Dialog und
   Writer verwenden nun denselben maschinenlesbaren Vertrag für Rollen,
   Dateinamen, Kanäle, Maße, Zielumgebung, Evidenzstatus und stabile
@@ -19,8 +33,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   konservative HEIGHT-Default, bleibt wie Gloss und physische Maße aber bis zu
   den Hardwaretests ausdrücklich vorläufig und warnpflichtig. Alte
   Profilreferenzen bleiben lesbar; es gibt keine Container-Migration.
-  Eine früher gespeicherte Bittiefe bleibt als Vorauswahl erhalten, bis sie im
-  Dialog geändert wird. Vertrag: [`docs/EUFYMAKE_TARGET_PROFILE.md`](docs/EUFYMAKE_TARGET_PROFILE.md).
+  Eine früher gespeicherte Profilwahl und Bittiefe bleiben als Vorauswahl
+  erhalten, bis sie im Dialog geändert werden. Vertrag: [`docs/EUFYMAKE_TARGET_PROFILE.md`](docs/EUFYMAKE_TARGET_PROFILE.md).
 
 ### Geändert
 

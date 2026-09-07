@@ -14,7 +14,7 @@ import pytest
 from PIL import Image
 
 import bgremover.i18n as i18n
-from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE
+from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, TARGET_PROFILE_V1
 from bgremover.eufymake_validate import (
     ExportCheckCode,
     ExportFinding,
@@ -78,8 +78,15 @@ def _codes(findings: tuple[ExportFinding, ...]) -> list[ExportCheckCode]:
 
 # ── Positiver Plan ───────────────────────────────────────────────────────
 
-def test_clean_project_has_no_findings() -> None:
-    assert validate_export(_color_project()) == ()
+def test_v2_project_without_physical_size_warns() -> None:
+    findings = validate_export(_color_project())
+    assert _codes(findings) == [ExportCheckCode.PHYSICAL_SIZE_MISSING]
+    assert findings[0].severity is Severity.WARNING
+    assert findings[0].remedy == "set_project_physical_size"
+
+
+def test_v1_project_without_physical_size_stays_warning_free() -> None:
+    assert validate_export(_color_project(), profile=TARGET_PROFILE_V1) == ()
 
 
 def test_color_plus_nonconstant_height_at_16bit_warns_unconfirmed() -> None:
@@ -87,7 +94,10 @@ def test_color_plus_nonconstant_height_at_16bit_warns_unconfirmed() -> None:
     # zum #688-Drucknachweis aber ausdrücklich offen.
     project = _with_height(_color_project())
     project.metadata[META_BIT_DEPTH] = 16
-    assert _codes(validate_export(project)) == [ExportCheckCode.BIT_DEPTH_UNCONFIRMED]
+    assert _codes(validate_export(project)) == [
+        ExportCheckCode.BIT_DEPTH_UNCONFIRMED,
+        ExportCheckCode.PHYSICAL_SIZE_MISSING,
+    ]
 
 
 def test_validation_is_deterministic() -> None:
@@ -177,14 +187,20 @@ def test_nonpositive_target_size_is_error() -> None:
     assert ExportCheckCode.INVALID_TARGET_PARAMS in _codes(findings)
 
 
-def test_present_null_physical_size_is_invalid_target_param() -> None:
-    # Ein vorhandener, ungültiger Wert (``physical_size_mm: null``) muss als
-    # blockierender Befund auftauchen – deckungsgleich mit dem Render-/Schreibpfad,
-    # sonst schlüge der Writer mit einer nicht abgefangenen Ausnahme auf.
+@pytest.mark.parametrize(
+    "bad_physical_size",
+    [None, (0.0, 5.0), (5.0,), "50x25", (float("nan"), 25.0)],
+)
+def test_malformed_physical_size_is_invalid_not_missing(
+    bad_physical_size: object,
+) -> None:
+    # Ein vorhandener, ungültiger Wert muss als blockierender Befund auftauchen –
+    # deckungsgleich mit dem Render-/Schreibpfad. Er ist nicht mit einem wirklich
+    # fehlenden Metadatenschlüssel gleichzusetzen.
     project = _color_project()
-    project.metadata[META_PHYSICAL_SIZE_MM] = None
+    project.metadata[META_PHYSICAL_SIZE_MM] = bad_physical_size
     findings = validate_export(project)
-    assert ExportCheckCode.INVALID_TARGET_PARAMS in _codes(findings)
+    assert _codes(findings) == [ExportCheckCode.INVALID_TARGET_PARAMS]
 
 
 # ── Warnungen ────────────────────────────────────────────────────────────
@@ -286,7 +302,9 @@ def test_physical_size_exceeding_flatbed_warns_print_area() -> None:
 def test_no_physical_size_has_no_print_area_warning() -> None:
     # Ohne META_PHYSICAL_SIZE_MM ist ``physical_size`` None – kein Zielmedium-
     # Vergleich möglich, also kein Befund (analog PHYSICAL_SIZE_UNVERIFIED).
-    assert ExportCheckCode.PRINT_AREA_EXCEEDED not in _codes(validate_export(_color_project()))
+    codes = _codes(validate_export(_color_project()))
+    assert ExportCheckCode.PRINT_AREA_EXCEEDED not in codes
+    assert ExportCheckCode.PHYSICAL_SIZE_MISSING in codes
 
 
 # ── Mehrere Befunde + stabile Sortierung ─────────────────────────────────
@@ -401,6 +419,9 @@ def test_format_finding_renders_every_code() -> None:
         ),
         ExportCheckCode.GLOSS_INK_MODE: ExportFinding(
             ExportCheckCode.GLOSS_INK_MODE, Severity.WARNING, LayerRole.GLOSS_MASK
+        ),
+        ExportCheckCode.PHYSICAL_SIZE_MISSING: ExportFinding(
+            ExportCheckCode.PHYSICAL_SIZE_MISSING, Severity.WARNING, None
         ),
         ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED: ExportFinding(
             ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED, Severity.WARNING, None

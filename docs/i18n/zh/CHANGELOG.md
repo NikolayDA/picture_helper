@@ -11,12 +11,23 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **增量 EufyMake 目标配置 v2 及完整 Studio 4.3.3 预检（#681、#691）。**
+  配置 v2 是 Studio 4.3.3、Editor 1.20.0 和固件 4.0.9 的默认配置；配置 v1
+  仍可作为冻结的 Studio 4.2.2 参考选择。缺少项目物理尺寸时，v2 新增
+  `physical_size_missing`；格式错误的值仍以 `INVALID_TARGET_PARAMS` 阻塞。
+  29/29 个原始导入测试格在功能上与 4.2.2 相同；仅 I-06 现在可选择
+  `manifest.json`，随后显示 `Unsupported file type.`。13/13 个原生项目均可
+  加载，十二个活动项目使用 `Unidirectional` 进入预览且无警告；项目 03 在
+  `Retry` 后第二次估算仍失败。`Bidirectional` 尚未测试。未启动打印：Y 墨水、
+  刮刀和空气过滤器均已过期，现场有 0.1 mm 黑色纸板；实体 E1 测试仍待完成。
+  详情：[预检](../../history/EUFYMAKE-681-PREFLIGHT-2026-09-07.md)；
+  [合约](../../EUFYMAKE_TARGET_PROFILE.md)。
 - **版本化 EufyMake 目标配置文件（#691）。** 规划器、验证器、对话框和写入器现在
   共享同一个机器可读合约，涵盖角色、文件名、通道、尺寸、目标环境、证据状态和稳定
   的修复代码。对话框显示配置版本及独立 X/Y DPI；清单包含完整配置快照和 BgRemover
   版本。16 位是保守的 HEIGHT 默认值，但与光泽和物理尺寸一样，在硬件测试前仍明确
   标为暂定并要求确认警告。旧配置引用仍可读取，无需容器迁移。
-  先前保存的位深会保持为预选值，直到在对话框中更改。合约：[`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md)。
+  先前保存的配置选择和位深会保持为预选值，直到在对话框中更改。合约：[`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md)。
 
 ### 变更
 

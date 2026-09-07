@@ -49,7 +49,7 @@ from bgremover.export_checks import has_blocking_errors as has_blocking_errors
 from bgremover.export_checks import split_findings as split_findings
 from bgremover.height_map import layer_to_height
 from bgremover.i18n import tr
-from bgremover.project_model import LayerRole, Project
+from bgremover.project_model import META_PHYSICAL_SIZE_MM, LayerRole, Project
 from bgremover.units import UnitsError
 
 # Namensraum aller i18n-Keys dieses Moduls. Der konkrete Key eines Befunds ist
@@ -273,7 +273,13 @@ def validate_export(
             findings.append(_finding(profile, ExportCheckCode.GLOSS_INK_MODE, role=role))
 
     # ── Physische Größe / DPI: plausibel, aber kein Herstellervertrag ───
-    if physical_size is not None:
+    if (
+        physical_size is None
+        and META_PHYSICAL_SIZE_MM not in project.metadata
+        and profile.supports_validation(ExportCheckCode.PHYSICAL_SIZE_MISSING.value)
+    ):
+        findings.append(_finding(profile, ExportCheckCode.PHYSICAL_SIZE_MISSING))
+    elif physical_size is not None:
         findings.append(_finding(profile, ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED))
         # Druckflächen-Plausibilität gegen das Standard-Flachbett (#687/EM-G05):
         # ``check_print_area`` lieferte bislang produktiv nie einen Befund, weil
@@ -327,6 +333,8 @@ def format_finding(finding: ExportFinding) -> str:
         return tr("eufymake.export.height_precision_loss")
     if code is ExportCheckCode.GLOSS_INK_MODE:
         return tr("eufymake.export.gloss_ink_mode")
+    if code is ExportCheckCode.PHYSICAL_SIZE_MISSING:
+        return tr("eufymake.export.physical_size_missing")
     if code is ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED:
         return tr("eufymake.export.physical_size_unverified")
     if code is ExportCheckCode.PRINT_AREA_EXCEEDED:

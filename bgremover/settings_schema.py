@@ -29,6 +29,8 @@ EXPORT_DIR_KEY = "eufymake_export_dir"
 EXPORT_INCLUDE_HEIGHT_KEY = "eufymake_include_height"
 EXPORT_INCLUDE_GLOSS_KEY = "eufymake_include_gloss"
 EXPORT_BIT_DEPTH_KEY = "eufymake_bit_depth"
+EXPORT_PROFILE_ID_KEY = "eufymake_profile_id"
+EXPORT_PROFILE_VERSION_KEY = "eufymake_profile_version"
 
 # UI-Schema hell/dunkel (#428). Additiver Schluessel: fehlt er, greift beim Lesen
 # der Default ``"dark"`` – deshalb ohne Schema-Migration.

@@ -30,7 +30,11 @@ from bgremover.eufymake_export import (
     OpenQuestion,
     build_export_plan,
 )
-from bgremover.eufymake_profile import DEFAULT_TARGET_PROFILE, EufyMakeTargetProfile
+from bgremover.eufymake_profile import (
+    DEFAULT_TARGET_PROFILE,
+    TARGET_PROFILE_V1,
+    EufyMakeTargetProfile,
+)
 from bgremover.project_model import (
     META_BIT_DEPTH,
     META_PHYSICAL_SIZE_MM,
@@ -266,6 +270,15 @@ def test_plan_carries_profile_and_version() -> None:
     assert plan.profile_version == EXPORT_PROFILE_VERSION
     assert isinstance(plan.profile_version, int)
     assert plan.contract is DEFAULT_TARGET_PROFILE
+    assert plan.profile_version == 2
+    assert plan.contract.target_environment.studio_version == "4.3.3"
+    assert plan.contract.target_environment.firmware_version == "4.0.9"
+
+
+def test_plan_can_still_target_v1_explicitly() -> None:
+    plan = build_export_plan(_color_project(), profile=TARGET_PROFILE_V1)
+    assert plan.contract is TARGET_PROFILE_V1
+    assert plan.profile_version == 1
 
 
 def test_height_semantics_is_light_is_high() -> None:

@@ -11,6 +11,21 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Profil cible EufyMake v2 additif et preflight Studio 4.3.3 complet
+  (#681, #691).** Le profil v2 est sélectionné par défaut pour Studio 4.3.3,
+  Editor 1.20.0 et le firmware 4.0.9 ; le profil v1 reste sélectionnable comme
+  référence figée de Studio 4.2.2. v2 ajoute `physical_size_missing` quand la
+  taille physique du projet manque, tandis que les valeurs mal formées restent
+  bloquantes avec `INVALID_TARGET_PARAMS`. Les 29/29 cellules d'import brut se
+  comportent fonctionnellement comme dans 4.2.2 ; seul I-06 permet maintenant
+  de sélectionner `manifest.json` avant d'afficher `Unsupported file type.`.
+  Les 13/13 projets natifs se chargent et les douze actifs atteignent l'aperçu
+  sans avertissement avec `Unidirectional` ; le projet 03 échoue une seconde
+  fois à l'estimation après `Retry`. `Bidirectional` reste non testé. Aucune
+  impression n'a été lancée : l'encre Y, le racleur et le filtre à air étaient
+  expirés, et du carton noir de 0,1 mm était disponible ; les tests physiques
+  E1 restent ouverts. Détails : [preflight](../../history/EUFYMAKE-681-PREFLIGHT-2026-09-07.md) ;
+  [contrat](../../EUFYMAKE_TARGET_PROFILE.md).
 - **Profil cible EufyMake versionné (#691).** Planificateur, validateur, dialogue
   et writer utilisent un contrat unique pour rôles, fichiers, canaux, mesures,
   environnement, preuves et remèdes stables. Le dialogue affiche la version et
@@ -18,8 +33,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   16 bits est le défaut HEIGHT prudent, mais reste, comme le gloss et les mesures
   physiques, provisoire et soumis à avertissement jusqu'aux tests matériels. Les
   références anciennes restent lisibles ; aucune migration de conteneur.
-  Une profondeur de bits enregistrée auparavant reste présélectionnée jusqu'à
-  sa modification dans la boîte de dialogue. Contrat : [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
+  Le choix de profil et la profondeur de bits enregistrés restent
+  présélectionnés jusqu'à leur modification dans la boîte de dialogue. Contrat : [`docs/EUFYMAKE_TARGET_PROFILE.md`](../../EUFYMAKE_TARGET_PROFILE.md).
 
 ### Modifié
 

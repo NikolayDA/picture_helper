@@ -84,6 +84,23 @@ def test_english_is_available() -> None:
     assert "en" in available_locales()
 
 
+@pytest.mark.parametrize("locale", list(available_locales()))
+def test_eufymake_v2_environment_and_missing_size_render_in_every_locale(
+    locale: str,
+) -> None:
+    configure_locale(locale)
+    environment = i18n.tr(
+        "eufymake.dialog.profile.environment_with_firmware",
+        device="E1",
+        studio="4.3.3",
+        firmware="4.0.9",
+        status="observed",
+    )
+    assert all(value in environment for value in ("E1", "4.3.3", "4.0.9", "observed"))
+    warning = i18n.tr("eufymake.export.physical_size_missing")
+    assert warning and warning != "eufymake.export.physical_size_missing"
+
+
 # ── UI-Smoke je Locale ─────────────────────────────────────────────────
 
 @pytest.mark.parametrize("locale", list(available_locales()))
