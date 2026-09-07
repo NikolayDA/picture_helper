@@ -490,7 +490,7 @@ QOpenGLWidget: No fbo, cannot render
 defaultFramebufferObject = 0
 ```
 
-Kontext, Funktionssatz **und** ein 4 × 4-`QOpenGLFramebufferObject` gelingen
+Kontext, Funktionssatz **und** ein `QOpenGLFramebufferObject` gelingen
 dort alle. Der Qt-Quelltext (`src/openglwidgets/qopenglwidget.cpp`, 6.7) erklärt
 warum: `render()` meldet „No fbo" bei `initialized == true` und
 `fbos[LeftBuffer] == nullptr`; `recreateFbos()` läuft aus `resizeEvent` und aus
@@ -508,11 +508,23 @@ eine Eigenschaft des **QPA-Plugins**, nicht des Treibers.
    greift sie unter `offscreen` und lässt `xcb` (llvmpipe,
    `defaultFramebufferObject() == 1`) unverändert durch.
 2. **Render-Nachweis** (`_render_probe`, nach dem Funktionssatz): ein
-   4 × 4-`QOpenGLFramebufferObject` mit `CombinedDepthStencil`, gebunden und per
-   `glClear` geleert – bitgenau die Folge von
-   `QOpenGLWidgetPrivate::recreateFbos`. Er deckt eine **andere** Klasse ab:
-   Treiber, die auf einer Sitzungsplattform kein vollständiges Render-Ziel
-   liefern. Ausdrücklich **nicht** der Fall aus #1002.
+   `QOpenGLFramebufferObject` mit `CombinedDepthStencil` in der
+   **Viewer-Mindestgröße** (`MIN_VIEWER_SIZE_PX`, geteilt mit
+   `GLReliefViewer.setMinimumSize`), gebunden und per `glClear` geleert –
+   bitgenau die Folge von `QOpenGLWidgetPrivate::recreateFbos`. Er deckt eine
+   **andere** Klasse ab: Treiber, die auf einer Sitzungsplattform kein
+   vollständiges Render-Ziel liefern. Ausdrücklich **nicht** der Fall aus
+   #1002.
+
+   Zwei Nachschärfungen aus dem Bot-Review zu PR #1003: Die Größe war zuerst
+   4 × 4 – auf einer speicherarmen GPU gelingt das noch, wenn die echte
+   Widget-Fläche schon an einer Treibergrenze scheitert; geprüft wird deshalb
+   in der Mindestgröße, die das Widget ohnehin anfordert (Qt multipliziert sie
+   zusätzlich mit dem Device-Pixel-Ratio – die Probe bleibt also schwächer als
+   der Viewer). Und `glClear` **wirft nicht**, sondern legt einen Fehlercode in
+   die GL-Warteschlange: Ohne die `glGetError`-Auswertung meldete der Nachweis
+   genau dort Erfolg, wo kein Frame entsteht. Die Warteschlange wird vorher
+   geleert, damit kein Altfehler dem eigenen Aufruf angelastet wird.
 
 **Fehlerrichtung, beide Regeln gleich.** Keine kann 3D auf tauglicher Hardware
 abschalten: Die Blockliste nennt nur Plugins, unter denen Qt selbst das Widget

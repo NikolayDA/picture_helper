@@ -69,8 +69,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `minimal` und `vnc` fehlt sie, und Qt erklärt das Widget selbst für nicht
   unterstützt. Die Probe weist diese Plattformen jetzt **zuerst** ab, noch vor
   jedem GL-Aufruf. Zusätzlich erbringt sie einen minimalen Render-Nachweis –
-  ein 4 × 4-Framebuffer-Objekt derselben Bauart, die `QOpenGLWidget` für
-  seinen Widget-Framebuffer anlegt, wird erzeugt, gebunden und geleert –, der
+  ein Framebuffer-Objekt derselben Bauart und Mindestgröße, die
+  `QOpenGLWidget` für seinen Widget-Framebuffer anlegt, wird erzeugt, gebunden
+  und geleert, und der GL-Fehlercode danach geprüft –, der
   eine andere Klasse abdeckt: Treiber, die auf einer echten Sitzung kein
   vollständiges Render-Ziel liefern. Beide Regeln können 3D auf tauglicher
   Hardware nicht abschalten; im Zweifel bleibt 3D an. Die Runner-Sonde des

@@ -40,17 +40,18 @@ Kombiniert) bleibt semantisch unverändert; 3D liegt als eigene Ebene
   „Einpassen"/„Zurücksetzen" überschreiben ihn – wie Fit-to-View in 2D.
 - **Gating:** Das 3D-Segment ist nur aktiv, wenn (a) eine HEIGHT-Ebene mit
   gültigen Daten existiert und (b) die Capability-Probe des ADR nicht
-  fehlgeschlagen ist. Die Probe misst dabei **Renderfähigkeit**, nicht nur
-  Kontextexistenz (#1002): Sie weist zuerst Qt-Platform-Plugins ab, unter denen
-  `QOpenGLWidget` grundsätzlich keinen Frame erzeugt (`offscreen`, `minimal`,
-  `vnc`), und erbringt danach einen Render-Nachweis in ein Framebuffer-Objekt
-  derselben Bauart, die das Widget für sich selbst anlegt. Ohne die erste Regel
-  meldete sie auf solchen Plattformen „verfügbar", und der Viewer blieb im
-  Zustand [R] leer, während Qt nur ins Log schrieb. Beide Regeln sind
-  fail-open — sie können 3D auf tauglicher Hardware nicht abschalten; im
-  Zweifel landet der Viewer im Fehlerzustand [F], nie grundlos in [U]. Sonst bleibt es deaktiviert mit erklärendem Text
+  fehlgeschlagen ist. Sonst bleibt es deaktiviert mit erklärendem Text
   (Zustände E/U unten). **2D bleibt immer direkt erreichbar** – auch ohne
   3D-fähige Hardware ändert sich am bestehenden Workflow nichts.
+  - *Was (b) misst (#1002):* **Renderfähigkeit**, nicht nur Kontextexistenz.
+    Zuerst werden Qt-Platform-Plugins abgewiesen, unter denen `QOpenGLWidget`
+    grundsätzlich keinen Frame erzeugt (`offscreen`, `minimal`, `vnc`); danach
+    folgt ein Render-Nachweis in ein Framebuffer-Objekt derselben Bauart und
+    Mindestgröße, die das Widget für sich selbst anlegt. Ohne die erste Regel
+    meldete die Probe auf solchen Plattformen „verfügbar", und der Viewer blieb
+    im Zustand [R] leer, während Qt nur ins Log schrieb. Beide Regeln sind
+    fail-open – sie können 3D auf tauglicher Hardware nicht abschalten; im
+    Zweifel landet der Viewer im Fehlerzustand [F], nie grundlos in [U].
 - **Moduswechsel** mutiert nie Bild-/Höhendaten und beeinflusst nie den
   Export; der 2D-Zoomzustand bleibt beim Rückwechsel erhalten.
 

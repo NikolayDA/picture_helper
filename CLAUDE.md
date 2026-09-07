@@ -169,9 +169,15 @@ Ein Paket, `bgremover/`:
   `QT_QPA_PLATFORM=offscreen` reproduziert: Kontext, Funktionssatz *und*
   Framebuffer-Objekt gelingen alle, `defaultFramebufferObject()` bleibt 0.
   Bewusst eine **Blockliste**: Ein unbekanntes Plugin bleibt erlaubt.
-  (2) **Render-Nachweis** `_render_probe` — ein 4 × 4-`QOpenGLFramebufferObject`
-  mit `CombinedDepthStencil`, gebunden und per `glClear` geleert, bitgenau die
-  Folge von `QOpenGLWidgetPrivate::recreateFbos`. Er deckt eine *andere* Klasse
+  (2) **Render-Nachweis** `_render_probe` — ein `QOpenGLFramebufferObject` mit
+  `CombinedDepthStencil` in der **Viewer-Mindestgröße** `MIN_VIEWER_SIZE_PX`
+  (geteilt mit `GLReliefViewer.setMinimumSize`), gebunden und per `glClear`
+  geleert, bitgenau die Folge von `QOpenGLWidgetPrivate::recreateFbos`; ein
+  winziges Ziel gelang auf einer speicherarmen GPU noch, wenn die echte
+  Widget-Fläche schon scheiterte. Weil `glClear` nicht wirft, sondern einen
+  Fehlercode ablegt, wird die GL-Warteschlange vorher geleert und danach
+  `glGetError` ausgewertet — sonst meldete der Nachweis Erfolg, wo kein Frame
+  entsteht. Er deckt eine *andere* Klasse
   ab (Treiber ohne vollständiges Render-Ziel auf einer Sitzungsplattform) und
   ausdrücklich **nicht** den Fall oben. Beide sind fail-open: Sie können 3D auf
   tauglicher Hardware nicht abschalten (gegengeprüft: unter `xcb` bleibt die

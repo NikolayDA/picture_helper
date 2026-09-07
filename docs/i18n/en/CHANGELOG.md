@@ -63,9 +63,10 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   integration that supports widget rendering; `offscreen`, `minimal`, and `vnc`
   lack it, and Qt itself declares the widget unsupported there. The probe now
   rejects those platforms **first**, before any GL call. It additionally
-  performs a minimal render proof – a 4 × 4 framebuffer object of exactly the
-  kind `QOpenGLWidget` creates for its widget framebuffer is created, bound,
-  and cleared – which covers a different class: drivers that provide no
+  performs a minimal render proof – a framebuffer object of exactly the kind
+  and minimum size `QOpenGLWidget` creates for its widget framebuffer is
+  created, bound, and cleared, and the GL error code checked afterwards – which
+  covers a different class: drivers that provide no
   complete render target on a real session. Neither rule can disable 3D on
   capable hardware; when in doubt, 3D stays on. The acceptance preflight's
   runner probe (`scripts/qt_gl_probe.py`) adopts the render proof under its

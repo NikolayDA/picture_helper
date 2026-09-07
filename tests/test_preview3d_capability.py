@@ -7,8 +7,11 @@ heisst nicht „kein GL-Kontext" (Raspberry Pi mit Broadcom V3D).
 """
 from __future__ import annotations
 
+import builtins
+
 import pytest
 
+from bgremover import preview3d_capability as capability
 from bgremover.preview3d_capability import (
     NON_RENDERABLE_PLATFORMS,
     UNAVAILABLE_KEY,
@@ -291,9 +294,18 @@ class _ReadyContext(_FakeContext):
 class _FakeFunctions:
     """GL-2.1-Funktionssatz-Stand-in: liefert Provenienz und zählt ``glClear``."""
 
-    def __init__(self, clear_error: Exception | None = None) -> None:
+    def __init__(
+        self,
+        clear_error: Exception | None = None,
+        *,
+        gl_errors: list[int] | None = None,
+    ) -> None:
         self.clear_masks: list[int] = []
         self._clear_error = clear_error
+        # Warteschlange wie bei echtem GL: ``glGetError`` liefert je Aufruf
+        # einen Fehler und löscht ihn; danach 0.
+        self._gl_errors = list(gl_errors or [])
+        self.get_error_calls = 0
 
     def glGetString(self, name: int) -> bytes:  # noqa: N802
         return {0x1F00: b"Broadcom", 0x1F01: b"V3D 7.1", 0x1F02: b"2.1 Mesa"}[name]
@@ -302,6 +314,10 @@ class _FakeFunctions:
         if self._clear_error is not None:
             raise self._clear_error
         self.clear_masks.append(mask)
+
+    def glGetError(self) -> int:  # noqa: N802
+        self.get_error_calls += 1
+        return self._gl_errors.pop(0) if self._gl_errors else 0
 
 
 def _install_ready_context(monkeypatch, fns: _FakeFunctions) -> None:
@@ -360,7 +376,8 @@ def test_render_proof_mirrors_the_widget_framebuffer(monkeypatch, fake_fbo, sess
 
     ``QOpenGLWidgetPrivate::recreateFbos`` erzeugt ein
     ``QOpenGLFramebufferObject`` mit ``CombinedDepthStencil``, bindet es und
-    leert es per ``glClear``. Weil die Probe dieselbe Folge fährt, kann sie
+    leert es per ``glClear`` – in der Mindestgröße des Viewers. Weil die Probe
+    dieselbe Folge fährt, kann sie
     **nie strenger** sein als der Viewer – ein Falsch-Negativ (3D grundlos
     abgeschaltet) ist damit ausgeschlossen. Genau diese Bindung hält der Test.
     """
@@ -372,7 +389,7 @@ def test_render_proof_mirrors_the_widget_framebuffer(monkeypatch, fake_fbo, sess
     assert cap.ok is True
     assert cap.diagnostic == "Broadcom / V3D 7.1 / 2.1 Mesa"
     assert fake_fbo.last is not None
-    assert fake_fbo.last.size == (4, 4)
+    assert fake_fbo.last.size == capability.MIN_VIEWER_SIZE_PX
     assert fake_fbo.last.attachment == fake_fbo.Attachment.CombinedDepthStencil
     assert fake_fbo.last.released == 1  # Bindung wieder gelöst
     # Farbe + Tiefe + Stencil, wie recreateFbos() leert.
@@ -599,3 +616,96 @@ def test_no_second_source_declares_the_non_renderable_platforms() -> None:
         "Zweite Quelle der Plattformmenge – aus "
         f"preview3d_capability.NON_RENDERABLE_PLATFORMS beziehen: {offenders}"
     )
+
+
+# ── Nachträge aus dem Bot-Review zu PR #1003 ─────────────────────────────
+
+def test_render_proof_probes_the_size_the_viewer_actually_needs(qapp) -> None:
+    """Ein winziges Ziel belegt die echte Widget-Fläche nicht (Codex-Review).
+
+    Auf einer speicherarmen GPU kann ein 4 × 4-FBO gelingen, während
+    ``QOpenGLWidget`` sein deutlich größeres Backing-FBO nicht mehr bekommt –
+    genau das ready-but-blank, das die Probe verhindern soll. Geprüft wird
+    deshalb in der **Mindestgröße des Viewers**; Qt multipliziert die echte
+    Fläche zusätzlich mit dem Device-Pixel-Ratio, die Probe bleibt also
+    schwächer als der Viewer (kein Falsch-Negativ).
+    """
+    from bgremover.viewer_3d import GLReliefViewer
+
+    viewer = GLReliefViewer()
+    assert (viewer.minimumWidth(), viewer.minimumHeight()) == capability.MIN_VIEWER_SIZE_PX
+
+
+def test_render_proof_reports_a_gl_error_raised_by_the_clear(
+    monkeypatch, fake_fbo, session_platform
+) -> None:
+    """``glClear`` wirft nicht – es legt einen Fehlercode ab (Codex-Review).
+
+    Ohne die ``glGetError``-Abfrage meldete der Nachweis genau dort Erfolg, wo
+    kein Frame entsteht (z. B. ``GL_INVALID_FRAMEBUFFER_OPERATION`` = 0x0506
+    nach einem Kontextverlust).
+    """
+    fns = _FakeFunctions(gl_errors=[0, 0x0506])  # Warteschlange leer, dann Fehler
+    _install_ready_context(monkeypatch, fns)
+
+    cap = _default_probe()
+
+    assert cap.ok is False
+    assert cap.error_key == UNAVAILABLE_KEY
+    assert cap.detail == "glClear meldete GL-Fehler 0x0506"
+
+
+def test_render_proof_drains_stale_errors_before_judging(
+    monkeypatch, fake_fbo, session_platform
+) -> None:
+    """Ein Altfehler aus fremdem Code darf nicht dem eigenen Aufruf angelastet
+    werden – die Warteschlange wird vorher geleert."""
+    fns = _FakeFunctions(gl_errors=[0x0502, 0x0501, 0, 0])  # zwei Altfehler, dann sauber
+    _install_ready_context(monkeypatch, fns)
+
+    cap = _default_probe()
+
+    assert cap.ok is True, cap.detail
+    assert fns.get_error_calls >= 3  # geleert und danach bewertet
+
+
+def test_render_proof_survives_a_failing_qt_import(monkeypatch, session_platform) -> None:
+    """„Wirft nie" gilt für die **ganze** Funktion, Importe eingeschlossen.
+
+    Lagen die lokalen Importe außerhalb des ``try``, landete ein ``ImportError``
+    im äußeren Handler von ``_default_probe`` – und nahm die dort bereits
+    gemessene Renderer-Provenienz mit, die Docstring und CHANGELOG „auch im
+    Fehlerfall" zusichern (Review PR #1003).
+    """
+    real_import = builtins.__import__
+
+    def _boom(name, *args, **kwargs):
+        if name == "PyQt6.QtOpenGL" and "QOpenGLFramebufferObject" in (args[2] or ()):
+            raise ImportError("QtOpenGL fehlt")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _boom)
+
+    assert "QtOpenGL fehlt" in (_render_probe(_FakeFunctions()) or "")
+
+
+def test_failure_log_carries_the_renderer_provenance(monkeypatch, caplog) -> None:
+    """Die Provenienz muss im **Log** stehen, nicht nur im Rückgabeobjekt.
+
+    ``probe_3d_capability`` loggte im Fehlerzweig nur ``detail`` – für ein
+    Gerät, das erst am Render-Nachweis scheitert, stünde dort nie, welche GPU
+    das war (Codex-Review PR #1003).
+    """
+    import logging
+
+    cap = RendererCapability(
+        ok=False, error_key=UNAVAILABLE_KEY,
+        diagnostic="Broadcom / V3D 7.1 / 2.1 Mesa",
+        detail="Kontext ohne vollständiges Framebuffer-Objekt",
+    )
+    with caplog.at_level(logging.INFO):
+        probe_3d_capability(probe_fn=lambda: cap, use_cache=False)
+
+    logged = " ".join(record.getMessage() for record in caplog.records)
+    assert "Kontext ohne vollständiges Framebuffer-Objekt" in logged
+    assert "Broadcom / V3D 7.1 / 2.1 Mesa" in logged

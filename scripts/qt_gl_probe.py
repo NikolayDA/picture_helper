@@ -81,12 +81,17 @@ GL_VENDOR = 0x1F00
 GL_RENDERER = 0x1F01
 GL_VERSION = 0x1F02
 
-#: Rohe ``glClear``-Masken und die Kantenlaenge des Nachweis-Framebuffers -
-#: ebenfalls identisch zum Produktivpfad (``preview3d_capability``).
+#: Rohe ``glClear``-Masken, der Fehler-Nullwert und die Maße des
+#: Nachweis-Framebuffers - ebenfalls identisch zum Produktivpfad
+#: (``preview3d_capability``). Die Groesse ist die Mindestflaeche des Viewers,
+#: nicht ein Minimalwert: Ein winziges Ziel gelang auf einer speicherarmen GPU
+#: auch dann noch, wenn die echte Widget-Flaeche schon scheiterte.
+GL_NO_ERROR = 0x0000
 GL_DEPTH_BUFFER_BIT = 0x00000100
 GL_STENCIL_BUFFER_BIT = 0x00000400
 GL_COLOR_BUFFER_BIT = 0x00004000
-RENDER_PROBE_PX = 4
+GL_ERROR_DRAIN_LIMIT = 32
+MIN_VIEWER_SIZE_PX: tuple[int, int] = (240, 200)
 
 
 def load_software_renderer_rule() -> Callable[[str], bool]:
@@ -265,8 +270,15 @@ def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
         # Runner als nicht 3D-faehig ein, die Sonde meldete bis dahin Erfolg.
         render_error = render_probe(fns)
         if render_error is not None:
+            # Provenienz in den ``detail``-Text, wie es der ``renderer``-Zweig
+            # unten tut: ``abnahme_preflight`` rendert den Fehlerfall als
+            # "<Hinweis>: <detail>" und liest ``diagnostic`` nur im
+            # Erfolgszweig. Als eigenes Payload-Feld waere die Angabe hier
+            # still wirkungslos (Review PR #1003).
             return _fail(
-                "kontext", render_error, platform=platform_name,
+                "kontext",
+                f"{render_error} ({vendor} / {renderer} / {version})",
+                platform=platform_name,
                 vendor=vendor, renderer=renderer, version=version,
             )
         payload = success_payload(
@@ -293,18 +305,31 @@ def probe(env: dict[str, str] | None = None) -> dict[str, Any]:
                 ctx.doneCurrent()
 
 
+def _drain_gl_errors(fns: object) -> None:
+    """Leert die GL-Fehlerwarteschlange (hart begrenzt, wirft nie)."""
+    for _ in range(GL_ERROR_DRAIN_LIMIT):
+        if int(fns.glGetError()) == GL_NO_ERROR:  # type: ignore[attr-defined]
+            return
+
+
 def render_probe(fns: object) -> str | None:
     """Minimaler Render-Nachweis im aktuellen Kontext - wie im Produktivpfad.
 
     ``QOpenGLWidget`` legt seinen Widget-Framebuffer als
     ``QOpenGLFramebufferObject`` mit ``CombinedDepthStencil`` an, bindet ihn und
-    leert ihn; genau das wird hier in 4 x 4 Pixeln nachgestellt. Die Regel ist
-    damit nie strenger als der Viewer - ein Runner, der sie besteht, bekommt
-    dessen Framebuffer ebenfalls.
+    leert ihn; genau das wird hier in der Viewer-Mindestgroesse nachgestellt.
+    Die Regel bleibt damit nie strenger als der Viewer - ein Runner, der sie
+    besteht, bekommt dessen Framebuffer ebenfalls.
+
+    ``glClear`` wirft nicht, sondern legt einen Fehlercode in die
+    GL-Warteschlange; ohne die ``glGetError``-Abfrage meldete der Nachweis
+    genau dort Erfolg, wo kein Frame entsteht. Vorher wird die Warteschlange
+    geleert, damit ein Altfehler nicht dem eigenen Aufruf angelastet wird.
 
     Liefert ``None`` bei Erfolg, sonst den Kurzgrund fuer die Stufe ``kontext``.
-    Wirft nie: Ein Treiberfehler ist hier ein Befund, und ein Wurf hinterliesse
-    keine JSON-Zeile.
+    Wirft nie - fuer die **ganze** Funktion, Importe eingeschlossen: Ein
+    Treiberfehler ist hier ein Befund, und ein Wurf hinterliesse keine
+    JSON-Zeile.
 
     **Setzt einen aktuellen Kontext voraus.** Qt dereferenziert in
     ``QOpenGLFramebufferObjectPrivate::init`` den ``currentContext()``
@@ -313,16 +338,17 @@ def render_probe(fns: object) -> str | None:
     Schranke unten haelt das fail-closed, obwohl ``probe`` den Kontext
     nachweislich aktuell hat.
     """
-    from PyQt6.QtGui import QOpenGLContext
-    from PyQt6.QtOpenGL import QOpenGLFramebufferObject
-
-    if QOpenGLContext.currentContext() is None:
-        return "Render-Nachweis ohne aktuellen Kontext angefordert"
-
     fbo = None
     try:
+        from PyQt6.QtGui import QOpenGLContext
+        from PyQt6.QtOpenGL import QOpenGLFramebufferObject
+
+        if QOpenGLContext.currentContext() is None:
+            return "Render-Nachweis ohne aktuellen Kontext angefordert"
+
+        width, height = MIN_VIEWER_SIZE_PX
         fbo = QOpenGLFramebufferObject(
-            RENDER_PROBE_PX, RENDER_PROBE_PX,
+            width, height,
             QOpenGLFramebufferObject.Attachment.CombinedDepthStencil,
         )
         if not fbo.isValid():
@@ -330,11 +356,15 @@ def render_probe(fns: object) -> str | None:
         if not fbo.bind():
             return "Framebuffer-Objekt nicht bindbar"
         try:
+            _drain_gl_errors(fns)
             fns.glClear(  # type: ignore[attr-defined]
                 GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT
             )
+            error = int(fns.glGetError())  # type: ignore[attr-defined]
         finally:
             fbo.release()
+        if error != GL_NO_ERROR:
+            return f"glClear meldete GL-Fehler 0x{error:04X}"
     except Exception as exc:  # noqa: BLE001 - Treiberfehler ist ein Befund
         return f"Render-Nachweis fehlgeschlagen: {type(exc).__name__}: {exc}"
     finally:

@@ -68,8 +68,9 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   `vnc` ne l'ont pas, et Qt lui-même y déclare le widget non pris en charge. La
   sonde rejette désormais ces plateformes **en premier**, avant tout appel GL.
   Elle effectue en outre une preuve de rendu minimale — un objet framebuffer de
-  4 × 4 exactement du type que `QOpenGLWidget` crée pour son framebuffer de
-  widget est créé, lié et effacé —, qui couvre une autre classe : les pilotes
+  exactement du type et de la taille minimale que `QOpenGLWidget` crée pour son
+  framebuffer de widget est créé, lié et effacé, puis le code d'erreur GL est
+  vérifié —, qui couvre une autre classe : les pilotes
   qui ne fournissent pas de cible de rendu complète dans une vraie session.
   Aucune des deux règles ne peut désactiver la 3D sur du matériel apte ; en cas
   de doute, la 3D reste active. La sonde du préflight de recette

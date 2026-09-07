@@ -167,14 +167,28 @@ _GL_VENDOR = 0x1F00
 _GL_RENDERER = 0x1F01
 _GL_VERSION = 0x1F02
 
-# Rohe glClear-Masken (ebenfalls OpenGL-Vertrag; identisch zu ``viewer_3d``).
+# Rohe glClear-Masken und -Fehlercodes (ebenfalls OpenGL-Vertrag). ``viewer_3d``
+# teilt davon Farbe und Tiefe; das Stencil-Bit kommt aus
+# ``QOpenGLWidgetPrivate::recreateFbos``, das der Nachweis unten nachstellt –
+# ``paintGL`` leert selbst nur mit ``COLOR | DEPTH``.
+_GL_NO_ERROR = 0x0000
 _GL_DEPTH_BUFFER_BIT = 0x00000100
 _GL_STENCIL_BUFFER_BIT = 0x00000400
 _GL_COLOR_BUFFER_BIT = 0x00004000
 
-#: Kantenlänge des Nachweis-Framebuffers. Vier Pixel genügen: geprüft wird, ob
-#: der Kontext ein vollständiges Render-Ziel liefert, nicht dessen Inhalt.
-_RENDER_PROBE_PX = 4
+#: Obergrenze für das Leeren der GL-Fehlerwarteschlange vor dem Nachweis.
+#: ``glGetError`` liefert je Aufruf **einen** Fehler und löscht ihn; ein Treiber,
+#: der endlos Fehler meldet, darf die Probe nicht aufhängen.
+_GL_ERROR_DRAIN_LIMIT = 32
+
+#: Maße des Nachweis-Framebuffers – **die** Mindestgröße des Viewers
+#: (``GLReliefViewer.setMinimumSize``), damit die Probe nicht kleiner misst als
+#: das, was ``QOpenGLWidget`` später wirklich anfordert. Ein 4 × 4-Ziel gelang
+#: auf einer speicherarmen GPU auch dann noch, wenn die echte Widget-Fläche
+#: schon an einer Treibergrenze scheiterte (Codex-Review PR #1003). Qt
+#: multipliziert zusätzlich mit dem Device-Pixel-Ratio – die Probe bleibt
+#: dadurch **schwächer** als der Viewer, also weiterhin ohne Falsch-Negativ.
+MIN_VIEWER_SIZE_PX: tuple[int, int] = (240, 200)
 
 
 def _platform_render_support() -> str | None:
@@ -204,18 +218,39 @@ def _platform_render_support() -> str | None:
     return None
 
 
+def _drain_gl_errors(fns: object) -> None:
+    """Leert die GL-Fehlerwarteschlange (hart begrenzt, wirft nie)."""
+    for _ in range(_GL_ERROR_DRAIN_LIMIT):
+        if int(fns.glGetError()) == _GL_NO_ERROR:  # type: ignore[attr-defined]
+            return
+
+
 def _render_probe(fns: object) -> str | None:
     """Minimaler Render-Nachweis im aktuellen Kontext (#1002).
 
     ``QOpenGLWidgetPrivate::recreateFbos`` legt den Widget-Framebuffer als
     ``QOpenGLFramebufferObject`` mit ``CombinedDepthStencil`` an, bindet ihn und
-    leert ihn per ``glClear`` – genau diese Folge wird hier in 4 × 4 Pixeln
-    nachgestellt. Die Prüfung kann damit **nie strenger** sein als der Viewer:
-    Ein Kontext, der sie besteht, hätte auch dessen Framebuffer bekommen; ein
-    Falsch-Negativ (3D grundlos abgeschaltet) ist ausgeschlossen.
+    leert ihn per ``glClear`` – genau diese Folge wird hier in der
+    Viewer-Mindestgröße (:data:`MIN_VIEWER_SIZE_PX`) nachgestellt. Die Prüfung
+    bleibt damit **nie strenger** als der Viewer: Ein Kontext, der sie besteht,
+    hätte auch dessen Framebuffer bekommen (Qt skaliert die echte Fläche
+    zusätzlich mit dem Device-Pixel-Ratio); ein Falsch-Negativ (3D grundlos
+    abgeschaltet) ist ausgeschlossen.
+
+    ``glClear`` **wirft nicht**, sondern legt einen Fehlercode in die
+    GL-Warteschlange (etwa ``GL_INVALID_FRAMEBUFFER_OPERATION`` nach einem
+    Kontextverlust). Ohne die ``glGetError``-Abfrage hätte der Nachweis genau
+    dort Erfolg gemeldet, wo kein Frame entsteht – der Zustand, den er
+    verhindern soll (Codex-Review PR #1003). Vorher wird die Warteschlange
+    geleert, damit ein fremder Altfehler nicht dem eigenen Aufruf angelastet
+    wird.
 
     Liefert ``None`` bei Erfolg, sonst den technischen Kurzgrund. Wirft nie –
     ein Treiber, der hier abstürzt, ist ein Befund, kein Absturz der App.
+    Das gilt für die **ganze** Funktion: Auch die lokalen Qt-Importe und die
+    Kontextabfrage liegen im ``try``. Sonst landete ein ``ImportError`` im
+    äußeren Handler von :func:`_default_probe` und nähme die dort bereits
+    gemessene Provenienz mit (Review PR #1003).
 
     **Setzt einen aktuellen Kontext voraus.** Qt dereferenziert in
     ``QOpenGLFramebufferObjectPrivate::init`` den ``currentContext()``
@@ -224,16 +259,17 @@ def _render_probe(fns: object) -> str | None:
     die Schranke unten ist die fail-closed Absicherung gegen einen künftigen
     zweiten Aufrufer.
     """
-    from PyQt6.QtGui import QOpenGLContext
-    from PyQt6.QtOpenGL import QOpenGLFramebufferObject
-
-    if QOpenGLContext.currentContext() is None:
-        return "Render-Nachweis ohne aktuellen Kontext angefordert"
-
     fbo = None
     try:
+        from PyQt6.QtGui import QOpenGLContext
+        from PyQt6.QtOpenGL import QOpenGLFramebufferObject
+
+        if QOpenGLContext.currentContext() is None:
+            return "Render-Nachweis ohne aktuellen Kontext angefordert"
+
+        width, height = MIN_VIEWER_SIZE_PX
         fbo = QOpenGLFramebufferObject(
-            _RENDER_PROBE_PX, _RENDER_PROBE_PX,
+            width, height,
             QOpenGLFramebufferObject.Attachment.CombinedDepthStencil,
         )
         if not fbo.isValid():
@@ -241,11 +277,15 @@ def _render_probe(fns: object) -> str | None:
         if not fbo.bind():
             return "Framebuffer-Objekt nicht bindbar"
         try:
+            _drain_gl_errors(fns)
             fns.glClear(  # type: ignore[attr-defined]
                 _GL_COLOR_BUFFER_BIT | _GL_DEPTH_BUFFER_BIT | _GL_STENCIL_BUFFER_BIT
             )
+            error = int(fns.glGetError())  # type: ignore[attr-defined]
         finally:
             fbo.release()
+        if error != _GL_NO_ERROR:
+            return f"glClear meldete GL-Fehler 0x{error:04X}"
     except Exception as exc:  # noqa: BLE001 – Treiberfehler ist ein Befund
         return f"Render-Nachweis fehlgeschlagen: {type(exc).__name__}: {exc}"
     finally:
@@ -292,7 +332,15 @@ def probe_3d_capability(
     if result.ok:
         logger.info("3D-Capability: verfügbar (%s)", result.diagnostic or "unbekannt")
     else:
-        logger.info("3D-Capability: nicht verfügbar (%s)", result.detail or "unbekannt")
+        # Die Provenienz mitloggen, sonst stünde für ein Gerät, das erst am
+        # Render-Nachweis scheitert, nur „Kontext ohne vollständiges
+        # Framebuffer-Objekt" im Log – ohne die Angabe, welche GPU das war
+        # (Codex-Review PR #1003).
+        logger.info(
+            "3D-Capability: nicht verfügbar (%s%s)",
+            result.detail or "unbekannt",
+            f"; {result.diagnostic}" if result.diagnostic else "",
+        )
     if use_cache:
         _cached = result
     return result

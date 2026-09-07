@@ -234,7 +234,9 @@ def test_a_context_without_framebuffer_is_rejected_like_in_production() -> None:
     """
     source = (ROOT / "scripts" / "qt_gl_probe.py").read_text(encoding="utf-8")
     production = (ROOT / "bgremover" / "preview3d_capability.py").read_text(encoding="utf-8")
-    for needle in ("QOpenGLFramebufferObject", "CombinedDepthStencil", "glClear"):
+    for needle in (
+        "QOpenGLFramebufferObject", "CombinedDepthStencil", "glClear", "glGetError",
+    ):
         assert needle in source and needle in production, needle
 
 
@@ -263,18 +265,22 @@ def test_render_probe_reports_the_same_reasons_as_production(monkeypatch) -> Non
             _Fbo.released = True
 
     class _Fns:
-        def __init__(self) -> None:
+        def __init__(self, gl_errors: list[int] | None = None) -> None:
             self.masks: list[int] = []
+            self._errors = list(gl_errors or [])
 
         def glClear(self, mask: int) -> None:  # noqa: N802
             self.masks.append(mask)
+
+        def glGetError(self) -> int:  # noqa: N802
+            return self._errors.pop(0) if self._errors else 0
 
     monkeypatch.setattr("PyQt6.QtOpenGL.QOpenGLFramebufferObject", _Fbo)
     _patch_current_context(monkeypatch, present=True)
 
     fns = _Fns()
     assert probe_module.render_probe(fns) is None
-    assert _Fbo.last.size == (probe_module.RENDER_PROBE_PX,) * 2
+    assert _Fbo.last.size == probe_module.MIN_VIEWER_SIZE_PX
     assert _Fbo.last.attachment == _Fbo.Attachment.CombinedDepthStencil
     assert fns.masks == [
         probe_module.GL_COLOR_BUFFER_BIT
@@ -313,7 +319,9 @@ def test_the_render_proof_uses_the_shared_gl_masks() -> None:
     assert probe_module.GL_COLOR_BUFFER_BIT == preview3d_capability._GL_COLOR_BUFFER_BIT
     assert probe_module.GL_DEPTH_BUFFER_BIT == preview3d_capability._GL_DEPTH_BUFFER_BIT
     assert probe_module.GL_STENCIL_BUFFER_BIT == preview3d_capability._GL_STENCIL_BUFFER_BIT
-    assert probe_module.RENDER_PROBE_PX == preview3d_capability._RENDER_PROBE_PX
+    assert probe_module.MIN_VIEWER_SIZE_PX == preview3d_capability.MIN_VIEWER_SIZE_PX
+    assert probe_module.GL_NO_ERROR == preview3d_capability._GL_NO_ERROR
+    assert probe_module.GL_ERROR_DRAIN_LIMIT == preview3d_capability._GL_ERROR_DRAIN_LIMIT
 
 
 def test_hardware_is_never_claimed_without_all_three_gl_strings() -> None:
@@ -352,3 +360,51 @@ def test_the_probe_runs_standalone_without_the_release_venv() -> None:
         capture_output=True, text=True, check=False, env={"QT_QPA_PLATFORM": "offscreen"},
     )
     assert json.loads(result.stdout.strip())["stage"] == "plugin"
+
+
+def test_render_probe_reports_a_gl_error_raised_by_the_clear(monkeypatch) -> None:
+    """``glClear`` wirft nicht, es legt einen Fehlercode ab (Codex-Review #1003)."""
+
+    class _Fbo:
+        class Attachment:
+            CombinedDepthStencil = "combined"
+
+        def __init__(self, w: int, h: int, attachment: object) -> None:
+            pass
+
+        def isValid(self) -> bool:  # noqa: N802
+            return True
+
+        def bind(self) -> bool:
+            return True
+
+        def release(self) -> None:
+            pass
+
+    class _Fns:
+        def __init__(self) -> None:
+            self._errors = [0, 0x0506]
+
+        def glClear(self, mask: int) -> None:  # noqa: N802
+            pass
+
+        def glGetError(self) -> int:  # noqa: N802
+            return self._errors.pop(0) if self._errors else 0
+
+    monkeypatch.setattr("PyQt6.QtOpenGL.QOpenGLFramebufferObject", _Fbo)
+    _patch_current_context(monkeypatch, present=True)
+
+    assert probe_module.render_probe(_Fns()) == "glClear meldete GL-Fehler 0x0506"
+
+
+def test_a_context_finding_carries_the_measured_provenance() -> None:
+    """Die Provenienz muss im ``detail`` stehen, nicht nur im Payload.
+
+    ``abnahme_preflight`` rendert den Fehlerfall als "<Hinweis>: <detail>" und
+    liest ``diagnostic`` nur im Erfolgszweig - ein eigenes Payload-Feld waere
+    still wirkungslos (Review PR #1003). Der ``renderer``-Zweig loest das
+    bereits so; der Render-Nachweis folgt jetzt demselben Muster.
+    """
+    source = (ROOT / "scripts" / "qt_gl_probe.py").read_text(encoding="utf-8")
+    marker = "f\"{render_error} ({vendor} / {renderer} / {version})\""
+    assert marker in source, "Render-Befund ohne Provenienz im detail-Text"

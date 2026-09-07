@@ -67,8 +67,9 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   ella, y el propio Qt declara el widget no compatible allí. Ahora la sonda
   rechaza esas plataformas **primero**, antes de cualquier llamada GL. Además
   realiza una prueba mínima de renderizado —se crea, se enlaza y se limpia un
-  objeto de framebuffer de 4 × 4 exactamente del tipo que `QOpenGLWidget` crea
-  para su framebuffer de widget— que cubre otra clase: controladores que no
+  objeto de framebuffer exactamente del tipo y tamaño mínimo que
+  `QOpenGLWidget` crea para su framebuffer de widget, y después se comprueba el
+  código de error de GL— que cubre otra clase: controladores que no
   ofrecen un destino de renderizado completo en una sesión real. Ninguna de las
   dos reglas puede desactivar el 3D en hardware apto; en caso de duda, el 3D
   sigue activo. La sonda del preflight de aceptación
