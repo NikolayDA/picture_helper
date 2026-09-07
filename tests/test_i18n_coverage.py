@@ -72,10 +72,7 @@ def test_right_panel_tabs_build_and_render_german(qapp) -> None:
     assert shape["corner_label"].text() == "Radius:  0 px"
 
 
-def test_settings_dialog_builds_in_german(qapp, tmp_path) -> None:
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(
-        QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
+def test_settings_dialog_builds_in_german(qapp) -> None:
     from bgremover.settings_dialog import SettingsDialog
 
     dlg = SettingsDialog(QSettings("BgRemover", "BgRemover"))

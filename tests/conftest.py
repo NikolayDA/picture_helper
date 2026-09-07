@@ -28,6 +28,39 @@ _XDG_CONFIG_TMP = tempfile.mkdtemp(prefix="bgremover-tests-config-")
 os.environ["XDG_CONFIG_HOME"] = _XDG_CONFIG_TMP
 atexit.register(shutil.rmtree, _XDG_CONFIG_TMP, ignore_errors=True)
 
+# Qt-Testmodus: verlegt alle schreibbaren Standardpfade prozesslokal in einen
+# eigenen Zweig (``~/.qttest``). Ohne ihn liest ``MainWindow.__init__`` die
+# *echte* Nutzerkonfiguration (``QSettings("BgRemover", "BgRemover")``) und
+# schreibt beim Schließen hinein -- der Testlauf hängt dann an den
+# Einstellungen des jeweiligen Rechners (eine dort gespeicherte englische
+# Oberflächensprache lässt jeden Test scheitern, der deutsche Meldungen
+# erwartet) und hinterlässt darin Testwerte. Ebenfalls abgedeckt: der
+# Log-Pfad aus ``logging_config`` (``QStandardPaths.AppDataLocation``).
+#
+# Der Aufruf steht bewusst VOR jedem Projekt-Import: Qt friert die
+# aufgelösten Pfade ab dem ersten konstruierten ``QSettings`` ein, ein
+# späterer Testmodus wirkt dann auch auf neu gebaute Objekte nicht mehr.
+# ``QSettings.setPath()`` (früher in einzelnen Testmodulen, mit diesem Stand
+# entfernt) leistet das nicht -- der Pfad blieb die echte Nutzerdatei.
+from PyQt6.QtCore import QSettings, QStandardPaths
+
+QStandardPaths.setTestModeEnabled(True)
+
+# Fail-closed statt Vertrauen auf die Importreihenfolge: ein später
+# ergänzter QSettings-Zugriff auf Modulebene -- im Paket oder in einem über
+# Entry-Points geladenen pytest-Plugin (die lädt pytest VOR dieser Datei) --
+# hängt die Umlenkung still aus. Der Lauf bliebe grün, während die
+# autouse-Fixture unten die echte Nutzerkonfiguration leert. Deshalb hier
+# hart abbrechen; ``tests/test_settings_isolation.py`` prüft dasselbe je Lauf.
+_SETTINGS_PROBE = Path(QSettings("BgRemover", "BgRemover").fileName())
+if ".qttest" not in _SETTINGS_PROBE.parts:
+    raise RuntimeError(
+        "QSettings-Isolation greift nicht: aufgelöster Pfad "
+        f"{_SETTINGS_PROBE}. Vor tests/conftest.py wurde bereits ein QSettings "
+        "konstruiert (Paket-Import oder pytest-Plugin); Qt hält die Pfade dann "
+        "fest. Der Testlauf würde die echte Nutzerkonfiguration lesen und leeren."
+    )
+
 # Repo-Root in sys.path aufnehmen, damit Unit-Tests die aktuelle Quelle
 # importieren. Die App-Smoke-Tests prüfen zusätzlich die echte Installation
 # aus einem neutralen Arbeitsverzeichnis; dafür ``make install-test`` nutzen.
@@ -40,22 +73,7 @@ from bgremover.qt_plugins import ensure_qt_plugin_path
 ensure_qt_plugin_path()
 
 import pytest
-from PyQt6.QtCore import QSettings, QStandardPaths
 from PyQt6.QtWidgets import QApplication
-
-# Qt-Testmodus: verlegt alle schreibbaren Standardpfade in einen eigenen
-# Zweig (``~/.qttest``). Ohne ihn liest ``MainWindow.__init__`` die *echte*
-# Nutzerkonfiguration (``QSettings("BgRemover", "BgRemover")``) und schreibt
-# beim Schließen hinein -- der Testlauf hängt dann an den Einstellungen des
-# jeweiligen Rechners (eine dort gespeicherte englische Oberflächensprache
-# lässt jeden Test scheitern, der deutsche Meldungen erwartet) und
-# hinterlässt darin Testwerte. ``QSettings.setPath()`` reicht dafür nicht:
-# es bleibt auf dem XDG-Pfad wirkungslos (in einzelnen Testmodulen so
-# vorhanden, aber ohne Wirkung). Der Aufruf steht bewusst auf Modulebene --
-# Qt merkt sich die aufgelösten Pfade ab der ersten Nutzung, eine Fixture
-# könnte also schon zu spät kommen. Ebenfalls abgedeckt: der Log-Pfad aus
-# ``logging_config`` (``QStandardPaths.AppDataLocation``).
-QStandardPaths.setTestModeEnabled(True)
 
 # Mini-Programm, das genau den riskanten Schritt macht: QApplication
 # konstruieren. Schlägt das Plattform-Plugin fehl, ruft Qt qFatal() →

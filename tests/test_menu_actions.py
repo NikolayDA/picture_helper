@@ -18,9 +18,7 @@ def _actions(window: QMainWindow) -> dict[str, QAction]:
     return {action.text(): action for action in window.findChildren(QAction)}
 
 
-def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
+def test_main_menu_builder_creates_expected_actions(qapp):
     window = QMainWindow()
     calls: list[str] = []
     rotations: list[int] = []
@@ -161,13 +159,11 @@ def _minimal_callbacks(**overrides) -> MainMenuCallbacks:
     return MainMenuCallbacks(**defaults)
 
 
-def test_ai_model_action_always_enabled(qapp, tmp_path):
+def test_ai_model_action_always_enabled(qapp):
     """#575: Der Menüpunkt ist auch ohne rembg IMMER aktiv. Qt zeigt Tooltips
     in Menüs standardmäßig nicht an – ein still deaktivierter Eintrag wirkte
     wie ein Bug („Klick tut nichts"). Der Dialog erklärt den Zustand selbst
     (``ModelStatus.REMBG_UNAVAILABLE`` inkl. aktiver Python-Umgebung)."""
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
     window = QMainWindow()
 
     build_main_menu(

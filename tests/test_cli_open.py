@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
-from PyQt6.QtCore import QEvent, QSettings
+from PyQt6.QtCore import QEvent
 
 from bgremover import MainWindow
 from bgremover.app import _FileOpenFilter
@@ -23,10 +23,7 @@ from bgremover.status_messages import StatusMessages as SM
 
 @pytest.fixture
 def isolated_settings(tmp_path):
-    """QSettings in ein temporäres Verzeichnis umleiten (kein realer Cache)."""
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat,
-                      QSettings.Scope.UserScope, str(tmp_path))
+    """Temporäres Verzeichnis; die QSettings-Isolation leistet conftest.py."""
     yield tmp_path
 
 

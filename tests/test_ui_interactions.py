@@ -23,7 +23,7 @@ Headless-Strategie (Begruendung):
 import numpy as np
 import pytest
 from PIL import Image
-from PyQt6.QtCore import QEvent, QPointF, QSettings, Qt
+from PyQt6.QtCore import QEvent, QPointF, Qt
 from PyQt6.QtGui import QAction, QKeySequence, QMouseEvent
 from PyQt6.QtWidgets import QLabel, QToolButton
 
@@ -50,13 +50,11 @@ pytestmark = pytest.mark.ui
 
 @pytest.fixture
 def isolated_settings(tmp_path):
-    """Leitet QSettings in ein tmp-Verzeichnis um (1:1 wie test_recent_files).
+    """Liefert ein tmp-Verzeichnis fuer settings-nahe Tests.
 
-    Pflicht: ohne das wuerden UI-Tests die echten macOS-Preferences mutieren.
+    Die QSettings-Isolation (die echte Nutzerdatei bleibt unangetastet) leistet
+    zentral ``tests/conftest.py``.
     """
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat,
-                      QSettings.Scope.UserScope, str(tmp_path))
     yield tmp_path
 
 

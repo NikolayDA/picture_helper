@@ -260,15 +260,10 @@ def _mixed_project(w: int = 16, h: int = 16):
 
 
 @pytest.fixture()
-def window(qapp, tmp_path, monkeypatch):
-    from PyQt6.QtCore import QSettings
-
+def window(qapp, monkeypatch):
     import bgremover.main_window as mw
     from bgremover.preview3d_capability import RendererCapability
 
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
-                      str(tmp_path))
     monkeypatch.setattr(
         mw, "probe_3d_capability",
         lambda *a, **k: RendererCapability(ok=True, diagnostic="test"))

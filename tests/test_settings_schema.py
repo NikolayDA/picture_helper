@@ -27,10 +27,7 @@ from bgremover.settings_schema import (
 
 @pytest.fixture
 def isolated_settings(tmp_path):
-    """Isoliert QSettings im tmp_path und leert prozess-internen Cache."""
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat,
-                      QSettings.Scope.UserScope, str(tmp_path))
+    """Leert die zentral (conftest.py) isolierten QSettings vor dem Test."""
     QSettings("BgRemover", "BgRemover").clear()
     yield tmp_path
 

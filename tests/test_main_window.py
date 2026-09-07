@@ -902,9 +902,6 @@ def test_open_recent_path_dispatches_image_vs_project(win, monkeypatch):
 
 
 def _isolated_window(tmp_path):
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
-                      str(tmp_path / "settings"))
     win = MainWindow()
     win._recent_files.clear()
     return win
@@ -1278,9 +1275,6 @@ def test_startup_update_check_runs_when_setting_enabled(tmp_path, qapp, monkeypa
         mw.WorkerController, "start_update_check",
         lambda self, *a, **kw: calls.append("started") or True)
 
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
-                      str(tmp_path / "settings"))
     presettings = QSettings("BgRemover", "BgRemover")
     presettings.setValue(AUTO_UPDATE_CHECK_KEY, True)
     presettings.sync()

@@ -47,9 +47,7 @@ def _height_project(w: int = 16, h: int = 16) -> Project:
 
 
 @pytest.fixture()
-def window(qapp, tmp_path, monkeypatch):
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
+def window(qapp, monkeypatch):
     monkeypatch.setattr(
         mw, "probe_3d_capability",
         lambda *a, **k: RendererCapability(ok=True, diagnostic="test"))
@@ -122,12 +120,8 @@ def test_activating_3d_from_other_step_routes_to_relief(window) -> None:
 
 
 def test_capability_probe_is_lazy_until_first_3d_request(
-    qapp, tmp_path, monkeypatch,
+    qapp, monkeypatch,
 ) -> None:
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(
-        QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path)
-    )
     calls = 0
 
     def probe() -> RendererCapability:
@@ -150,12 +144,8 @@ def test_capability_probe_is_lazy_until_first_3d_request(
 
 
 def test_persisted_3d_state_is_reflected_and_reset_consistently(
-    qapp, tmp_path, monkeypatch,
+    qapp, monkeypatch,
 ) -> None:
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(
-        QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path)
-    )
     settings = QSettings("BgRemover", "BgRemover")
     settings.setValue(PREVIEW3D_QUALITY_KEY, MeshQuality.HIGH.value)
     settings.setValue(PREVIEW3D_EXAGGERATION_KEY, 4.0)

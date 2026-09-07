@@ -8,17 +8,13 @@ from __future__ import annotations
 
 import pytest
 from PIL import Image
-from PyQt6.QtCore import QSettings
 
 from bgremover import MainWindow
 from bgremover.stepper import Stepper, WorkflowStep, step_label
 
 
 @pytest.fixture
-def window(qapp, qtbot, tmp_path, monkeypatch):
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(
-        QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
+def window(qapp, qtbot, monkeypatch):
     monkeypatch.setattr(MainWindow, "_start_rembg_warmup", lambda self: None)
     win = MainWindow()
     qtbot.addWidget(win)

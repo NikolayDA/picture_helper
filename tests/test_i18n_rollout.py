@@ -35,10 +35,8 @@ def reset_locale():
     configure_locale(DEFAULT_LOCALE)
 
 
-def _use_settings_path(tmp_path) -> QSettings:
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(
-        QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
+def _fresh_settings() -> QSettings:
+    """Frisch geleerte QSettings; die Isolation leistet zentral conftest.py."""
     settings = QSettings("BgRemover", "BgRemover")
     settings.clear()
     return settings
@@ -89,8 +87,8 @@ def test_english_is_available() -> None:
 # ── UI-Smoke je Locale ─────────────────────────────────────────────────
 
 @pytest.mark.parametrize("locale", list(available_locales()))
-def test_main_window_builds_in_every_locale(qapp, tmp_path, locale) -> None:
-    settings = _use_settings_path(tmp_path)
+def test_main_window_builds_in_every_locale(qapp, locale) -> None:
+    settings = _fresh_settings()
     settings.setValue(SETTINGS_LOCALE_KEY, locale)
     settings.sync()
     from bgremover import MainWindow
@@ -102,8 +100,8 @@ def test_main_window_builds_in_every_locale(qapp, tmp_path, locale) -> None:
         window.close()
 
 
-def test_english_locale_wires_through_to_ui(qapp, tmp_path) -> None:
-    settings = _use_settings_path(tmp_path)
+def test_english_locale_wires_through_to_ui(qapp) -> None:
+    settings = _fresh_settings()
     settings.setValue(SETTINGS_LOCALE_KEY, "en")
     settings.sync()
     from bgremover import MainWindow
@@ -126,8 +124,8 @@ def test_english_locale_wires_through_to_ui(qapp, tmp_path) -> None:
 
 # ── Settings dialog language selector ──────────────────────────────────
 
-def test_language_selector_persists_choice_and_hints(qapp, tmp_path, monkeypatch) -> None:
-    settings = _use_settings_path(tmp_path)
+def test_language_selector_persists_choice_and_hints(qapp, monkeypatch) -> None:
+    settings = _fresh_settings()
     settings.sync()
     configure_locale("de")  # running app is German
     import bgremover.settings_dialog as sd
@@ -154,8 +152,8 @@ def test_language_selector_persists_choice_and_hints(qapp, tmp_path, monkeypatch
         dlg.close()
 
 
-def test_language_selector_no_hint_when_unchanged(qapp, tmp_path, monkeypatch) -> None:
-    settings = _use_settings_path(tmp_path)
+def test_language_selector_no_hint_when_unchanged(qapp, monkeypatch) -> None:
+    settings = _fresh_settings()
     settings.sync()
     configure_locale("de")
     import bgremover.settings_dialog as sd

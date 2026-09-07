@@ -42,9 +42,6 @@ def _safe_message_boxes(monkeypatch):
 @pytest.fixture
 def export_win(qapp, tmp_path):
     """MainWindow mit isolierten QSettings und einem Farb-Projekt im Canvas."""
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(
-        QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path / "qs"))
     QSettings("BgRemover", "BgRemover").clear()
     w = MainWindow()
     w._canvas.apply_loaded_image(

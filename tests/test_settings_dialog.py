@@ -17,9 +17,6 @@ from bgremover import SettingsDialog
 
 @pytest.fixture
 def isolated_settings(tmp_path):
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat,
-                      QSettings.Scope.UserScope, str(tmp_path))
     # QSettings cached Werte im Prozess; ohne explizites clear() leckt der
     # vorige Test seine open_dir/save_dir-Eintraege herueber.
     QSettings("BgRemover", "BgRemover").clear()
