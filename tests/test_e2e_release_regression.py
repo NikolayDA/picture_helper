@@ -127,8 +127,9 @@ def _assert_preview3d_state(
     das setzt „headless" mit „kein GL-Kontext" gleich. Auf einem Raspberry Pi
     (Broadcom V3D + Mesa) trifft das nicht zu: die Probe meldet Erfolg, der
     Viewer geht auf ``ready``, und erst das Rendern scheitert (``No fbo``).
-    Die strenge Zusicherung gilt deshalb nur dort, wo sie messbar ist; sonst
-    bleibt geprueft, dass 3D ueberhaupt einen definierten Zustand erreicht.
+    Die strenge Zusicherung gilt deshalb nur dort, wo sie messbar ist; mit
+    Capability bleibt ``error`` trotzdem ein Befund (Shader-/Bufferfehler,
+    vgl. #711) – zugelassen sind dann nur ``ready`` und ``unavailable``.
     """
     win._set_preview3d_mode(True)
     qtbot.waitUntil(
@@ -137,7 +138,11 @@ def _assert_preview3d_state(
     )
     state = win._relief3d_view.state
     if not require_native:
-        if not gl_capability_ok:
+        if gl_capability_ok:
+            # Mit Kontext ist "ready" moeglich (Pi: Kontext ja, FBO nein) –
+            # "error" bleibt aber auch dort ein Befund.
+            assert state in {"ready", "unavailable"}, f"3D-Fehlerzustand ({phase}): {state}"
+        else:
             assert state == "unavailable", f"unerwarteter Headless-3D-Zustand ({phase}): {state}"
         return state
 

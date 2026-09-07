@@ -109,7 +109,7 @@ Automatisiert (headless, laufen in CI):
 
 | Fehlerbild | Nachweis |
 |---|---|
-| Fehlender GL-Kontext / nicht unterstützte API | `tests/test_preview3d_capability.py::test_offscreen_default_probe_reports_unavailable`, `tests/test_preview3d_controller.py::test_unavailable_capability_shows_unavailable` |
+| Fehlender GL-Kontext / nicht unterstützte API | `tests/test_preview3d_capability.py::test_default_probe_keeps_its_contract` (laeuft ueberall), `tests/test_preview3d_capability.py::test_offscreen_default_probe_reports_unavailable` (nur ohne GL-Capability), `tests/test_preview3d_controller.py::test_unavailable_capability_shows_unavailable` |
 | Shader-/Init-Fehler ohne Prozessabsturz | `tests/test_viewer_3d.py::test_gl_viewer_reports_init_failure_without_propagating` |
 | Buffer-/Build-Fehler → Fehlerzustand + Retry | `tests/test_preview3d_controller.py::test_mesh_build_error_shows_error_state`, `tests/test_viewer_3d.py::test_failed_viewer_is_recreated_on_retry` |
 | Kontextverlust → Reupload der CPU-Kopie | `tests/test_viewer_3d.py::test_context_loss_requeues_cpu_mesh_for_upload` |

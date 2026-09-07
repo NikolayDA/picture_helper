@@ -160,9 +160,12 @@ _CLAMAV_MONTHS: Final = {
         ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"), start=1)
 }
+# ``\s+`` statt einzelner Leerzeichen: das ctime-Format setzt bei einstelligem
+# Tag zwei Leerzeichen ("Fri Aug  1 08:32:01 2026"). Die Funktion ist Modul-API
+# und darf das nicht der Vorbehandlung des Aufrufers ueberlassen.
 _CLAMAV_SIGNATURE_DATE = re.compile(
-    r"^\w{3} (?P<month>\w{3}) (?P<day>\d{1,2}) "
-    r"(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2}) (?P<year>\d{4})$"
+    r"^\w{3}\s+(?P<month>\w{3})\s+(?P<day>\d{1,2})\s+"
+    r"(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})\s+(?P<year>\d{4})$"
 )
 
 
@@ -182,6 +185,8 @@ def parse_clamav_signature_date(text: str) -> datetime | None:
         )
     except ValueError:  # z. B. 31. Februar
         return None
+
+
 _SIGNATURE_MAX_AGE_DAYS: Final = 14
 # Genau die vier Schreibweisen, die ``clamscan`` erzeugt: ``loggBytes`` in
 # clamav/clamscan/clamscan.c kennt nur ``GiB``/``MiB``/``KiB``/``B`` und rechnet

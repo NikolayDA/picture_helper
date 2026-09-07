@@ -1,8 +1,9 @@
 """Tests der 3D-Capability-Probe (#593, Epic #582).
 
 Die Gating-Logik ist über ``probe_fn`` Qt-frei mit Mocks testbar; ein Test
-prüft zusätzlich, dass die echte Offscreen-Probe den Fallback-Zweig ehrlich
-trifft (kein GL-Kontext ohne X).
+prüft zusätzlich den Vertrag der echten Probe (sie wirft nie und ist in sich
+konsistent). Der Fallback-Zweig selbst haengt an der GL-Weiche: „offscreen"
+heisst nicht „kein GL-Kontext" (Raspberry Pi mit Broadcom V3D).
 """
 from __future__ import annotations
 
@@ -65,7 +66,7 @@ def test_result_is_cached_until_reset() -> None:
     assert calls["n"] == 2
 
 
-def test_default_probe_keeps_its_contract(qapp, gl_capability_ok) -> None:
+def test_default_probe_keeps_its_contract(qapp) -> None:
     """Die echte Qt-Probe (kein Mock) haelt in beiden Umgebungen ihren Vertrag.
 
     Frueher stand hier ``assert not cap.ok`` mit der Begruendung „offscreen

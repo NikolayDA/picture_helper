@@ -931,6 +931,8 @@ def test_signature_state_reports_age_and_staleness(monkeypatch, tmp_path: Path) 
     [
         ("Fri Aug 14 08:32:01 2026", "2026-08-14T08:32:01+00:00"),
         ("Mon Jan 5 00:00:00 2026", "2026-01-05T00:00:00+00:00"),   # einstelliger Tag
+        # ctime-Schreibweise von ``clamscan``: zwei Leerzeichen vor einstelligem Tag
+        ("Fri Aug  1 08:32:01 2026", "2026-08-01T08:32:01+00:00"),
         ("Wed Dec 31 23:59:59 2025", "2025-12-31T23:59:59+00:00"),
         ("Fri Feb 31 00:00:00 2026", None),                          # Datum gibt es nicht
         ("Fri Mai 14 08:32:01 2026", None),                          # kein englischer Monat
