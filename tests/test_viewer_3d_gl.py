@@ -34,9 +34,12 @@ _STRESS_CYCLES = 110
 #: positive Zeuge bleibt das Signal selbst.
 _FRAME_TIMEOUT_MS = 2000
 
-#: Beobachtungsfenster der Negativkontrolle: ein Vielfaches der gemessenen
-#: Frame-Latenz, damit „nie abgestuft" nicht bloß „noch nicht" heißt.
-_NO_FRAME_WINDOW_MS = 500
+#: Beobachtungsfenster der Negativkontrolle. Maßgeblich ist nicht die
+#: Frame-Latenz, sondern dass Qt einem verborgenen Widget überhaupt keinen
+#: ``paintEvent`` zustellt – die Bewertung läuft dort nie an. Das Fenster ist
+#: an ``_FRAME_TIMEOUT_MS`` gekoppelt, damit „nie abgestuft" nicht schwächer
+#: belegt ist als das, was der Positivfall als Frame-Latenz zugesteht.
+_NO_FRAME_WINDOW_MS = _FRAME_TIMEOUT_MS
 
 # QPA-Plattformen ohne QOpenGLWidget-FBO – dort ist kein echtes Rendern möglich.
 # Seit #1002 kommt die Menge aus dem Produktivpfad: Dieselbe Regel entscheidet
@@ -146,6 +149,7 @@ def test_a_visible_viewer_proves_its_frame(qapp, qtbot) -> None:
     """
     _require_renderable(qapp)
     viewer = GLReliefViewer()
+    qtbot.addWidget(viewer)
     viewer.resize(240, 200)
     viewer.set_mesh(_ramp_mesh())
     with qtbot.waitSignal(viewer.frameSwapped, timeout=_FRAME_TIMEOUT_MS, raising=False) as swap:
@@ -169,6 +173,7 @@ def test_a_hidden_viewer_is_never_downgraded(qapp, qtbot) -> None:
     """
     _require_renderable(qapp)
     viewer = GLReliefViewer()
+    qtbot.addWidget(viewer)
     viewer.resize(240, 200)
     viewer.set_mesh(_ramp_mesh())
     qtbot.wait(_NO_FRAME_WINDOW_MS)
