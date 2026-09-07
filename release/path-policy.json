@@ -508,6 +508,14 @@
       "evidence": ["Einziger Verweis ist der Markdown-Link in CLAUDE.md; die Doku-Governance (tests/test_markdown_links.py) prüft nur Link-Ziele"]
     },
     {
+      "id": "preview3d-renderer-adr",
+      "kind": "exact",
+      "path": "docs/history/ADR-2026-3d-reliefvorschau-renderer.md",
+      "sample_path": "docs/history/ADR-2026-3d-reliefvorschau-renderer.md",
+      "reason": "ADR zum Renderer der 3D-Reliefvorschau (#591, Epic #582) samt Nachträgen zur Capability-Probe; reine Entscheidungs-Historie, kein Build-, Packaging-, Test- oder Gate-Pfad liest die Datei als Eingabe. Der bindende Zustandsvertrag (docs/UX_3D_PREVIEW.md) und die Abnahmematrix (docs/history/EPIC-582-ABNAHME.md) bleiben unverändert kandidatenrelevant.",
+      "evidence": ["Nur Markdown-/Docstring-Querverweise (CLAUDE.md, CHANGELOG in sechs Fassungen, docs/UX_3D_PREVIEW.md, bgremover/relief_mesh.py, docs/history/EPIC-581-ABNAHME.md und EPIC-582-ABNAHME.md); kein open()/read_text() im Code und kein Workflow-Schritt liest die Datei", "Gleiche Einordnung wie die übrigen Produkt-/Architektur-ADRs (color-tonwert-adr, eufymake-687-adr, eufymake-target-profile-adr); kandidatenrelevant sind ausschließlich die Release-Prozess-ADRs"]
+    },
+    {
       "id": "pull-request-template",
       "kind": "exact",
       "path": ".github/PULL_REQUEST_TEMPLATE.md",
