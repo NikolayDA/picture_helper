@@ -146,8 +146,15 @@ def test_real_hook_renders_and_measures_real_metrics(qapp) -> None:  # type: ign
     assert hooks._frame_number == 4
 
 
-def test_refuses_without_hardware_gl_offscreen(qapp) -> None:  # type: ignore[no-untyped-def]
-    # In der Offscreen-CI gibt es keinen GL-Kontext → Verweigerung, kein llvmpipe.
+def test_refuses_without_hardware_gl(qapp) -> None:  # type: ignore[no-untyped-def]
+    """Ohne Hardware-GL verweigert der Benchmark – kein llvmpipe-Ersatzwert.
+
+    Gefragt wird ``probe_live_gl`` (die Regel, die ``benchmark_preview3d_live``
+    selbst anwendet), nicht der Plattformname: „offscreen" heisst nicht
+    ueberall „kein GL", etwa auf einem Raspberry Pi mit Broadcom V3D.
+    """
+    if bench.probe_live_gl()[0]:
+        pytest.skip("Hardware-GL vorhanden; der Verweigerungszweig ist nicht erreichbar")
     with pytest.raises(bench.Preview3DLiveUnavailable):
         bench.benchmark_preview3d_live(32, 32)
 
@@ -174,7 +181,10 @@ def test_cmd_run_skips_or_fails_without_gl(qapp) -> None:  # type: ignore[no-unt
             results_dir=None, iterations=3,
         )
 
-    # Offscreen: ohne --require-gl freundlicher Skip (0), mit --require-gl Fehler (2).
+    # Ohne Hardware-GL: ohne --require-gl freundlicher Skip (0), mit --require-gl
+    # Fehler (2). Wo GL vorhanden ist, gibt es diesen Zweig nicht zu pruefen.
+    if bench.probe_live_gl()[0]:
+        pytest.skip("Hardware-GL vorhanden; der Skip-/Fehlerzweig ist nicht erreichbar")
     assert bench._cmd_run_preview3d_live(_args(False)) == 0
     assert bench._cmd_run_preview3d_live(_args(True)) == 2
 

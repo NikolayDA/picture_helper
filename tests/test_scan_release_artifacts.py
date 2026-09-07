@@ -16,6 +16,7 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import json
+import locale
 import re
 import shutil
 import subprocess
@@ -923,6 +924,51 @@ def test_signature_state_reports_age_and_staleness(monkeypatch, tmp_path: Path) 
     assert state["age_days"] == 16
     assert state["stale"] is True
     assert state["signature_date"].startswith("2026-08-14")
+
+
+@pytest.mark.parametrize(
+    ("text", "erwartet"),
+    [
+        ("Fri Aug 14 08:32:01 2026", "2026-08-14T08:32:01+00:00"),
+        ("Mon Jan 5 00:00:00 2026", "2026-01-05T00:00:00+00:00"),   # einstelliger Tag
+        ("Wed Dec 31 23:59:59 2025", "2025-12-31T23:59:59+00:00"),
+        ("Fri Feb 31 00:00:00 2026", None),                          # Datum gibt es nicht
+        ("Fri Mai 14 08:32:01 2026", None),                          # kein englischer Monat
+        ("Unsinn", None),
+    ],
+)
+def test_signature_date_is_parsed_without_locale_directives(text, erwartet) -> None:
+    """``clamscan`` schreibt englisch, ``strptime`` liest in der Locale des
+    Aufrufers: mit ``%a``/``%b`` scheiterte das unter z. B. ``LC_TIME=de_DE``
+    still, und die Warnung vor veralteten Signaturen fiel aus."""
+    parsed = scan_release_artifacts.parse_clamav_signature_date(text)
+    assert (parsed.isoformat() if parsed else None) == erwartet
+
+
+def test_signature_state_is_locale_independent(monkeypatch, tmp_path: Path) -> None:
+    """Gegenprobe am echten Ende-zu-Ende-Pfad unter deutscher Locale.
+
+    Der Fehler war nicht theoretisch: auf einem deutsch eingerichteten Rechner
+    lieferte ``clamav_signature_state`` ``age_days=None``/``stale=False`` statt
+    16/``True``. Ohne installierte Locale ist die Aussage nicht messbar – dann
+    wird sichtbar uebersprungen statt scheinbar bestanden."""
+    try:
+        locale.setlocale(locale.LC_TIME, "de_DE.UTF-8")
+    except locale.Error:
+        pytest.skip("Locale de_DE.UTF-8 nicht installiert")
+    try:
+        monkeypatch.setattr(
+            scan_release_artifacts.subprocess, "run",
+            lambda cmd, **kwargs: subprocess.CompletedProcess(
+                cmd, 0, stdout="ClamAV 1.4.3/27812/Fri Aug 14 08:32:01 2026\n"),
+        )
+        state = scan_release_artifacts.clamav_signature_state(
+            tmp_path, now=datetime(2026, 8, 31, tzinfo=timezone.utc)
+        )
+    finally:
+        locale.setlocale(locale.LC_TIME, "C")
+    assert state["age_days"] == 16
+    assert state["stale"] is True
 
 
 def test_signature_state_survives_an_unparsable_version_line(monkeypatch, tmp_path: Path) -> None:

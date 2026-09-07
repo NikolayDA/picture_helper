@@ -65,8 +65,27 @@ def test_result_is_cached_until_reset() -> None:
     assert calls["n"] == 2
 
 
-def test_offscreen_default_probe_reports_unavailable(qapp) -> None:
-    # Repo-Standardpfad (offscreen ohne X): der echte Fallback-Zweig.
+def test_default_probe_keeps_its_contract(qapp, gl_capability_ok) -> None:
+    """Die echte Qt-Probe (kein Mock) haelt in beiden Umgebungen ihren Vertrag.
+
+    Frueher stand hier ``assert not cap.ok`` mit der Begruendung „offscreen
+    ohne X". Das ist keine Eigenschaft der Probe, sondern eine Annahme ueber
+    den Rechner: auf einem Raspberry Pi (Broadcom V3D + Mesa) liefert auch die
+    Offscreen-Plattform einen Kontext, und der Test scheiterte. Geprueft wird
+    jetzt der Vertrag – die Probe wirft nie und ist in sich konsistent.
+    """
+    cap = probe_3d_capability(use_cache=False)
+    if cap.ok:
+        assert cap.error_key is None
+        assert cap.diagnostic, "Erfolg ohne Renderer-Provenienz waere nicht nachvollziehbar"
+    else:
+        assert cap.error_key == UNAVAILABLE_KEY
+
+
+def test_offscreen_default_probe_reports_unavailable(qapp, gl_capability_ok) -> None:
+    # Der echte Fallback-Zweig – nur dort messbar, wo es keinen GL-Kontext gibt.
+    if gl_capability_ok:
+        pytest.skip("Umgebung liefert einen GL-Kontext; Fallback-Zweig nicht erreichbar")
     cap = probe_3d_capability(use_cache=False)
     assert not cap.ok
     assert cap.error_key == UNAVAILABLE_KEY
