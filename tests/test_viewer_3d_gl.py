@@ -26,6 +26,21 @@ pytestmark = pytest.mark.gl_smoke
 #: Zyklen des Langzeitnachweises unter echtem GL (#684 verlangt mindestens 100).
 _STRESS_CYCLES = 110
 
+#: Obergrenze für den ersten ``frameSwapped`` eines sichtbaren Viewers (#1015).
+#: Auf dem Raspberry Pi 5 (Broadcom V3D) kommt er gemessen nach 72 ms
+#: (``wayland``) bzw. 99 ms (``xcb``); 40 nackte ``processEvents``-Durchläufe
+#: waren dort in wenigen Millisekunden abgearbeitet und der Test rot, obwohl der
+#: Viewer gesund war. Die Schranke ist eine **Obergrenze**, kein Zeuge – der
+#: positive Zeuge bleibt das Signal selbst.
+_FRAME_TIMEOUT_MS = 2000
+
+#: Beobachtungsfenster der Negativkontrolle. Maßgeblich ist nicht die
+#: Frame-Latenz, sondern dass Qt einem verborgenen Widget überhaupt keinen
+#: ``paintEvent`` zustellt – die Bewertung läuft dort nie an. Das Fenster ist
+#: an ``_FRAME_TIMEOUT_MS`` gekoppelt, damit „nie abgestuft" nicht schwächer
+#: belegt ist als das, was der Positivfall als Frame-Latenz zugesteht.
+_NO_FRAME_WINDOW_MS = _FRAME_TIMEOUT_MS
+
 # QPA-Plattformen ohne QOpenGLWidget-FBO – dort ist kein echtes Rendern möglich.
 # Seit #1002 kommt die Menge aus dem Produktivpfad: Dieselbe Regel entscheidet
 # das 3D-Gating, eine eigene Kopie hier könnte davon abdriften.
@@ -118,7 +133,7 @@ def test_repeated_uploads_do_not_accumulate_gl_objects(qapp) -> None:
 
 # ── Renderbeweis unter echtem GL (#1004) ─────────────────────────────────
 
-def test_a_visible_viewer_proves_its_frame(qapp) -> None:
+def test_a_visible_viewer_proves_its_frame(qapp, qtbot) -> None:
     """Der positive Zeuge kommt von Qt, nicht von einer Zeitschranke.
 
     Gemessen (``xvfb-run`` + ``xcb``, llvmpipe): ``frameSwapped`` feuert genau
@@ -126,22 +141,28 @@ def test_a_visible_viewer_proves_its_frame(qapp) -> None:
     laut Qt „not supported on this platform" ist – bleibt es aus, und Qt weist
     stattdessen die Paints ab. Dieser Test läuft nur dort, wo wirklich
     gerendert werden kann, und belegt die freisprechende Seite der Regel.
+
+    Gewartet wird auf das Signal, nicht eine feste Zahl von Ereignisdurchläufen
+    (#1015): Auf echter Hardware liegt der erste Frame-Tausch hinter dem
+    Frame-Callback des Compositors bzw. des X-Servers, und eine Schleife ohne
+    Wartezeit ist vorher durch. Die Zeitschranke begrenzt nur das Warten.
     """
     _require_renderable(qapp)
     viewer = GLReliefViewer()
+    qtbot.addWidget(viewer)
     viewer.resize(240, 200)
     viewer.set_mesh(_ramp_mesh())
-    viewer.show()
-    for _ in range(40):
-        QApplication.processEvents()
+    with qtbot.waitSignal(viewer.frameSwapped, timeout=_FRAME_TIMEOUT_MS, raising=False) as swap:
+        viewer.show()
 
-    assert viewer._has_rendered is True, "kein frameSwapped trotz renderfähiger Plattform"
+    assert swap.signal_triggered, "kein frameSwapped trotz renderfähiger Plattform"
+    assert viewer._has_rendered is True
     assert viewer.has_failed is False
     assert viewer._refused_paints == 0
     viewer.cleanup_gl()
 
 
-def test_a_hidden_viewer_is_never_downgraded(qapp) -> None:
+def test_a_hidden_viewer_is_never_downgraded(qapp, qtbot) -> None:
     """Die Gegenprobe, die den Wächter überhaupt erst zulässig macht.
 
     Ein gesunder **verborgener** Viewer liefert dieselben Messwerte wie ein
@@ -152,10 +173,10 @@ def test_a_hidden_viewer_is_never_downgraded(qapp) -> None:
     """
     _require_renderable(qapp)
     viewer = GLReliefViewer()
+    qtbot.addWidget(viewer)
     viewer.resize(240, 200)
     viewer.set_mesh(_ramp_mesh())
-    for _ in range(40):
-        QApplication.processEvents()
+    qtbot.wait(_NO_FRAME_WINDOW_MS)
 
     assert viewer.isVisible() is False
     assert viewer._has_rendered is False   # nie gerendert …
