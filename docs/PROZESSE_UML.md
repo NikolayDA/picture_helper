@@ -587,7 +587,8 @@ flowchart TD
 
   subgraph FIN["Partition: Abschluss"]
     direction TB
-    FQ{"öffentlicher Download, sichtbare Version und Update-Check in Ordnung?"}
+    PQ3{"Download-Nachweis: Gesamtverdikt PASS?"}
+    FQ{"sichtbare Version und Update-Check in Ordnung?"}
     F1["Release-Issue schließen<br/>Kriterienmatrix mit URLs und Hashes ist verlinkt"]
     FQ2{"Fehler am Release oder am Prüfpfad?"}
     F2["Incident<br/>Rollback bzw. Yank-Hinweis oder Hotfix mit neuer Patch-Version ab Schritt 1<br/>Tag nie verschieben, Assets nie ersetzen"]
@@ -601,7 +602,9 @@ flowchart TD
   PQ1 -->|"teilweise oder abweichend"| P9 --> F2
   PQ1 -->|"bereits veröffentlicht"| P10 --> P11
   P6 --> P7 --> PQ2
-  PQ2 -->|"ja"| P8 --> P11 --> T3 --> T4 --> FQ
+  PQ2 -->|"ja"| P8 --> P11 --> T3 --> PQ3
+  PQ3 -->|"ja"| T4 --> FQ
+  PQ3 -->|"nein · release-instance und update-dispatch entfallen (needs public-download), es wurde kein Update-Nachweis ausgelöst"| FQ2
   PQ2 -->|"nein"| P9
   FQ -->|"ja"| T5 --> F1 --> ENDE(("Ende · Release abgeschlossen")):::terminal
   FQ -->|"nein"| FQ2
@@ -668,7 +671,12 @@ flowchart TD
   im Publish-Job authentifiziert aus dem Draft lädt. Die URL des Publish-Laufs
   allein genügt deshalb nie als Nachweis; maßgeblich ist der Bericht. Schritt 9
   ist damit Prüfen und Protokollieren — die anonyme Handprozedur bleibt
-  Rückfallweg, wenn der Job nicht gelaufen ist.
+  Rückfallweg, wenn der Job nicht gelaufen ist. Ein rotes Verdikt hält auch
+  die beiden Folgejobs an: `release-instance` verlangt `needs: [publish,
+  public-download]` und `update-dispatch` zusätzlich `release-instance`, ein
+  Update-Nachweis wird dann also gar nicht erst ausgelöst. Der Bericht selbst
+  entsteht trotzdem (`if: !cancelled()`) und bleibt die Grundlage der
+  Ursachenklärung.
 - Der automatisierte Abschluss (#919) ersetzt keine Prüfung, nur Tipparbeit:
   Der Tag wird auch bei `create_tag` anschließend gegen `candidate.head_sha`
   verifiziert, ein abweichender Tag bricht ab statt verschoben zu werden, und
