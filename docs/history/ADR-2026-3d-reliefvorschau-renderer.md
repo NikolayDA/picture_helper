@@ -663,13 +663,39 @@ ist ersatzlos entfallen; gefragt wird jetzt die Ansicht selbst
 (`self._view.state != "ready"`) – dieselbe Drift-Disziplin wie bei den vier
 Kopien aus #1002, nur innerhalb eines Prozesses.
 
-**`screenshot3d` bleibt unverändert.** Der native Screenshot-Nachweis des
+**Vier Nachbesserungen aus dem Review (PR #1005).** Alle vier betreffen die
+Ränder der Regel, nicht ihre Aussage. (1) Der Befund verlässt Qts
+Paint-Zustellung über einen Kind-Timer: `_fail` blendet über `initFailed` die
+Ready-Seite aus – ein `hide()` mitten in der Zustellung des gerade gemalten
+Widgets. (2) Der Freispruch gilt nur für den Kontext, der ihn gab; sonst
+kehrte jeder Paint eines Ersatzkontexts vor der Prüfung um. (3) Ein Viewer,
+der den Beweis verloren hat, wird **nicht** bei jeder Inhaltsänderung neu
+gebaut – sonst entstünde bei jedem `refresh()` ein neuer, gleich scheiternder
+GL-Kontext und die Oberfläche spränge zwischen leerer Ready-Fläche und
+Fehlerseite. `Relief3DView.allow_viewer_retry()` ist der Gegenpart zu
+`reset_capability_cache`: nur der ausdrückliche Retry öffnet den Weg zurück.
+(4) Die Zustandsnamen liegen als geteilte Konstanten in `viewer_3d`, weil
+`state` mit diesem Schritt erstmals **steuernd** über die Modulgrenze gelesen
+wird und als `str` typisiert ist – ein Tippfehler bliebe sonst still.
+
+**`screenshot3d` bleibt unverändert – die Datei, nicht das Verhalten.** Der native Screenshot-Nachweis des
 gepackten Artefakts hat eine eigene Zustandsmaschine mit Timer-Semantik und
 trägt Abnahmekriterien (`docs/RELEASE_ACCEPTANCE_CHECKLIST.md`). Er profitiert
 vom Beweis, wo er den Viewer einbettet, bekommt aber kein neues Gate: Ein
 zusätzlicher Fehlerpfad in einem Release-Kriterium ohne Messung auf `cocoa`
 wäre ein Abnahmerisiko, kein Gewinn. Ob `frameSwapped` dort dieselbe Kadenz
 hat, ist offen und gehört an die Hardware-Abnahme, nicht in diesen Schritt.
+
+Der Review hat aber zu Recht darauf gezeigt, dass der neue Fehlerpfad das
+Abnahmekriterium trotzdem erreicht: `screenshot3d` liest `state` und
+`has_failed`, und beide kann der Renderbeweis ab sofort ziehen, ohne dass in
+`screenshot3d.py` eine Zeile steht. Getragen wird das, statt es zu bestreiten:
+Der Viewer merkt sich seine erste Fehlermeldung (`failure_reason`), und der
+Screenshot-Hook gibt sie wörtlich weiter. Ein blankes „Nativer GL-Frame
+fehlgeschlagen" ließe einen Wächter-Fehlalarm auf `cocoa` wie einen
+Renderfehler aussehen; jetzt steht „Qt hält keinen Widget-Framebuffer" im
+Ergebnis, und `docs/PACKAGING_SMOKE.md` sagt, dass dann erst die Messung oben
+auf dem Gerät nachzuziehen ist.
 
 **Nachweis.** `tests/test_viewer_3d.py` deckt die Regel GL-frei über einen
 gefakten Framebuffer-Zustand ab (Freispruch, Rücksetzung, Schwelle,

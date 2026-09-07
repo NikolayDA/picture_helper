@@ -37,6 +37,7 @@ from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtWidgets import QScrollArea, QWidget
 
 from bgremover.renderer_provenance import is_software_renderer
+from bgremover.viewer_3d import SETTLED_STATES, STATE_READY
 
 if TYPE_CHECKING:
     from bgremover.main_window import MainWindow
@@ -221,11 +222,11 @@ def run_native_3d_screenshot(
 
     window._set_preview3d_mode(True)
     reached = _pump_until(
-        lambda: window._relief3d_view.state in {"ready", "unavailable", "error"},
+        lambda: window._relief3d_view.state in SETTLED_STATES,
         timeout_ms,
     )
     state = window._relief3d_view.state
-    if not reached or state != "ready":
+    if not reached or state != STATE_READY:
         return Screenshot3DResult(False, state, "", f"3D-Vorschau nicht bereit: {state}")
 
     viewer = window._relief3d_view.viewer()
@@ -245,8 +246,14 @@ def run_native_3d_screenshot(
         timeout_ms,
     )
     state = window._relief3d_view.state
-    if not frame_ready or viewer.has_failed or state != "ready":
-        return Screenshot3DResult(False, state, "", "Nativer GL-Frame fehlgeschlagen.")
+    if not frame_ready or viewer.has_failed or state != STATE_READY:
+        # Seit #1004 kann auch der Renderbeweis des Viewers hierher führen
+        # (Qt hält keinen Widget-Framebuffer). Der Grund gehört in die
+        # Meldung: Ein blankes „fehlgeschlagen" ließe einen Wächter-Fehlalarm
+        # wie einen Renderfehler aussehen, und dieses Ergebnis trägt ein
+        # Abnahmekriterium (Review PR #1005).
+        grund = viewer.failure_reason or "Nativer GL-Frame fehlgeschlagen."
+        return Screenshot3DResult(False, state, "", grund)
     if viewer._index_count <= 0:
         return Screenshot3DResult(False, state, "", "GL-Viewer hat keine Geometrie hochgeladen.")
 

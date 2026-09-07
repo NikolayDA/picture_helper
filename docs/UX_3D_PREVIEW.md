@@ -168,8 +168,13 @@ Farbe oder Spinner. Verbindliche Formulierungen (de / en):
   Ein **verborgener** Viewer bekommt von Qt keinen Paint und wird deshalb nie
   bewertet; ein Viewer, für den Qt je einen Frame bestätigt hat
   (`frameSwapped`), wird nie abgestuft; und eine einzelne Absage genügt nicht,
-  weil sie nach einem Reparenting auch ein Übergang sein kann. Damit kann der
-  Nachweis funktionierende Hardware nicht in [F] schicken.
+  weil sie ein Übergang sein kann. Damit kann der Nachweis funktionierende
+  Hardware nicht in [F] schicken. Den Weg zurück öffnet allein „Erneut
+  versuchen": Eine Anzeige, die den Renderbeweis verloren hat, baut den Viewer
+  nicht bei jeder Inhaltsänderung neu auf – sonst spränge die Oberfläche
+  zwischen leerer [R]-Fläche und [F] hin und her. Derselbe Befund lässt auch
+  den nativen 3D-Screenshot der Release-Abnahme scheitern; er nennt dann den
+  Grund wörtlich (siehe `docs/PACKAGING_SMOKE.md`).
 - Der Ladezustand erscheint erst nach 300 ms (kein Flackern bei
   Cache-Treffern); [A] zeigt das **alte** Mesh weiter (kein Schwarzbild).
 - Das Decimation-Badge erscheint immer, wenn das Grid kleiner als die

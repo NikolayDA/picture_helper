@@ -173,8 +173,10 @@ class _FakeViewer:
         mesh: Any = "mesh",
         pending_mesh: Any = None,
         index_count: int = 1,
+        failure_reason: str = "",
     ) -> None:
         self.has_failed = has_failed
+        self.failure_reason = failure_reason
         self._valid = valid
         self._gl_ready = gl_ready
         self._mesh = mesh
@@ -250,6 +252,26 @@ def test_failed_viewer_reports_frame_failure(qapp, tmp_path: Path) -> None:
     result = _run(window, tmp_path)
     assert result.ok is False
     assert "GL-Frame" in result.message
+
+
+def test_a_failed_viewer_hands_its_own_reason_to_the_acceptance(
+    qapp, tmp_path: Path
+) -> None:
+    """Der Grund muss durchkommen (#1004, Review PR #1005).
+
+    Seit dem Renderbeweis kann auch „Qt hält keinen Widget-Framebuffer" hier
+    landen. Ein blankes „GL-Frame fehlgeschlagen" ließe einen
+    Wächter-Fehlalarm wie einen Renderfehler aussehen – und dieses Ergebnis
+    trägt ein Abnahmekriterium.
+    """
+    viewer = _FakeViewer(
+        has_failed=True,
+        failure_reason="paintEvent: Qt hält keinen Widget-Framebuffer (3 …)",
+    )
+    window = _FakeWindow(_FakeReliefView(state="ready", viewer=viewer))
+    result = _run(window, tmp_path)
+    assert result.ok is False
+    assert "Widget-Framebuffer" in result.message
 
 
 def test_frame_never_ready_times_out_as_frame_failure(qapp, tmp_path: Path) -> None:

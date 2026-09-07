@@ -183,6 +183,15 @@ Der Nachweis ist nur gültig, wenn die Sidecar `schema: 2`,
 `preview3d_azimuth`, `preview3d_elevation` sowie
 `preview3d_quality_standard` enthält. Ein vorhandenes PNG allein genügt nicht.
 
+Seit #1004 kann der Nachweis auch am **Renderbeweis des Viewers** scheitern:
+Qt hält keinen Widget-Framebuffer, obwohl Kontext und Plattform in Ordnung
+sind. Die Meldung nennt den Grund dann wörtlich („Qt hält keinen
+Widget-Framebuffer"), statt nur „Nativer GL-Frame fehlgeschlagen" – ohne diese
+Unterscheidung sähe ein Wächter-Fehlalarm wie ein Renderfehler aus. Auf
+`cocoa` ist `frameSwapped` bislang ungemessen; tritt der Befund dort auf, ist
+die Messung aus dem ADR-Nachtrag (`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`)
+auf dem Gerät nachzuziehen, bevor er als Renderfehler gewertet wird.
+
 EufyMake-Export-/2.7.0-Projekt-Zusatznachweis (#685-Review, kein GL nötig,
 funktioniert für AppImage/`.app`-Binary). Seit #686 prüft derselbe Hook auch
 die sichtbare Produktversion und speichert eine kontrollierte Projekt-Kopie;

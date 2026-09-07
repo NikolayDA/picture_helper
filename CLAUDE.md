@@ -239,9 +239,22 @@ Ein Paket, `bgremover/`:
   `frameSwapped` war die erste Wahl und wurde **gemessen verworfen**: Dort
   steht der Zähler auch im gesunden Fall noch auf 0. Damit ist die Lücke
   geschlossen, die der #1002-Nachtrag benennt (Proben sind notwendig, nicht
-  hinreichend). `bgremover/screenshot3d.py` bleibt bewusst ohne dieses Gate
+  hinreichend). Vier Ränder aus dem Review: Der Befund verlässt Qts
+  Paint-Zustellung über einen Kind-Timer (`_fail` blendet über `initFailed`
+  die Ready-Seite aus – ein `hide()` im eigenen Paint-Dispatch), der Freispruch
+  gilt nur für den Kontext, der ihn gab, ein Viewer ohne Renderbeweis wird
+  **nicht** bei jeder Inhaltsänderung neu gebaut (`allow_viewer_retry()` ist
+  der Gegenpart zu `reset_capability_cache` – sonst ein Zyklus aus neuem,
+  gleich scheiterndem GL-Kontext), und die Zustandsnamen liegen als geteilte
+  Konstanten (`STATE_*`/`SETTLED_STATES`) in `viewer_3d`, weil `state` seit
+  #1004 **steuernd** über die Modulgrenze gelesen wird und als `str` typisiert
+  ist. `bgremover/screenshot3d.py` bekommt bewusst **kein** eigenes Gate
   (eigene Timer-Zustandsmaschine, trägt Abnahmekriterien, `frameSwapped` auf
-  `cocoa` ungemessen).
+  `cocoa` ungemessen) – erreicht wird es vom neuen Fehlerpfad trotzdem, weil
+  es `state`/`has_failed` liest. Deshalb reicht der Viewer seine erste
+  Fehlermeldung als `failure_reason` durch: Ein blankes „Nativer GL-Frame
+  fehlgeschlagen" ließe einen Wächter-Fehlalarm wie einen Renderfehler
+  aussehen.
   `preview3d_controller.py` (`Preview3DController`, #594) orchestriert Gating,
   entprellten (200 ms) asynchronen Mesh-Build (`MeshBuildWorker` über den
   `WorkerController`) mit **Generation-IDs** (stale-result-Schutz) und einem

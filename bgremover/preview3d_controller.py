@@ -26,7 +26,7 @@ from bgremover.preview3d_capability import (
     reset_capability_cache,
 )
 from bgremover.relief_mesh import MeshCacheKey, MeshQuality, ReliefMesh, mesh_cache_key
-from bgremover.viewer_3d import Relief3DView
+from bgremover.viewer_3d import STATE_READY, Relief3DView
 
 # Debounce der geometriewirksamen Änderungen (ADR: 200 ms nach der letzten).
 _DEBOUNCE_MS = 200
@@ -159,6 +159,9 @@ class Preview3DController(QObject):
     def retry(self) -> None:
         """„Erneut versuchen": Capability-Cache verwerfen und neu bewerten."""
         reset_capability_cache()
+        # Zweiter Cache derselben Art: Erst hier darf ein Viewer, der den
+        # Renderbeweis verloren hat, neu aufgebaut werden (#1004).
+        self._view.allow_viewer_retry()
         if self._active:
             self._evaluate(force_rebuild=True)
 
@@ -225,7 +228,7 @@ class Preview3DController(QObject):
         # ``_show_cached`` gelaufen ist. Ein gemerktes Flag behauptete dann
         # weiter „zeigt ein Mesh" und unterdrückte die Ladeseite über einer
         # Fehlerseite.
-        if self._view.state != "ready":
+        if self._view.state != STATE_READY:
             self._view.show_loading()
         self._debounce.start()
 
