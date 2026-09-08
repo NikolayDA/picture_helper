@@ -66,6 +66,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The 3D relief preview could fall into the error state by mistake.** The
+  preview's render proof reports a missing widget framebuffer through a short
+  timer. If the graphics driver delivered the first frame only after that, the
+  already requested error still went through: the 3D view showed the error page
+  ("Qt holds no widget framebuffer") even though it had just rendered
+  successfully. The same applied after a graphics context switch. A successful
+  frame and a context switch now retract the pending report; the genuine
+  failure case is still detected.
 - **3D preview reported "ready" although the environment could not render a
   frame (#1002).** `probe_3d_capability` only checked context facts: context
   creation, a current offscreen surface, no pure OpenGL ES context, and the

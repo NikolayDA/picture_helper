@@ -404,14 +404,14 @@ Abweichung ist ein neuer Befund mit eigenem Issue, kein Anlass,
 Zwei Lesefallen. Erstens ist die Vorbedingung wörtlich gemeint: Unter
 `offscreen` misst die Sonde gemessen `has_failed=True` – das ist dort der
 **richtige** Befund (kein Widget-Framebuffer) und keine Abweichung. Zweitens
-trennt allein `_has_rendered` die beiden Fehlerbilder: `has_failed=True`
-**zusammen mit** `_has_rendered=True` (also `frameSwapped` hat gefeuert) ist
-**nicht** der gesuchte `cocoa`-Befund, sondern ein plattformunabhängiger
-Ablauf-Fehler – der Frame kam nach der Schwelle, und der Freispruch räumt die
-bereits angeforderte Abstufung nicht mehr ab. Die Konsequenz ist dann ein Fix
-im Freispruchsweg, **nicht** eine plattformbewusste Schwelle. Nur
-`has_failed=True` bei `_has_rendered=False` und `frameSwapped=0` ist der Fall,
-den dieser Abschnitt sucht. Die verdeckte Lage braucht
+trennt `_has_rendered` die Fehlerbilder: Gesucht ist `has_failed=True` bei
+`_has_rendered=False` und `frameSwapped=0`. Die Gegenrichtung –
+`has_failed=True` **zusammen mit** `_has_rendered=True` – kann seit dem Fix am
+Freispruchsweg nicht mehr entstehen: Ein Frame **nach** der Schwelle nimmt die
+angeforderte Abstufung zurück (`_clear_pending_failure`, Regressionstests in
+`tests/test_viewer_3d.py`). Tritt diese Kombination auf einem Gerät trotzdem
+auf, ist sie ein **neuer** Befund am Freispruchsweg und **nicht** der Anlass,
+`_MAX_REFUSED_PAINTS` plattformbewusst zu machen. Die verdeckte Lage braucht
 zusätzlich einen echten Fenstermanager: Unter `xvfb-run` ohne WM verdeckt das
 zweite Fenster nichts und die Zeile misst dasselbe wie „sichtbar".
 

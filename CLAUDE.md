@@ -239,7 +239,15 @@ Ein Paket, `bgremover/`:
   `_has_rendered` und spricht **dauerhaft** frei, ohne Paint gibt es kein
   Urteil (ein verborgener Viewer wird von Qt nie gemalt – deshalb steht dort
   bewusst kein `isVisible()`), und eine einzelne Absage genügt nicht; ein
-  Kontextverlust setzt den Zähler zurück. Ein `QTimer.singleShot(0)` auf
+  Kontextverlust setzt den Zähler zurück. Freispruch und Kontextwechsel nehmen
+  über `_clear_pending_failure` auch eine **bereits angeforderte, noch nicht
+  zugestellte** Abstufung zurück – der Befund verlässt die Paint-Zustellung
+  über einen Kind-Timer, und gewann er das Rennen gegen einen späten ersten
+  Frame-Tausch, stufte er einen gesunden Viewer ab (mit der widersprüchlichen
+  Meldung „0 Anforderungen abgewiesen", weil beide Rücksetzer den Zähler
+  nullen). `_fail_pending` ist dabei die tragende Barriere: Ein bereits
+  gepostetes Timeout nimmt `stop()` nicht zurück, der Reporter prüft es
+  deshalb selbst. Ein `QTimer.singleShot(0)` auf
   `frameSwapped` war die erste Wahl und wurde **gemessen verworfen**: Dort
   steht der Zähler auch im gesunden Fall noch auf 0. Damit ist die Lücke
   geschlossen, die der #1002-Nachtrag benennt (Proben sind notwendig, nicht

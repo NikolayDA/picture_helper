@@ -70,6 +70,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corrigé
 
+- **L'aperçu 3D du relief pouvait basculer à tort dans l'état d'erreur.** La
+  preuve de rendu de l'aperçu signale un framebuffer de widget manquant via un
+  minuteur bref. Si le pilote graphique ne livrait la première image qu'après
+  coup, l'erreur déjà demandée était tout de même émise : la vue 3D affichait
+  la page d'erreur (« Qt ne détient aucun framebuffer de widget ») alors
+  qu'elle venait de rendre correctement. Il en allait de même après un
+  changement de contexte graphique. Une image réussie et un changement de
+  contexte annulent désormais ce signalement ; le vrai cas d'échec reste
+  détecté.
 - **L'aperçu 3D annonçait « prêt » alors que l'environnement ne pouvait rendre
   aucune image (#1002).** `probe_3d_capability` ne vérifiait que des faits liés
   au contexte : création du contexte, surface hors écran courante, absence de

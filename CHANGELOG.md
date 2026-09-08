@@ -70,6 +70,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **3D-Reliefvorschau konnte fälschlich in den Fehlerzustand fallen.** Der
+  Renderbeweis der 3D-Vorschau meldet einen fehlenden Widget-Framebuffer über
+  einen kurzen Zeitgeber. Lieferte die Grafikkarte den ersten Frame erst
+  danach, blieb die bereits angeforderte Fehlermeldung stehen: Die 3D-Ansicht
+  zeigte die Fehlerseite („Qt hält keinen Widget-Framebuffer"), obwohl sie
+  gerade erfolgreich gerendert hatte. Dasselbe galt nach einem Wechsel des
+  Grafikkontexts. Ein erfolgreicher Frame und ein Kontextwechsel nehmen die
+  Meldung jetzt zurück; der echte Fehlerfall wird unverändert erkannt.
 - **3D-Vorschau meldete „bereit", obwohl die Umgebung keinen Frame rendern
   konnte (#1002).** `probe_3d_capability` prüfte nur Kontext-Fakten:
   Kontexterzeugung, aktuelle Offscreen-Oberfläche, kein reiner OpenGL-ES-
