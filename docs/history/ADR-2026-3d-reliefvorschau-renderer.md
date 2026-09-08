@@ -703,3 +703,85 @@ Kontextverlust, Durchreichen an den Container); `tests/test_viewer_3d_gl.py`
 belegt sie als `gl_smoke` an echtem Kontext in beiden Richtungen (sichtbar →
 Frame bewiesen, verborgen → kein Urteil). Die Gegenprobe auf echter Hardware
 ist – wie bei #1002 – ein `make check` auf dem Pi.
+
+## Nachtrag (2026-09-07, #1010): `cocoa` bleibt ungemessen – aber die Messung ist jetzt wiederholbar
+
+Der Nachtrag zu #1004 belegt den Renderbeweis auf `xcb` (feuert) und
+`offscreen` (feuert nie), beide auf llvmpipe im Container. `cocoa` fehlt darin,
+und das ist kein akademischer Rest: `screenshot3d` liest `state` und
+`has_failed`, der Beweis trägt seit PR #1005 also das MUSS-Kriterium
+`MACOS-ARM-DMG-01` mit – und über den nativen E2E-Schritt desselben Jobs
+(`release-abnahme.yml`, `tests/test_e2e_release_regression.py` mit
+`ABNAHME_REQUIRE_NATIVE_3D=1`, aus dem Quellbaum) ebenso
+`E2E-MACOS-ARM-01`. Tauschte ein **gesunder** Viewer auf Apple-Hardware
+seinen ersten Frame erst nach drei Paints, fiele er in [F] und der native
+3D-Nachweis wäre rot – ein Wächter-Fehlalarm, kein Renderfehler.
+
+**Das Zeitfenster.** Der Beweis steckt in keinem veröffentlichten Artefakt:
+v2.9.0 wurde am 2026-08-29 veröffentlicht, PR #1005 am 2026-09-07 gemergt. Er
+erreicht macOS-Hardware erstmals mit dem nächsten Kandidatenbau. Die Messung
+gehört deshalb **vor** diesen Lauf; danach wäre sie eine Obduktion.
+
+**Was dieser Schritt liefert – und was nicht.** Nicht die Messung: Ohne das
+Gerät gibt es keine, und geraten wird hier nichts. Sondern ihre
+Wiederholbarkeit. Die Sonde aus dem #1002-Kommentar ist als Prozedur in
+[`TESTING.md`](../../TESTING.md) („Renderbeweis-Sonde") festgehalten, statt als
+Wegwerf-Skript in einem Kommentar zu verwittern; sie zählt genau die Größen,
+die die Regel auswertet, und ihre Container-Werte sind mit exakt diesem
+Wortlaut nachgemessen:
+
+| Lage | Plattform | paintEvents | `defaultFramebufferObject()` je Paint | `paintGL` | `frameSwapped` | `_has_rendered` | `_refused_paints` | Ergebnis |
+|---|---|---|---|---|---|---|---|---|
+| sichtbar | `xcb` | 2 | 1, 1 | 2 | 2 | `True` | 0 | gesund |
+| verborgen | `xcb` | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
+| verdeckt | `xcb` | 2 | 1, 1 | 2 | 2 | `True` | 0 | (ohne WM nicht aussagekräftig) |
+| sichtbar | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | `False` | 3 | [F], „kein Widget-Framebuffer" |
+| verborgen | `offscreen` | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
+| verdeckt | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | `False` | 3 | wie sichtbar (ohne WM) |
+| sichtbar | **`cocoa`** | ? | ? | ? | ? | ? | ? | **offen (#1010)** |
+| verborgen | **`cocoa`** | ? | ? | ? | ? | ? | ? | **offen (#1010)** |
+| verdeckt | **`cocoa`** | ? | ? | ? | ? | ? | ? | **offen (#1010)** |
+
+(Ubuntu 24.04 im Container, Mesa 25.2.8/llvmpipe, PyQt6/Qt 6.7.1, 2026-09-07;
+`xvfb-run` hat keinen Fenstermanager, die verdeckte Lage misst dort dasselbe
+wie die sichtbare und steht nur der Vollständigkeit halber da.)
+
+Die Endzähler allein beantworten die `cocoa`-Frage nicht, deshalb misst die
+Sonde zwei weitere Größen. Auf `xcb` kam der erste Frame-Tausch nach dem
+**zweiten** Paint, 109 ms nach `show()` (verdeckt: 60 ms) – entscheidend ist
+aber, dass dort **beide** Paints bereits einen Framebuffer trugen: Die
+Abweisungszählung lief nie an, der Abstand zur Schwelle war nie ein Thema. Die
+offene Frage für `cocoa` lautet damit genau: Stellt Qt dort vor dem ersten
+Frame-Tausch Paints mit `defaultFramebufferObject() == 0` zu, und wenn ja,
+drei hintereinander?
+
+Zwei Abweichungen zur Tabelle des #1004-Nachtrags sind erklärbar und keine
+Widersprüche. Der kaputte Fall zählt dort zwei Paints, hier drei – die
+Nachforderung unterhalb der Schwelle kam erst mit PR #1005, also nach jener
+Messung. Und `defaultFramebufferObject()` ist dort beim ersten Paint noch 1,
+hier von Anfang an 0: Die Sonde zeigt einen **freistehenden** Viewer, der nie
+umgehängt wird, die Ausgangsmessung lief im eingebetteten. Beide Wege belegen
+dieselbe tragende Aussage – eine einzelne Absage kann ein Übergang sein,
+deshalb zählt die Regel drei.
+
+**Entscheidung zur Abnahme-Checkliste: `MACOS-ARM-DMG-01` bleibt unverändert.**
+Das Kriterium verlangt „Start, gepackte Herkunft, Retina und natives 3D" – der
+Renderbeweis ist keine zusätzliche Anforderung, sondern eine Eigenschaft
+desselben Nachweises: Er kann den nativen 3D-Nachweis nur scheitern lassen,
+nie etwas durchwinken. Ein Hinweis am Kriterium erhöhte die Checklisten-Version
+(die Regeln dort binden Bedeutung, Pflichtgrad, Plattformumfang und
+Evidenzquelle an mindestens die Minor-Version) und jede künftige Release-Instanz
+pinnt sie samt Dateihash – gekauft würde damit eine Versionsstufe ohne
+zusätzliche Prüfkraft. Der Reaktionsweg, den ein Prüfender im Ernstfall
+braucht, steht dort, wo er ihn liest: in
+[`../PACKAGING_SMOKE.md`](../PACKAGING_SMOKE.md) beim nativen
+3D-Screenshot-Nachweis. Fiele die Messung aus (siehe unten), wäre die Antwort
+ohnehin Code, nicht ein Checklisten-Satz.
+
+**Wenn `frameSwapped` auf `cocoa` nicht feuert.** Dann ist das ein eigener
+Befund mit eigenem Issue und den Zählerwerten aus der Sonde, und
+`_MAX_REFUSED_PAINTS` oder der Freispruchsweg müssen plattformbewusst werden.
+Was es nicht rechtfertigt: den Nachweis still zu überspringen, die Schwelle
+„zur Sicherheit" zu erhöhen (sie ist gemessen begründet, nicht geraten) oder
+`screenshot3d.py` ein eigenes Gate zu geben – die Nicht-Ziele aus #1004 gelten
+unverändert.

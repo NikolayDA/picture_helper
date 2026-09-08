@@ -261,11 +261,14 @@ würde vier Prüfstellen der Tabelle deselektieren, statt sie laufen zu
 lassen). Die Locale muss installiert sein (`locale -a | grep de_DE`;
 Debian: `sudo dpkg-reconfigure locales`) – fehlt sie, überspringt sich die
 Locale-Prüfung sichtbar, statt zu messen. Ein Software-Renderer (llvmpipe,
-etwa unter `xvfb-run`) ist kein gültiges Ziel für Schritt 2: Der
-Live-Benchmark-Test überspringt sich dort, der native Screenshot-Lauf in
-`test_screenshot3d.py` wird dagegen **rot**, weil erst `run_native_3d_screenshot`
-den Software-Renderer abweist (#642) – das ist der bekannte Befund #1013,
-kein neuer. Für die Gegenprobe zählt allein die echte GPU.
+etwa unter `xvfb-run`) ist kein gültiges Ziel für Schritt 2 – seit #1013 aber
+auch kein roter Lauf mehr: Live-Benchmark **und** nativer Screenshot-Lauf
+überspringen sich dort sichtbar mit Grund, und der Gegenpfad in
+`test_screenshot3d.py` prüft an derselben Stelle real nach, dass unter
+llvmpipe **kein** Nachweis entsteht – und, sofern der Viewer `ready` erreicht,
+dass es die Provenienz-Abweisung (#642) ist. Festgeschrieben wird der Zustand
+bewusst nicht (die Capability-Probe ist notwendig, nicht hinreichend). Für die Gegenprobe zählt weiterhin
+allein die echte GPU: Ein Skip ist kein Nachweis.
 
 Erwartung je Prüfstelle – eine Abweichung ist ein neuer Befund mit eigenem
 Issue, kein Anlass, den Test umzubauen:
@@ -291,6 +294,140 @@ Schritt 2 (wayland/xcb) : <N passed, M skipped> + Skips mit Grund aus -rs
 Die Container-Referenz für dieselben drei Schritte (`xvfb-run` + `xcb`,
 llvmpipe) liegt im PR zu #1009; sie deckt die Locale-Klasse ab, die
 GPU-Klasse nur das Gerät.
+
+### Renderbeweis-Sonde: `frameSwapped` je Plattform messen (#1010)
+
+Der Renderbeweis aus #1004 (`bgremover/viewer_3d.py`) spricht einen Viewer
+frei, sobald Qt `frameSwapped` sendet, und stuft ihn nach drei
+aufeinanderfolgenden Paints ohne Widget-Framebuffer ab. Gemessen ist das auf
+`xcb` (feuert) und `offscreen` (feuert nie) – auf `cocoa` **nicht**. Weil
+`bgremover/screenshot3d.py` seither `state`/`has_failed` liest, trägt der
+Beweis das MUSS-Kriterium `MACOS-ARM-DMG-01` mit: Ein gesunder Viewer, der auf
+`cocoa` seinen ersten Frame erst nach drei Paints tauschte, machte den nativen
+3D-Nachweis rot – als Wächter-Fehlalarm, nicht als Renderfehler. Die Messung
+gehört deshalb **vor** den nächsten Abnahmelauf.
+
+Sie läuft einmal je Plattform gegen den Quellbaum (nicht gegen ein Artefakt)
+und braucht bewusst kein committetes Skript – die Sonde zählt nur mit, was der
+Beweis ohnehin auswertet. Zwei Größen entscheiden die Frage: der
+`defaultFramebufferObject()`-Wert **je** Paint (nur eine 0 lässt die
+Abweisungszählung überhaupt anlaufen) und `erster_swap` – nach wie vielen
+Paints und wie vielen Millisekunden nach `show()` Qt den ersten Frame
+tauscht. Die Endzähler allein beantworten sie nicht:
+
+```bash
+# macOS: cocoa · Linux: wayland oder xcb. Aus dem Repo-Wurzelverzeichnis.
+QT_QPA_PLATFORM=cocoa .venv/bin/python - <<'PY'
+import sys
+
+import numpy as np
+from PyQt6.QtCore import QElapsedTimer, QEventLoop, QTimer
+from PyQt6.QtWidgets import QApplication, QWidget
+
+from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
+from bgremover.relief_mesh import MeshQuality, build_relief_mesh
+from bgremover.viewer_3d import GLReliefViewer
+
+
+class Sonde(GLReliefViewer):
+    """Zählt mit, was der Renderbeweis auswertet – ohne ihn zu verändern."""
+
+    def __init__(self):
+        super().__init__()
+        self.paints, self.fbos, self.gl_paints, self.swaps = 0, [], 0, 0
+        self.erster_swap = None          # (nach wie vielen Paints, ms seit show)
+        self.uhr = QElapsedTimer()
+        self.frameSwapped.connect(self._zaehle_swap)
+
+    def _zaehle_swap(self):
+        self.swaps += 1
+        if self.erster_swap is None:
+            self.erster_swap = (self.paints, self.uhr.elapsed())
+
+    def paintEvent(self, event):
+        self.paints += 1
+        super().paintEvent(event)          # hier entscheidet der Beweis
+        self.fbos.append(self.defaultFramebufferObject())
+
+    def paintGL(self):
+        self.gl_paints += 1
+        super().paintGL()
+
+
+def messe(app, lage, ms=2000):
+    rampe = np.tile(np.linspace(0, HEIGHT_MAX_16BIT, 32, dtype=np.uint16), (32, 1))
+    feld = HeightField(rampe, np.full((32, 32), 255, np.uint8), HEIGHT_MAX_16BIT)
+    v = Sonde()
+    v.resize(240, 200)
+    v.set_mesh(build_relief_mesh(feld, MeshQuality.REDUCED))
+    deckel = None
+    v.uhr.start()
+    if lage != "verborgen":
+        v.show()
+    if lage == "verdeckt":                 # braucht einen echten Fenstermanager
+        deckel = QWidget()
+        deckel.setGeometry(v.geometry())
+        deckel.show()
+        deckel.raise_()
+    ende = []
+    QTimer.singleShot(ms, lambda: ende.append(True))
+    while not ende:                        # warten, nicht drehen: sonst misst
+        app.processEvents(                 # die Sonde ihre eigene Schleife mit
+            QEventLoop.ProcessEventsFlag.WaitForMoreEvents, 50
+        )
+    print(f"{lage:<10} paintEvents={v.paints} fbo={v.fbos} paintGL={v.gl_paints} "
+          f"frameSwapped={v.swaps} erster_swap={v.erster_swap} "
+          f"_has_rendered={v._has_rendered} _refused_paints={v._refused_paints} "
+          f"has_failed={v.has_failed} grund={v.failure_reason!r}")
+    v.cleanup_gl()
+    if deckel is not None:
+        deckel.close()
+
+
+app = QApplication(sys.argv)
+print("Plattform:", app.platformName())
+for lage in ("sichtbar", "verborgen", "verdeckt"):
+    messe(app, lage)
+PY
+```
+
+Erwartung je Lage **auf einer renderfähigen Sitzungsplattform** – eine
+Abweichung ist ein neuer Befund mit eigenem Issue, kein Anlass,
+`_MAX_REFUSED_PAINTS` zu erhöhen:
+
+| Lage | Erwartung |
+|---|---|
+| sichtbar | `frameSwapped` ≥ 1, `erster_swap` gesetzt, `_has_rendered=True`, `_refused_paints=0`, `has_failed=False` |
+| verborgen | Qt malt gar nicht: alle Zähler 0, `has_failed=False` (kein Urteil) |
+| verdeckt | wie „sichtbar" **oder** wie „verborgen" – nie `has_failed=True` |
+
+Zwei Lesefallen. Erstens ist die Vorbedingung wörtlich gemeint: Unter
+`offscreen` misst die Sonde gemessen `has_failed=True` – das ist dort der
+**richtige** Befund (kein Widget-Framebuffer) und keine Abweichung. Zweitens
+trennt allein `_has_rendered` die beiden Fehlerbilder: `has_failed=True`
+**zusammen mit** `_has_rendered=True` (also `frameSwapped` hat gefeuert) ist
+**nicht** der gesuchte `cocoa`-Befund, sondern ein plattformunabhängiger
+Ablauf-Fehler – der Frame kam nach der Schwelle, und der Freispruch räumt die
+bereits angeforderte Abstufung nicht mehr ab. Die Konsequenz ist dann ein Fix
+im Freispruchsweg, **nicht** eine plattformbewusste Schwelle. Nur
+`has_failed=True` bei `_has_rendered=False` und `frameSwapped=0` ist der Fall,
+den dieser Abschnitt sucht. Die verdeckte Lage braucht
+zusätzlich einen echten Fenstermanager: Unter `xvfb-run` ohne WM verdeckt das
+zweite Fenster nichts und die Zeile misst dasselbe wie „sichtbar".
+
+Das Ergebnis gehört als Kommentar in das auslösende Issue – die drei
+Ausgabezeilen der Sonde wörtlich, mit einer Kopfzeile davor:
+
+```text
+Gerät · OS · Qt : <Modell> · <macOS-/Distributionsversion> · <QT_VERSION_STR>
+<die drei Zeilen „sichtbar/verborgen/verdeckt" der Sonde, unverändert>
+```
+
+Referenzwerte des Containers und die offenen `cocoa`-Zeilen stehen im
+ADR-Nachtrag
+[`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`](docs/history/ADR-2026-3d-reliefvorschau-renderer.md);
+dort gehört auch das Mac-Ergebnis hin (Plattform, Qt-Version, Zählerwerte je
+Lage).
 
 ## Recommendations-Live-Check (#752)
 

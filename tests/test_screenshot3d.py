@@ -1,9 +1,11 @@
 """Tests für den nativen 3D-Screenshot-Automationshook (#648).
 
-Der Erfolgspfad braucht einen echten renderbaren GL-Kontext (``gl_smoke``,
-überspringt sich offscreen); der Fallback-Pfad (kein GL ⇒ ``unavailable``)
-läuft headless in jeder CI (``ui_smoke``) und deckt ab, dass der Hook nie
-wirft und keinen Screenshot hinterlässt, wenn der 3D-Zweig nicht bereit wird.
+Der Erfolgspfad braucht einen echten **Hardware**-GL-Kontext (``gl_smoke``,
+überspringt sich offscreen und seit #1013 auch unter einem Software-Renderer);
+der Gegenpfad läuft headless in jeder CI (``ui_smoke``) und deckt ab, dass der
+Hook nie wirft und keinen Screenshot hinterlässt, wenn kein gültiger Nachweis
+entsteht – weder ohne Kontext (``unavailable``/``error``) noch unter llvmpipe,
+wo der Viewer ``ready`` wird und erst die Provenance abgewiesen wird (#642).
 
 Die negativen Post-``ready``-Zweige (``viewer is None``, Frame-/Viewer-Fehler,
 leere Geometrie, fehlende Provenance, Software-Renderer, ``grab().save()``-
@@ -29,6 +31,7 @@ from bgremover.preview3d_capability import (
     probe_3d_capability,
     reset_capability_cache,
 )
+from bgremover.renderer_provenance import is_software_renderer
 from bgremover.screenshot3d import (
     Preview3DControlsEvidence,
     Screenshot3DResult,
@@ -69,34 +72,64 @@ def test_required_preview3d_controls_fit_together_in_scroll_viewport(
     assert set(evidence.visible_controls) == _REQUIRED_CONTROLS
 
 
-def test_headless_fallback_reports_unavailable_without_writing_file(
+def test_without_hardware_gl_no_screenshot_and_no_silent_success(
     qapp,
     qtbot,
     tmp_path: Path,
-    gl_capability_ok,
+    gl_capability,
 ) -> None:  # type: ignore[no-untyped-def]
-    """Ohne nativen GL-Frame entsteht keine Datei – und kein stiller Erfolg.
+    """Ohne **Hardware**-GL entsteht keine Datei – und kein stiller Erfolg.
 
-    Der Test beschreibt ausschliesslich den Fallback-Zweig und laeuft daher nur
-    ohne GL-Capability. Mit Capability meldet der Viewer ``ready``: auf echter
-    Hardware mit Sitzung entsteht dann ein Screenshot (das deckt der
-    ``gl_smoke``-Test unten ab), auf dem Raspberry Pi unter „offscreen"
-    scheitert erst der Frame (``No fbo``) – beides ist hier nicht die Aussage.
+    Zwei Umgebungen ohne gültigen Nachweis, ein Ergebnis: kein Kontext
+    (``unavailable``/``error``) und der Software-Renderer, der bis ``ready``
+    kommt und erst an der Provenance scheitert (#642). Die Abweisung selbst
+    prüft ``test_software_renderer_diagnostic_is_rejected`` überall über das
+    Fake-Fenster; ungeprüft war bis #1013 der **End-to-End-Weg** mit echtem
+    ``MainWindow`` – ausgerechnet auf der Umgebung, auf der er greift: Unter
+    ``xvfb``/llvmpipe übersprang sich dieser Test (Capability vorhanden) und
+    der ``gl_smoke``-Test unten wurde rot, obwohl sich das Produkt korrekt
+    verhielt. Der Erfolgsfall (``ready`` + Hardware) gehört dorthin, nicht
+    hierher.
     """
-    if gl_capability_ok:
-        pytest.skip("GL-Capability vorhanden – der Fallback-Zweig ist hier nicht pruefbar")
+    software = gl_capability.ok and is_software_renderer(gl_capability.diagnostic)
+    if gl_capability.ok and not software:
+        pytest.skip(
+            "GL-Capability vorhanden (Hardware-Renderer) – der Erfolgsfall "
+            "gehört zum gl_smoke-Test"
+        )
 
     win = MainWindow()
     qtbot.addWidget(win)
     win.show()
     target = tmp_path / "native_preview3d_ready.png"
     try:
-        result = run_native_3d_screenshot(win, target, timeout_ms=5_000)
+        # Der Software-Renderer läuft bis zur Provenance-Prüfung durch und
+        # braucht dafür dieselbe Frist wie der Erfolgsfall; ohne Kontext
+        # entscheidet die kurze Frist des Fallbacks.
+        result = run_native_3d_screenshot(
+            win, target, timeout_ms=30_000 if software else 5_000
+        )
     finally:
         win.close()
 
     assert result.ok is False
-    assert result.state in {"unavailable", "error"}
+    if software:
+        # Erwartet wird die Provenienz-Abweisung nach ``ready``. Festgeschrieben
+        # wird sie nicht: Die Capability-Probe ist notwendig, nicht hinreichend
+        # (#1002), der Renderbeweis (#1004) kann vorher greifen. Das wäre
+        # wieder eine fest kodierte Umgebungsannahme – genau der Befund #1013.
+        if result.state == "ready":
+            assert "Software-Renderer" in result.message
+            assert is_software_renderer(result.diagnostic)
+        else:
+            # Auch der Fristablauf gehört hierher: ``SETTLED_STATES`` kennt kein
+            # ``loading``, der Hook reicht den Zustand dann unverändert durch.
+            # Ein hartes ``== "error"`` ließe eine Zeitüberschreitung auf einem
+            # langsamen Software-Renderer wie einen Zustandsfehler aussehen.
+            assert result.state in {"error", "loading"}
+            assert result.message.strip()
+    else:
+        assert result.state in {"unavailable", "error"}
     assert not target.exists()
     assert not target.with_name(target.name + ".json").exists()
 
@@ -113,8 +146,16 @@ def test_native_gl_run_writes_png_and_provenance_sidecar(
     if app.platformName() in _NON_RENDERABLE:
         pytest.skip(f"Plattform {app.platformName()!r} kann QOpenGLWidget nicht rendern")
     reset_capability_cache()
-    if not probe_3d_capability(use_cache=False).ok:
+    capability = probe_3d_capability(use_cache=False)
+    if not capability.ok:
         pytest.skip("Keine OpenGL-2.1-Capability in dieser Umgebung")
+    # Dritte Weiche (#1013, Muster von ``benchmark.probe_live_gl``): Eine
+    # renderfähige Sitzungsplattform heißt nicht Hardware. Unter llvmpipe
+    # weist ``run_native_3d_screenshot`` die Provenienz zu Recht ab (#642) –
+    # der Test darf daran nicht scheitern, sondern muss sichtbar aussetzen.
+    # Dass die Abweisung selbst geprüft bleibt, trägt der Test oben.
+    if is_software_renderer(capability.diagnostic):
+        pytest.skip(f"Software-Renderer statt Hardware-GL: {capability.diagnostic}")
 
     win = MainWindow()
     qtbot.addWidget(win)

@@ -258,7 +258,13 @@ Ein Paket, `bgremover/`:
   es `state`/`has_failed` liest. Deshalb reicht der Viewer seine erste
   Fehlermeldung als `failure_reason` durch: Ein blankes „Nativer GL-Frame
   fehlgeschlagen" ließe einen Wächter-Fehlalarm wie einen Renderfehler
-  aussehen.
+  aussehen. Auf `cocoa` bleibt `frameSwapped` ungemessen (#1010) – der Beweis
+  erreicht Apple-Hardware erst mit einem Kandidatenbau, der ihn enthält. Die
+  wiederholbare Sonde (Zähler je Lage: sichtbar/verborgen/verdeckt) steht als
+  Prozedur in [`TESTING.md`](TESTING.md), ihre Container-Referenzwerte und die
+  offenen `cocoa`-Zeilen im ADR-Nachtrag; `MACOS-ARM-DMG-01` bleibt dafür
+  bewusst unverändert (der Beweis kann den nativen 3D-Nachweis nur scheitern
+  lassen, nie durchwinken).
   `preview3d_controller.py` (`Preview3DController`, #594) orchestriert Gating,
   entprellten (200 ms) asynchronen Mesh-Build (`MeshBuildWorker` über den
   `WorkerController`) mit **Generation-IDs** (stale-result-Schutz) und einem
