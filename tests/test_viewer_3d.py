@@ -1023,8 +1023,13 @@ def _viewer_with_fake_context(monkeypatch, *, context: object | None):
     """Ein ``paintGL``-fähiger Viewer ohne GL; ``makeCurrent`` wird protokolliert."""
     viewer = GLReliefViewer()
     calls: list[str] = []
+
+    def make_current(self) -> None:
+        calls.append("makeCurrent")
+        _FakeContextRegistry.current = context  # wie Qt: danach ist er wieder aktuell
+
     monkeypatch.setattr(type(viewer), "context", lambda self: context)
-    monkeypatch.setattr(type(viewer), "makeCurrent", lambda self: calls.append("makeCurrent"))
+    monkeypatch.setattr(type(viewer), "makeCurrent", make_current)
     _FakeContextRegistry.current = context
     monkeypatch.setattr(viewer_3d, "QOpenGLContext", _FakeContextRegistry)
     viewer._gl_ready = True
@@ -1087,3 +1092,54 @@ def test_a_viewer_without_context_never_calls_make_current(qapp, monkeypatch) ->
     viewer.paintGL()
 
     assert calls == []
+
+
+def test_the_early_return_of_a_failed_viewer_still_reasserts(qapp, monkeypatch) -> None:
+    """Review PR #1026: Auch der frühe Rückweg liegt in Qts ``render()``.
+
+    Ein fehlgeschlagener oder noch nicht bereiter Viewer malt nicht – Qts
+    Nachlauf mit dem ungeprüften ``currentContext()`` folgt trotzdem. Die
+    Wachklausel steht deshalb **im** ``try``; ohne das liefe die
+    Wiederherstellung hier nie.
+    """
+    own = object()
+    viewer, calls = _viewer_with_fake_context(monkeypatch, context=own)
+    viewer._paint_gl = lambda: pytest.fail("ein fehlgeschlagener Viewer malt nicht")
+    viewer._failed = True
+    _FakeContextRegistry.current = None  # Verlust vor dem Aufruf, etwa aus einer Collection
+
+    viewer.paintGL()
+
+    assert calls == ["makeCurrent"]
+
+
+def test_a_failed_restore_leaves_a_trace_in_the_log(qapp, monkeypatch, caplog) -> None:
+    """Review PR #1026: Ein gescheiterter Restore ist kein stiller Fall mehr.
+
+    Beide Ausprägungen: ``makeCurrent`` wirft, oder es kehrt still zurück, ohne
+    den Kontext zu setzen (Qt bei nicht initialisiertem Widget). Kein
+    ``_fail`` – nur die Log-Zeile, die beim nächsten gdb-Lauf den Weg spart.
+    """
+    import logging
+
+    own = object()
+    viewer, calls = _viewer_with_fake_context(monkeypatch, context=own)
+    monkeypatch.setattr(type(viewer), "makeCurrent", lambda self: calls.append("still"))
+    _FakeContextRegistry.current = None
+    viewer._paint_gl = lambda: None
+
+    with caplog.at_level(logging.WARNING, logger="BgRemover"):
+        viewer.paintGL()
+    assert calls == ["still"]
+    assert viewer.has_failed is False
+    assert any("nicht wiederhergestellt" in r.getMessage() for r in caplog.records)
+
+    caplog.clear()
+
+    def raising(self) -> None:
+        raise RuntimeError("Attrappe")
+    monkeypatch.setattr(type(viewer), "makeCurrent", raising)
+    with caplog.at_level(logging.WARNING, logger="BgRemover"):
+        viewer.paintGL()
+    assert viewer.has_failed is False
+    assert any("makeCurrent scheiterte: Attrappe" in r.getMessage() for r in caplog.records)

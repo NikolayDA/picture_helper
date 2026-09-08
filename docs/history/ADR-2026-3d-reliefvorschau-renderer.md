@@ -889,13 +889,25 @@ Collection in ein Paint. Ein einzelner Vorgänger-Test reichte dafür nicht.
 mehr der eigene ist (`_reassert_current_context`; `QOpenGLWidget.makeCurrent`
 bindet dabei den Widget-Framebuffer erneut, den Qts Nachlauf erwartet). Ein
 intakter Kontext wird nicht angefasst; sip liefert für denselben C++-Kontext
-denselben Wrapper, die Identitätsprüfung ist exakt (gemessen). Der Fehlerpfad
-ist eingeschlossen, weil Qts Nachlauf auch nach einer Ausnahme kommt. Der
+denselben Wrapper, die Identitätsprüfung ist exakt (gemessen). Das `finally`
+deckt **jeden** Rückweg ab – auch die Ausnahme und den frühen Rückweg eines
+fehlgeschlagenen oder noch nicht bereiten Viewers: Die Wachklausel steht
+deshalb im `try` (Review PR #1026 – auch dieser Frame liegt in Qts `render()`,
+und Qts Nachlauf kommt danach genauso). Scheitert die Wiederherstellung
+(`makeCurrent` wirft oder kehrt bei einem nicht initialisierten Widget still
+ohne Kontext zurück), folgt Qts Absturz trotzdem – dann steht wenigstens eine
+Log-Zeile, statt dass die Kette erneut per gdb rekonstruiert werden muss;
+bewusst kein `_fail`. Die übrigen Python-Frames innerhalb von Qt sind von Qt
+selbst abgedeckt: `initializeGL` läuft in `initialize()` **vor** dem
+`makeCurrent` von `render()`, und auf `resizeGL` folgt ein Paint, der ebenfalls
+mit `makeCurrent` beginnt. Der
 Nachweis selbst (#711/#684) bleibt unverändert; nichts wird übersprungen.
 
-**Nachweis.** Vier GL-freie Tests in `tests/test_viewer_3d.py` (Verlust →
+**Nachweis.** Sechs GL-freie Tests in `tests/test_viewer_3d.py` (Verlust →
 `makeCurrent`; intakt → kein Aufruf; Verlust im Fehlerpfad; kein Kontext →
-kein Aufruf) und eine deterministische Nachstellung in
+kein Aufruf; früher Rückweg eines fehlgeschlagenen Viewers → `makeCurrent`;
+gescheiterter Restore → Log-Zeile, kein `_fail`) und eine deterministische
+Nachstellung in
 `tests/test_viewer_3d_gl.py`: ein initialisierter fremder Viewer wird per
 `sip.delete` mitten in `_paint_gl` freigegeben – dieselbe C++-Freigabe, die
 die GC zufällig auslöste –, danach ist `currentContext()` gemessen `None`
