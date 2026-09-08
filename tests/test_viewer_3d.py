@@ -722,6 +722,52 @@ def _documented_probe_source() -> str:
     return body[open_marker + len("<<'PY'\n") : close_marker]
 
 
+#: Aufrufe der Sonde, die gegen die echte Signatur gebunden werden (#1010).
+#: Beide nehmen ihre Argumente dort **positionell** entgegen; ein später
+#: eingezogener ``*``-Trenner oder eine umsortierte ``HeightField``-Feldfolge
+#: bliebe von einer reinen Namensprüfung unbemerkt.
+_PROBE_CALL_TARGETS = {
+    "HeightField": HeightField,
+    "build_relief_mesh": build_relief_mesh,
+}
+
+
+def test_documented_probe_calls_bind_against_the_real_signatures() -> None:
+    """Die Sonde muss auch in der **Aufrufform** passen, nicht nur in den Namen.
+
+    Der Namenswächter unten sähe eine Umsortierung von ``HeightField`` oder ein
+    hinter den ``*``-Trenner gezogenes ``quality`` nicht – die Prozedur bräche
+    erst auf fremder Hardware, Wochen später. Gebunden wird mit Platzhaltern
+    über ``inspect.signature``; ausgeführt wird nichts, GL ist nicht nötig.
+    """
+    import ast
+    import inspect
+
+    quelle = _documented_probe_source()
+    gebunden: set[str] = set()
+    for knoten in ast.walk(ast.parse(quelle)):
+        if not isinstance(knoten, ast.Call) or not isinstance(knoten.func, ast.Name):
+            continue
+        ziel = _PROBE_CALL_TARGETS.get(knoten.func.id)
+        if ziel is None:
+            continue
+        args = ["<platzhalter>"] * len(knoten.args)
+        kwargs = {kw.arg: "<platzhalter>" for kw in knoten.keywords if kw.arg is not None}
+        try:
+            inspect.signature(ziel).bind_partial(*args, **kwargs)
+        except TypeError as exc:
+            raise AssertionError(
+                f"Die Sonde in TESTING.md ruft {knoten.func.id} so nicht mehr "
+                f"gültig auf ({exc}). Prozedur nachziehen."
+            ) from exc
+        gebunden.add(knoten.func.id)
+
+    assert gebunden == set(_PROBE_CALL_TARGETS), (
+        f"Erwartet gebundene Aufrufe {sorted(_PROBE_CALL_TARGETS)}, gefunden "
+        f"{sorted(gebunden)} – Sonde umgebaut oder Anker zu eng?"
+    )
+
+
 def test_documented_render_proof_probe_matches_the_viewer_api(qapp) -> None:
     """Die Sonde in TESTING.md muss zur echten Viewer-API passen (#1010).
 

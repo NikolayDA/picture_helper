@@ -122,7 +122,11 @@ def test_without_hardware_gl_no_screenshot_and_no_silent_success(
             assert "Software-Renderer" in result.message
             assert is_software_renderer(result.diagnostic)
         else:
-            assert result.state == "error"
+            # Auch der Fristablauf gehört hierher: ``SETTLED_STATES`` kennt kein
+            # ``loading``, der Hook reicht den Zustand dann unverändert durch.
+            # Ein hartes ``== "error"`` ließe eine Zeitüberschreitung auf einem
+            # langsamen Software-Renderer wie einen Zustandsfehler aussehen.
+            assert result.state in {"error", "loading"}
             assert result.message.strip()
     else:
         assert result.state in {"unavailable", "error"}

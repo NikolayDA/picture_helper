@@ -264,9 +264,10 @@ Locale-Prüfung sichtbar, statt zu messen. Ein Software-Renderer (llvmpipe,
 etwa unter `xvfb-run`) ist kein gültiges Ziel für Schritt 2 – seit #1013 aber
 auch kein roter Lauf mehr: Live-Benchmark **und** nativer Screenshot-Lauf
 überspringen sich dort sichtbar mit Grund, und der Gegenpfad in
-`test_screenshot3d.py` prüft an derselben Stelle real nach, dass
-`run_native_3d_screenshot` den Software-Renderer abweist (#642) statt ihn
-still als Hardware-Nachweis zu nehmen. Für die Gegenprobe zählt weiterhin
+`test_screenshot3d.py` prüft an derselben Stelle real nach, dass unter
+llvmpipe **kein** Nachweis entsteht – und, sofern der Viewer `ready` erreicht,
+dass es die Provenienz-Abweisung (#642) ist. Festgeschrieben wird der Zustand
+bewusst nicht (die Capability-Probe ist notwendig, nicht hinreichend). Für die Gegenprobe zählt weiterhin
 allein die echte GPU: Ein Skip ist kein Nachweis.
 
 Erwartung je Prüfstelle – eine Abweichung ist ein neuer Befund mit eigenem
@@ -400,9 +401,17 @@ Abweichung ist ein neuer Befund mit eigenem Issue, kein Anlass,
 | verborgen | Qt malt gar nicht: alle Zähler 0, `has_failed=False` (kein Urteil) |
 | verdeckt | wie „sichtbar" **oder** wie „verborgen" – nie `has_failed=True` |
 
-Die Vorbedingung ist wörtlich gemeint: Unter `offscreen` misst die Sonde
-gemessen `has_failed=True` – das ist dort der **richtige** Befund (kein
-Widget-Framebuffer) und keine Abweichung. Die verdeckte Lage braucht
+Zwei Lesefallen. Erstens ist die Vorbedingung wörtlich gemeint: Unter
+`offscreen` misst die Sonde gemessen `has_failed=True` – das ist dort der
+**richtige** Befund (kein Widget-Framebuffer) und keine Abweichung. Zweitens
+trennt allein `_has_rendered` die beiden Fehlerbilder: `has_failed=True`
+**zusammen mit** `_has_rendered=True` (also `frameSwapped` hat gefeuert) ist
+**nicht** der gesuchte `cocoa`-Befund, sondern ein plattformunabhängiger
+Ablauf-Fehler – der Frame kam nach der Schwelle, und der Freispruch räumt die
+bereits angeforderte Abstufung nicht mehr ab. Die Konsequenz ist dann ein Fix
+im Freispruchsweg, **nicht** eine plattformbewusste Schwelle. Nur
+`has_failed=True` bei `_has_rendered=False` und `frameSwapped=0` ist der Fall,
+den dieser Abschnitt sucht. Die verdeckte Lage braucht
 zusätzlich einen echten Fenstermanager: Unter `xvfb-run` ohne WM verdeckt das
 zweite Fenster nichts und die Zeile misst dasselbe wie „sichtbar".
 
