@@ -192,7 +192,7 @@ Unterscheidung sähe ein Wächter-Fehlalarm wie ein Renderfehler aus.
 Auf `cocoa` ist `frameSwapped` seit 2026-09-08 **gemessen** (#1010): Die
 Sonde `scripts/render_proof_probe.py` lief per Heartbeat-Dispatch auf dem
 macOS-arm64-Abnahme-Runner (Apple M3 Max, macOS 26.6.2, Qt 6.11.0). Der erste
-Frame-Tausch kam nach dem zweiten Paint, beide Paints trugen bereits einen
+Frame-Tausch kam nach dem zweiten Paint, jeder Paint trug bereits einen
 Widget-Framebuffer, in keiner Lage (sichtbar/verborgen/verdeckt) ein
 Fehlerzustand – Zählerwerte je Plattform im ADR-Nachtrag
 [`history/ADR-2026-3d-reliefvorschau-renderer.md`](history/ADR-2026-3d-reliefvorschau-renderer.md).

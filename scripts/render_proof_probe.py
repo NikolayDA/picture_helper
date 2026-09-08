@@ -38,6 +38,13 @@ Job-Zusammenfassung (``--summary``).
 Exit 0 = Messung durchgeführt (Befund steht in den Zeilen; ein Schreibfehler
 bei ``--json-out``/``--summary`` ist nur eine Warnung auf stderr), 2 = Sonde
 nicht ausführbar (keine ``QApplication``, Viewer nicht konstruierbar, Ausnahme).
+
+Bewusst **nicht** in der mypy-Strengeliste der Skripte (``pyproject.toml``):
+Die Sonde überschreibt Qt-Hooks (``paintEvent``) und liest Viewer-Interna,
+deren Typen PyQt6 als ``Any`` liefert – ``disallow_untyped_defs`` brächte
+hier Annotationen ohne Prüfkraft. Gehalten wird sie stattdessen von ``ruff``
+und den Drift-Wächtern in ``tests/test_viewer_3d.py`` (Viewer-API,
+Signaturbindung) und ``tests/test_render_proof_probe.py``.
 """
 from __future__ import annotations
 

@@ -740,10 +740,10 @@ Wortlaut nachgemessen:
 | verdeckt | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | – | `False` | 3 | `True` | wie sichtbar (ohne WM) |
 | sichtbar | `wayland` | 3 | 1, 1, 1 | 3 | 3 | 2, 44 | `True` | 0 | `False` | gesund |
 | verborgen | `wayland` | 0 | – | 0 | 0 | – | `False` | 0 | `False` | kein Urteil |
-| verdeckt | `wayland` | 2 | 1, 1 | 2 | 2 | 2, 54 | `True` | 0 | `False` | gesund (Compositor malt weiter) |
-| sichtbar | **`cocoa`** | 2 | 1, 1 | 2 | 2 | 2, 277 | `True` | 0 | `False` | **gesund** (gemessen 2026-09-08, Nachtrag unten) |
+| verdeckt | `wayland` | 2 | 1, 1 | 2 | 3 | 2, 41 | `True` | 0 | `False` | gesund (Compositor malt weiter) |
+| sichtbar | **`cocoa`** | 3 | 1, 1, 1 | 3 | 3 | 2, 235 | `True` | 0 | `False` | **gesund** (gemessen 2026-09-08, Nachtrag unten) |
 | verborgen | **`cocoa`** | 0 | – | 0 | 0 | – | `False` | 0 | `False` | kein Urteil |
-| verdeckt | **`cocoa`** | 2 | 1, 1 | 2 | 6 | 2, 132 | `True` | 0 | `False` | gesund (macOS malt weiter) |
+| verdeckt | **`cocoa`** | 3 | 1, 1, 1 | 3 | 6 | 2, 187 | `True` | 0 | `False` | gesund (macOS malt weiter) |
 
 (`xcb`/`offscreen`: Ubuntu 24.04 im Container, Mesa 25.2.8/llvmpipe,
 PyQt6/Qt 6.7.1, 2026-09-07 – `xvfb-run` hat keinen Fenstermanager, die
@@ -938,10 +938,10 @@ Die offene Frage aus dem Nachtrag vom 2026-09-07 lautete: Stellt Qt auf
 `cocoa` vor dem ersten Frame-Tausch Paints mit
 `defaultFramebufferObject() == 0` zu, und wenn ja, drei hintereinander?
 Antwort, gemessen auf dem macOS-arm64-Abnahme-Runner in seiner nativen
-Sitzung: **nein.** Beide Paints trugen bereits einen Widget-Framebuffer, der
-erste Frame-Tausch kam nach dem zweiten Paint, 277 ms nach `show()`; die
+Sitzung: **nein.** Jeder Paint trug bereits einen Widget-Framebuffer, der
+erste Frame-Tausch kam nach dem zweiten Paint, 235 ms nach `show()`; die
 Abweisungszählung lief nie an. Verborgen bleibt der Viewer ohne Paint und
-ohne Urteil; verdeckt malt macOS ihn weiter (zwei Paints, sechs
+ohne Urteil; verdeckt malt macOS ihn weiter (drei Paints, sechs
 Frame-Tausche – die Regel wertet nur, *dass* ein Tausch kam, nicht wie
 viele). In keiner Lage `has_failed`. Die Sorge, ein gesunder Viewer fiele auf
 Apple-Hardware in [F], ist damit gegenstandslos: kein Bug-Issue,
@@ -951,9 +951,9 @@ Kopfzeile und die drei Zeilen der Sonde, unverändert:
 
 ```text
 Gerät · OS · Qt : Apple M3 Max · macOS 26.6.2 (arm64) · Qt 6.11.0 / PyQt 6.11.0 · Plattform cocoa · Renderer Apple M3 Max
-sichtbar   paintEvents=2 fbo=[1, 1] paintGL=2 frameSwapped=2 erster_swap=(2, 277) _has_rendered=True _refused_paints=0 has_failed=False grund=''
+sichtbar   paintEvents=3 fbo=[1, 1, 1] paintGL=3 frameSwapped=3 erster_swap=(2, 235) _has_rendered=True _refused_paints=0 has_failed=False grund=''
 verborgen  paintEvents=0 fbo=[] paintGL=0 frameSwapped=0 erster_swap=None _has_rendered=False _refused_paints=0 has_failed=False grund=''
-verdeckt   paintEvents=2 fbo=[1, 1] paintGL=2 frameSwapped=6 erster_swap=(2, 132) _has_rendered=True _refused_paints=0 has_failed=False grund=''
+verdeckt   paintEvents=3 fbo=[1, 1, 1] paintGL=3 frameSwapped=6 erster_swap=(2, 187) _has_rendered=True _refused_paints=0 has_failed=False grund=''
 ```
 
 Derselbe Lauf hat den zweiten Abnahme-Runner mitgemessen – die erste Messung
@@ -964,7 +964,7 @@ des Beweises auf einer echten GPU unter Linux, mit Wayland-Compositor statt
 Gerät · OS · Qt : Raspberry Pi 5 Model B Rev 1.1 · Debian GNU/Linux 13 (trixie) (aarch64) · Qt 6.11.0 / PyQt 6.11.0 · Plattform wayland · Renderer V3D 7.1.10.2
 sichtbar   paintEvents=3 fbo=[1, 1, 1] paintGL=3 frameSwapped=3 erster_swap=(2, 44) _has_rendered=True _refused_paints=0 has_failed=False grund=''
 verborgen  paintEvents=0 fbo=[] paintGL=0 frameSwapped=0 erster_swap=None _has_rendered=False _refused_paints=0 has_failed=False grund=''
-verdeckt   paintEvents=2 fbo=[1, 1] paintGL=2 frameSwapped=2 erster_swap=(2, 54) _has_rendered=True _refused_paints=0 has_failed=False grund=''
+verdeckt   paintEvents=2 fbo=[1, 1] paintGL=2 frameSwapped=3 erster_swap=(2, 41) _has_rendered=True _refused_paints=0 has_failed=False grund=''
 ```
 
 Vier Plattformen, ein Bild: Wo Qt einen Widget-Framebuffer hält (`xcb`,
@@ -981,9 +981,16 @@ die Sonde den `grund` des Viewers, die Einordnung ergänzt der Mensch.
 Skript (`scripts/render_proof_probe.py`), und der Heartbeat-Workflow fährt
 sie per `workflow_dispatch` mit `render_probe: true` nach dem Preflight auf
 jedem aktiven Runner in einem eigenen venv aus den Release-Pins
-([Lauf 34225580351](https://github.com/NikolayDA/picture_helper/actions/runs/34225580351) auf dem
+([Lauf 34227538245](https://github.com/NikolayDA/picture_helper/actions/runs/34227538245) auf dem
 PR-Branch; Kopfzeile und Zeilen stehen im Joblog, die Tabelle in der
-Job-Zusammenfassung). Das kehrt „bewusst kein committetes Skript" aus dem
+Job-Zusammenfassung). Die Zahlen oben sind die des **committeten** Stands:
+Eine Erstmessung mit der Warteschleife des Heredocs
+([Lauf 34225580351](https://github.com/NikolayDA/picture_helper/actions/runs/34225580351))
+lieferte dieselbe Aussage mit leicht anderen Zählern (`cocoa` sichtbar: zwei
+Paints, erster Tausch nach 277 ms) – das Bot-Review zu PR #1029 wies nach,
+dass `processEvents(WaitForMoreEvents, ms)` das Flag intern abstreift und der
+Hauptthread die vollen 2 s drehte; seither wartet die Sonde in einer
+`QEventLoop`, und die Messung wurde damit wiederholt. Das kehrt „bewusst kein committetes Skript" aus dem
 Nachtrag vom 2026-09-07 um – aus einem Grund, den es damals nicht gab: Der
 einzige Weg auf die Abnahme-Runner ohne dritten Self-hosted-Workflow
 (RELEASE_AUTOMATION §3) ist ein Dispatch-Schalter am Heartbeat, und ein
