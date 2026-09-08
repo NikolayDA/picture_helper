@@ -488,6 +488,10 @@ def test_gl_scenario_rejects_an_incomplete_buffer_upload(qapp, monkeypatch) -> N
     monkeypatch.setattr(
         GLReliefViewer, "gl_object_count", property(lambda self: 2)
     )
+    # Unter einer Sitzungsplattform malt ``show()`` + ``processEvents()`` auch
+    # ohne ``grab`` und lüde real vier Objekte hoch, gebucht mit der gepatchten 2,
+    # freigegeben mit der echten 4 – ``live`` würde negativ (Vorbestand, PR #1026).
+    monkeypatch.setattr(GLReliefViewer, "_ensure_buffers", lambda self: None)
 
     with pytest.raises(probe.ProbeNotExecutable, match="unvollständiger Puffer-Upload"):
         probe.run_gl_scenario("gl", [_mesh(64)], 3, "64×64")
