@@ -69,6 +69,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corregido
 
+- **La vista previa de relieve 3D podía caer por error en el estado de
+  error.** La prueba de renderizado de la vista previa informa de un
+  framebuffer de widget ausente mediante un temporizador breve. Si el
+  controlador gráfico entregaba el primer fotograma solo después, el error ya
+  solicitado se emitía igualmente: la vista 3D mostraba la página de error
+  («Qt no mantiene ningún framebuffer de widget») aunque acababa de renderizar
+  correctamente. Lo mismo ocurría tras un cambio de contexto gráfico. Un
+  fotograma correcto y un cambio de contexto retiran ahora ese aviso; el caso
+  de fallo real se sigue detectando.
 - **La vista previa 3D indicaba «lista» aunque el entorno no podía renderizar
   ningún fotograma (#1002).** `probe_3d_capability` solo comprobaba hechos del
   contexto: creación del contexto, superficie offscreen actual, ausencia de un

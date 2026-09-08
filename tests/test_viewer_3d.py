@@ -641,6 +641,9 @@ def test_repeated_refusals_report_the_missing_widget_framebuffer(
     assert viewer.has_failed is True
     assert len(failures) == 1
     assert "Widget-Framebuffer" in failures[0]
+    # Die Meldung trägt die tatsächliche Zahl: „0 Anforderungen abgewiesen"
+    # war der Fingerabdruck des zurückgenommenen Befundes (siehe oben).
+    assert "3 Anforderungen abgewiesen" in failures[0]
 
 
 def test_a_successful_paint_resets_the_refusal_count(qapp, monkeypatch) -> None:
@@ -671,6 +674,74 @@ def test_a_viewer_that_rendered_once_is_never_downgraded(qapp, monkeypatch) -> N
 
     assert viewer.has_failed is False
     assert viewer._refused_paints == 0
+
+
+def test_a_frame_after_the_threshold_takes_the_downgrade_back(qapp, monkeypatch) -> None:
+    """Der Freispruch gilt auch, wenn er die Zustellung knapp gewinnt.
+
+    Die Schwelle fordert den Befund nur an; zugestellt wird er über einen
+    Kind-Timer (Review PR #1005). Kommt der echte Frame dazwischen, war der
+    Viewer nie kaputt – bis hierher stufte ihn der Timer trotzdem ab, und zwar
+    mit „0 Anforderungen abgewiesen", weil der Freispruch den Zähler nullt.
+    Das ist die Fehlklassifikation, die auf einer Plattform mit spätem erstem
+    Frame-Tausch entstünde (#1010).
+    """
+    viewer = GLReliefViewer()
+    failures: list[str] = []
+    viewer.initFailed.connect(failures.append)
+    _refuse_frames(viewer, monkeypatch)
+    _paint(viewer, 3)
+    assert viewer._fail_pending is True, "Schwelle nicht erreicht – Test misst nichts"
+
+    viewer._on_frame_swapped()
+    _settle(qapp)
+
+    assert viewer.has_failed is False
+    assert failures == []
+    assert viewer._has_rendered is True
+
+
+def test_the_reporter_stands_down_after_an_acquittal(qapp, monkeypatch) -> None:
+    """Die zweite Barriere im Reporter, direkt geprüft.
+
+    ``_clear_pending_failure`` stoppt den Timer – die beiden Tests hier herum
+    betreten ``_report_missing_framebuffer`` deshalb gar nicht, und sein
+    ``if`` bliebe ohne diesen Test ungeprüft (streichbar, ohne dass etwas rot
+    wird). Hergestellt wird darum genau die Lage, gegen die es verteidigt: Der
+    Reporter läuft, obwohl die Anforderung längst zurückgenommen ist.
+    """
+    viewer = GLReliefViewer()
+    failures: list[str] = []
+    viewer.initFailed.connect(failures.append)
+    _refuse_frames(viewer, monkeypatch)
+    _paint(viewer, 3)
+    viewer._on_frame_swapped()
+    assert viewer._fail_pending is False
+
+    viewer._report_missing_framebuffer()   # als wäre das Timeout schon zugestellt
+
+    assert viewer.has_failed is False
+    assert failures == []
+
+
+def test_a_context_loss_after_the_threshold_takes_the_downgrade_back(
+    qapp, monkeypatch
+) -> None:
+    """Dieselbe Rücknahme aus dem zweiten Grund: Der Befund gehört dem alten
+    Kontext. Ohne sie widerspräche die Zustellung der Zusage direkt daneben,
+    dass eine Abweisung aus dem alten Kontext den neuen nicht belastet."""
+    viewer = GLReliefViewer()
+    failures: list[str] = []
+    viewer.initFailed.connect(failures.append)
+    _refuse_frames(viewer, monkeypatch)
+    _paint(viewer, 3)
+    assert viewer._fail_pending is True
+
+    viewer._on_context_about_to_be_destroyed()
+    _settle(qapp)
+
+    assert viewer.has_failed is False
+    assert failures == []
 
 
 def test_a_context_loss_clears_the_refusal_count(qapp, monkeypatch) -> None:

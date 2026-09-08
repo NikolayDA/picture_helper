@@ -395,15 +395,37 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
     def has_failed(self) -> bool:
         return self._failed
 
+    def _clear_pending_failure(self) -> None:
+        """Nimmt eine angeforderte, noch nicht zugestellte Abstufung zurück.
+
+        Der Befund verlässt Qts Paint-Zustellung über einen Kind-Timer (Review
+        PR #1005). Zwischen Anforderung und Zustellung kann der Grund entfallen
+        – Qt spricht den Viewer frei (``frameSwapped``) oder der Kontext
+        wechselt. Ohne diese Rücknahme meldete der Timer danach an einem
+        gesunden Viewer „0 Anforderungen abgewiesen, kein Frame": eine in sich
+        widersprüchliche Meldung, weil beide Rücksetzer den Zähler nullen.
+
+        Wirksam ist das ``stop()``: Ein Single-Shot-Timer im selben Thread
+        nimmt sein anstehendes Ereignis dabei mit. ``_fail_pending`` ist die
+        **defensive** zweite Barriere im Reporter – diese Reihenfolge ist
+        Qt-Beobachtungswissen, kein zugesicherter Vertrag, und der Preis einer
+        Prüfung ist ein ``if``.
+        """
+        self._fail_pending = False
+        self._fail_timer.stop()
+
     def _on_frame_swapped(self) -> None:
         """Qt hat einen Frame komponiert – der einzige positive Zeuge (#1004).
 
         Wird ausschließlich von Qt ausgelöst und ist damit **freisprechend**:
         Ab hier gilt der Viewer als renderfähig, und die Abweisungszählung
-        unten kann ihn nicht mehr abstufen.
+        unten kann ihn nicht mehr abstufen. Der Freispruch gilt auch, wenn er
+        die Zustellung knapp gewinnt – genau die Reihenfolge, die auf einer
+        Plattform mit spätem ersten Frame-Tausch entsteht.
         """
         self._has_rendered = True
         self._refused_paints = 0
+        self._clear_pending_failure()
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
         """Erkennt, dass Qt den Frame verweigert hat (#1004).
@@ -455,6 +477,11 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
 
     def _report_missing_framebuffer(self) -> None:
         """Meldet den Befund **außerhalb** von Qts Paint-Zustellung (#1004)."""
+        if not self._fail_pending:
+            # Freispruch oder Kontextwechsel kam der Zustellung zuvor. Defensiv
+            # (siehe ``_clear_pending_failure``): Dass ``stop()`` ein bereits
+            # gepostetes Timeout immer mitnimmt, ist nicht zugesichert.
+            return
         self._fail(
             "paintEvent: Qt hält keinen Widget-Framebuffer "
             f"({self._refused_paints} Anforderungen abgewiesen, kein Frame)"
@@ -532,6 +559,9 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         # der Zustand, den dieser Beweis sucht, bliebe an ihm unentdeckt.
         self._refused_paints = 0
         self._has_rendered = False
+        # Dieselbe Zusage gilt für eine bereits angeforderte Abstufung: Sie
+        # gehört dem alten Kontext und darf den neuen nicht belasten.
+        self._clear_pending_failure()
 
     def _init_gl(self) -> None:
         program = QOpenGLShaderProgram(self)

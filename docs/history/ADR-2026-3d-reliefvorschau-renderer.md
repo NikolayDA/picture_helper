@@ -785,3 +785,52 @@ Was es nicht rechtfertigt: den Nachweis still zu überspringen, die Schwelle
 „zur Sicherheit" zu erhöhen (sie ist gemessen begründet, nicht geraten) oder
 `screenshot3d.py` ein eigenes Gate zu geben – die Nicht-Ziele aus #1004 gelten
 unverändert.
+
+## Nachtrag (2026-09-08): Der Freispruch nimmt auch eine angeforderte Abstufung zurück
+
+Gefunden bei der Analyse zu #1010, GL-frei reproduziert, im Bot-Review am
+Quelltext bestätigt. Der Renderbeweis fordert an der Schwelle nur an; zugestellt
+wird der Befund über einen Kind-Timer (Review PR #1005, damit `_fail` nicht
+mitten in Qts Paint-Zustellung `hide()` auslöst). Zwischen Anforderung und
+Zustellung kann der Grund entfallen – und genau dann sprach die Regel gegen
+sich selbst:
+
+- `_on_frame_swapped` setzte `_has_rendered`/`_refused_paints = 0`, ließ aber
+  `_fail_pending` stehen und den Timer laufen; `_report_missing_framebuffer`
+  prüfte `_has_rendered` nicht. Ein Frame **nach** der Dreierschwelle stufte
+  den gesunden Viewer also trotzdem ab.
+- Dasselbe im Kontextwechsel: `_on_context_about_to_be_destroyed` nullt den
+  Zähler mit der ausdrücklichen Begründung, eine Abweisung aus dem alten
+  Kontext dürfe den neuen nicht belasten – die angeforderte Abstufung tat es
+  weiter.
+- Die Meldung verriet den Ablauf: „**0** Anforderungen abgewiesen, kein Frame".
+  Beide Rücksetzer nullen den Zähler, den der Reporter erst danach ausliest.
+
+Das ist die Fehlerrichtung, die der #1004-Nachtrag ausschließt („darf nur
+zusätzliche Fehler *finden*, nie welche *erfinden*"), und plattformunabhängig –
+ausgelöst wird sie von einem späten ersten Frame-Tausch, also genau der Lage,
+die #1010 auf `cocoa` vermutet. Ein Fehlalarm dort hätte wie der gesuchte
+Befund ausgesehen und zur falschen Konsequenz geführt (Schwelle
+plattformbewusst statt Fix im Freispruchsweg).
+
+**Der Fix** ist die gemeinsame Rücknahme `_clear_pending_failure` an beiden
+Rücksetzern plus eine zweite Barriere im Reporter. Wirksam ist das `stop()` –
+ein Single-Shot-Timer im selben Thread nimmt sein anstehendes Ereignis mit.
+`_fail_pending` im Reporter ist ausdrücklich **defensiv**: Diese Reihenfolge
+ist Qt-Beobachtungswissen, kein zugesicherter Vertrag, und der Preis einer
+Prüfung ist ein `if` (Review PR #1023 – dieselbe Zurückhaltung, mit der der
+#1004-Nachtrag den `singleShot(0)`-Ansatz gemessen verwarf statt ihn
+anzunehmen). Der Zustand [F] bleibt unverändert erreichbar; nur die
+zurückgenommene Anforderung erreicht ihn nicht mehr.
+
+**Nachweis.** Drei GL-freie Regressionstests neben den bestehenden
+#1004-Tests: Frame nach der Schwelle, Kontextwechsel nach der Schwelle (beide
+mit Negativkontrolle gegen den ungefixten Stand) und der Reporter-Guard, direkt
+aufgerufen. Der dritte ist nicht redundant: Die ersten beiden stoppen den Timer
+und betreten den Reporter nie – ohne ihn wäre die defensive Barriere
+streichbar, ohne dass etwas rot wird (Review PR #1023); die bestehende
+Schwellen-Prüfung hält jetzt zusätzlich fest, dass die Meldung die **echte**
+Zahl trägt. Die Erwartungstabelle der Sonde in
+[`TESTING.md`](../../TESTING.md) ist nachgezogen: `has_failed=True` bei
+`_has_rendered=True` ist seither kein bekannter Ablauf-Fehler mehr, sondern ein
+neuer Befund.
