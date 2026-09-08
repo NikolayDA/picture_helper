@@ -269,7 +269,7 @@ Ein Paket, `bgremover/`:
   Fehlermeldung als `failure_reason` durch: Ein blankes „Nativer GL-Frame
   fehlgeschlagen" ließe einen Wächter-Fehlalarm wie einen Renderfehler
   aussehen. Auf `cocoa` ist `frameSwapped` seit #1010 **gemessen** (Abnahme-
-  Runner, Apple M3 Max, macOS 26.6.2, Qt 6.11.0): erster Frame-Tausch nach dem
+  Runner, Apple M3 Max, macOS 26.6.2, Qt-Laufzeit 6.11.2): erster Frame-Tausch nach dem
   zweiten Paint, jeder Paint mit Framebuffer, in keiner Lage [F] – wie auf
   `xcb`/llvmpipe und `wayland`/V3D (Pi 5); nur `offscreen` hält nie einen
   Framebuffer. Die Sonde ist `scripts/render_proof_probe.py` (Zähler je Lage:
