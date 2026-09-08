@@ -112,6 +112,8 @@ flowchart TD
     DA3["Befund N6: alle sechs Dateien angleichen<br/>ci.yml, pr-ci.yml, ui-nightly.yml, benchmark.yml, coverage.yml, session-start.sh"]
     DQ4{"ANLEITUNG.md oder scripts/generate_anleitung_pdf.py geändert?"}
     DA4["ANLEITUNG.pdf im selben Commit neu erzeugen<br/>pip install -e '.[docs]' · python scripts/generate_anleitung_pdf.py<br/>Wächter tests/test_anleitung_pdf_sync.py prüft die Git-Mitänderung"]
+    DQ6{"Abhängigkeit oder Pin in pyproject.toml bzw. requirements/constraints.txt geändert?"}
+    DA6["Lizenz-Snapshot im selben Commit neu erzeugen<br/>in einem frischen venv wie der Workflow: Python 3.12, pip install --constraint requirements/constraints.txt '.[ai,test]', nichts sonst · python scripts/generate_license_report.py --report LICENSES.md --all-langs<br/>license-check.yml vergleicht LICENSES.md und die fünf Übersetzungen fail-closed; make check prüft nur die Titelversion"]
     DQ5{"Berührt der Commit einen Pfad, den release/path-policy.json nicht kennt?"}
     DA5["Pfadpolicy im selben PR nachziehen<br/>Eintrag ergänzen (release-neutral nur eng begründet); policy_version nur bei Semantikänderung anheben, dann Versionszeile im aktiven Freeze-Dokument nachziehen<br/>unbekannte Pfade blockieren fail-closed in release-freeze-check (make pr-check, PR-CI) — make check sieht sie nicht"]
   end
@@ -140,8 +142,10 @@ flowchart TD
   DQ2 -->|"nein"| DQ3
   DQ3 -->|"ja"| DA3 --> DQ4
   DQ3 -->|"nein"| DQ4
-  DQ4 -->|"ja"| DA4 --> DQ5
-  DQ4 -->|"nein"| DQ5
+  DQ4 -->|"ja"| DA4 --> DQ6
+  DQ4 -->|"nein"| DQ6
+  DQ6 -->|"ja"| DA6 --> DQ5
+  DQ6 -->|"nein"| DQ5
   DQ5 -->|"ja"| DA5 --> G1
   DQ5 -->|"nein"| G1
   G1 --> G2 --> G3 --> GQ
@@ -197,6 +201,20 @@ flowchart TD
   Policy-Pflege damit an den Inhaltskandidaten koppelte; nur
   Umklassifizierungen, neue Klassen, geänderte Fail-closed-Regeln und die
   Rollover-Pflege bumpen — im Zuge des nächsten Freeze-Dokuments.
+- Der Lizenz-Snapshot ist die dritte Pflicht mit versetztem Wächter: `make
+  check` prüft über `tests/test_licenses_version.py` nur, dass die Version im
+  Titel zur `pyproject.toml` passt; die Paketliste vergleicht erst
+  `license-check.yml` auf dem PR, indem es den Report neu erzeugt und
+  fail-closed gegen `LICENSES.md` samt der fünf Übersetzungen hält. Weil der
+  Report aus den **installierten** Metadaten entsteht, ist er nur in einem
+  frischen venv wie dem des Workflows reproduzierbar (Python 3.12,
+  `--constraint requirements/constraints.txt`, Extra `[ai,test]`, sonst
+  nichts): Ohne das `ai`-Extra fehlen Pakete, mit einem zusätzlich
+  installierten Extra kommen welche dazu — der Generator läuft über alle
+  Extra-Gruppen und nimmt auf, was tatsächlich installiert ist. Die
+  `.[docs]`-Umgebung aus der Pflicht davor ist deshalb kein geeigneter Ort.
+  Zuletzt fällig mit #1019 (`pyyaml` im `[test]`-Extra, sechs
+  Snapshot-Dateien mitgezogen).
 ---
 
 ## 2. Pull Request erstellen
@@ -374,7 +392,8 @@ flowchart TD
     IQ{"Closing-Verknüpfung vorhanden?"}
     N1["verknüpfte Issues schließen automatisch"]
     N2["push auf main<br/>coverage.yml, codeql.yml, license-check.yml"]
-    N3["Ereignis issues closed<br/>recommendations-live-check.yml prüft gegen den Live-Stand"]
+    NEV(("Ereignis issues opened oder reopened<br/>auch ohne PR")):::terminal
+    N3["recommendations-live-check.yml prüft gegen den Live-Stand<br/>Trigger sind issues-Ereignisse, kein Merge und kein Push"]
     NQ{"Drift in der Triage-Tabelle?"}
     N4["Kurzstatus lokal in sechs Sprachfassungen nachziehen<br/>scripts/recommendations_live_check.py --write, prüfen, committen und per Folge-PR einreichen"]
   end
@@ -392,8 +411,10 @@ flowchart TD
   MQ -->|"ja"| M2 --> J3
   MQ -->|"nein"| J3
   J2 --> IQ
-  IQ -->|"ja"| N1 --> N3 --> NQ
+  IQ -->|"ja"| N1 --> N3
   IQ -->|"nein"| J3
+  NEV --> N3
+  N3 --> NQ
   J2 --> N2
   NQ -->|"ja"| N4 --> FOLGE["Artefakt: Folge-PR eingereicht"] --> J3
   NQ -->|"nein"| J3
@@ -416,6 +437,16 @@ flowchart TD
   Bot-Befunde sind Input der Merge-Entscheidung, keine Merge-Bedingung –
   konvergieren Befunde nicht mehr (jeder Fix zieht neue oder umformulierte
   nach), ist Aufhören die richtige Auflösung, nicht der nächste Fix-Push.
+- Der Live-Check hängt am `issues`-Ereignis, nicht am Merge: Eine
+  Closing-Verknüpfung erreicht ihn nur mittelbar, weil das Schließen selbst
+  das Ereignis auslöst; ein Merge ohne Verknüpfung löst gar nichts aus.
+  Dieselbe Prüfung startet aber unabhängig von jedem PR bei `opened` und
+  `reopened` sowie über die unten genannten Zeitplan- und Folgeeinstiege.
+  Drift entsteht deshalb in beide Richtungen: Ein neu eröffnetes Issue fehlt
+  in der Triage-Tabelle, ein gemergter Fix lässt eine Zeile zurück. Im
+  Fenster #1007–#1029 waren beide Richtungen je dreimal fällig
+  (#1011/#1017/#1025 ergänzt, #1020/#1022/#1027 entfernt); der Nachzug ist
+  jedes Mal ein eigener Folge-PR.
 - Squash-Merge ist die aus der `main`-Historie belegte Projektpraxis. GitHub
   erzwingt sie nicht: Auch Merge-Commit und Rebase sind freigeschaltet.
 - Ein formales `APPROVED`-Review ist derzeit keine Branch-Protection-Pflicht.
@@ -562,9 +593,9 @@ flowchart TD
   subgraph OWN["Partition: Release-Owner"]
     direction TB
     T1["Schritt 7 · Tag setzen<br/>von Hand oder per create_tag im Publish-Lauf<br/>immer auf candidate.head_sha aus dem Manifest, danach verifiziert"]
-    T2["Schritt 8 · Veröffentlichung starten<br/>verify-release-ref, dann gh workflow run release-publish.yml --ref RELEASE_REF<br/>mit tag, candidate_run_id, acceptance_run_id, approval_artifact_name<br/>create_tag und predecessor_tag optional"]
+    T2["Schritt 8 · Veröffentlichung starten<br/>verify-release-ref, dann gh workflow run release-publish.yml --ref RELEASE_REF<br/>mit tag, candidate_run_id, acceptance_run_id, approval_artifact_name<br/>create_tag und predecessor_tag optional; target_issue schaltet die Issue-Kommentare frei"]
     T3["Schritt 9 · öffentliche Prüfung<br/>public-download-report.json lesen: Gesamtverdikt und jedes Asset auf PASS<br/>sichtbare Produktversion auf den aktiven Plattformen prüfen<br/>Handprozedur nur als Rückfallweg, wenn der Nachweis-Job nicht lief"]
-    T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>vom Publish-Lauf ausgelöst (Job update-dispatch, Marker im run-name)<br/>gleiche run_id, platforms=alle, predecessor_tag<br/>manueller Start bleibt Rückfallweg"]
+    T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>vom Publish-Lauf ausgelöst (Job update-dispatch, Marker im run-name)<br/>gleiche run_id, platforms=alle, predecessor_tag, target_issue<br/>ohne target_issue bleiben Matrix und Instanz Artefakt und Job-Summary<br/>manueller Start bleibt Rückfallweg"]
     T5["Instanz prüfen<br/>Publish-Lauf setzt PUBLISH-01 bis 03 und PUBLIC-DOWNLOAD-01 (bis Phase publish)<br/>ausgelöster Abnahme-Lauf trägt beide UPDATE-Kriterien nach (bis post-release)<br/>set-criterion von Hand bleibt Rückfallweg"]
   end
 
