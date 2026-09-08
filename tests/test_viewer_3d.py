@@ -7,6 +7,8 @@ propagiert aber nie eine Exception.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 from PyQt6.QtCore import QEvent, QPoint, QPointF, Qt
@@ -681,6 +683,88 @@ def test_a_context_loss_clears_the_refusal_count(qapp, monkeypatch) -> None:
 
     assert viewer._refused_paints == 0
     assert viewer.has_failed is False
+
+
+# ── Drift-Schutz: dokumentierte Renderbeweis-Sonde (#1010) ───────────────
+
+
+_PROBE_VIEWER_API = (
+    "set_mesh",
+    "frameSwapped",
+    "defaultFramebufferObject",
+    "paintEvent",
+    "paintGL",
+    "cleanup_gl",
+    "_has_rendered",
+    "_refused_paints",
+    "has_failed",
+    "failure_reason",
+)
+
+
+def _documented_probe_source() -> str:
+    """Der Python-Teil der Sonde aus ``TESTING.md`` (Heredoc im bash-Block)."""
+    text = (Path(__file__).resolve().parent.parent / "TESTING.md").read_text(
+        encoding="utf-8"
+    )
+    start = text.find("### Renderbeweis-Sonde")
+    assert start != -1, (
+        "Abschnitt „### Renderbeweis-Sonde\" in TESTING.md nicht gefunden – "
+        "Überschrift geändert? Anker hier nachziehen."
+    )
+    body = text[start:]
+    open_marker = body.find("<<'PY'\n")
+    close_marker = body.find("\nPY\n", open_marker)
+    assert open_marker != -1 and close_marker != -1, (
+        "Heredoc der Sonde (<<'PY' … PY) in TESTING.md nicht gefunden – "
+        "Codeblock umgebaut? Anker hier nachziehen."
+    )
+    return body[open_marker + len("<<'PY'\n") : close_marker]
+
+
+def test_documented_render_proof_probe_matches_the_viewer_api(qapp) -> None:
+    """Die Sonde in TESTING.md muss zur echten Viewer-API passen (#1010).
+
+    Sie ist bewusst kein committetes Skript (Issue-Vorgabe) und läuft genau
+    einmal, auf fremder Hardware, Wochen später – eine Umbenennung von
+    ``_refused_paints`` fiele sonst erst dort auf, im ungünstigsten Moment.
+    Geprüft wird beides: dass der Codeblock syntaktisch gültig ist, dass seine
+    Importe aus ``bgremover`` existieren, und dass die ausgewerteten
+    Viewer-Namen an einem echten Viewer vorhanden sind.
+    """
+    import ast
+    import importlib
+
+    quelle = _documented_probe_source()
+    baum = ast.parse(quelle, filename="TESTING.md:Renderbeweis-Sonde")
+
+    fehlende_importe: list[str] = []
+    for knoten in ast.walk(baum):
+        if isinstance(knoten, ast.ImportFrom) and (knoten.module or "").startswith(
+            "bgremover"
+        ):
+            modul = importlib.import_module(knoten.module or "")
+            fehlende_importe += [
+                f"{knoten.module}.{alias.name}"
+                for alias in knoten.names
+                if not hasattr(modul, alias.name)
+            ]
+    assert not fehlende_importe, (
+        f"Die Sonde in TESTING.md importiert {fehlende_importe} – so nicht "
+        "mehr vorhanden. Prozedur nachziehen."
+    )
+
+    viewer = GLReliefViewer()
+    fehlende_api = [name for name in _PROBE_VIEWER_API if not hasattr(viewer, name)]
+    assert not fehlende_api, (
+        f"Die Sonde in TESTING.md wertet {fehlende_api} aus – am Viewer nicht "
+        "mehr vorhanden. Prozedur nachziehen."
+    )
+    ungenannt = [name for name in _PROBE_VIEWER_API if name not in quelle]
+    assert not ungenannt, (
+        f"{ungenannt} steht in dieser Liste, aber nicht mehr in der Sonde – "
+        "die Liste beschreibt sonst eine Prozedur, die es so nicht gibt."
+    )
 
 
 def test_refusals_reach_the_container_as_the_documented_error_state(
