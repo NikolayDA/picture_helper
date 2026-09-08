@@ -57,13 +57,33 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-from PyQt6.QtCore import PYQT_VERSION_STR, QT_VERSION_STR, QElapsedTimer, QEventLoop, QTimer
-from PyQt6.QtWidgets import QApplication, QWidget
+# Die Laufzeit-Importe stehen unter dem Exit-Vertrag (Codex-Review PR #1029):
+# Fehlt PyQt6 – oder darunter ``libGL.so.1`` beim Laden von ``QtWidgets`` –,
+# endete das Skript sonst mit rohem Traceback und Exit 1, bevor ``main`` einen
+# Handler erreicht. Als Skript gestartet wird daraus der benannte Befund
+# „nicht ausführbar" (Exit 2); als Modul importiert (Tests) bleibt es die
+# gewöhnliche Ausnahme.
+try:
+    import numpy as np
+    from PyQt6.QtCore import (
+        PYQT_VERSION_STR,
+        QT_VERSION_STR,
+        QElapsedTimer,
+        QEventLoop,
+        QRect,
+        QTimer,
+        qVersion,
+    )
+    from PyQt6.QtWidgets import QApplication, QWidget
 
-from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
-from bgremover.relief_mesh import MeshQuality, build_relief_mesh
-from bgremover.viewer_3d import GLReliefViewer
+    from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
+    from bgremover.relief_mesh import MeshQuality, build_relief_mesh
+    from bgremover.viewer_3d import GLReliefViewer
+except Exception as exc:  # noqa: BLE001 – jeder Importfehler ist derselbe Befund
+    if __name__ != "__main__":
+        raise
+    print(f"[render-probe] nicht ausführbar: {type(exc).__name__}: {exc}", file=sys.stderr)
+    raise SystemExit(2) from None
 
 #: Die drei Lagen der Messung, in dieser Reihenfolge.
 LAGEN: tuple[str, ...] = ("sichtbar", "verborgen", "verdeckt")
@@ -130,16 +150,24 @@ class Messung:
     refused_paints: int
     has_failed: bool
     grund: str
+    #: Was die Plattform über die Lage weiß – nur für ``verdeckt`` gefüllt
+    #: (Codex-Review PR #1029): ob der Deckel den Viewer laut Qt umschließt
+    #: und ob dessen Fenster ``exposed`` ist. Unter Wayland bleibt die
+    #: Verdeckung unbestätigt, der Compositor setzt Position und Stapelung.
+    hinweis: str = ""
 
     def zeile(self) -> str:
         """Die dokumentierte Ausgabezeile – wörtlich so gehört sie ins Issue."""
-        return (
+        zeile = (
             f"{self.lage:<10} paintEvents={self.paint_events} fbo={self.fbos} "
             f"paintGL={self.paint_gl} frameSwapped={self.frame_swapped} "
             f"erster_swap={self.erster_swap} _has_rendered={self.has_rendered} "
             f"_refused_paints={self.refused_paints} has_failed={self.has_failed} "
             f"grund={self.grund!r}"
         )
+        if self.hinweis:
+            zeile += f" hinweis={self.hinweis!r}"
+        return zeile
 
 
 def _warte(ms: int) -> None:
@@ -187,6 +215,39 @@ def _renderer(viewer: GLReliefViewer) -> str:
     return str(value or "")
 
 
+def _rect(r: QRect) -> str:
+    return f"{r.x()},{r.y()} {r.width()}×{r.height()}"
+
+
+def verdeckung(app: QApplication, viewer: QWidget, deckel: QWidget) -> str:
+    """Was die Plattform über die Verdeckung weiß – belegt ist sie nie ganz.
+
+    ``setGeometry``/``raise_`` sind Wünsche an den Fenstermanager (Codex-Review
+    PR #1029). Unter Wayland setzt der Compositor Position und Stapelung selbst
+    und liefert Qt keine globalen Koordinaten – die Lage ist dort grundsätzlich
+    unbestätigt, die Zeile belegt nur „nie ``has_failed``". Sonst wird die
+    Rahmengeometrie verglichen; ``isExposed()`` des Viewer-Fensters kommt in
+    jedem Fall dazu (auf ``cocoa`` spiegelt es die Occlusion des Systems).
+    """
+    fenster = viewer.windowHandle()
+    exposed = fenster.isExposed() if fenster is not None else None
+    if app.platformName().startswith("wayland"):
+        return (
+            "Verdeckung unbestätigt (Wayland: Compositor setzt Position und Stapelung); "
+            f"exposed={exposed}"
+        )
+    if not deckel.frameGeometry().contains(viewer.frameGeometry()):
+        return (
+            f"Verdeckung unbestätigt (Deckel {_rect(deckel.frameGeometry())} umschließt "
+            f"Viewer {_rect(viewer.frameGeometry())} nicht); exposed={exposed}"
+        )
+    return (
+        f"Deckel {_rect(deckel.frameGeometry())} umschließt Viewer "
+        f"{_rect(viewer.frameGeometry())}, Stapelung per raise_() angefordert; "
+        f"exposed={exposed}"
+    )
+
+
 def messe(app: QApplication, lage: str, ms: int = DEFAULT_MS) -> tuple[Messung, str]:
     """Misst eine Lage und liefert Endstand plus GL-Renderer (falls lesbar)."""
     if lage not in LAGEN:
@@ -216,6 +277,7 @@ def messe(app: QApplication, lage: str, ms: int = DEFAULT_MS) -> tuple[Messung, 
         refused_paints=int(v._refused_paints),
         has_failed=bool(v.has_failed),
         grund=str(v.failure_reason),
+        hinweis=verdeckung(app, v, deckel) if deckel is not None else "",
     )
     renderer = _renderer(v) if lage != "verborgen" else ""
     v.cleanup_gl()
@@ -262,12 +324,19 @@ def _betriebssystem() -> str:
 
 
 def umgebung(app: QApplication) -> dict[str, str]:
-    """Provenienz der Messung – Gerät, OS, Architektur, Qt/PyQt, Qt-Plattform."""
+    """Provenienz der Messung – Gerät, OS, Architektur, Qt/PyQt, Qt-Plattform.
+
+    ``qt`` ist die **geladene** Qt-Laufzeit (``qVersion()``), nicht die
+    Version, gegen die die Bindings übersetzt wurden (``QT_VERSION_STR``,
+    hier als ``qt_bindings``): Die Pins koppeln PyQt6 6.11.0 mit PyQt6-Qt6
+    6.11.2, und gemessen wird die Laufzeit (Codex-Review PR #1029).
+    """
     return {
         "geraet": _geraet(),
         "os": _betriebssystem(),
         "arch": platform.machine(),
-        "qt": QT_VERSION_STR,
+        "qt": qVersion() or "",
+        "qt_bindings": QT_VERSION_STR,
         "pyqt": PYQT_VERSION_STR,
         "python": platform.python_version(),
         "plattform": app.platformName(),

@@ -371,7 +371,13 @@ gewöhnlicher GL-Fehler und gehört nicht in diesen Abschnitt – der Viewer
 scheitert dort **nach** einem gelieferten Frame, `_has_rendered=True` ist dann
 regulär. Die verdeckte Lage braucht
 zusätzlich einen echten Fenstermanager: Unter `xvfb-run` ohne WM verdeckt das
-zweite Fenster nichts und die Zeile misst dasselbe wie „sichtbar".
+zweite Fenster nichts und die Zeile misst dasselbe wie „sichtbar". Und
+`setGeometry`/`raise_()` sind nur Wünsche an den Fenstermanager – die Sonde
+hängt der Zeile deshalb ein `hinweis=` an: Unter Wayland setzt der Compositor
+Position und Stapelung selbst, die Verdeckung bleibt dort **unbestätigt** und
+die Zeile belegt nur „nie `has_failed`"; auf `cocoa`/`xcb` steht drin, ob der
+Deckel den Viewer geometrisch umschließt und ob dessen Fenster noch `exposed`
+ist.
 
 Das Ergebnis gehört in den ADR-Nachtrag (eine Tabellenzeile je Lage; die
 `--summary`-Tabelle hat dasselbe Spaltenschema, nur die letzte Zelle

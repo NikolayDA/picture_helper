@@ -90,6 +90,10 @@ def test_the_documented_line_format_is_stable(probe) -> None:
     ).zeile()
     assert "fbo=[0, 0, 0]" in kaputt and "erster_swap=None" in kaputt
     assert kaputt.endswith("grund='paintEvent: Qt hält keinen Widget-Framebuffer (3 Anforderungen abgewiesen, kein Frame)'")
+    # Der Hinweis (nur „verdeckt") hängt hinten an und lässt die übrigen Felder unverändert.
+    mit_hinweis = _messung(probe, lage="verdeckt", hinweis="Verdeckung unbestätigt (Wayland)").zeile()
+    assert mit_hinweis.startswith("verdeckt   paintEvents=2 ")
+    assert mit_hinweis.endswith("grund='' hinweis='Verdeckung unbestätigt (Wayland)'")
 
 
 def test_the_header_line_carries_the_provenance(probe) -> None:
@@ -202,3 +206,56 @@ def test_an_unwritable_output_path_is_a_warning_not_a_failure(tmp_path: Path) ->
     assert lauf.stdout.splitlines()[1].startswith("verborgen  paintEvents=0 ")
     assert "[render-probe] Warnung: --summary" in lauf.stderr
     assert "[render-probe] Warnung: --json-out" in lauf.stderr
+
+
+def test_the_environment_reports_the_loaded_qt_runtime(probe, qapp) -> None:
+    """Codex-Review PR #1029: Die Pins koppeln PyQt6 6.11.0 mit PyQt6-Qt6 6.11.2 –
+    ``QT_VERSION_STR`` nennt die Bindings, gemessen wird aber die Laufzeit."""
+    from PyQt6.QtCore import QT_VERSION_STR, qVersion
+
+    env = probe.umgebung(qapp)
+    assert env["qt"] == qVersion()
+    assert env["qt_bindings"] == QT_VERSION_STR
+    assert f"Qt {qVersion()} / PyQt " in probe.kopfzeile(env)
+
+
+def test_the_cover_position_is_reported_honestly(probe, qapp, monkeypatch) -> None:
+    """Codex-Review PR #1029: ``setGeometry``/``raise_`` sind Wünsche an den
+    Fenstermanager. Unter Wayland ist die Verdeckung grundsätzlich unbestätigt,
+    sonst wird die Rahmengeometrie verglichen – und ``exposed`` steht immer dabei."""
+    from PyQt6.QtWidgets import QWidget
+
+    viewer, deckel = QWidget(), QWidget()
+    viewer.setGeometry(120, 120, 240, 200)
+    deckel.setGeometry(40, 40, 400, 360)
+    try:
+        hinweis = probe.verdeckung(qapp, viewer, deckel)
+        assert "exposed=" in hinweis
+        assert hinweis.startswith(("Deckel ", "Verdeckung unbestätigt (Deckel "))
+
+        deckel.setGeometry(0, 0, 10, 10)
+        assert probe.verdeckung(qapp, viewer, deckel).startswith("Verdeckung unbestätigt (Deckel ")
+
+        monkeypatch.setattr(probe.QApplication, "platformName", staticmethod(lambda: "wayland"))
+        assert probe.verdeckung(qapp, viewer, deckel).startswith(
+            "Verdeckung unbestätigt (Wayland: Compositor setzt Position und Stapelung)"
+        )
+    finally:
+        viewer.deleteLater()
+        deckel.deleteLater()
+
+
+def test_a_missing_qt_runtime_is_the_named_finding_not_a_traceback(tmp_path: Path) -> None:
+    """Codex-Review PR #1029: Fehlt PyQt6 (oder libGL.so.1 darunter), muss die
+    Sonde als Skript „nicht ausführbar" mit Exit 2 melden – nicht mit rohem
+    Traceback und Exit 1 vor jedem Handler."""
+    fake = tmp_path / "PyQt6"
+    fake.mkdir()
+    (fake / "__init__.py").write_text(
+        'raise ImportError("libGL.so.1: cannot open shared object file")\n', encoding="utf-8"
+    )
+    lauf = _run("--lage", "verborgen", "--ms", "50",
+                env={"PYTHONPATH": str(tmp_path) + os.pathsep + os.environ.get("PYTHONPATH", "")})
+    assert lauf.returncode == 2, (lauf.returncode, lauf.stderr)
+    assert "[render-probe] nicht ausführbar: ImportError: libGL.so.1" in lauf.stderr
+    assert "Traceback" not in lauf.stderr
