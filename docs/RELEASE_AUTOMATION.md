@@ -1066,6 +1066,23 @@ Betriebs-Issue als Ziel. Für alle drei Stufen dreimal dispatchen mit Datum
 = heute − 7, − 12 und − 21 und den E-Mail-Eingang im Test-Issue
 protokollieren.
 
+**Renderbeweis-Sonde auf Zuruf (#1010).** Per `workflow_dispatch` mit
+`render_probe: true` fährt jeder aktive Runner-Job **nach** dem Preflight
+`scripts/render_proof_probe.py` – dieselbe Sonde wie die Prozedur
+„Renderbeweis-Sonde" in [`TESTING.md`](../TESTING.md), aber auf dem Gerät und
+in dessen nativer Sitzungsplattform (`cocoa`, `wayland`/`xcb`). Sie zählt je
+Lage (sichtbar/verborgen/verdeckt) `frameSwapped`, `defaultFramebufferObject()`
+je Paint und die Endzähler des Renderbeweises (#1004); Kopfzeile und die drei
+Zeilen stehen im Joblog des Plattform-Jobs, die Tabelle in dessen
+Job-Zusammenfassung – die Zeilen gehören in den ADR-Nachtrag
+[`ADR-2026-3d-reliefvorschau-renderer.md`](history/ADR-2026-3d-reliefvorschau-renderer.md).
+Die Sonde läuft in einem eigenen venv aus den Release-Pins (die
+Preflight-Runtime trägt nur die Qt-Pins) und **bewertet nicht**: Ein
+Messbefund macht den Lauf nie rot, nur eine nicht ausführbare Sonde (Exit 2)
+ist ein Gerätebefund wie jeder andere Schritt. Der tägliche Lauf bleibt davon
+unberührt – ohne den Schalter existiert der Schritt nicht.
+`tests/test_runner_heartbeat_workflow.py` hält Gate, Reihenfolge und Pins.
+
 **Wartungsfenster.** Für geplante Eingriffe pausieren:
 
 | Variable | Wert |

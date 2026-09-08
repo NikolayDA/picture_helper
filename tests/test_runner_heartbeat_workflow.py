@@ -620,7 +620,11 @@ def test_simulation_inputs_reach_the_script_together() -> None:
     doc = _load(HEARTBEAT)
     triggers = doc[True] if True in doc else doc["on"]
     inputs = triggers["workflow_dispatch"]["inputs"]
-    assert set(inputs) == {"simulate_offline_since", "simulate_target_issue", "simulate_platform"}
+    # Genau diese Eingaben – ``render_probe`` (#1010) ist der einzige Schalter,
+    # der bewusst NICHT ans Skript geht: Er gated einen Schritt der Runner-Jobs.
+    assert set(inputs) == {
+        "simulate_offline_since", "simulate_target_issue", "simulate_platform", "render_probe",
+    }
     assert inputs["simulate_offline_since"]["default"] == ""
     assert inputs["simulate_target_issue"]["default"] == ""
     assert set(inputs["simulate_platform"]["options"]) == set(PLATFORMS)
@@ -629,3 +633,42 @@ def test_simulation_inputs_reach_the_script_together() -> None:
         assert flag in watch["run"], flag
     for name in ("SIMULATE_OFFLINE_SINCE", "SIMULATE_TARGET_ISSUE", "SIMULATE_PLATFORM"):
         assert name in watch["env"], name
+
+
+# ── Renderbeweis-Sonde auf Zuruf (#1010) ────────────────────────────────
+
+def test_the_render_probe_runs_only_on_demand_after_the_preflight() -> None:
+    """#1010: Die Renderbeweis-Sonde ist ein Dispatch-Schalter, kein Tagesjob.
+
+    Der taegliche Lauf bleibt der Minimaljob aus #921. Auf Zuruf
+    (``render_probe: true``) faehrt jeder Runner-Job nach dem Preflight
+    ``scripts/render_proof_probe.py`` in einem eigenen venv aus den
+    Release-Pins – dieselbe Sonde wie die Prozedur in TESTING.md, aber auf
+    dem Geraet. Ein Schritt ohne Gate liefe taeglich und kostete den
+    venv-Bau bei jedem Heartbeat; einer vor dem Preflight misst ein Geraet,
+    dessen Bereitschaft noch niemand belegt hat.
+    """
+    doc = _load(HEARTBEAT)
+    triggers = doc[True] if True in doc else doc["on"]
+    schalter = triggers["workflow_dispatch"]["inputs"]["render_probe"]
+    assert schalter["type"] == "boolean" and schalter["default"] is False
+    for name, job in _self_hosted_jobs(HEARTBEAT).items():
+        steps = job["steps"]
+        preflight = [
+            i for i, step in enumerate(steps)
+            if "abnahme_preflight.py" in str(step.get("run", ""))
+        ]
+        probe = [
+            (i, step) for i, step in enumerate(steps)
+            if "scripts/render_proof_probe.py" in str(step.get("run", ""))
+        ]
+        assert len(preflight) == 1 and len(probe) == 1, name
+        index, step = probe[0]
+        assert index > preflight[0], f"{name}: Sonde vor dem Preflight"
+        bedingung = str(step.get("if", ""))
+        assert "inputs.render_probe" in bedingung, name
+        assert "workflow_dispatch" in bedingung, name
+        run = str(step["run"])
+        assert "requirements/constraints.txt" in run, name
+        assert "unset QT_QPA_PLATFORM" in run, name
+        assert "GITHUB_STEP_SUMMARY" in run, name
