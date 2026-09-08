@@ -757,7 +757,7 @@ def test_a_context_loss_clears_the_refusal_count(qapp, monkeypatch) -> None:
     assert viewer.has_failed is False
 
 
-# ── Drift-Schutz: dokumentierte Renderbeweis-Sonde (#1010) ───────────────
+# ── Drift-Schutz: Renderbeweis-Sonde scripts/render_proof_probe.py (#1010) ──
 
 
 _PROBE_VIEWER_API = (
@@ -774,24 +774,20 @@ _PROBE_VIEWER_API = (
 )
 
 
-def _documented_probe_source() -> str:
-    """Der Python-Teil der Sonde aus ``TESTING.md`` (Heredoc im bash-Block)."""
-    text = (Path(__file__).resolve().parent.parent / "TESTING.md").read_text(
-        encoding="utf-8"
+#: Die Sonde ist seit #1010 ein Skript, kein Heredoc in TESTING.md mehr: Der
+#: Heartbeat-Dispatch (``render_probe: true``) braucht einen festen
+#: Einstiegspunkt, und eine zweite Kopie in der Doku wäre genau der Drift,
+#: den diese Wächter abfangen.
+_PROBE_SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "render_proof_probe.py"
+
+
+def _probe_source() -> str:
+    """Der Quelltext der Sonde ``scripts/render_proof_probe.py``."""
+    assert _PROBE_SCRIPT.exists(), (
+        f"{_PROBE_SCRIPT.name} fehlt – die Renderbeweis-Sonde (#1010) ist "
+        "verschoben oder umbenannt? Anker hier und in TESTING.md nachziehen."
     )
-    start = text.find("### Renderbeweis-Sonde")
-    assert start != -1, (
-        "Abschnitt „### Renderbeweis-Sonde\" in TESTING.md nicht gefunden – "
-        "Überschrift geändert? Anker hier nachziehen."
-    )
-    body = text[start:]
-    open_marker = body.find("<<'PY'\n")
-    close_marker = body.find("\nPY\n", open_marker)
-    assert open_marker != -1 and close_marker != -1, (
-        "Heredoc der Sonde (<<'PY' … PY) in TESTING.md nicht gefunden – "
-        "Codeblock umgebaut? Anker hier nachziehen."
-    )
-    return body[open_marker + len("<<'PY'\n") : close_marker]
+    return _PROBE_SCRIPT.read_text(encoding="utf-8")
 
 
 #: Aufrufe der Sonde, die gegen die echte Signatur gebunden werden (#1010).
@@ -815,7 +811,7 @@ def test_documented_probe_calls_bind_against_the_real_signatures() -> None:
     import ast
     import inspect
 
-    quelle = _documented_probe_source()
+    quelle = _probe_source()
     gebunden: set[str] = set()
     for knoten in ast.walk(ast.parse(quelle)):
         if not isinstance(knoten, ast.Call) or not isinstance(knoten.func, ast.Name):
@@ -829,8 +825,8 @@ def test_documented_probe_calls_bind_against_the_real_signatures() -> None:
             inspect.signature(ziel).bind_partial(*args, **kwargs)
         except TypeError as exc:
             raise AssertionError(
-                f"Die Sonde in TESTING.md ruft {knoten.func.id} so nicht mehr "
-                f"gültig auf ({exc}). Prozedur nachziehen."
+                f"Die Sonde {_PROBE_SCRIPT.name} ruft {knoten.func.id} so nicht "
+                f"mehr gültig auf ({exc}). Sonde nachziehen."
             ) from exc
         gebunden.add(knoten.func.id)
 
@@ -841,20 +837,20 @@ def test_documented_probe_calls_bind_against_the_real_signatures() -> None:
 
 
 def test_documented_render_proof_probe_matches_the_viewer_api(qapp) -> None:
-    """Die Sonde in TESTING.md muss zur echten Viewer-API passen (#1010).
+    """Die Sonde muss zur echten Viewer-API passen (#1010).
 
-    Sie ist bewusst kein committetes Skript (Issue-Vorgabe) und läuft genau
-    einmal, auf fremder Hardware, Wochen später – eine Umbenennung von
-    ``_refused_paints`` fiele sonst erst dort auf, im ungünstigsten Moment.
-    Geprüft wird beides: dass der Codeblock syntaktisch gültig ist, dass seine
-    Importe aus ``bgremover`` existieren, und dass die ausgewerteten
-    Viewer-Namen an einem echten Viewer vorhanden sind.
+    Sie läuft selten, auf fremder Hardware, Wochen später (Abnahme-Runner,
+    Heartbeat-Dispatch) – eine Umbenennung von ``_refused_paints`` fiele sonst
+    erst dort auf, im ungünstigsten Moment; ``ruff`` sieht ein Attribut eines
+    Qt-Objekts nicht. Geprüft wird beides: dass ihre Importe aus ``bgremover``
+    existieren und dass die ausgewerteten Viewer-Namen an einem echten Viewer
+    vorhanden sind.
     """
     import ast
     import importlib
 
-    quelle = _documented_probe_source()
-    baum = ast.parse(quelle, filename="TESTING.md:Renderbeweis-Sonde")
+    quelle = _probe_source()
+    baum = ast.parse(quelle, filename=str(_PROBE_SCRIPT))
 
     fehlende_importe: list[str] = []
     for knoten in ast.walk(baum):
@@ -868,15 +864,15 @@ def test_documented_render_proof_probe_matches_the_viewer_api(qapp) -> None:
                 if not hasattr(modul, alias.name)
             ]
     assert not fehlende_importe, (
-        f"Die Sonde in TESTING.md importiert {fehlende_importe} – so nicht "
-        "mehr vorhanden. Prozedur nachziehen."
+        f"Die Sonde {_PROBE_SCRIPT.name} importiert {fehlende_importe} – so "
+        "nicht mehr vorhanden. Sonde nachziehen."
     )
 
     viewer = GLReliefViewer()
     fehlende_api = [name for name in _PROBE_VIEWER_API if not hasattr(viewer, name)]
     assert not fehlende_api, (
-        f"Die Sonde in TESTING.md wertet {fehlende_api} aus – am Viewer nicht "
-        "mehr vorhanden. Prozedur nachziehen."
+        f"Die Sonde {_PROBE_SCRIPT.name} wertet {fehlende_api} aus – am Viewer "
+        "nicht mehr vorhanden. Sonde nachziehen."
     )
     ungenannt = [name for name in _PROBE_VIEWER_API if name not in quelle]
     assert not ungenannt, (

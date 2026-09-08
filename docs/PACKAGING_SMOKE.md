@@ -189,24 +189,30 @@ sind. Die Meldung nennt den Grund dann wörtlich („Qt hält keinen
 Widget-Framebuffer"), statt nur „Nativer GL-Frame fehlgeschlagen" – ohne diese
 Unterscheidung sähe ein Wächter-Fehlalarm wie ein Renderfehler aus.
 
-Auf `cocoa` ist `frameSwapped` **ungemessen** (#1010): Der Beweis entstand
-nach v2.9.0, der erste Abnahmelauf mit einem Kandidaten, der ihn enthält,
-führt ihn also erstmals auf Apple-Hardware aus. Solange die Messung fehlt, ist
-sie **vor** diesem Lauf fällig, nicht danach – als Prozedur
-„Renderbeweis-Sonde" in [`../TESTING.md`](../TESTING.md), ihr Ergebnis
-(Plattform, Qt-Version, Zählerwerte je Lage) gehört in den ADR-Nachtrag
+Auf `cocoa` ist `frameSwapped` seit 2026-09-08 **gemessen** (#1010): Die
+Sonde `scripts/render_proof_probe.py` lief per Heartbeat-Dispatch auf dem
+macOS-arm64-Abnahme-Runner (Apple M3 Max, macOS 26.6.2, Qt-Laufzeit 6.11.2). Der erste
+Frame-Tausch kam nach dem zweiten Paint, jeder Paint trug bereits einen
+Widget-Framebuffer, in keiner Lage (sichtbar/verborgen/verdeckt) ein
+Fehlerzustand – Zählerwerte je Plattform im ADR-Nachtrag
 [`history/ADR-2026-3d-reliefvorschau-renderer.md`](history/ADR-2026-3d-reliefvorschau-renderer.md).
-Tritt der Befund ohne diese Messung im Abnahmelauf auf, gilt er **nicht** als
-Renderfehler, bevor die Sonde auf demselben Gerät gelaufen ist: Zeigt sie
-einen gesunden Viewer, ist es ein Wächter-Fehlalarm und braucht ein eigenes
-Issue (dann werden `_MAX_REFUSED_PAINTS` oder der Freispruchsweg
-plattformbewusst) – ein stiller Skip des Nachweises ist in keinem Fall die
-Antwort. Bis dahin bleibt `MACOS-ARM-DMG-01` schlicht unerfüllt: Das Kriterium
-erlaubt keinen Waiver, und ein technischer Ausfall wäre auch keiner
+Ein Wächter-Fehlalarm auf gesunder Apple-Hardware ist damit nicht der
+erwartete Fall; eine Messung auf einem Gerät ist aber keine auf jedem. Tritt
+der Befund im Abnahmelauf auf, gilt er deshalb **nicht** als Renderfehler,
+bevor die Sonde auf demselben Gerät gelaufen ist
+(`gh workflow run runner-heartbeat.yml -f render_probe=true`, Prozedur
+„Renderbeweis-Sonde" in [`../TESTING.md`](../TESTING.md)): Zeigt sie einen
+gesunden Viewer, ist es ein Wächter-Fehlalarm und braucht ein eigenes Issue
+(dann werden `_MAX_REFUSED_PAINTS` oder der Freispruchsweg plattformbewusst);
+zeigt sie denselben Befund, ist es ein Renderfehler des Geräts – ein stiller
+Skip des Nachweises ist in keinem Fall die Antwort. Bis zur Klärung bleibt
+`MACOS-ARM-DMG-01` schlicht unerfüllt: Das Kriterium erlaubt keinen Waiver,
+und ein technischer Ausfall wäre auch keiner
 ([`RELEASE_ACCEPTANCE_CHECKLIST.md`](RELEASE_ACCEPTANCE_CHECKLIST.md)) – ein
 `MUST` ohne `PASS` blockiert die Freigabe. Derselbe Beweis läuft im selben Job
 auch im nativen E2E-Schritt aus dem Quellbaum – ein Fehlalarm träfe
-`E2E-MACOS-ARM-01` gleichermaßen.
+`E2E-MACOS-ARM-01` gleichermaßen. Neu fällig ist die Messung vor dem ersten
+Abnahmelauf auf einer neuen Plattform und nach einem Qt-Sprung.
 
 EufyMake-Export-/2.7.0-Projekt-Zusatznachweis (#685-Review, kein GL nötig,
 funktioniert für AppImage/`.app`-Binary). Seit #686 prüft derselbe Hook auch

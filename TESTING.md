@@ -299,97 +299,50 @@ GPU-Klasse nur das Gerät.
 
 Der Renderbeweis aus #1004 (`bgremover/viewer_3d.py`) spricht einen Viewer
 frei, sobald Qt `frameSwapped` sendet, und stuft ihn nach drei
-aufeinanderfolgenden Paints ohne Widget-Framebuffer ab. Gemessen ist das auf
-`xcb` (feuert) und `offscreen` (feuert nie) – auf `cocoa` **nicht**. Weil
+aufeinanderfolgenden Paints ohne Widget-Framebuffer ab. Weil
 `bgremover/screenshot3d.py` seither `state`/`has_failed` liest, trägt der
-Beweis das MUSS-Kriterium `MACOS-ARM-DMG-01` mit: Ein gesunder Viewer, der auf
-`cocoa` seinen ersten Frame erst nach drei Paints tauschte, machte den nativen
-3D-Nachweis rot – als Wächter-Fehlalarm, nicht als Renderfehler. Die Messung
-gehört deshalb **vor** den nächsten Abnahmelauf.
+Beweis das MUSS-Kriterium `MACOS-ARM-DMG-01` mit: Ein gesunder Viewer, der
+seinen ersten Frame erst nach drei Paints tauschte, machte den nativen
+3D-Nachweis rot – als Wächter-Fehlalarm, nicht als Renderfehler. Die
+Messwerte je Plattform und Lage (Container `xcb`/`offscreen`, Abnahme-Runner
+`cocoa`) hält der ADR-Nachtrag
+[`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`](docs/history/ADR-2026-3d-reliefvorschau-renderer.md);
+neu fällig ist die Messung vor dem ersten Abnahmelauf auf einer neuen
+Plattform und nach einem Qt-Sprung.
 
-Sie läuft einmal je Plattform gegen den Quellbaum (nicht gegen ein Artefakt)
-und braucht bewusst kein committetes Skript – die Sonde zählt nur mit, was der
-Beweis ohnehin auswertet. Zwei Größen entscheiden die Frage: der
+Die Sonde ist `scripts/render_proof_probe.py`: eine Unterklasse des Viewers,
+die nur mitzählt, was der Beweis ohnehin auswertet, gegen den Quellbaum läuft
+(nicht gegen ein Artefakt) und **nicht bewertet** – Exit 0 heißt „gemessen",
+Exit 2 „nicht ausführbar". Zwei Größen entscheiden die Frage: der
 `defaultFramebufferObject()`-Wert **je** Paint (nur eine 0 lässt die
 Abweisungszählung überhaupt anlaufen) und `erster_swap` – nach wie vielen
 Paints und wie vielen Millisekunden nach `show()` Qt den ersten Frame
-tauscht. Die Endzähler allein beantworten sie nicht:
+tauscht. Die Endzähler allein beantworten sie nicht. Zwei Wege auf ein Gerät:
 
 ```bash
-# macOS: cocoa · Linux: wayland oder xcb. Aus dem Repo-Wurzelverzeichnis.
-QT_QPA_PLATFORM=cocoa .venv/bin/python - <<'PY'
-import sys
-
-import numpy as np
-from PyQt6.QtCore import QElapsedTimer, QEventLoop, QTimer
-from PyQt6.QtWidgets import QApplication, QWidget
-
-from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
-from bgremover.relief_mesh import MeshQuality, build_relief_mesh
-from bgremover.viewer_3d import GLReliefViewer
-
-
-class Sonde(GLReliefViewer):
-    """Zählt mit, was der Renderbeweis auswertet – ohne ihn zu verändern."""
-
-    def __init__(self):
-        super().__init__()
-        self.paints, self.fbos, self.gl_paints, self.swaps = 0, [], 0, 0
-        self.erster_swap = None          # (nach wie vielen Paints, ms seit show)
-        self.uhr = QElapsedTimer()
-        self.frameSwapped.connect(self._zaehle_swap)
-
-    def _zaehle_swap(self):
-        self.swaps += 1
-        if self.erster_swap is None:
-            self.erster_swap = (self.paints, self.uhr.elapsed())
-
-    def paintEvent(self, event):
-        self.paints += 1
-        super().paintEvent(event)          # hier entscheidet der Beweis
-        self.fbos.append(self.defaultFramebufferObject())
-
-    def paintGL(self):
-        self.gl_paints += 1
-        super().paintGL()
-
-
-def messe(app, lage, ms=2000):
-    rampe = np.tile(np.linspace(0, HEIGHT_MAX_16BIT, 32, dtype=np.uint16), (32, 1))
-    feld = HeightField(rampe, np.full((32, 32), 255, np.uint8), HEIGHT_MAX_16BIT)
-    v = Sonde()
-    v.resize(240, 200)
-    v.set_mesh(build_relief_mesh(feld, MeshQuality.REDUCED))
-    deckel = None
-    v.uhr.start()
-    if lage != "verborgen":
-        v.show()
-    if lage == "verdeckt":                 # braucht einen echten Fenstermanager
-        deckel = QWidget()
-        deckel.setGeometry(v.geometry())
-        deckel.show()
-        deckel.raise_()
-    ende = []
-    QTimer.singleShot(ms, lambda: ende.append(True))
-    while not ende:                        # warten, nicht drehen: sonst misst
-        app.processEvents(                 # die Sonde ihre eigene Schleife mit
-            QEventLoop.ProcessEventsFlag.WaitForMoreEvents, 50
-        )
-    print(f"{lage:<10} paintEvents={v.paints} fbo={v.fbos} paintGL={v.gl_paints} "
-          f"frameSwapped={v.swaps} erster_swap={v.erster_swap} "
-          f"_has_rendered={v._has_rendered} _refused_paints={v._refused_paints} "
-          f"has_failed={v.has_failed} grund={v.failure_reason!r}")
-    v.cleanup_gl()
-    if deckel is not None:
-        deckel.close()
-
-
-app = QApplication(sys.argv)
-print("Plattform:", app.platformName())
-for lage in ("sichtbar", "verborgen", "verdeckt"):
-    messe(app, lage)
-PY
+# Von Hand, aus dem Repo-Wurzelverzeichnis, in der angemeldeten Sitzung und
+# OHNE gesetztes QT_QPA_PLATFORM (macOS: cocoa · Linux: wayland oder xcb):
+.venv/bin/python scripts/render_proof_probe.py
+# optional: --lage sichtbar --ms 2000 --json-out sonde.json --summary sonde.md
 ```
+
+```bash
+# Über den Heartbeat-Workflow, auf jedem aktiven Self-hosted Runner:
+gh workflow run runner-heartbeat.yml --repo NikolayDA/picture_helper -f render_probe=true
+```
+
+Der Dispatch fährt die Sonde nach dem Preflight in einem eigenen venv (`-e .`
+mit den Pins aus `requirements/constraints.txt`); die Kopfzeile und die drei
+Zeilen stehen im Joblog des Plattform-Jobs, die Tabelle in dessen
+Job-Zusammenfassung. Die Sonde trägt nie das Heartbeat-Verdikt: eigenes
+Zeitbudget, Wheel-only-Install, `continue-on-error` – ein Scheitern steht als
+Schritt-Warnung im Lauf, nicht als Gerätebefund in der Auswertung
+([`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7). Drei Wächter
+halten die Sonde: `tests/test_viewer_3d.py` bindet sie an die Viewer-API und
+an die echten Signaturen von `HeightField`/`build_relief_mesh`,
+`tests/test_render_proof_probe.py` prüft Zeilenformat, Tabelle, JSON und die
+Lage `verborgen` (dort malt Qt nie – alle Zähler 0, in jeder Umgebung),
+`tests/test_runner_heartbeat_workflow.py` hält den Dispatch-Schalter.
 
 Erwartung je Lage **auf einer renderfähigen Sitzungsplattform** – eine
 Abweichung ist ein neuer Befund mit eigenem Issue, kein Anlass,
@@ -418,21 +371,24 @@ gewöhnlicher GL-Fehler und gehört nicht in diesen Abschnitt – der Viewer
 scheitert dort **nach** einem gelieferten Frame, `_has_rendered=True` ist dann
 regulär. Die verdeckte Lage braucht
 zusätzlich einen echten Fenstermanager: Unter `xvfb-run` ohne WM verdeckt das
-zweite Fenster nichts und die Zeile misst dasselbe wie „sichtbar".
+zweite Fenster nichts und die Zeile misst dasselbe wie „sichtbar". Und
+`setGeometry`/`raise_()` sind nur Wünsche an den Fenstermanager – die Sonde
+hängt der Zeile deshalb ein `hinweis=` an: Unter Wayland setzt der Compositor
+Position und Stapelung selbst, die Verdeckung bleibt dort **unbestätigt** und
+die Zeile belegt nur „nie `has_failed`"; auf `cocoa`/`xcb` steht drin, ob der
+Deckel den Viewer geometrisch umschließt und ob dessen Fenster noch `exposed`
+ist.
 
-Das Ergebnis gehört als Kommentar in das auslösende Issue – die drei
-Ausgabezeilen der Sonde wörtlich, mit einer Kopfzeile davor:
+Das Ergebnis gehört in den ADR-Nachtrag (eine Tabellenzeile je Lage; die
+`--summary`-Tabelle hat dasselbe Spaltenschema, nur die letzte Zelle
+„Ergebnis" trägt dort den `grund` des Viewers und wird beim Übernehmen zur
+Einordnung gesund / kein Urteil / [F]) und als Kommentar in das auslösende
+Issue – Kopfzeile und die drei Ausgabezeilen der Sonde wörtlich:
 
 ```text
-Gerät · OS · Qt : <Modell> · <macOS-/Distributionsversion> · <QT_VERSION_STR>
+Gerät · OS · Qt : <Modell> · <OS> (<Arch>) · Qt <Version> / PyQt <Version> · Plattform <cocoa|xcb|wayland> · Renderer <GL_RENDERER>
 <die drei Zeilen „sichtbar/verborgen/verdeckt" der Sonde, unverändert>
 ```
-
-Referenzwerte des Containers und die offenen `cocoa`-Zeilen stehen im
-ADR-Nachtrag
-[`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`](docs/history/ADR-2026-3d-reliefvorschau-renderer.md);
-dort gehört auch das Mac-Ergebnis hin (Plattform, Qt-Version, Zählerwerte je
-Lage).
 
 ## Recommendations-Live-Check (#752)
 

@@ -730,21 +730,27 @@ Wegwerf-Skript in einem Kommentar zu verwittern; sie zählt genau die Größen,
 die die Regel auswertet, und ihre Container-Werte sind mit exakt diesem
 Wortlaut nachgemessen:
 
-| Lage | Plattform | paintEvents | `defaultFramebufferObject()` je Paint | `paintGL` | `frameSwapped` | `_has_rendered` | `_refused_paints` | Ergebnis |
-|---|---|---|---|---|---|---|---|---|
-| sichtbar | `xcb` | 2 | 1, 1 | 2 | 2 | `True` | 0 | gesund |
-| verborgen | `xcb` | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
-| verdeckt | `xcb` | 2 | 1, 1 | 2 | 2 | `True` | 0 | (ohne WM nicht aussagekräftig) |
-| sichtbar | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | `False` | 3 | [F], „kein Widget-Framebuffer" |
-| verborgen | `offscreen` | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
-| verdeckt | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | `False` | 3 | wie sichtbar (ohne WM) |
-| sichtbar | **`cocoa`** | ? | ? | ? | ? | ? | ? | **offen (#1010)** |
-| verborgen | **`cocoa`** | ? | ? | ? | ? | ? | ? | **offen (#1010)** |
-| verdeckt | **`cocoa`** | ? | ? | ? | ? | ? | ? | **offen (#1010)** |
+| Lage | Plattform | paintEvents | `defaultFramebufferObject()` je Paint | `paintGL` | `frameSwapped` | `erster_swap` (Paint, ms) | `_has_rendered` | `_refused_paints` | `has_failed` | Ergebnis |
+|---|---|---|---|---|---|---|---|---|---|---|
+| sichtbar | `xcb` | 2 | 1, 1 | 2 | 2 | 2, 109 | `True` | 0 | `False` | gesund |
+| verborgen | `xcb` | 0 | – | 0 | 0 | – | `False` | 0 | `False` | kein Urteil |
+| verdeckt | `xcb` | 2 | 1, 1 | 2 | 2 | 2, 60 | `True` | 0 | `False` | (ohne WM nicht aussagekräftig) |
+| sichtbar | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | – | `False` | 3 | `True` | [F], „kein Widget-Framebuffer" |
+| verborgen | `offscreen` | 0 | – | 0 | 0 | – | `False` | 0 | `False` | kein Urteil |
+| verdeckt | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | – | `False` | 3 | `True` | wie sichtbar (ohne WM) |
+| sichtbar | `wayland` | 3 | 1, 1, 1 | 3 | 3 | 2, 62 | `True` | 0 | `False` | gesund |
+| verborgen | `wayland` | 0 | – | 0 | 0 | – | `False` | 0 | `False` | kein Urteil |
+| verdeckt | `wayland` | 2 | 1, 1 | 2 | 3 | 2, 44 | `True` | 0 | `False` | gesund (Verdeckung unbestätigt: Wayland setzt Position und Stapelung; `exposed=True`) |
+| sichtbar | **`cocoa`** | 3 | 1, 1, 1 | 3 | 3 | 2, 207 | `True` | 0 | `False` | **gesund** (gemessen 2026-09-08, Nachtrag unten) |
+| verborgen | **`cocoa`** | 0 | – | 0 | 0 | – | `False` | 0 | `False` | kein Urteil |
+| verdeckt | **`cocoa`** | 3 | 1, 1, 1 | 3 | 9 | 2, 191 | `True` | 0 | `False` | gesund (Deckel umschließt Viewer, `exposed=False` – macOS malt ein occludiertes Fenster weiter) |
 
-(Ubuntu 24.04 im Container, Mesa 25.2.8/llvmpipe, PyQt6/Qt 6.7.1, 2026-09-07;
-`xvfb-run` hat keinen Fenstermanager, die verdeckte Lage misst dort dasselbe
-wie die sichtbare und steht nur der Vollständigkeit halber da.)
+(`xcb`/`offscreen`: Ubuntu 24.04 im Container, Mesa 25.2.8/llvmpipe,
+PyQt6/Qt 6.7.1, 2026-09-07 – `xvfb-run` hat keinen Fenstermanager, die
+verdeckte Lage misst dort dasselbe wie die sichtbare und steht nur der
+Vollständigkeit halber da. `wayland`/`cocoa`: die beiden Abnahme-Runner
+(Raspberry Pi 5 mit V3D, MacBook mit Apple M3 Max), Qt-Laufzeit 6.11.2 mit
+PyQt 6.11.0, 2026-09-08 – Nachtrag „`cocoa` gemessen" unten.)
 
 Die Endzähler allein beantworten die `cocoa`-Frage nicht, deshalb misst die
 Sonde zwei weitere Größen. Auf `xcb` kam der erste Frame-Tausch nach dem
@@ -925,3 +931,97 @@ bleibt unverändert; die Erwartungszeile zu `test_viewer_3d_gl.py` zählt jetzt
 fünf Tests. Der volle Suite-Lauf unter der Sitzungsplattform ist im Container
 wieder grün. Auf echter GPU ist er damit nicht *gemessen* – aber die Kette
 enthält keinen Schritt, der von der GPU abhinge.
+
+## Nachtrag (2026-09-08, #1010): `cocoa` gemessen – der Beweis feuert vor der Schwelle
+
+Die offene Frage aus dem Nachtrag vom 2026-09-07 lautete: Stellt Qt auf
+`cocoa` vor dem ersten Frame-Tausch Paints mit
+`defaultFramebufferObject() == 0` zu, und wenn ja, drei hintereinander?
+Antwort, gemessen auf dem macOS-arm64-Abnahme-Runner in seiner nativen
+Sitzung: **nein.** Jeder Paint trug bereits einen Widget-Framebuffer, der
+erste Frame-Tausch kam nach dem zweiten Paint, 207 ms nach `show()`; die
+Abweisungszählung lief nie an. Verborgen bleibt der Viewer ohne Paint und
+ohne Urteil. Verdeckt ist die stärkste Zeile: Der Deckel umschließt den
+Viewer laut Rahmengeometrie, dessen Fenster meldet `exposed=False` (macOS
+kennt die Occlusion) – und trotzdem drei Paints mit Framebuffer und neun
+Frame-Tausche (die Regel wertet nur, *dass* ein Tausch kam, nicht wie
+viele). In keiner Lage `has_failed`. Die Sorge, ein gesunder Viewer fiele auf
+Apple-Hardware in [F], ist damit gegenstandslos: kein Bug-Issue,
+`_MAX_REFUSED_PAINTS` und der Freispruchsweg bleiben plattformunabhängig.
+
+Kopfzeile und die drei Zeilen der Sonde, unverändert:
+
+```text
+Gerät · OS · Qt : Apple M3 Max · macOS 26.6.2 (arm64) · Qt 6.11.2 / PyQt 6.11.0 · Plattform cocoa · Renderer Apple M3 Max
+sichtbar   paintEvents=3 fbo=[1, 1, 1] paintGL=3 frameSwapped=3 erster_swap=(2, 207) _has_rendered=True _refused_paints=0 has_failed=False grund=''
+verborgen  paintEvents=0 fbo=[] paintGL=0 frameSwapped=0 erster_swap=None _has_rendered=False _refused_paints=0 has_failed=False grund=''
+verdeckt   paintEvents=3 fbo=[1, 1, 1] paintGL=3 frameSwapped=9 erster_swap=(2, 191) _has_rendered=True _refused_paints=0 has_failed=False grund='' hinweis='Deckel 244,30 400×392 umschließt Viewer 244,120 240×232, Stapelung per raise_() angefordert; exposed=False'
+```
+
+Derselbe Lauf hat den zweiten Abnahme-Runner mitgemessen – die erste Messung
+des Beweises auf einer echten GPU unter Linux, mit Wayland-Compositor statt
+`xvfb`. Die verdeckte Zeile ist dort **nicht** als Verdeckung belegt: Der
+Compositor setzt Position und Stapelung selbst und meldet Qt keine globalen
+Koordinaten, die Sonde sagt das im `hinweis` – die Zeile trägt nur „nie
+`has_failed`" (Codex-Review PR #1029):
+
+```text
+Gerät · OS · Qt : Raspberry Pi 5 Model B Rev 1.1 · Debian GNU/Linux 13 (trixie) (aarch64) · Qt 6.11.2 / PyQt 6.11.0 · Plattform wayland · Renderer V3D 7.1.10.2
+sichtbar   paintEvents=3 fbo=[1, 1, 1] paintGL=3 frameSwapped=3 erster_swap=(2, 62) _has_rendered=True _refused_paints=0 has_failed=False grund=''
+verborgen  paintEvents=0 fbo=[] paintGL=0 frameSwapped=0 erster_swap=None _has_rendered=False _refused_paints=0 has_failed=False grund=''
+verdeckt   paintEvents=2 fbo=[1, 1] paintGL=2 frameSwapped=3 erster_swap=(2, 44) _has_rendered=True _refused_paints=0 has_failed=False grund='' hinweis='Verdeckung unbestätigt (Wayland: Compositor setzt Position und Stapelung); exposed=True'
+```
+
+Vier Plattformen, ein Bild: Wo Qt einen Widget-Framebuffer hält (`xcb`,
+`wayland`, `cocoa`), trägt ihn schon der erste Paint, und der Frame-Tausch
+folgt nach dem zweiten – die Dreierschwelle ist dort nie in Reichweite. Nur
+`offscreen` liefert nie einen, und genau dort ist [F] der richtige Befund.
+Die Tabelle im Nachtrag vom 2026-09-07 ist entsprechend ausgefüllt und trägt
+seither auch `erster_swap` und `has_failed` – dasselbe Spaltenschema wie die
+`--summary`-Tabelle der Sonde (Review PR #1029: elf Spalten dort gegen neun
+hier ergaben eine verrutschte Zeile beim Übernehmen); in „Ergebnis" schreibt
+die Sonde den `grund` des Viewers, die Einordnung ergänzt der Mensch.
+
+**Wie gemessen.** Nicht von Hand. Die Sonde ist seit diesem Schritt ein
+Skript (`scripts/render_proof_probe.py`), und der Heartbeat-Workflow fährt
+sie per `workflow_dispatch` mit `render_probe: true` nach dem Preflight auf
+jedem aktiven Runner in einem eigenen venv aus den Release-Pins
+([Lauf 34228203347](https://github.com/NikolayDA/picture_helper/actions/runs/34228203347) auf dem
+PR-Branch; Kopfzeile und Zeilen stehen im Joblog, die Tabelle in der
+Job-Zusammenfassung). Die Zahlen oben sind die des **committeten** Stands
+nach zwei Review-Runden: Eine Erstmessung mit der Warteschleife des Heredocs
+([Lauf 34225580351](https://github.com/NikolayDA/picture_helper/actions/runs/34225580351))
+lieferte dieselbe Aussage mit leicht anderen Zählern (`cocoa` sichtbar: zwei
+Paints, erster Tausch nach 277 ms) – das Bot-Review zu PR #1029 wies nach,
+dass `processEvents(WaitForMoreEvents, ms)` das Flag intern abstreift und der
+Hauptthread die vollen 2 s drehte; seither wartet die Sonde in einer
+`QEventLoop`. Die Kopfzeile nannte zudem `QT_VERSION_STR` (6.11.0, die
+Übersetzungsversion der Bindings) statt der geladenen Laufzeit
+(`qVersion()`, 6.11.2 – die Pins koppeln PyQt6 6.11.0 mit PyQt6-Qt6 6.11.2;
+Codex-Review PR #1029), und die verdeckte Lage trug noch keinen `hinweis`.
+Mit beidem korrigiert wurde ein drittes Mal gemessen; das sind die Zeilen
+oben. Das kehrt „bewusst kein committetes Skript" aus dem
+Nachtrag vom 2026-09-07 um – aus einem Grund, den es damals nicht gab: Der
+einzige Weg auf die Abnahme-Runner ohne dritten Self-hosted-Workflow
+(RELEASE_AUTOMATION §3) ist ein Dispatch-Schalter am Heartbeat, und ein
+Dispatch braucht einen festen Einstiegspunkt. Die Drift-Wächter aus PR #1021
+lesen seither das Skript statt des Heredocs; die Prozedur in TESTING.md ist
+der Aufruf, nicht mehr eine Kopie. Die Messung ist damit nicht nur
+wiederholbar, sondern ein Handgriff – fällig vor dem ersten Abnahmelauf auf
+einer neuen Plattform und nach einem Qt-Sprung (hier Laufzeit 6.11.2; der
+Container-Nachtrag maß 6.7.1). Die Sonde bewertet weiterhin nicht, und der
+Schritt trägt nie das Heartbeat-Verdikt (Wheel-only, eigenes Zeitbudget,
+`continue-on-error` – Review PR #1029): Ein Scheitern ist eine
+Schritt-Warnung, kein „Gerät nicht einsatzbereit".
+
+**Folgen.** `docs/PACKAGING_SMOKE.md` führt den Befund statt des Satzes „auf
+`cocoa` ungemessen"; der Reaktionsweg bleibt, weil eine Messung auf einem
+Gerät (M3 Max, macOS 26.6.2, Qt 6.11.2) keine auf jedem ist: Tritt der
+Widget-Framebuffer-Befund im Abnahmelauf auf, entscheidet die Sonde auf
+demselben Gerät – jetzt ein Dispatch –, ob Wächter-Fehlalarm oder
+Renderfehler. `MACOS-ARM-DMG-01` bleibt unverändert; die Begründung aus dem
+Nachtrag vom 2026-09-07 gilt, und der gemessene Normalfall macht sie eher
+stärker: Ein Kriterium, das den Beweis eigens benennt, bezahlte eine
+Versionsstufe für eine Eigenschaft, die auf der Zielplattform gemessen
+unauffällig ist. `screenshot3d.py` bleibt unverändert (Nicht-Ziel aus #1010,
+und die Messung gibt keinen Anlass).

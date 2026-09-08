@@ -264,17 +264,20 @@ Ein Paket, `bgremover/`:
   #1004 **steuernd** über die Modulgrenze gelesen wird und als `str` typisiert
   ist. `bgremover/screenshot3d.py` bekommt bewusst **kein** eigenes Gate
   (eigene Timer-Zustandsmaschine, trägt Abnahmekriterien, `frameSwapped` auf
-  `cocoa` ungemessen) – erreicht wird es vom neuen Fehlerpfad trotzdem, weil
+  `cocoa` war bis #1010 ungemessen) – erreicht wird es vom neuen Fehlerpfad trotzdem, weil
   es `state`/`has_failed` liest. Deshalb reicht der Viewer seine erste
   Fehlermeldung als `failure_reason` durch: Ein blankes „Nativer GL-Frame
   fehlgeschlagen" ließe einen Wächter-Fehlalarm wie einen Renderfehler
-  aussehen. Auf `cocoa` bleibt `frameSwapped` ungemessen (#1010) – der Beweis
-  erreicht Apple-Hardware erst mit einem Kandidatenbau, der ihn enthält. Die
-  wiederholbare Sonde (Zähler je Lage: sichtbar/verborgen/verdeckt) steht als
-  Prozedur in [`TESTING.md`](TESTING.md), ihre Container-Referenzwerte und die
-  offenen `cocoa`-Zeilen im ADR-Nachtrag; `MACOS-ARM-DMG-01` bleibt dafür
-  bewusst unverändert (der Beweis kann den nativen 3D-Nachweis nur scheitern
-  lassen, nie durchwinken). Seit #1024 stellt `paintGL` seinen Kontext nach
+  aussehen. Auf `cocoa` ist `frameSwapped` seit #1010 **gemessen** (Abnahme-
+  Runner, Apple M3 Max, macOS 26.6.2, Qt-Laufzeit 6.11.2): erster Frame-Tausch nach dem
+  zweiten Paint, jeder Paint mit Framebuffer, in keiner Lage [F] – wie auf
+  `xcb`/llvmpipe und `wayland`/V3D (Pi 5); nur `offscreen` hält nie einen
+  Framebuffer. Die Sonde ist `scripts/render_proof_probe.py` (Zähler je Lage:
+  sichtbar/verborgen/verdeckt, bewertet nicht; Prozedur in
+  [`TESTING.md`](TESTING.md), auf einem Runner per Heartbeat-Dispatch
+  `render_probe: true`), die Werte je Plattform stehen im ADR-Nachtrag;
+  `MACOS-ARM-DMG-01` bleibt dafür bewusst unverändert (der Beweis kann den
+  nativen 3D-Nachweis nur scheitern lassen, nie durchwinken). Seit #1024 stellt `paintGL` seinen Kontext nach
   dem Nutzer-Paint selbst wieder her (`_reassert_current_context`): Qt macht
   ihn davor aktuell und greift danach **ungeprüft** auf
   `currentContext()->functions()` zu (Qt 6.7.1, Discard des Tiefen-/
@@ -1255,7 +1258,15 @@ Offline-Fall bleibt der Lauf unabgeschlossen (der wartende Job hängt bis zu
 24 h) und endet am Folgetag über `cancel-in-progress` als „cancelled" — die
 Actions-Fehlermail bleibt also genau dann aus, wenn sie gebraucht würde. Der
 Stufenkommentar der Auswertung (7/12/21 Tage, mit Erwähnung) ist der einzige
-Kanal, der trägt. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7;
+Kanal, der trägt. Auf Zuruf (`workflow_dispatch`, `render_probe: true`) fährt
+jeder Runner-Job nach dem Preflight zusätzlich die Renderbeweis-Sonde
+`scripts/render_proof_probe.py` (#1010) in einem eigenen venv aus den
+Release-Pins und schreibt Zeilen und Tabelle in Joblog und
+Job-Zusammenfassung – der Weg, `frameSwapped` auf einem Gerät zu messen,
+ohne einen dritten Self-hosted-Workflow. Der Schritt trägt nie das
+Heartbeat-Verdikt (Wheel-only, eigenes Zeitbudget, `continue-on-error`;
+die Auswertung liest Job-Konklusionen, Review PR #1029). Betrieb:
+[`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7;
 Neuaufbau eines Geräts von Null: [`docs/RUNNER_SETUP.md`](docs/RUNNER_SETUP.md)
 (#946, Kochbuch ohne eigene Regelhoheit – bei Widerspruch gilt §2/§6/§7).
 

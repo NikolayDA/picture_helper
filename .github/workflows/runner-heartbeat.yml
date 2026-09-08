@@ -54,6 +54,21 @@ on:
           - macos-arm64
           - linux-x86_64
         default: linux-arm64
+      # Renderbeweis-Sonde (#1010): faehrt nach dem Preflight auf jedem aktiven
+      # Runner scripts/render_proof_probe.py – dieselbe Messung wie die Prozedur
+      # in TESTING.md, auf dem Geraet statt im Container. Die drei Zeilen
+      # stehen im Joblog des Plattform-Jobs, die Tabelle in dessen
+      # Job-Zusammenfassung. Die Sonde beeinflusst das Heartbeat-Verdikt nie
+      # (continue-on-error, eigenes Zeitbudget, Wheel-only-Install): Ein
+      # Scheitern steht als Schritt-Warnung im Lauf und im Joblog, nicht als
+      # "Geraet nicht einsatzbereit" in der Auswertung (Review PR #1029).
+      render_probe:
+        description: >-
+          Renderbeweis-Sonde (#1010): frameSwapped/defaultFramebufferObject je
+          Lage auf jedem aktiven Runner messen (Ergebnis im Joblog und in der
+          Job-Zusammenfassung des Plattform-Jobs).
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -159,6 +174,30 @@ jobs:
           persist-credentials: false
       - name: Einsatzbereitschaft und Haertung pruefen
         run: python3 scripts/abnahme_preflight.py --platform macos-arm64 --hardening-strict
+      # Nur auf Zuruf (#1010): eigenes venv aus den Release-Pins, damit die
+      # Sonde bgremover samt numpy/Pillow importieren kann – die zwischen-
+      # gespeicherte Preflight-Runtime traegt bewusst nur die Qt-Pins. Ohne
+      # QT_QPA_PLATFORM, damit die native Sitzungsplattform misst.
+      #
+      # Drei Schranken, damit die Sonde nie das Heartbeat-Verdikt traegt
+      # (Review PR #1029): Wheel-only wie der Preflight (ein Qt-/numpy-Quellbau
+      # spraengte jedes Budget; das lokale Projekt ist von --only-binary
+      # ausgenommen), ein eigenes Zeitbudget unter dem Jobbudget, und
+      # continue-on-error – runner_heartbeat.job_outcome sieht sonst
+      # "angenommen, aber nicht einsatzbereit" fuer etwas, das kein
+      # Geraetebefund ist. Ein Scheitern bleibt als Schritt-Warnung sichtbar.
+      - name: Renderbeweis-Sonde (#1010, nur auf Zuruf)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.render_probe }}
+        timeout-minutes: 4
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          unset QT_QPA_PLATFORM
+          python3 -m venv "${RUNNER_TEMP}/render-probe-venv"
+          "${RUNNER_TEMP}/render-probe-venv/bin/python" -m pip install --upgrade "pip>=26.1.2"
+          "${RUNNER_TEMP}/render-probe-venv/bin/python" -m pip install --only-binary=:all: \
+            -c requirements/constraints.txt -e .
+          "${RUNNER_TEMP}/render-probe-venv/bin/python" scripts/render_proof_probe.py --summary "$GITHUB_STEP_SUMMARY"
 
   heartbeat-linux-arm64:
     name: Heartbeat Linux aarch64
@@ -172,6 +211,30 @@ jobs:
           persist-credentials: false
       - name: Einsatzbereitschaft und Haertung pruefen
         run: python3 scripts/abnahme_preflight.py --platform linux-arm64 --hardening-strict
+      # Nur auf Zuruf (#1010): eigenes venv aus den Release-Pins, damit die
+      # Sonde bgremover samt numpy/Pillow importieren kann – die zwischen-
+      # gespeicherte Preflight-Runtime traegt bewusst nur die Qt-Pins. Ohne
+      # QT_QPA_PLATFORM, damit die native Sitzungsplattform misst.
+      #
+      # Drei Schranken, damit die Sonde nie das Heartbeat-Verdikt traegt
+      # (Review PR #1029): Wheel-only wie der Preflight (ein Qt-/numpy-Quellbau
+      # spraengte jedes Budget; das lokale Projekt ist von --only-binary
+      # ausgenommen), ein eigenes Zeitbudget unter dem Jobbudget, und
+      # continue-on-error – runner_heartbeat.job_outcome sieht sonst
+      # "angenommen, aber nicht einsatzbereit" fuer etwas, das kein
+      # Geraetebefund ist. Ein Scheitern bleibt als Schritt-Warnung sichtbar.
+      - name: Renderbeweis-Sonde (#1010, nur auf Zuruf)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.render_probe }}
+        timeout-minutes: 4
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          unset QT_QPA_PLATFORM
+          python3 -m venv "${RUNNER_TEMP}/render-probe-venv"
+          "${RUNNER_TEMP}/render-probe-venv/bin/python" -m pip install --upgrade "pip>=26.1.2"
+          "${RUNNER_TEMP}/render-probe-venv/bin/python" -m pip install --only-binary=:all: \
+            -c requirements/constraints.txt -e .
+          "${RUNNER_TEMP}/render-probe-venv/bin/python" scripts/render_proof_probe.py --summary "$GITHUB_STEP_SUMMARY"
 
   # Spiegelt die Pause aus RELEASE_AUTOMATION §5: Solange kein
   # x86_64-Geraet registriert ist, darf der Heartbeat es nicht erwarten –
@@ -191,6 +254,30 @@ jobs:
           persist-credentials: false
       - name: Einsatzbereitschaft und Haertung pruefen
         run: python3 scripts/abnahme_preflight.py --platform linux-x86_64 --hardening-strict
+      # Nur auf Zuruf (#1010): eigenes venv aus den Release-Pins, damit die
+      # Sonde bgremover samt numpy/Pillow importieren kann – die zwischen-
+      # gespeicherte Preflight-Runtime traegt bewusst nur die Qt-Pins. Ohne
+      # QT_QPA_PLATFORM, damit die native Sitzungsplattform misst.
+      #
+      # Drei Schranken, damit die Sonde nie das Heartbeat-Verdikt traegt
+      # (Review PR #1029): Wheel-only wie der Preflight (ein Qt-/numpy-Quellbau
+      # spraengte jedes Budget; das lokale Projekt ist von --only-binary
+      # ausgenommen), ein eigenes Zeitbudget unter dem Jobbudget, und
+      # continue-on-error – runner_heartbeat.job_outcome sieht sonst
+      # "angenommen, aber nicht einsatzbereit" fuer etwas, das kein
+      # Geraetebefund ist. Ein Scheitern bleibt als Schritt-Warnung sichtbar.
+      - name: Renderbeweis-Sonde (#1010, nur auf Zuruf)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.render_probe }}
+        timeout-minutes: 4
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          unset QT_QPA_PLATFORM
+          python3 -m venv "${RUNNER_TEMP}/render-probe-venv"
+          "${RUNNER_TEMP}/render-probe-venv/bin/python" -m pip install --upgrade "pip>=26.1.2"
+          "${RUNNER_TEMP}/render-probe-venv/bin/python" -m pip install --only-binary=:all: \
+            -c requirements/constraints.txt -e .
+          "${RUNNER_TEMP}/render-probe-venv/bin/python" scripts/render_proof_probe.py --summary "$GITHUB_STEP_SUMMARY"
 
   # GitHub-hosted Auswertung, parallel zu den Runner-Jobs. Bewusst nicht per
   # ``needs`` an sie gehaengt – ein nie startender Job wuerde die Auswertung
