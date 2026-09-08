@@ -35,8 +35,9 @@ oder über den Heartbeat-Workflow per ``workflow_dispatch`` mit
 aktiven Self-hosted Runner und schreibt Zeilen und Tabelle in Joblog und
 Job-Zusammenfassung (``--summary``).
 
-Exit 0 = Messung durchgeführt (Befund steht in den Zeilen), 2 = Sonde nicht
-ausführbar (keine ``QApplication``, Viewer nicht konstruierbar, Ausnahme).
+Exit 0 = Messung durchgeführt (Befund steht in den Zeilen; ein Schreibfehler
+bei ``--json-out``/``--summary`` ist nur eine Warnung auf stderr), 2 = Sonde
+nicht ausführbar (keine ``QApplication``, Viewer nicht konstruierbar, Ausnahme).
 """
 from __future__ import annotations
 
@@ -134,13 +135,20 @@ class Messung:
         )
 
 
-def _warte(app: QApplication, ms: int) -> None:
-    """Wartet ``ms`` im Ereignisdurchlauf – warten, nicht drehen: Ein enges
-    ``processEvents()`` misst sonst die eigene Schleife mit."""
-    ende: list[bool] = []
-    QTimer.singleShot(ms, lambda: ende.append(True))
-    while not ende:
-        app.processEvents(QEventLoop.ProcessEventsFlag.WaitForMoreEvents, 50)
+def _warte(ms: int) -> None:
+    """Wartet ``ms`` im Ereignisdurchlauf – warten, nicht drehen.
+
+    Eine verschachtelte ``QEventLoop`` blockiert, bis der Timer sie beendet.
+    Die naheliegende Schleife über ``processEvents(WaitForMoreEvents, ms)``
+    tut das **nicht** (Review PR #1029): Die ms-Überladung leitet auf die
+    ``QDeadlineTimer``-Variante um, die ``WaitForMoreEvents`` intern abstreift –
+    der Hauptthread drehte die vollen ``ms`` bei 100 % CPU durch, und genau
+    das verschiebt auf einem Pi, wann Compositor und Treiber den ersten
+    Frame-Tausch zustellen: die Größe ``erster_swap``, die die Sonde misst.
+    """
+    schleife = QEventLoop()
+    QTimer.singleShot(ms, schleife.quit)
+    schleife.exec()
 
 
 def _mesh() -> Any:
@@ -189,7 +197,7 @@ def messe(app: QApplication, lage: str, ms: int = DEFAULT_MS) -> tuple[Messung, 
         deckel.setGeometry(*_COVER_RECT)
         deckel.show()
         deckel.raise_()
-    _warte(app, ms)
+    _warte(ms)
     messung = Messung(
         lage=lage,
         paint_events=v.paints,
@@ -272,17 +280,28 @@ def kopfzeile(env: dict[str, str], renderer: str = "") -> str:
     return "Gerät · OS · Qt : " + " · ".join(teile)
 
 
+#: Spaltenkopf der Tabelle – **identisch** mit der Tabelle im ADR-Nachtrag
+#: (``docs/history/ADR-2026-3d-reliefvorschau-renderer.md``, Nachtrag #1010),
+#: damit eine Zeile der Job-Zusammenfassung wörtlich dorthin übernommen werden
+#: kann. Die letzte Spalte „Ergebnis" trägt hier den ``grund`` des Viewers
+#: (oder „–"); die Einordnung „gesund" / „kein Urteil" / „[F]" ergänzt der
+#: Mensch beim Übernehmen – die Sonde bewertet nicht.
+TABELLEN_KOPF = (
+    "| Lage | Plattform | paintEvents | `defaultFramebufferObject()` je Paint | `paintGL` "
+    "| `frameSwapped` | `erster_swap` (Paint, ms) | `_has_rendered` | `_refused_paints` "
+    "| `has_failed` | Ergebnis |"
+)
+
+
 def markdown_tabelle(env: dict[str, str], messungen: list[Messung], renderer: str = "") -> str:
-    """Die Tabelle des ADR-Nachtrags, zeilenweise übernehmbar."""
+    """Die Tabelle des ADR-Nachtrags im selben Spaltenschema, zeilenweise übernehmbar."""
     zeilen = [
         "### Renderbeweis-Sonde (#1010)",
         "",
         kopfzeile(env, renderer),
         "",
-        "| Lage | Plattform | paintEvents | `defaultFramebufferObject()` je Paint | `paintGL` "
-        "| `frameSwapped` | `erster_swap` (Paint, ms) | `_has_rendered` | `_refused_paints` "
-        "| `has_failed` | `grund` |",
-        "|---|---|---|---|---|---|---|---|---|---|---|",
+        TABELLEN_KOPF,
+        "|" + "---|" * (TABELLEN_KOPF.count("|") - 1),
     ]
     for m in messungen:
         fbos = ", ".join(str(f) for f in m.fbos) if m.fbos else "–"
@@ -294,6 +313,8 @@ def markdown_tabelle(env: dict[str, str], messungen: list[Messung], renderer: st
         )
     zeilen.append("")
     zeilen.append(
+        "Spaltenschema wie die Tabelle im ADR-Nachtrag; „Ergebnis“ trägt hier den `grund` "
+        "des Viewers (oder –), die Einordnung gesund / kein Urteil / [F] ergänzt der Mensch. "
         "Erwartung je Lage und Lesefallen: `TESTING.md` → Abschnitt „Renderbeweis-Sonde“; "
         "die Sonde bewertet nicht."
     )
@@ -350,17 +371,30 @@ def main(argv: list[str] | None = None) -> int:
     print(kopfzeile(env, renderer))
     for m in messungen:
         print(m.zeile())
+    # Die Messung ist gelungen und steht auf stdout; ein Schreibfehler der
+    # Zusatzausgaben (Rechte, volle Platte, leeres $GITHUB_STEP_SUMMARY) ist
+    # eine Warnung, kein Exit 1 – sonst würde ein Messerfolg zum Gerätebefund
+    # (Review PR #1029).
     if args.json_out is not None:
-        args.json_out.parent.mkdir(parents=True, exist_ok=True)
-        args.json_out.write_text(
+        _schreibe(
+            args.json_out, "--json-out",
             json.dumps(bericht(env, messungen, args.ms, renderer), indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
         )
     if args.summary is not None:
-        args.summary.parent.mkdir(parents=True, exist_ok=True)
-        with args.summary.open("a", encoding="utf-8") as fh:
-            fh.write(markdown_tabelle(env, messungen, renderer))
+        _schreibe(args.summary, "--summary", markdown_tabelle(env, messungen, renderer), anhaengen=True)
     return 0
+
+
+def _schreibe(ziel: Path, option: str, inhalt: str, *, anhaengen: bool = False) -> bool:
+    """Schreibt fail-open: ``False`` plus Warnung auf stderr statt Ausnahme."""
+    try:
+        ziel.parent.mkdir(parents=True, exist_ok=True)
+        with ziel.open("a" if anhaengen else "w", encoding="utf-8") as fh:
+            fh.write(inhalt)
+    except OSError as exc:
+        print(f"[render-probe] Warnung: {option} {str(ziel)!r} nicht schreibbar: {exc}", file=sys.stderr)
+        return False
+    return True
 
 
 if __name__ == "__main__":

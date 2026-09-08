@@ -1263,8 +1263,10 @@ jeder Runner-Job nach dem Preflight zusätzlich die Renderbeweis-Sonde
 `scripts/render_proof_probe.py` (#1010) in einem eigenen venv aus den
 Release-Pins und schreibt Zeilen und Tabelle in Joblog und
 Job-Zusammenfassung – der Weg, `frameSwapped` auf einem Gerät zu messen,
-ohne einen dritten Self-hosted-Workflow; ein Messbefund macht den Lauf nie
-rot. Betrieb: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7;
+ohne einen dritten Self-hosted-Workflow. Der Schritt trägt nie das
+Heartbeat-Verdikt (Wheel-only, eigenes Zeitbudget, `continue-on-error`;
+die Auswertung liest Job-Konklusionen, Review PR #1029). Betrieb:
+[`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7;
 Neuaufbau eines Geräts von Null: [`docs/RUNNER_SETUP.md`](docs/RUNNER_SETUP.md)
 (#946, Kochbuch ohne eigene Regelhoheit – bei Widerspruch gilt §2/§6/§7).
 

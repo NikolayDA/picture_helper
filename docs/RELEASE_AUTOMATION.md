@@ -1077,11 +1077,16 @@ Zeilen stehen im Joblog des Plattform-Jobs, die Tabelle in dessen
 Job-Zusammenfassung – die Zeilen gehören in den ADR-Nachtrag
 [`ADR-2026-3d-reliefvorschau-renderer.md`](history/ADR-2026-3d-reliefvorschau-renderer.md).
 Die Sonde läuft in einem eigenen venv aus den Release-Pins (die
-Preflight-Runtime trägt nur die Qt-Pins) und **bewertet nicht**: Ein
-Messbefund macht den Lauf nie rot, nur eine nicht ausführbare Sonde (Exit 2)
-ist ein Gerätebefund wie jeder andere Schritt. Der tägliche Lauf bleibt davon
-unberührt – ohne den Schalter existiert der Schritt nicht.
-`tests/test_runner_heartbeat_workflow.py` hält Gate, Reihenfolge und Pins.
+Preflight-Runtime trägt nur die Qt-Pins) und **bewertet nicht**. Sie trägt
+auch **nie das Heartbeat-Verdikt** (Review PR #1029): Der Schritt installiert
+wheel-only wie der Preflight, hat ein eigenes Zeitbudget (4 min) unter dem
+Jobbudget und läuft mit `continue-on-error` – die Auswertung liest
+Job-Konklusionen, und ein kalter pip-Cache oder eine nicht ausführbare Sonde
+(Exit 2) wäre sonst als „angenommen, aber nicht einsatzbereit" gemeldet
+worden. Ein Scheitern bleibt als Schritt-Warnung im Lauf und im Joblog
+sichtbar. Der tägliche Lauf bleibt unberührt – ohne den Schalter existiert
+der Schritt nicht. `tests/test_runner_heartbeat_workflow.py` hält Gate,
+Reihenfolge, Pins und die drei Schranken.
 
 **Wartungsfenster.** Für geplante Eingriffe pausieren:
 

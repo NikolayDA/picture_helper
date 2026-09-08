@@ -730,20 +730,20 @@ Wegwerf-Skript in einem Kommentar zu verwittern; sie zählt genau die Größen,
 die die Regel auswertet, und ihre Container-Werte sind mit exakt diesem
 Wortlaut nachgemessen:
 
-| Lage | Plattform | paintEvents | `defaultFramebufferObject()` je Paint | `paintGL` | `frameSwapped` | `_has_rendered` | `_refused_paints` | Ergebnis |
-|---|---|---|---|---|---|---|---|---|
-| sichtbar | `xcb` | 2 | 1, 1 | 2 | 2 | `True` | 0 | gesund |
-| verborgen | `xcb` | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
-| verdeckt | `xcb` | 2 | 1, 1 | 2 | 2 | `True` | 0 | (ohne WM nicht aussagekräftig) |
-| sichtbar | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | `False` | 3 | [F], „kein Widget-Framebuffer" |
-| verborgen | `offscreen` | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
-| verdeckt | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | `False` | 3 | wie sichtbar (ohne WM) |
-| sichtbar | `wayland` | 3 | 1, 1, 1 | 3 | 3 | `True` | 0 | gesund |
-| verborgen | `wayland` | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
-| verdeckt | `wayland` | 2 | 1, 1 | 2 | 2 | `True` | 0 | gesund (Compositor malt weiter) |
-| sichtbar | **`cocoa`** | 2 | 1, 1 | 2 | 2 | `True` | 0 | **gesund** (gemessen 2026-09-08, Nachtrag unten) |
-| verborgen | **`cocoa`** | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
-| verdeckt | **`cocoa`** | 2 | 1, 1 | 2 | 6 | `True` | 0 | gesund (macOS malt weiter) |
+| Lage | Plattform | paintEvents | `defaultFramebufferObject()` je Paint | `paintGL` | `frameSwapped` | `erster_swap` (Paint, ms) | `_has_rendered` | `_refused_paints` | `has_failed` | Ergebnis |
+|---|---|---|---|---|---|---|---|---|---|---|
+| sichtbar | `xcb` | 2 | 1, 1 | 2 | 2 | 2, 109 | `True` | 0 | `False` | gesund |
+| verborgen | `xcb` | 0 | – | 0 | 0 | – | `False` | 0 | `False` | kein Urteil |
+| verdeckt | `xcb` | 2 | 1, 1 | 2 | 2 | 2, 60 | `True` | 0 | `False` | (ohne WM nicht aussagekräftig) |
+| sichtbar | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | – | `False` | 3 | `True` | [F], „kein Widget-Framebuffer" |
+| verborgen | `offscreen` | 0 | – | 0 | 0 | – | `False` | 0 | `False` | kein Urteil |
+| verdeckt | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | – | `False` | 3 | `True` | wie sichtbar (ohne WM) |
+| sichtbar | `wayland` | 3 | 1, 1, 1 | 3 | 3 | 2, 44 | `True` | 0 | `False` | gesund |
+| verborgen | `wayland` | 0 | – | 0 | 0 | – | `False` | 0 | `False` | kein Urteil |
+| verdeckt | `wayland` | 2 | 1, 1 | 2 | 2 | 2, 54 | `True` | 0 | `False` | gesund (Compositor malt weiter) |
+| sichtbar | **`cocoa`** | 2 | 1, 1 | 2 | 2 | 2, 277 | `True` | 0 | `False` | **gesund** (gemessen 2026-09-08, Nachtrag unten) |
+| verborgen | **`cocoa`** | 0 | – | 0 | 0 | – | `False` | 0 | `False` | kein Urteil |
+| verdeckt | **`cocoa`** | 2 | 1, 1 | 2 | 6 | 2, 132 | `True` | 0 | `False` | gesund (macOS malt weiter) |
 
 (`xcb`/`offscreen`: Ubuntu 24.04 im Container, Mesa 25.2.8/llvmpipe,
 PyQt6/Qt 6.7.1, 2026-09-07 – `xvfb-run` hat keinen Fenstermanager, die
@@ -971,7 +971,11 @@ Vier Plattformen, ein Bild: Wo Qt einen Widget-Framebuffer hält (`xcb`,
 `wayland`, `cocoa`), trägt ihn schon der erste Paint, und der Frame-Tausch
 folgt nach dem zweiten – die Dreierschwelle ist dort nie in Reichweite. Nur
 `offscreen` liefert nie einen, und genau dort ist [F] der richtige Befund.
-Die Tabelle im Nachtrag vom 2026-09-07 ist entsprechend ausgefüllt.
+Die Tabelle im Nachtrag vom 2026-09-07 ist entsprechend ausgefüllt und trägt
+seither auch `erster_swap` und `has_failed` – dasselbe Spaltenschema wie die
+`--summary`-Tabelle der Sonde (Review PR #1029: elf Spalten dort gegen neun
+hier ergaben eine verrutschte Zeile beim Übernehmen); in „Ergebnis" schreibt
+die Sonde den `grund` des Viewers, die Einordnung ergänzt der Mensch.
 
 **Wie gemessen.** Nicht von Hand. Die Sonde ist seit diesem Schritt ein
 Skript (`scripts/render_proof_probe.py`), und der Heartbeat-Workflow fährt
@@ -988,9 +992,10 @@ lesen seither das Skript statt des Heredocs; die Prozedur in TESTING.md ist
 der Aufruf, nicht mehr eine Kopie. Die Messung ist damit nicht nur
 wiederholbar, sondern ein Handgriff – fällig vor dem ersten Abnahmelauf auf
 einer neuen Plattform und nach einem Qt-Sprung (hier 6.11.0; der
-Container-Nachtrag maß 6.7.1). Die Sonde bewertet weiterhin nicht: Ein
-Messbefund macht den Heartbeat-Lauf nie rot, nur eine nicht ausführbare Sonde
-ist ein Gerätebefund.
+Container-Nachtrag maß 6.7.1). Die Sonde bewertet weiterhin nicht, und der
+Schritt trägt nie das Heartbeat-Verdikt (Wheel-only, eigenes Zeitbudget,
+`continue-on-error` – Review PR #1029): Ein Scheitern ist eine
+Schritt-Warnung, kein „Gerät nicht einsatzbereit".
 
 **Folgen.** `docs/PACKAGING_SMOKE.md` führt den Befund statt des Satzes „auf
 `cocoa` ungemessen"; der Reaktionsweg bleibt, weil eine Messung auf einem

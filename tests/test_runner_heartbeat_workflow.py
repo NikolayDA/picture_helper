@@ -646,7 +646,8 @@ def test_the_render_probe_runs_only_on_demand_after_the_preflight() -> None:
     Release-Pins – dieselbe Sonde wie die Prozedur in TESTING.md, aber auf
     dem Geraet. Ein Schritt ohne Gate liefe taeglich und kostete den
     venv-Bau bei jedem Heartbeat; einer vor dem Preflight misst ein Geraet,
-    dessen Bereitschaft noch niemand belegt hat.
+    dessen Bereitschaft noch niemand belegt hat. Und weil die Auswertung
+    Job-Konklusionen liest, darf die Sonde den Job nie rot machen.
     """
     doc = _load(HEARTBEAT)
     triggers = doc[True] if True in doc else doc["on"]
@@ -672,3 +673,9 @@ def test_the_render_probe_runs_only_on_demand_after_the_preflight() -> None:
         assert "requirements/constraints.txt" in run, name
         assert "unset QT_QPA_PLATFORM" in run, name
         assert "GITHUB_STEP_SUMMARY" in run, name
+        # Review PR #1029: Die Sonde darf das Heartbeat-Verdikt nie tragen –
+        # Wheel-only wie der Preflight, eigenes Budget unter dem Jobbudget,
+        # und ein Scheitern faellt nicht auf den Job zurueck.
+        assert "--only-binary=:all:" in run, name
+        assert step.get("continue-on-error") is True, name
+        assert 0 < int(step["timeout-minutes"]) < int(job["timeout-minutes"]), name

@@ -115,13 +115,17 @@ def test_table_and_report_carry_every_column(probe) -> None:
     ]
     tabelle = probe.markdown_tabelle(env, messungen, "llvmpipe")
     assert "### Renderbeweis-Sonde (#1010)" in tabelle
+    assert probe.TABELLEN_KOPF in tabelle
     for spalte in ("paintEvents", "`defaultFramebufferObject()` je Paint", "`paintGL`",
                    "`frameSwapped`", "`erster_swap` (Paint, ms)", "`_has_rendered`",
-                   "`_refused_paints`", "`has_failed`", "`grund`"):
-        assert spalte in tabelle, spalte
+                   "`_refused_paints`", "`has_failed`", "Ergebnis"):
+        assert spalte in probe.TABELLEN_KOPF, spalte
+    # Trennzeile mit genau so vielen Zellen wie der Kopf – sonst rendert GitHub keine Tabelle.
+    assert "|" + "---|" * 11 in tabelle
     assert "| sichtbar | `xcb` | 2 | 1, 1 | 2 | 2 | 2, 109 | `True` | 0 | `False` | – |" in tabelle
     assert "| verborgen | `xcb` | 0 | – | 0 | 0 | – | `False` | 0 | `False` | – |" in tabelle
     assert "die Sonde bewertet nicht" in tabelle
+    assert "die Einordnung gesund / kein Urteil / [F] ergänzt der Mensch" in tabelle
 
     report = probe.bericht(env, messungen, 2000, "llvmpipe")
     assert (report["schema"], report["kind"]) == (probe.SCHEMA, probe.KIND)
@@ -170,3 +174,31 @@ def test_cli_measures_the_hidden_position_end_to_end(tmp_path: Path) -> None:
     assert "| verborgen | `offscreen` | 0 | – | 0 | 0 | – | `False` | 0 | `False` | – |" in (
         summary.read_text(encoding="utf-8")
     )
+
+
+def test_the_summary_table_uses_the_adr_column_schema(probe) -> None:
+    """Review PR #1029: Eine Zeile der Job-Zusammenfassung muss wörtlich in die
+    ADR-Tabelle passen – elf Spalten hier gegen neun dort ergaben eine
+    verrutschte Zeile. Der Kopf der ADR-Tabelle ist die Quelle."""
+    adr = (ROOT / "docs" / "history" / "ADR-2026-3d-reliefvorschau-renderer.md").read_text(
+        encoding="utf-8"
+    )
+    assert probe.TABELLEN_KOPF in adr, (
+        "Spaltenkopf der ADR-Tabelle weicht von TABELLEN_KOPF der Sonde ab – "
+        "beide Seiten nachziehen."
+    )
+
+
+def test_an_unwritable_output_path_is_a_warning_not_a_failure(tmp_path: Path) -> None:
+    """Review PR #1029: Die Messung ist gelungen und steht auf stdout – ein
+    Schreibfehler von --summary/--json-out darf daraus keinen Exit 1 machen
+    (im Dispatch wuerde der Schritt rot, obwohl gemessen wurde)."""
+    sperre = tmp_path / "datei"
+    sperre.write_text("kein Verzeichnis", encoding="utf-8")
+    lauf = _run("--lage", "verborgen", "--ms", "100",
+                "--summary", str(sperre / "summary.md"),
+                "--json-out", str(sperre / "sonde.json"))
+    assert lauf.returncode == 0, lauf.stderr
+    assert lauf.stdout.splitlines()[1].startswith("verborgen  paintEvents=0 ")
+    assert "[render-probe] Warnung: --summary" in lauf.stderr
+    assert "[render-probe] Warnung: --json-out" in lauf.stderr

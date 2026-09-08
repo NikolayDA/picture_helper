@@ -334,8 +334,9 @@ gh workflow run runner-heartbeat.yml --repo NikolayDA/picture_helper -f render_p
 Der Dispatch fährt die Sonde nach dem Preflight in einem eigenen venv (`-e .`
 mit den Pins aus `requirements/constraints.txt`); die Kopfzeile und die drei
 Zeilen stehen im Joblog des Plattform-Jobs, die Tabelle in dessen
-Job-Zusammenfassung. Ein Messbefund macht den Lauf nie rot, nur eine nicht
-ausführbare Sonde ist ein Gerätebefund wie jeder andere Schritt
+Job-Zusammenfassung. Die Sonde trägt nie das Heartbeat-Verdikt: eigenes
+Zeitbudget, Wheel-only-Install, `continue-on-error` – ein Scheitern steht als
+Schritt-Warnung im Lauf, nicht als Gerätebefund in der Auswertung
 ([`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §7). Drei Wächter
 halten die Sonde: `tests/test_viewer_3d.py` bindet sie an die Viewer-API und
 an die echten Signaturen von `HeightField`/`build_relief_mesh`,
@@ -372,9 +373,11 @@ regulär. Die verdeckte Lage braucht
 zusätzlich einen echten Fenstermanager: Unter `xvfb-run` ohne WM verdeckt das
 zweite Fenster nichts und die Zeile misst dasselbe wie „sichtbar".
 
-Das Ergebnis gehört in den ADR-Nachtrag (eine Tabellenzeile je Lage, die
-`--summary`-Tabelle hat dieselben Spalten) und als Kommentar in das
-auslösende Issue – Kopfzeile und die drei Ausgabezeilen der Sonde wörtlich:
+Das Ergebnis gehört in den ADR-Nachtrag (eine Tabellenzeile je Lage; die
+`--summary`-Tabelle hat dasselbe Spaltenschema, nur die letzte Zelle
+„Ergebnis" trägt dort den `grund` des Viewers und wird beim Übernehmen zur
+Einordnung gesund / kein Urteil / [F]) und als Kommentar in das auslösende
+Issue – Kopfzeile und die drei Ausgabezeilen der Sonde wörtlich:
 
 ```text
 Gerät · OS · Qt : <Modell> · <OS> (<Arch>) · Qt <Version> / PyQt <Version> · Plattform <cocoa|xcb|wayland> · Renderer <GL_RENDERER>
