@@ -496,9 +496,10 @@ def test_gl_scenario_rejects_an_incomplete_buffer_upload(qapp, monkeypatch) -> N
     with pytest.raises(probe.ProbeNotExecutable, match="unvollständiger Puffer-Upload"):
         probe.run_gl_scenario("gl", [_mesh(64)], 3, "64×64")
 
-    # Der Abbruchpfad räumt trotzdem auf – ein Aufrufer, der die Ausnahme fängt
-    # und weiterläuft, erbt weder Teilressourcen noch verfälschte Zähler
-    # (Codex-Review #713).
+    # Buchungssymmetrie des Abbruchpfads. Mit der Attrappe oben entsteht hier
+    # nichts mehr, was freizugeben wäre – der **echte** #713-Nachweis (realer
+    # Upload, dann Freigabe im Abbruchpfad) steht deshalb in
+    # ``test_gl_scenario_rejects_a_failed_viewer`` (Review PR #1028).
     assert gl_resource_stats().live == 0
 
 
@@ -810,6 +811,13 @@ def test_gl_scenario_rejects_a_failed_viewer(qapp, monkeypatch) -> None:
 
     with pytest.raises(probe.ProbeNotExecutable, match="fehlgeschlagen"):
         probe.run_gl_scenario("gl", [_mesh(64)], 3, "64×64")
+
+    # Der #713-Vertrag „auch der Abbruchpfad räumt auf", hier mit echtem
+    # Nachweis (Review PR #1028): Dieser Test patcht ``gl_object_count`` nicht,
+    # unter einer Sitzungsplattform lädt die Schleife vor der ``has_failed``-
+    # Prüfung real hoch, und ``cleanup_gl``/``deleteLater`` müssen das wieder
+    # freigeben. Unter ``offscreen`` entsteht kein Kontext – dort trivial wahr.
+    assert gl_resource_stats().live == 0
 
 
 def test_gl_scenario_rejects_a_platform_that_never_renders(qapp) -> None:
