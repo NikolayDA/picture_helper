@@ -69,6 +69,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corregido
 
+- **La vista previa de relieve 3D podía abortar el proceso cuando otro visor
+  3D se liberaba mientras dibujaba (#1024).** Qt activa el contexto GL antes
+  de dibujar y lo usa después sin comprobarlo. Si la recolección de basura
+  liberaba un visor 3D huérfano en mitad del dibujado, su desmontaje soltaba
+  el contexto activo y la aplicación terminaba con un fallo de segmentación en
+  lugar de un mensaje. El visor ahora restaura su propio contexto tras
+  dibujar. Observado en la ejecución completa de pruebas bajo una plataforma
+  de sesión (`xcb`); la causa es el ciclo de vida de los objetos, no un
+  controlador.
 - **La vista previa de relieve 3D podía caer por error en el estado de
   error.** La prueba de renderizado de la vista previa informa de un
   framebuffer de widget ausente mediante un temporizador breve. Si el

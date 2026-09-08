@@ -39,7 +39,7 @@ from typing import Any
 
 import numpy as np
 from PyQt6.QtCore import Qt, QTimer, pyqtBoundSignal, pyqtSignal
-from PyQt6.QtGui import QMatrix4x4, QSurfaceFormat
+from PyQt6.QtGui import QMatrix4x4, QOpenGLContext, QSurfaceFormat
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -524,12 +524,66 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         return None
 
     def paintGL(self) -> None:  # noqa: N802 (Qt-Override)
-        if self._failed or not self._gl_ready:
-            return
+        # Die Wachklausel steht bewusst **im** ``try`` (Review PR #1026): Auch
+        # der frühe Rückweg eines fehlgeschlagenen oder noch nicht bereiten
+        # Viewers ist ein Python-Frame innerhalb von Qts ``render()`` – schon
+        # seine Anlage kann eine Collection auslösen, und Qts Nachlauf kommt
+        # danach genauso. Das ``finally`` muss jeden Rückweg abdecken.
         try:
+            if self._failed or not self._gl_ready:
+                return
             self._paint_gl()
         except Exception as exc:  # noqa: BLE001
             self._fail(f"paintGL: {type(exc).__name__}: {exc}")
+        finally:
+            self._reassert_current_context()
+
+    def _reassert_current_context(self) -> None:
+        """Macht den eigenen Kontext wieder aktuell, falls ``paintGL`` ihn verlor (#1024).
+
+        Qts ``QOpenGLWidgetPrivate::render`` macht den Kontext **vor**
+        ``paintGL`` aktuell und greift **danach** ohne Null-Prüfung auf
+        ``QOpenGLContext::currentContext()->functions()`` zu (Qt 6.7.1,
+        gemessen: der Discard des Tiefen-/Stencil-Anhangs nach dem
+        Nutzer-Paint). Mitten in ``paintGL`` läuft Python-Code – jede
+        numpy-Zuweisung kann die zyklische Garbage-Collection anstoßen –, und
+        die kann dort ein fremdes, längst verwaistes ``QOpenGLWidget``
+        freigeben. Dessen ``reset()`` ruft ``makeCurrent``/``doneCurrent`` auf
+        **seinem** Kontext und lässt den Thread ohne aktuellen Kontext zurück;
+        Qt dereferenziert danach einen Nullzeiger. Das ist ein SIGSEGV, kein
+        behandelbarer Fehler, und hängt an keinem Treiber: reiner
+        Objektlebenszyklus, im Suite-Lauf unter `xcb` reproduziert.
+
+        Der Viewer stellt seinen Kontext deshalb selbst wieder her, bevor Qt
+        weitermacht – auf jedem Rückweg aus ``paintGL``, denn Qts Nachlauf
+        kommt so oder so. ``QOpenGLWidget.makeCurrent`` bindet dabei den
+        Widget-Framebuffer erneut, den dieser Nachlauf erwartet. Ein intakter
+        Kontext wird nicht angefasst; sip liefert für denselben C++-Kontext
+        denselben Wrapper, die Identitätsprüfung ist deshalb exakt.
+
+        Scheitert die Wiederherstellung – ``makeCurrent`` wirft, oder es kehrt
+        bei einem nicht initialisierten Widget still ohne Kontext zurück –,
+        folgt Qts Absturz trotzdem. Dann steht wenigstens eine Log-Zeile
+        (Review PR #1026): Ohne sie wäre der Absturz so undiagnostizierbar wie
+        vor diesem Fix, dessen Kette per gdb rekonstruiert werden musste.
+        Bewusst kein ``_fail`` – der Fehlerzustand hilft hier nicht mehr.
+        """
+        if not _HAS_GL_WIDGET:
+            return
+        context = self.context()
+        if context is None or QOpenGLContext.currentContext() is context:
+            return
+        try:
+            self.makeCurrent()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "3D-Viewer: GL-Kontext nach paintGL verloren, makeCurrent scheiterte: %s", exc
+            )
+            return
+        if QOpenGLContext.currentContext() is not context:
+            logger.warning(
+                "3D-Viewer: GL-Kontext nach paintGL verloren und nicht wiederhergestellt"
+            )
 
     # ── interne GL-Implementierung ───────────────────────────────────────
     def _functions(self) -> Any:

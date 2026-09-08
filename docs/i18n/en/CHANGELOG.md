@@ -66,6 +66,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The 3D relief preview could crash the process when another 3D viewer was
+  freed while it was drawing (#1024).** Qt makes the GL context current before
+  drawing and uses it afterwards without checking. If garbage collection freed
+  an orphaned 3D viewer in the middle of drawing, that viewer's teardown
+  released the current context and the application died with a segmentation
+  fault instead of a message. The viewer now restores its own context after
+  drawing. Observed in the full test run under a session platform (`xcb`); the
+  cause is object lifetime, not a driver.
 - **The 3D relief preview could fall into the error state by mistake.** The
   preview's render proof reports a missing widget framebuffer through a short
   timer. If the graphics driver delivered the first frame only after that, the

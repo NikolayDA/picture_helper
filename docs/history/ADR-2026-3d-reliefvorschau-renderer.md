@@ -834,3 +834,94 @@ Zahl trägt. Die Erwartungstabelle der Sonde in
 [`TESTING.md`](../../TESTING.md) ist nachgezogen: `has_failed=True` bei
 `_has_rendered=True` ist seither kein bekannter Ablauf-Fehler mehr, sondern ein
 neuer Befund.
+
+## Nachtrag (2026-09-08, #1024): Eine fremde Freigabe mitten in `paintGL` lässt Qt einen Nullzeiger dereferenzieren
+
+Gefunden bei der Gegenprobe zu PR #1023: Der volle Suite-Lauf unter einer
+Sitzungsplattform (`xvfb-run` + `xcb`, llvmpipe) endete mit
+`Fatal Python error: Segmentation fault` in
+`test_repeated_uploads_do_not_accumulate_gl_objects`, sobald vorher genügend
+andere Viewer-Tests im selben Prozess gelaufen waren; die Datei allein war
+grün. Die offene Frage des Issues – llvmpipe-spezifisch oder nicht – ist
+beantwortet: **nein**. Die Kette ist reiner Objektlebenszyklus und berührt
+keinen Treiber.
+
+**Gemessene Kette** (gdb mit Breakpoints auf `~QOpenGLWidget`,
+`QOpenGLContextPrivate::setCurrentContext` und `~QOpenGLContext`; Python-seitig
+`gc.callbacks` plus `weakref.finalize` je Viewer/Container):
+
+1. Die Messschleife läuft; je Frame wechseln der RHI-Kontext des Fensters und
+   der Widget-Kontext des Viewers einander ab (`setCurrentContext(…300)`/
+   `(…340)`).
+2. Mitten im `paintGL` des messenden Viewers stößt eine numpy-Zuweisung eine
+   **gen0-Collection** an (`gc gen0 collected=91`). Sie finalisiert den
+   `Relief3DView` samt `GLReliefViewer` aus
+   `test_refusals_reach_the_container_as_the_documented_error_state` – ein
+   nie gezeigter Viewer, der über die direkten `paintEvent`-Aufrufe der
+   Renderbeweis-Tests trotzdem einen eigenen Kontext bekommen hatte
+   (`QOpenGLWidget::paintEvent` ruft `initialize()`, Nebenbefund).
+3. Dessen `QOpenGLWidgetPrivate::reset()` ruft `makeCurrent()` auf **seinem**
+   Kontext und dann `doneCurrent()`: `setCurrentContext(0x18b6830)`,
+   `setCurrentContext((nil))`, `~QOpenGLContext`.
+4. Zurück in Qts `render()` folgt nach dem Nutzer-Paint (Disassembly von
+   `libQt6OpenGLWidgets.so.6`: virtueller `paintGL`-Aufruf bei `a5c0`, danach
+   bei `a6c3` der Helfer, der Tiefen-/Stencil-Anhang verwirft) ein
+   `QOpenGLContext::currentContext()->functions()` **ohne Null-Prüfung** –
+   `functions()` mit `this == NULL`, SIGSEGV. Der messende Viewer macht
+   seinen Kontext nicht erneut aktuell: Qt tut das nur **vor** `paintGL`.
+
+Drei Gegenproben stützen die Kette: Ein `gc.collect()` an jeder Testgrenze
+lässt die Kombination fehlerfrei durchlaufen (die Freigabe fällt dann nie in
+ein Paint). Das gezielte Am-Leben-Halten allein der Hinterlassenschaft aus
+Schritt 2 verhindert den Absturz, das jedes anderen Tests nicht. Und ein
+Standalone-Reproducer, der den fremden Viewer **zwischen** zwei Frames löscht,
+bleibt grün – die Freigabe muss *innerhalb* von `paintGL` liegen.
+
+Warum kumulativ statt einzelner Auslöser: Der Container hält über Lambda-
+Verbindungen (`initFailed` → `self.show_error()`) einen Referenzzyklus und
+wird deshalb nie per Referenzzählung frei, sondern erst von der zyklischen
+Collection – zu einem Zeitpunkt, der von der Zahl der Zuweisungen abhängt.
+Erst genügend Vorgeschichte plus die Zuweisungen der Messschleife legen eine
+Collection in ein Paint. Ein einzelner Vorgänger-Test reichte dafür nicht.
+
+**Der Fix** liegt im Viewer, nicht in den Tests: `paintGL` stellt in einem
+`finally` seinen eigenen Kontext wieder her, sobald `currentContext()` nicht
+mehr der eigene ist (`_reassert_current_context`; `QOpenGLWidget.makeCurrent`
+bindet dabei den Widget-Framebuffer erneut, den Qts Nachlauf erwartet). Ein
+intakter Kontext wird nicht angefasst; sip liefert für denselben C++-Kontext
+denselben Wrapper, die Identitätsprüfung ist exakt (gemessen). Das `finally`
+deckt **jeden** Rückweg ab – auch die Ausnahme und den frühen Rückweg eines
+fehlgeschlagenen oder noch nicht bereiten Viewers: Die Wachklausel steht
+deshalb im `try` (Review PR #1026 – auch dieser Frame liegt in Qts `render()`,
+und Qts Nachlauf kommt danach genauso). Scheitert die Wiederherstellung
+(`makeCurrent` wirft oder kehrt bei einem nicht initialisierten Widget still
+ohne Kontext zurück), folgt Qts Absturz trotzdem – dann steht wenigstens eine
+Log-Zeile, statt dass die Kette erneut per gdb rekonstruiert werden muss;
+bewusst kein `_fail`. Die übrigen Python-Frames innerhalb von Qt sind von Qt
+selbst abgedeckt: `initializeGL` läuft in `initialize()` **vor** dem
+`makeCurrent` von `render()`, und auf `resizeGL` folgt ein Paint, der ebenfalls
+mit `makeCurrent` beginnt. Der
+Nachweis selbst (#711/#684) bleibt unverändert; nichts wird übersprungen.
+
+**Nachweis.** Sechs GL-freie Tests in `tests/test_viewer_3d.py` (Verlust →
+`makeCurrent`; intakt → kein Aufruf; Verlust im Fehlerpfad; kein Kontext →
+kein Aufruf; früher Rückweg eines fehlgeschlagenen Viewers → `makeCurrent`;
+gescheiterter Restore → Log-Zeile, kein `_fail`) und eine deterministische
+Nachstellung in
+`tests/test_viewer_3d_gl.py`: ein initialisierter fremder Viewer wird per
+`sip.delete` mitten in `_paint_gl` freigegeben – dieselbe C++-Freigabe, die
+die GC zufällig auslöste –, danach ist `currentContext()` gemessen `None`
+(der Mechanismus ist wirklich ausgelöst) und nach dem produktiven `paintGL`
+wieder der eigene. Die Sonde schützt sich selbst: Fehlt die
+Wiederherstellung, scheitert die Zusicherung, nicht der Prozess
+(Negativkontrolle mit abgeschalteter Wiederherstellung: Assertion, exit 1,
+kein Segfault). Dieselbe Datei räumt seither vor jedem Test fremde
+Hinterlassenschaften per `gc.collect()` ab – nicht gegen den Absturz, sondern
+damit der prozessweite Zähler `gl_resource_stats` nicht mitten in der Messung
+von fremdem `cleanup_gl` getroffen wird.
+
+**Für die Gegenprobe (#1009).** Der Schritt-2-Dateisatz war nie betroffen und
+bleibt unverändert; die Erwartungszeile zu `test_viewer_3d_gl.py` zählt jetzt
+fünf Tests. Der volle Suite-Lauf unter der Sitzungsplattform ist im Container
+wieder grün. Auf echter GPU ist er damit nicht *gemessen* – aber die Kette
+enthält keinen Schritt, der von der GPU abhinge.

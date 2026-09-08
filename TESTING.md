@@ -277,7 +277,7 @@ Issue, kein Anlass, den Test umzubauen:
 |---|---|---|
 | `test_preview3d_capability.py::test_offscreen_default_probe_reports_unavailable` | misst deterministisch, kein Skip (Plattformregel aus #1002) | Skip „Testlauf auf einer renderfähigen Plattform" |
 | `test_scan_release_artifacts.py::test_signature_state_is_locale_independent` | läuft echt, kein Locale-Skip | ebenso |
-| `gl_smoke` in `test_viewer_3d_gl.py` (vier Tests) | Skip „kann QOpenGLWidget nicht rendern" | laufen: Freispruch nach dem ersten Frame, ein verborgener Viewer wird nie abgestuft (#1004) |
+| `gl_smoke` in `test_viewer_3d_gl.py` (fünf Tests) | Skip „kann QOpenGLWidget nicht rendern" | laufen: Freispruch nach dem ersten Frame, ein verborgener Viewer wird nie abgestuft (#1004), eine fremde Freigabe mitten in `paintGL` reißt den Frame nicht ab (#1024) |
 | `test_screenshot3d.py`: Fallback-Zweig und nativer Lauf | Fallback läuft, nativer Lauf skippt | Fallback skippt („GL-Capability vorhanden"), nativer Lauf schreibt PNG und Sidecar |
 | `test_benchmark_preview3d_live.py`: Live-Test | Skip (Plattform) | läuft mit echtem Hardware-Kontext |
 | 3D-Zustand in `test_e2e_release_regression.py` | läuft mit der produktiven GL-Regel | ebenso |

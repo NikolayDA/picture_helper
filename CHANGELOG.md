@@ -70,6 +70,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **3D-Reliefvorschau konnte den Prozess abreißen, wenn während des Zeichnens
+  ein anderer 3D-Viewer freigegeben wurde (#1024).** Qt macht den GL-Kontext
+  vor dem Zeichnen aktuell und greift danach ohne Prüfung darauf zu. Gab die
+  Speicherbereinigung mitten im Zeichnen einen verwaisten 3D-Viewer frei,
+  räumte dessen Abbau den aktuellen Kontext ab, und die Anwendung endete mit
+  einem Speicherzugriffsfehler statt mit einer Meldung. Der Viewer stellt
+  seinen Kontext nach dem Zeichnen jetzt selbst wieder her. Beobachtet im
+  vollständigen Testlauf unter einer Sitzungsplattform (`xcb`); die Ursache
+  ist der Objektlebenszyklus, kein Treiber.
 - **3D-Reliefvorschau konnte fälschlich in den Fehlerzustand fallen.** Der
   Renderbeweis der 3D-Vorschau meldet einen fehlenden Widget-Framebuffer über
   einen kurzen Zeitgeber. Lieferte die Grafikkarte den ersten Frame erst
