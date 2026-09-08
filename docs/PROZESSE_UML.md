@@ -113,7 +113,7 @@ flowchart TD
     DQ4{"ANLEITUNG.md oder scripts/generate_anleitung_pdf.py geändert?"}
     DA4["ANLEITUNG.pdf im selben Commit neu erzeugen<br/>pip install -e '.[docs]' · python scripts/generate_anleitung_pdf.py<br/>Wächter tests/test_anleitung_pdf_sync.py prüft die Git-Mitänderung"]
     DQ6{"Abhängigkeit oder Pin in pyproject.toml bzw. requirements/constraints.txt geändert?"}
-    DA6["Lizenz-Snapshot im selben Commit neu erzeugen<br/>Umgebung wie der Workflow: pip install --constraint requirements/constraints.txt '.[ai,test]' · python scripts/generate_license_report.py --report LICENSES.md --all-langs<br/>license-check.yml vergleicht LICENSES.md und die fünf Übersetzungen fail-closed; make check prüft nur die Titelversion"]
+    DA6["Lizenz-Snapshot im selben Commit neu erzeugen<br/>in einem frischen venv wie der Workflow: Python 3.12, pip install --constraint requirements/constraints.txt '.[ai,test]', nichts sonst · python scripts/generate_license_report.py --report LICENSES.md --all-langs<br/>license-check.yml vergleicht LICENSES.md und die fünf Übersetzungen fail-closed; make check prüft nur die Titelversion"]
     DQ5{"Berührt der Commit einen Pfad, den release/path-policy.json nicht kennt?"}
     DA5["Pfadpolicy im selben PR nachziehen<br/>Eintrag ergänzen (release-neutral nur eng begründet); policy_version nur bei Semantikänderung anheben, dann Versionszeile im aktiven Freeze-Dokument nachziehen<br/>unbekannte Pfade blockieren fail-closed in release-freeze-check (make pr-check, PR-CI) — make check sieht sie nicht"]
   end
@@ -206,11 +206,15 @@ flowchart TD
   Titel zur `pyproject.toml` passt; die Paketliste vergleicht erst
   `license-check.yml` auf dem PR, indem es den Report neu erzeugt und
   fail-closed gegen `LICENSES.md` samt der fünf Übersetzungen hält. Weil der
-  Report aus den **installierten** Metadaten entsteht, ist er nur in der
-  Umgebung des Workflows reproduzierbar (`--constraint
-  requirements/constraints.txt`, Extra `[ai,test]`) — eine Regeneration ohne
-  das `ai`-Extra erzeugt Drift, statt sie zu beheben. Zuletzt fällig mit
-  #1019 (`pyyaml` im `[test]`-Extra, sechs Snapshot-Dateien mitgezogen).
+  Report aus den **installierten** Metadaten entsteht, ist er nur in einem
+  frischen venv wie dem des Workflows reproduzierbar (Python 3.12,
+  `--constraint requirements/constraints.txt`, Extra `[ai,test]`, sonst
+  nichts): Ohne das `ai`-Extra fehlen Pakete, mit einem zusätzlich
+  installierten Extra kommen welche dazu — der Generator läuft über alle
+  Extra-Gruppen und nimmt auf, was tatsächlich installiert ist. Die
+  `.[docs]`-Umgebung aus der Pflicht davor ist deshalb kein geeigneter Ort.
+  Zuletzt fällig mit #1019 (`pyyaml` im `[test]`-Extra, sechs
+  Snapshot-Dateien mitgezogen).
 ---
 
 ## 2. Pull Request erstellen
@@ -388,7 +392,8 @@ flowchart TD
     IQ{"Closing-Verknüpfung vorhanden?"}
     N1["verknüpfte Issues schließen automatisch"]
     N2["push auf main<br/>coverage.yml, codeql.yml, license-check.yml"]
-    N3["Ereignis issues opened, closed oder reopened<br/>recommendations-live-check.yml prüft gegen den Live-Stand"]
+    NEV(("Ereignis issues opened oder reopened<br/>auch ohne PR")):::terminal
+    N3["recommendations-live-check.yml prüft gegen den Live-Stand<br/>Trigger sind issues-Ereignisse, kein Merge und kein Push"]
     NQ{"Drift in der Triage-Tabelle?"}
     N4["Kurzstatus lokal in sechs Sprachfassungen nachziehen<br/>scripts/recommendations_live_check.py --write, prüfen, committen und per Folge-PR einreichen"]
   end
@@ -407,7 +412,8 @@ flowchart TD
   MQ -->|"nein"| J3
   J2 --> IQ
   IQ -->|"ja"| N1 --> N3
-  IQ -->|"nein"| N3
+  IQ -->|"nein"| J3
+  NEV --> N3
   N3 --> NQ
   J2 --> N2
   NQ -->|"ja"| N4 --> FOLGE["Artefakt: Folge-PR eingereicht"] --> J3
@@ -431,14 +437,16 @@ flowchart TD
   Bot-Befunde sind Input der Merge-Entscheidung, keine Merge-Bedingung –
   konvergieren Befunde nicht mehr (jeder Fix zieht neue oder umformulierte
   nach), ist Aufhören die richtige Auflösung, nicht der nächste Fix-Push.
-- Der Live-Check hängt nicht an der Closing-Verknüpfung: Er läuft bei jedem
-  `issues`-Ereignis — `opened`, `closed` und `reopened` — sowie über die
-  unten genannten Zeitplan- und Folgeeinstiege. Drift entsteht deshalb in
-  beide Richtungen: Ein neu eröffnetes Issue fehlt in der Triage-Tabelle,
-  ein gemergter Fix lässt eine Zeile zurück. Im Fenster #1007–#1029 waren
-  beide Richtungen je dreimal fällig (#1011/#1017/#1025 ergänzt,
-  #1020/#1022/#1027 entfernt); der Nachzug ist jedes Mal ein eigener
-  Folge-PR.
+- Der Live-Check hängt am `issues`-Ereignis, nicht am Merge: Eine
+  Closing-Verknüpfung erreicht ihn nur mittelbar, weil das Schließen selbst
+  das Ereignis auslöst; ein Merge ohne Verknüpfung löst gar nichts aus.
+  Dieselbe Prüfung startet aber unabhängig von jedem PR bei `opened` und
+  `reopened` sowie über die unten genannten Zeitplan- und Folgeeinstiege.
+  Drift entsteht deshalb in beide Richtungen: Ein neu eröffnetes Issue fehlt
+  in der Triage-Tabelle, ein gemergter Fix lässt eine Zeile zurück. Im
+  Fenster #1007–#1029 waren beide Richtungen je dreimal fällig
+  (#1011/#1017/#1025 ergänzt, #1020/#1022/#1027 entfernt); der Nachzug ist
+  jedes Mal ein eigener Folge-PR.
 - Squash-Merge ist die aus der `main`-Historie belegte Projektpraxis. GitHub
   erzwingt sie nicht: Auch Merge-Commit und Rebase sind freigeschaltet.
 - Ein formales `APPROVED`-Review ist derzeit keine Branch-Protection-Pflicht.
