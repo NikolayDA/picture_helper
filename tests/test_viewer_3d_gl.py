@@ -8,8 +8,13 @@ einem echten Windowing-Backend (xcb/Wayland/Cocoa) plus llvmpipe/GPU.
 """
 from __future__ import annotations
 
+import gc
+
 import numpy as np
 import pytest
+from PyQt6 import sip
+from PyQt6.QtCore import QRect
+from PyQt6.QtGui import QOpenGLContext, QPaintEvent
 from PyQt6.QtWidgets import QApplication
 
 from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
@@ -45,6 +50,22 @@ _NO_FRAME_WINDOW_MS = _FRAME_TIMEOUT_MS
 # Seit #1002 kommt die Menge aus dem Produktivpfad: Dieselbe Regel entscheidet
 # das 3D-Gating, eine eigene Kopie hier könnte davon abdriften.
 _NON_RENDERABLE = NON_RENDERABLE_PLATFORMS
+
+
+@pytest.fixture(autouse=True)
+def _collect_foreign_garbage():
+    """Räumt fremde Hinterlassenschaften ab, **bevor** hier gemessen wird (#1024).
+
+    Viewer und Container früherer Tests werden erst von der zyklischen
+    Garbage-Collection freigegeben – zu einem beliebigen späteren Zeitpunkt,
+    etwa mitten in der Messschleife unten. Ihr ``cleanup_gl`` bucht dann in
+    den prozessweiten Zähler ``gl_resource_stats``, den diese Datei misst.
+    Den Absturz, den dieselbe Freigabe mitten in ``paintGL`` auslöste, schließt
+    der Viewer selbst (``_reassert_current_context``); dieses Aufräumen hält
+    nur die Messung deterministisch.
+    """
+    gc.collect()
+    yield
 
 
 def _require_renderable(qapp) -> None:
@@ -181,5 +202,68 @@ def test_a_hidden_viewer_is_never_downgraded(qapp, qtbot) -> None:
     assert viewer.isVisible() is False
     assert viewer._has_rendered is False   # nie gerendert …
     assert viewer._refused_paints == 0     # … aber auch nie bewertet
+    assert viewer.has_failed is False
+    viewer.cleanup_gl()
+
+
+# ── Fremde Freigabe mitten in ``paintGL`` (#1024) ────────────────────────
+
+def test_a_foreign_viewer_freed_during_paint_gl_does_not_kill_the_frame(qapp) -> None:
+    """Deterministische Nachstellung des Segfaults aus #1024.
+
+    Im Suite-Lauf unter ``xcb`` gab die Garbage-Collection mitten im
+    ``paintGL`` des Langzeitnachweises einen verwaisten Viewer aus einem
+    früheren Test frei. Qts ``reset()`` dieses Viewers ruft
+    ``makeCurrent``/``doneCurrent`` auf **dessen** Kontext; zurück in Qts
+    ``render()`` folgt nach dem Nutzer-Paint ein ungeprüfter
+    ``currentContext()->functions()`` – Nullzeiger, SIGSEGV. Hier geschieht
+    dieselbe C++-Freigabe gezielt per ``sip.delete`` statt zufällig per GC.
+
+    Die Hinterlassenschaft ist wie im Original ein nie gezeigter Viewer, der
+    über einen direkten ``paintEvent`` trotzdem einen eigenen Kontext bekam
+    (``QOpenGLWidget::paintEvent`` initialisiert unter einer Sitzungsplattform).
+    Die Sonde schützt sich selbst vor dem Absturz: Fehlt die Wiederherstellung,
+    scheitert die Zusicherung unten statt des ganzen Prozesses.
+    """
+    _require_renderable(qapp)
+    foreign = GLReliefViewer()
+    foreign.paintEvent(QPaintEvent(QRect(0, 0, 10, 10)))
+    if not foreign.isValid():
+        foreign.show()
+        QApplication.processEvents()
+    assert foreign.isValid(), "Gegenprobe: Der fremde Viewer braucht einen eigenen Kontext"
+
+    observed: dict[str, object] = {}
+
+    class Probe(GLReliefViewer):
+        def _paint_gl(self) -> None:
+            super()._paint_gl()
+            if "after_delete" not in observed:
+                sip.delete(foreign)  # das fremde ``reset()`` – mitten im eigenen Paint
+                observed["after_delete"] = QOpenGLContext.currentContext()
+
+        def paintGL(self) -> None:  # noqa: N802 (Qt-Override)
+            super().paintGL()  # produktiver Pfad samt ``_reassert_current_context``
+            if "after_paint_gl" not in observed:
+                observed["after_paint_gl"] = QOpenGLContext.currentContext()
+                observed["own"] = self.context()
+            # Schutz der Sonde selbst: Ohne Wiederherstellung stürzte Qts
+            # Nachlauf ab, bevor eine Zusicherung greifen könnte.
+            self.makeCurrent()
+
+    viewer = Probe()
+    viewer.resize(240, 200)
+    viewer.set_mesh(_ramp_mesh())
+    viewer.show()
+    QApplication.processEvents()
+    viewer.grab()
+    QApplication.processEvents()
+
+    assert "after_delete" in observed, "paintGL lief nicht – kein Nachweis"
+    # Der Mechanismus wirklich ausgelöst: Qts ``reset()`` des fremden Viewers
+    # ließ den Thread ohne aktuellen Kontext zurück.
+    assert observed["after_delete"] is None
+    # Die Wiederherstellung durch den Viewer, noch vor Qts Nachlauf.
+    assert observed["after_paint_gl"] is observed["own"]
     assert viewer.has_failed is False
     viewer.cleanup_gl()

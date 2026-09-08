@@ -274,7 +274,22 @@ Ein Paket, `bgremover/`:
   Prozedur in [`TESTING.md`](TESTING.md), ihre Container-Referenzwerte und die
   offenen `cocoa`-Zeilen im ADR-Nachtrag; `MACOS-ARM-DMG-01` bleibt dafür
   bewusst unverändert (der Beweis kann den nativen 3D-Nachweis nur scheitern
-  lassen, nie durchwinken).
+  lassen, nie durchwinken). Seit #1024 stellt `paintGL` seinen Kontext nach
+  dem Nutzer-Paint selbst wieder her (`_reassert_current_context`): Qt macht
+  ihn davor aktuell und greift danach **ungeprüft** auf
+  `currentContext()->functions()` zu (Qt 6.7.1, Discard des Tiefen-/
+  Stencil-Anhangs). Gibt die zyklische Garbage-Collection mitten im Paint ein
+  verwaistes `QOpenGLWidget` frei, räumt dessen `reset()` per `doneCurrent`
+  den Thread-Kontext ab – SIGSEGV, kein behandelbarer Fehler; im Suite-Lauf
+  unter `xcb` gemessen (gdb: `~QOpenGLWidget` → `setCurrentContext(nil)` →
+  Nullzeiger) und treiberunabhängig. Die deterministische Nachstellung per
+  `sip.delete` mitten in `_paint_gl` steht in `tests/test_viewer_3d_gl.py`;
+  die Datei räumt seither vor jedem Test fremde Hinterlassenschaften per
+  `gc.collect()` ab, damit der prozessweite Zähler `gl_resource_stats` nicht
+  von fremdem `cleanup_gl` getroffen wird. Nebenbefund: Ein direkter
+  `paintEvent`-Aufruf initialisiert einen nie gezeigten Viewer unter einer
+  Sitzungsplattform samt eigenem Kontext (`QOpenGLWidget::paintEvent` ruft
+  `initialize()`), die Renderbeweis-Tests hinterlassen also echte Kontexte.
   `preview3d_controller.py` (`Preview3DController`, #594) orchestriert Gating,
   entprellten (200 ms) asynchronen Mesh-Build (`MeshBuildWorker` über den
   `WorkerController`) mit **Generation-IDs** (stale-result-Schutz) und einem

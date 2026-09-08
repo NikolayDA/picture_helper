@@ -70,6 +70,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corrigé
 
+- **L'aperçu du relief 3D pouvait faire planter le processus lorsqu'un autre
+  visualiseur 3D était libéré pendant le dessin (#1024).** Qt rend le contexte
+  GL courant avant le dessin et l'utilise ensuite sans vérification. Si le
+  ramasse-miettes libérait un visualiseur 3D orphelin en plein dessin, son
+  démontage relâchait le contexte courant et l'application se terminait par
+  une erreur de segmentation au lieu d'un message. Le visualiseur restaure
+  désormais lui-même son contexte après le dessin. Observé lors de l'exécution
+  complète des tests sous une plateforme de session (`xcb`) ; la cause est le
+  cycle de vie des objets, pas un pilote.
 - **L'aperçu 3D du relief pouvait basculer à tort dans l'état d'erreur.** La
   preuve de rendu de l'aperçu signale un framebuffer de widget manquant via un
   minuteur bref. Si le pilote graphique ne livrait la première image qu'après

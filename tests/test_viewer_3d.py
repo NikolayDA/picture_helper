@@ -14,6 +14,7 @@ import pytest
 from PyQt6.QtCore import QEvent, QPoint, QPointF, Qt
 from PyQt6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 
+from bgremover import viewer_3d
 from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
 from bgremover.relief_mesh import MeshQuality, build_relief_mesh
 from bgremover.viewer_3d import (
@@ -995,3 +996,94 @@ def test_the_settled_states_are_the_real_state_names(qapp) -> None:
 
     assert seen | {STATE_READY} >= SETTLED_STATES
     assert STATE_READY not in seen  # ohne Mesh nie erreicht
+
+
+# ── Kontextwiederherstellung nach ``paintGL`` (#1024) ────────────────────
+#
+# Qt macht den Kontext vor ``paintGL`` aktuell und greift danach ohne
+# Null-Prüfung auf ``currentContext()`` zu. Gibt die Garbage-Collection mitten
+# im Nutzer-Paint ein fremdes ``QOpenGLWidget`` frei, räumt dessen ``reset()``
+# per ``doneCurrent`` den aktuellen Kontext ab – Qt dereferenziert dann einen
+# Nullzeiger (SIGSEGV, im Suite-Lauf unter ``xcb`` reproduziert). Der Viewer
+# stellt seinen Kontext deshalb selbst wieder her. GL-frei geprüft über
+# Attrappen für ``context``/``makeCurrent``/``currentContext``; die echte
+# Nachstellung mit C++-Freigabe steht in ``test_viewer_3d_gl.py``.
+
+class _FakeContextRegistry:
+    """Ersetzt ``viewer_3d.QOpenGLContext``: ``currentContext`` liest ein Feld."""
+
+    current: object = None
+
+    @classmethod
+    def currentContext(cls):  # noqa: N802 (Qt-API)
+        return cls.current
+
+
+def _viewer_with_fake_context(monkeypatch, *, context: object | None):
+    """Ein ``paintGL``-fähiger Viewer ohne GL; ``makeCurrent`` wird protokolliert."""
+    viewer = GLReliefViewer()
+    calls: list[str] = []
+    monkeypatch.setattr(type(viewer), "context", lambda self: context)
+    monkeypatch.setattr(type(viewer), "makeCurrent", lambda self: calls.append("makeCurrent"))
+    _FakeContextRegistry.current = context
+    monkeypatch.setattr(viewer_3d, "QOpenGLContext", _FakeContextRegistry)
+    viewer._gl_ready = True
+    return viewer, calls
+
+
+def test_paint_gl_reasserts_its_context_after_a_foreign_done_current(
+    qapp, monkeypatch
+) -> None:
+    """Der Kern von #1024: Nach dem Nutzer-Paint ist der Kontext wieder der eigene."""
+    own = object()
+    viewer, calls = _viewer_with_fake_context(monkeypatch, context=own)
+
+    def paint_and_lose_context() -> None:
+        # Was ein fremdes ``reset()`` mitten im Paint tut: ``doneCurrent``.
+        _FakeContextRegistry.current = None
+    viewer._paint_gl = paint_and_lose_context
+
+    viewer.paintGL()
+
+    assert calls == ["makeCurrent"]
+    assert viewer.has_failed is False
+
+
+def test_paint_gl_leaves_an_intact_context_alone(qapp, monkeypatch) -> None:
+    """Negativkontrolle: Ohne Verlust kein zusätzliches ``makeCurrent``."""
+    own = object()
+    viewer, calls = _viewer_with_fake_context(monkeypatch, context=own)
+    viewer._paint_gl = lambda: None
+
+    viewer.paintGL()
+
+    assert calls == []
+
+
+def test_the_context_is_reasserted_even_when_painting_fails(qapp, monkeypatch) -> None:
+    """Qts Nachlauf kommt auch nach einer Ausnahme – die Wiederherstellung ebenso."""
+    own = object()
+    viewer, calls = _viewer_with_fake_context(monkeypatch, context=own)
+    failures: list[str] = []
+    viewer.initFailed.connect(failures.append)
+
+    def paint_lose_and_raise() -> None:
+        _FakeContextRegistry.current = None
+        raise RuntimeError("Attrappe")
+    viewer._paint_gl = paint_lose_and_raise
+
+    viewer.paintGL()
+
+    assert calls == ["makeCurrent"]
+    assert viewer.has_failed is True
+    assert failures and "paintGL: RuntimeError" in failures[0]
+
+
+def test_a_viewer_without_context_never_calls_make_current(qapp, monkeypatch) -> None:
+    """Ohne eigenen Kontext gibt es nichts wiederherzustellen – und nichts zu riskieren."""
+    viewer, calls = _viewer_with_fake_context(monkeypatch, context=None)
+    viewer._paint_gl = lambda: None
+
+    viewer.paintGL()
+
+    assert calls == []
