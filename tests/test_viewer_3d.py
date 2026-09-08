@@ -701,6 +701,29 @@ def test_a_frame_after_the_threshold_takes_the_downgrade_back(qapp, monkeypatch)
     assert viewer._has_rendered is True
 
 
+def test_the_reporter_stands_down_after_an_acquittal(qapp, monkeypatch) -> None:
+    """Die zweite Barriere im Reporter, direkt geprüft.
+
+    ``_clear_pending_failure`` stoppt den Timer – die beiden Tests hier herum
+    betreten ``_report_missing_framebuffer`` deshalb gar nicht, und sein
+    ``if`` bliebe ohne diesen Test ungeprüft (streichbar, ohne dass etwas rot
+    wird). Hergestellt wird darum genau die Lage, gegen die es verteidigt: Der
+    Reporter läuft, obwohl die Anforderung längst zurückgenommen ist.
+    """
+    viewer = GLReliefViewer()
+    failures: list[str] = []
+    viewer.initFailed.connect(failures.append)
+    _refuse_frames(viewer, monkeypatch)
+    _paint(viewer, 3)
+    viewer._on_frame_swapped()
+    assert viewer._fail_pending is False
+
+    viewer._report_missing_framebuffer()   # als wäre das Timeout schon zugestellt
+
+    assert viewer.has_failed is False
+    assert failures == []
+
+
 def test_a_context_loss_after_the_threshold_takes_the_downgrade_back(
     qapp, monkeypatch
 ) -> None:

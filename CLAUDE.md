@@ -245,9 +245,11 @@ Ein Paket, `bgremover/`:
   über einen Kind-Timer, und gewann er das Rennen gegen einen späten ersten
   Frame-Tausch, stufte er einen gesunden Viewer ab (mit der widersprüchlichen
   Meldung „0 Anforderungen abgewiesen", weil beide Rücksetzer den Zähler
-  nullen). `_fail_pending` ist dabei die tragende Barriere: Ein bereits
-  gepostetes Timeout nimmt `stop()` nicht zurück, der Reporter prüft es
-  deshalb selbst. Ein `QTimer.singleShot(0)` auf
+  nullen). Wirksam ist das `stop()`; die Prüfung von `_fail_pending` im
+  Reporter ist ausdrücklich **defensiv** – dass ein Single-Shot-Timer sein
+  anstehendes Ereignis immer mitnimmt, ist Beobachtungswissen, kein
+  zugesicherter Vertrag – und hat deshalb einen eigenen Test, weil die beiden
+  Rücknahme-Tests den Reporter gar nicht erreichen. Ein `QTimer.singleShot(0)` auf
   `frameSwapped` war die erste Wahl und wurde **gemessen verworfen**: Dort
   steht der Zähler auch im gesunden Fall noch auf 0. Damit ist die Lücke
   geschlossen, die der #1002-Nachtrag benennt (Proben sind notwendig, nicht

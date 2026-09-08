@@ -403,9 +403,13 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         – Qt spricht den Viewer frei (``frameSwapped``) oder der Kontext
         wechselt. Ohne diese Rücknahme meldete der Timer danach an einem
         gesunden Viewer „0 Anforderungen abgewiesen, kein Frame": eine in sich
-        widersprüchliche Meldung, weil beide Rücksetzer den Zähler nullen. Das
-        ``stop()`` ist die erste, ``_fail_pending`` die tragende Barriere – ein
-        bereits gepostetes Timeout nimmt ``stop()`` nicht mehr zurück.
+        widersprüchliche Meldung, weil beide Rücksetzer den Zähler nullen.
+
+        Wirksam ist das ``stop()``: Ein Single-Shot-Timer im selben Thread
+        nimmt sein anstehendes Ereignis dabei mit. ``_fail_pending`` ist die
+        **defensive** zweite Barriere im Reporter – diese Reihenfolge ist
+        Qt-Beobachtungswissen, kein zugesicherter Vertrag, und der Preis einer
+        Prüfung ist ein ``if``.
         """
         self._fail_pending = False
         self._fail_timer.stop()
@@ -474,8 +478,9 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
     def _report_missing_framebuffer(self) -> None:
         """Meldet den Befund **außerhalb** von Qts Paint-Zustellung (#1004)."""
         if not self._fail_pending:
-            # Freispruch oder Kontextwechsel kam der Zustellung zuvor; ein
-            # bereits gepostetes Timeout erreicht diese Stelle trotz ``stop()``.
+            # Freispruch oder Kontextwechsel kam der Zustellung zuvor. Defensiv
+            # (siehe ``_clear_pending_failure``): Dass ``stop()`` ein bereits
+            # gepostetes Timeout immer mitnimmt, ist nicht zugesichert.
             return
         self._fail(
             "paintEvent: Qt hält keinen Widget-Framebuffer "
