@@ -738,13 +738,19 @@ Wortlaut nachgemessen:
 | sichtbar | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | `False` | 3 | [F], „kein Widget-Framebuffer" |
 | verborgen | `offscreen` | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
 | verdeckt | `offscreen` | 3 | 0, 0, 0 | 0 | 0 | `False` | 3 | wie sichtbar (ohne WM) |
-| sichtbar | **`cocoa`** | ? | ? | ? | ? | ? | ? | **offen (#1010)** |
-| verborgen | **`cocoa`** | ? | ? | ? | ? | ? | ? | **offen (#1010)** |
-| verdeckt | **`cocoa`** | ? | ? | ? | ? | ? | ? | **offen (#1010)** |
+| sichtbar | `wayland` | 3 | 1, 1, 1 | 3 | 3 | `True` | 0 | gesund |
+| verborgen | `wayland` | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
+| verdeckt | `wayland` | 2 | 1, 1 | 2 | 2 | `True` | 0 | gesund (Compositor malt weiter) |
+| sichtbar | **`cocoa`** | 2 | 1, 1 | 2 | 2 | `True` | 0 | **gesund** (gemessen 2026-09-08, Nachtrag unten) |
+| verborgen | **`cocoa`** | 0 | – | 0 | 0 | `False` | 0 | kein Urteil |
+| verdeckt | **`cocoa`** | 2 | 1, 1 | 2 | 6 | `True` | 0 | gesund (macOS malt weiter) |
 
-(Ubuntu 24.04 im Container, Mesa 25.2.8/llvmpipe, PyQt6/Qt 6.7.1, 2026-09-07;
-`xvfb-run` hat keinen Fenstermanager, die verdeckte Lage misst dort dasselbe
-wie die sichtbare und steht nur der Vollständigkeit halber da.)
+(`xcb`/`offscreen`: Ubuntu 24.04 im Container, Mesa 25.2.8/llvmpipe,
+PyQt6/Qt 6.7.1, 2026-09-07 – `xvfb-run` hat keinen Fenstermanager, die
+verdeckte Lage misst dort dasselbe wie die sichtbare und steht nur der
+Vollständigkeit halber da. `wayland`/`cocoa`: die beiden Abnahme-Runner
+(Raspberry Pi 5 mit V3D, MacBook mit Apple M3 Max), PyQt6/Qt 6.11.0,
+2026-09-08 – Nachtrag „`cocoa` gemessen" unten.)
 
 Die Endzähler allein beantworten die `cocoa`-Frage nicht, deshalb misst die
 Sonde zwei weitere Größen. Auf `xcb` kam der erste Frame-Tausch nach dem
@@ -925,3 +931,75 @@ bleibt unverändert; die Erwartungszeile zu `test_viewer_3d_gl.py` zählt jetzt
 fünf Tests. Der volle Suite-Lauf unter der Sitzungsplattform ist im Container
 wieder grün. Auf echter GPU ist er damit nicht *gemessen* – aber die Kette
 enthält keinen Schritt, der von der GPU abhinge.
+
+## Nachtrag (2026-09-08, #1010): `cocoa` gemessen – der Beweis feuert vor der Schwelle
+
+Die offene Frage aus dem Nachtrag vom 2026-09-07 lautete: Stellt Qt auf
+`cocoa` vor dem ersten Frame-Tausch Paints mit
+`defaultFramebufferObject() == 0` zu, und wenn ja, drei hintereinander?
+Antwort, gemessen auf dem macOS-arm64-Abnahme-Runner in seiner nativen
+Sitzung: **nein.** Beide Paints trugen bereits einen Widget-Framebuffer, der
+erste Frame-Tausch kam nach dem zweiten Paint, 277 ms nach `show()`; die
+Abweisungszählung lief nie an. Verborgen bleibt der Viewer ohne Paint und
+ohne Urteil; verdeckt malt macOS ihn weiter (zwei Paints, sechs
+Frame-Tausche – die Regel wertet nur, *dass* ein Tausch kam, nicht wie
+viele). In keiner Lage `has_failed`. Die Sorge, ein gesunder Viewer fiele auf
+Apple-Hardware in [F], ist damit gegenstandslos: kein Bug-Issue,
+`_MAX_REFUSED_PAINTS` und der Freispruchsweg bleiben plattformunabhängig.
+
+Kopfzeile und die drei Zeilen der Sonde, unverändert:
+
+```text
+Gerät · OS · Qt : Apple M3 Max · macOS 26.6.2 (arm64) · Qt 6.11.0 / PyQt 6.11.0 · Plattform cocoa · Renderer Apple M3 Max
+sichtbar   paintEvents=2 fbo=[1, 1] paintGL=2 frameSwapped=2 erster_swap=(2, 277) _has_rendered=True _refused_paints=0 has_failed=False grund=''
+verborgen  paintEvents=0 fbo=[] paintGL=0 frameSwapped=0 erster_swap=None _has_rendered=False _refused_paints=0 has_failed=False grund=''
+verdeckt   paintEvents=2 fbo=[1, 1] paintGL=2 frameSwapped=6 erster_swap=(2, 132) _has_rendered=True _refused_paints=0 has_failed=False grund=''
+```
+
+Derselbe Lauf hat den zweiten Abnahme-Runner mitgemessen – die erste Messung
+des Beweises auf einer echten GPU unter Linux, mit Wayland-Compositor statt
+`xvfb`:
+
+```text
+Gerät · OS · Qt : Raspberry Pi 5 Model B Rev 1.1 · Debian GNU/Linux 13 (trixie) (aarch64) · Qt 6.11.0 / PyQt 6.11.0 · Plattform wayland · Renderer V3D 7.1.10.2
+sichtbar   paintEvents=3 fbo=[1, 1, 1] paintGL=3 frameSwapped=3 erster_swap=(2, 44) _has_rendered=True _refused_paints=0 has_failed=False grund=''
+verborgen  paintEvents=0 fbo=[] paintGL=0 frameSwapped=0 erster_swap=None _has_rendered=False _refused_paints=0 has_failed=False grund=''
+verdeckt   paintEvents=2 fbo=[1, 1] paintGL=2 frameSwapped=2 erster_swap=(2, 54) _has_rendered=True _refused_paints=0 has_failed=False grund=''
+```
+
+Vier Plattformen, ein Bild: Wo Qt einen Widget-Framebuffer hält (`xcb`,
+`wayland`, `cocoa`), trägt ihn schon der erste Paint, und der Frame-Tausch
+folgt nach dem zweiten – die Dreierschwelle ist dort nie in Reichweite. Nur
+`offscreen` liefert nie einen, und genau dort ist [F] der richtige Befund.
+Die Tabelle im Nachtrag vom 2026-09-07 ist entsprechend ausgefüllt.
+
+**Wie gemessen.** Nicht von Hand. Die Sonde ist seit diesem Schritt ein
+Skript (`scripts/render_proof_probe.py`), und der Heartbeat-Workflow fährt
+sie per `workflow_dispatch` mit `render_probe: true` nach dem Preflight auf
+jedem aktiven Runner in einem eigenen venv aus den Release-Pins
+([Lauf 34225580351](https://github.com/NikolayDA/picture_helper/actions/runs/34225580351) auf dem
+PR-Branch; Kopfzeile und Zeilen stehen im Joblog, die Tabelle in der
+Job-Zusammenfassung). Das kehrt „bewusst kein committetes Skript" aus dem
+Nachtrag vom 2026-09-07 um – aus einem Grund, den es damals nicht gab: Der
+einzige Weg auf die Abnahme-Runner ohne dritten Self-hosted-Workflow
+(RELEASE_AUTOMATION §3) ist ein Dispatch-Schalter am Heartbeat, und ein
+Dispatch braucht einen festen Einstiegspunkt. Die Drift-Wächter aus PR #1021
+lesen seither das Skript statt des Heredocs; die Prozedur in TESTING.md ist
+der Aufruf, nicht mehr eine Kopie. Die Messung ist damit nicht nur
+wiederholbar, sondern ein Handgriff – fällig vor dem ersten Abnahmelauf auf
+einer neuen Plattform und nach einem Qt-Sprung (hier 6.11.0; der
+Container-Nachtrag maß 6.7.1). Die Sonde bewertet weiterhin nicht: Ein
+Messbefund macht den Heartbeat-Lauf nie rot, nur eine nicht ausführbare Sonde
+ist ein Gerätebefund.
+
+**Folgen.** `docs/PACKAGING_SMOKE.md` führt den Befund statt des Satzes „auf
+`cocoa` ungemessen"; der Reaktionsweg bleibt, weil eine Messung auf einem
+Gerät (M3 Max, macOS 26.6.2, Qt 6.11.0) keine auf jedem ist: Tritt der
+Widget-Framebuffer-Befund im Abnahmelauf auf, entscheidet die Sonde auf
+demselben Gerät – jetzt ein Dispatch –, ob Wächter-Fehlalarm oder
+Renderfehler. `MACOS-ARM-DMG-01` bleibt unverändert; die Begründung aus dem
+Nachtrag vom 2026-09-07 gilt, und der gemessene Normalfall macht sie eher
+stärker: Ein Kriterium, das den Beweis eigens benennt, bezahlte eine
+Versionsstufe für eine Eigenschaft, die auf der Zielplattform gemessen
+unauffällig ist. `screenshot3d.py` bleibt unverändert (Nicht-Ziel aus #1010,
+und die Messung gibt keinen Anlass).

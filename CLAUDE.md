@@ -264,17 +264,20 @@ Ein Paket, `bgremover/`:
   #1004 **steuernd** über die Modulgrenze gelesen wird und als `str` typisiert
   ist. `bgremover/screenshot3d.py` bekommt bewusst **kein** eigenes Gate
   (eigene Timer-Zustandsmaschine, trägt Abnahmekriterien, `frameSwapped` auf
-  `cocoa` ungemessen) – erreicht wird es vom neuen Fehlerpfad trotzdem, weil
+  `cocoa` war bis #1010 ungemessen) – erreicht wird es vom neuen Fehlerpfad trotzdem, weil
   es `state`/`has_failed` liest. Deshalb reicht der Viewer seine erste
   Fehlermeldung als `failure_reason` durch: Ein blankes „Nativer GL-Frame
   fehlgeschlagen" ließe einen Wächter-Fehlalarm wie einen Renderfehler
-  aussehen. Auf `cocoa` bleibt `frameSwapped` ungemessen (#1010) – der Beweis
-  erreicht Apple-Hardware erst mit einem Kandidatenbau, der ihn enthält. Die
-  wiederholbare Sonde (Zähler je Lage: sichtbar/verborgen/verdeckt) steht als
-  Prozedur in [`TESTING.md`](TESTING.md), ihre Container-Referenzwerte und die
-  offenen `cocoa`-Zeilen im ADR-Nachtrag; `MACOS-ARM-DMG-01` bleibt dafür
-  bewusst unverändert (der Beweis kann den nativen 3D-Nachweis nur scheitern
-  lassen, nie durchwinken). Seit #1024 stellt `paintGL` seinen Kontext nach
+  aussehen. Auf `cocoa` ist `frameSwapped` seit #1010 **gemessen** (Abnahme-
+  Runner, Apple M3 Max, macOS 26.6.2, Qt 6.11.0): erster Frame-Tausch nach dem
+  zweiten Paint, beide Paints mit Framebuffer, in keiner Lage [F] – wie auf
+  `xcb`/llvmpipe und `wayland`/V3D (Pi 5); nur `offscreen` hält nie einen
+  Framebuffer. Die Sonde ist `scripts/render_proof_probe.py` (Zähler je Lage:
+  sichtbar/verborgen/verdeckt, bewertet nicht; Prozedur in
+  [`TESTING.md`](TESTING.md), auf einem Runner per Heartbeat-Dispatch
+  `render_probe: true`), die Werte je Plattform stehen im ADR-Nachtrag;
+  `MACOS-ARM-DMG-01` bleibt dafür bewusst unverändert (der Beweis kann den
+  nativen 3D-Nachweis nur scheitern lassen, nie durchwinken). Seit #1024 stellt `paintGL` seinen Kontext nach
   dem Nutzer-Paint selbst wieder her (`_reassert_current_context`): Qt macht
   ihn davor aktuell und greift danach **ungeprüft** auf
   `currentContext()->functions()` zu (Qt 6.7.1, Discard des Tiefen-/
