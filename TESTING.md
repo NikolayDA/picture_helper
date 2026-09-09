@@ -99,7 +99,7 @@ Im Projektordner (venv aktiv):
 | Befehl       | Was passiert                                                              |
 |--------------|---------------------------------------------------------------------------|
 | `make install-test` | Installiert das Paket nicht-editable mit `[test]` und `requirements/constraints.txt` in das Test-venv |
-| `make doctor` | Prüft Python-Version, Test-Abhängigkeiten, Paketinstallation, Console-Script und Qt-`offscreen` |
+| `make doctor` | Prüft Python-Version, Test-Abhängigkeiten, Paketinstallation (editable Link auf diesen Checkout **oder** nicht-editable Install, #1053), Console-Script und Qt-`offscreen`; `make pr-check` ruft ihn mit `--require-installed` |
 | `make pr-check` | **PR-Prüfung:** `install-test` + `doctor` + `ruff` + `mypy` + `pytest` (volle UI-Suite ausgeschlossen, `ui_smoke` läuft mit) + fail-closed Release-Pfadklassifikation |
 | `make check` | Schnelle Wiederholung ohne Neuinstallation/Doctor: `ruff` + `mypy` + `pytest` |
 | `make ui`    | Volle lokale UI-Interaktionssuite inkl. `ui_smoke`                         |
@@ -640,7 +640,13 @@ Release-Prozess.
   `make PYTHON=/pfad/zur/python pr-check`.
 - **Paket- oder Qt-Diagnose unklar** – `make doctor` ausführen. Der
   Doctor prüft auch, ob `bgremover` aus einem neutralen Arbeitsverzeichnis
-  importierbar ist und ob das Console-Script auf `PATH` liegt.
+  importierbar ist und ob das Console-Script auf `PATH` liegt. Ein editable
+  Link auf diesen Checkout (wie ihn der SessionStart-Hook anlegt) ist dort
+  seit #1053 `OK`, nicht `FAIL`; nur `make pr-check` verlangt per
+  `--require-installed` den nicht-editable Install. Meldet der Doctor
+  „matches neither contract", liegt ein Link auf einen fremden Checkout oder
+  eine veraltete Kopie neben dem Link vor – dann `make install-test`
+  (pr-check) oder `pip install -e ".[test]"` (Session), nicht beides.
 - **UI-Test öffnet ein Fenster / hängt** –
   `QT_QPA_PLATFORM=offscreen` setzen (geschieht in `make`/`conftest.py`
   automatisch).

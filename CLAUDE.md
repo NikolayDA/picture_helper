@@ -37,7 +37,18 @@ headless-Qt-Betrieb:
   + fail-closed `release-freeze-check` (benötigt Basis-Tag/Git-Historie)
 - `make install-test` — `.[test]` mit `requirements/constraints.txt` (derselbe
   Dependency-Snapshot wie PR-CI, Lizenzreport und App-Bundle)
-- `make doctor` — prüft die Test-Umgebung (`scripts/check_test_env.py`)
+- `make doctor` — prüft die Test-Umgebung (`scripts/check_test_env.py`). Der
+  Installationszustand wird seit #1053 gegen **einen** von zwei Verträgen
+  geprüft: editable Link auf diesen Checkout (SessionStart-Hook, #1031) oder
+  nicht-editable Install (`make pr-check`); die Link-Regel kommt aus
+  `scripts/check_install_provenance.py`, nicht als Kopie. `make pr-check`
+  übergibt `--require-installed` (Makefile-Variable `DOCTOR_ARGS`) und lässt
+  nur den zweiten gelten. Fremder Checkout (auch als Legacy-`egg-info` ohne
+  `direct_url.json`), veraltete Kopie neben einem Link oder mehrere
+  nicht-editable Distributionen sind in beiden Modi ein Fehler; mehrere
+  gültige Links auf diesen Checkout gelten wie in der Provenienzregel als ein
+  Zustand, und im installed-Vertrag muss der neutrale Import zur anerkannten
+  Distribution gehören.
 - `make screenshots` / `screenshots-live-3d` — reproduzierbarer Doku-Screenshot-Satz
   (offscreen) bzw. derselbe Satz mit echtem OpenGL-Viewer für die 3D-Vorschau
 - `make bench` / `bench-height` / `bench-compare` — `scripts/benchmark.py`
