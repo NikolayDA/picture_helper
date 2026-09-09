@@ -96,7 +96,6 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Referencia de publicación en lugar de congelar main (ADR + salvaguardas fail-closed) | 🟠 Alto (`main` sigue fusionable durante una publicación) | 🟢 Bajo (código, documentación y ruleset están listos) | – (sin agente; próxima publicación) | Bloqueado (externo): reabierto el 2026-08-31 tras su comprobación final; el PR #936 y el ruleset activo 21941216 están documentados, solo falta una ejecución cuya aceptación posterior arrancara demostrablemente en `release/vX.Y.Z` |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Operación: runners autoalojados (canal de alerta del heartbeat) | 🟡 Medio (canal operativo, sin código de producto) | 🟢 Bajo (solo observación) | – (sin agente; owner del repositorio) | Permanentemente abierto: no cerrar (`RUNNER_HEARTBEAT_ISSUE`); el FAIL del 2026-08-31 fue la prueba planificada del canal y el paso de limpieza está hecho (ejecución programada 33496675995 en verde, x86_64 omitido, Mac y Pi superados) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja (solo bloquea un escaneo manual opcional) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: facturación) | Bloqueada (externa) – la última ejecución (29233060507, 2026-07-13) no demuestra un escaneo exitoso; facturación/cuota sigue sin resolver |
-| [#1044](https://github.com/NikolayDA/picture_helper/issues/1044) | Auditoría de la suite 2026-09-09: hueco de test en `preview3d_controller`, dos duplicados | 🟡 Media (cierra el hueco de regresión de #1004/#1005 a nivel lógico; cobertura 93 %, gate superado) | 🟢 Baja (un test sin GL; los dos puntos de limpieza son explícitamente opcionales) | Sonnet, medio | Ready for PR: el siguiente PR útil más pequeño; los duplicados, opcionalmente, en la misma tanda |
 | [#1043](https://github.com/NikolayDA/picture_helper/issues/1043) | Recortar `docs/PROZESSE_UML.md` a la ruta feliz | 🟡 Media (773 líneas y 30 rombos; duplica la matriz de reanudación del runbook) | 🟡 Media (cuatro diagramas y referencias al runbook y a los ADR) | Sonnet, alto | Bloqueado: último paquete de trabajo; espera a #1040, #1035, #1036, #1037 y #1041 |
 | [#1042](https://github.com/NikolayDA/picture_helper/issues/1042) | Pasar los comandos de análisis (`.claude/commands/analyze-*`) a incidencias de GitHub | 🟡 Media (los resultados del análisis llegan donde se lleva el inventario abierto) | 🟢 Baja (cinco archivos de comando) | Sonnet, medio | Bloqueado: espera a #1040; se recomienda en el mismo PR |
 | [#1041](https://github.com/NikolayDA/picture_helper/issues/1041) | `make pr-ready`: detectar los deberes de deriva a partir del diff | 🟡 Media (sustituye seis rombos de decisión manuales por un comando) | 🟠 Media-alta (nuevo script tipado estricto, rutas separadas por NUL, renombrados, matriz Python 3.10) | Opus, alto | Bloqueado: espera a #1040; solo tiene sentido tras #1036 y #1037, porque entonces desaparecen dos deberes |
@@ -114,9 +113,9 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 
 1. **#1031** (prioridad 0): la comprobación de procedencia en el hook SessionStart; sin
    ella, una prueba por subproceso en verde puede haber comprobado código antiguo.
-2. **#1044**: un PR pequeño y bien delimitado: el hueco de test de #1004/#1005 en
-   `tests/test_preview3d_controller.py`. (#1045, la referencia `#1023` que faltaba en
-   seis versiones del CHANGELOG, ya está resuelto.)
+2. **#1044** y **#1045**: resueltos: el hueco de test de #1004/#1005 en
+   `tests/test_preview3d_controller.py` y la referencia `#1023` que faltaba en seis
+   versiones del CHANGELOG.
 3. **Lanzar v2.10.0**: el alcance está en `[Unreleased]`; los pasos 1/2 del
    runbook con `scripts/prepare_release.py 2.10.0`. Esa ejecución cierra además la
    evidencia de extremo a extremo pendiente de #914 y #918.

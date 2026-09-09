@@ -28,6 +28,7 @@ from bgremover.project_history import (
     RetainedLayer,
 )
 from bgremover.project_model import LayerKind, LayerRole, Project
+from tests._qt_free_check import assert_module_is_qt_free
 
 # ── Helfer ──────────────────────────────────────────────────────────────
 
@@ -595,19 +596,9 @@ def test_repeated_undo_redo_never_exceeds_shared_budget() -> None:
 
 def test_module_is_qt_free() -> None:
     """Das History-Modul darf keine Qt-Importe enthalten (Qt-frei testbar)."""
-    import ast
-    from pathlib import Path
-
     import bgremover.project_history as ph
 
-    tree = ast.parse(Path(ph.__file__).read_text(encoding="utf-8"))
-    imported: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imported.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module is not None:
-            imported.add(node.module)
-    assert not any(name.split(".")[0] in {"PyQt6", "PyQt5", "PySide6"} for name in imported)
+    assert_module_is_qt_free(ph)
 
 
 def test_nested_metadata_is_isolated_across_capture_and_restore() -> None:

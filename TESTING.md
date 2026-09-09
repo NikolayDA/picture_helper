@@ -563,7 +563,12 @@ Satzzeichen entfallen ersatzlos, Leerzeichen zu `-`, Dubletten mit `-1`);
 Umlaute, Kyrillisch und CJK bleiben dabei erhalten. Überschriften in
 Codeblöcken erzeugen keinen Anker. Die geteilten Helfer dafür liegen in
 `tests/_markdown_utils.py` – wer eine Markdown-Prüfung ergänzt, nutzt sie von
-dort, statt sie ein drittes Mal zu kopieren. Externe `http(s)`-Links prüft
+dort, statt sie ein drittes Mal zu kopieren. Dasselbe gilt für den
+Qt-frei-Wächter `tests/_qt_free_check.py` (#1044): `assert_module_is_qt_free`
+prüft per AST, dass ein Modul kein Qt-Binding importiert; die vier Tests, die
+diese Regel zuvor als Kopie trugen, nennen ihm nur noch ihr Modul, und
+`tests/test_qt_free_check.py` hält die Regel selbst mit einer Negativkontrolle
+(`viewer_3d`) fest. Externe `http(s)`-Links prüft
 bewusst niemand: Das bräuchte Netzzugang und gehört nicht ins Standard-Gate.
 
 `ANLEITUNG.pdf` wird von Hand erzeugt und lässt sich nicht über Bytes

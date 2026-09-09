@@ -72,7 +72,6 @@
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | 用发布 ref 取代 main 冻结（ADR + fail-closed 保障） | 🟠 高（发布期间 `main` 保持可合并） | 🟢 低（代码、文档与 ruleset 均已就位） | – （无代理；下一次发布运行） | 受阻（外部）：2026-08-31 收尾检查后重新开启；PR #936 与生效的 ruleset 21941216 均有记录，仅差一次发布后验收可证明从 `release/vX.Y.Z` 启动的运行 |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | 运维：自托管 runner（heartbeat 告警通道） | 🟡 中（运维通道，非产品代码） | 🟢 低（仅观察） | – （无代理；仓库 owner） | 长期开启：请勿关闭（`RUNNER_HEARTBEAT_ISSUE`）；2026-08-31 的 FAIL 是计划中的告警通道测试，清理步骤已完成（计划运行 33496675995 通过，x86_64 跳过，Mac 与 Pi 均合格） |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
-| [#1044](https://github.com/NikolayDA/picture_helper/issues/1044) | 2026-09-09 测试套件审计：`preview3d_controller` 测试缺口，两处重复 | 🟡 中（在逻辑层面补上 #1004/#1005 的回归缺口；覆盖率 93 %，门禁通过） | 🟢 低（一个无需 GL 的测试；两项清理明确为可选） | Sonnet，中 | Ready for PR：最小且有用的下一个 PR；重复项可在同一轮顺带处理 |
 | [#1043](https://github.com/NikolayDA/picture_helper/issues/1043) | 将 `docs/PROZESSE_UML.md` 精简为主干流程 | 🟡 中（773 行、30 个菱形；重复了 runbook 的重启矩阵） | 🟡 中（四张图，外加指向 runbook 与 ADR 的引用） | Sonnet，高 | 阻塞：最后一个工作包；等待 #1040、#1035、#1036、#1037 和 #1041 |
 | [#1042](https://github.com/NikolayDA/picture_helper/issues/1042) | 将分析命令（`.claude/commands/analyze-*`）改为写入 GitHub 议题 | 🟡 中（分析结果落到记录未结事项的地方） | 🟢 低（五个命令文件） | Sonnet，中 | 阻塞：等待 #1040；建议放在同一个 PR 中 |
 | [#1041](https://github.com/NikolayDA/picture_helper/issues/1041) | `make pr-ready`：从 diff 识别漂移义务 | 🟡 中（用一条命令取代六个人工判定菱形） | 🟠 中高（新的严格类型脚本、NUL 分隔路径、重命名、Python 3.10 矩阵） | Opus，高 | 阻塞：等待 #1040；宜在 #1036 与 #1037 之后，因为那时两项义务会彻底消失 |
@@ -89,8 +88,8 @@
 ### 接下来推荐
 
 1. **#1031**（优先级 0）：SessionStart 钩子中的来源校验；没有它，一个变绿的子进程测试可能检查的是旧代码。
-2. **#1044**：一个小而边界清晰的 PR——`tests/test_preview3d_controller.py` 中 #1004/#1005 的测试缺口。
-   （#1045，六个 CHANGELOG 版本中缺失的 `#1023` 引用，已完成。）
+2. **#1044** 与 **#1045**：已完成——`tests/test_preview3d_controller.py` 中 #1004/#1005 的测试缺口，
+   以及六个 CHANGELOG 版本中缺失的 `#1023` 引用。
 3. **启动 v2.10.0**：范围已在 `[Unreleased]` 中；通过
    `scripts/prepare_release.py 2.10.0` 走 runbook 第 1/2 步。该次运行同时补齐 #914 与 #918
    尚缺的端到端证据。

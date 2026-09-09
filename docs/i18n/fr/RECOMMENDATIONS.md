@@ -96,7 +96,6 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Réf de publication au lieu du gel de main (ADR + garde-fous fail-closed) | 🟠 Élevé (`main` reste fusionnable pendant une publication) | 🟢 Faible (code, documentation et ruleset en place) | – (aucun agent ; prochaine publication) | Bloqué (externe) : rouvert le 2026-08-31 après son contrôle de clôture ; la PR #936 et le ruleset actif 21941216 sont documentés, il ne manque qu'une exécution dont la recette post-publication a démarré de façon démontrable sur `release/vX.Y.Z` |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Exploitation : runners auto-hébergés (canal d'alerte du heartbeat) | 🟡 Moyen (canal d'exploitation, pas de code produit) | 🟢 Faible (observation seule) | – (aucun agent ; owner du dépôt) | Ouvert en permanence : ne pas fermer (`RUNNER_HEARTBEAT_ISSUE`) ; le FAIL du 2026-08-31 était le test prévu du canal d'alerte et l'étape de nettoyage est faite (exécution planifiée 33496675995 verte, x86_64 ignoré, Mac et Pi réussis) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
-| [#1044](https://github.com/NikolayDA/picture_helper/issues/1044) | Audit de la suite 2026-09-09 : lacune de test `preview3d_controller`, deux doublons | 🟡 Moyenne (comble la lacune de régression de #1004/#1005 au niveau logique ; couverture 93 %, gate réussi) | 🟢 Faible (un test sans GL ; les deux points de nettoyage sont explicitement optionnels) | Sonnet, moyen | Ready for PR : la plus petite PR utile à suivre ; les doublons éventuellement dans la même passe |
 | [#1043](https://github.com/NikolayDA/picture_helper/issues/1043) | Réduire `docs/PROZESSE_UML.md` au chemin nominal | 🟡 Moyenne (773 lignes et 30 losanges ; duplique la matrice de reprise du runbook) | 🟡 Moyenne (quatre diagrammes plus les renvois vers le runbook et les ADR) | Sonnet, élevé | Bloqué : dernier lot de travail ; attend #1040, #1035, #1036, #1037 et #1041 |
 | [#1042](https://github.com/NikolayDA/picture_helper/issues/1042) | Basculer les commandes d'analyse (`.claude/commands/analyze-*`) vers les tickets GitHub | 🟡 Moyenne (les résultats d'analyse arrivent là où l'inventaire ouvert est tenu) | 🟢 Faible (cinq fichiers de commande) | Sonnet, moyen | Bloqué : attend #1040 ; recommandé dans la même PR |
 | [#1041](https://github.com/NikolayDA/picture_helper/issues/1041) | `make pr-ready` : détecter les devoirs de dérive à partir du diff | 🟡 Moyenne (remplace six losanges de décision manuels par une commande) | 🟠 Moyenne-élevée (nouveau script typé strictement, chemins séparés par NUL, renommages, matrice Python 3.10) | Opus, élevé | Bloqué : attend #1040 ; pertinent seulement après #1036 et #1037, car deux devoirs disparaissent alors |
@@ -114,9 +113,9 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 
 1. **#1031** (priorité 0) : le contrôle de provenance dans le hook SessionStart ; sans
    lui, un test par sous-processus au vert peut avoir vérifié du code ancien.
-2. **#1044** : une petite PR bien délimitée : la lacune de test #1004/#1005 dans
-   `tests/test_preview3d_controller.py`. (#1045, la référence `#1023` manquante dans
-   six versions du CHANGELOG, est traitée.)
+2. **#1044** et **#1045** : traités : la lacune de test #1004/#1005 dans
+   `tests/test_preview3d_controller.py` et la référence `#1023` manquante dans six
+   versions du CHANGELOG.
 3. **Lancer v2.10.0** : le périmètre est dans `[Unreleased]` ; les étapes
    1/2 du runbook via `scripts/prepare_release.py 2.10.0`. Cette exécution referme aussi
    la preuve de bout en bout en attente pour #914 et #918.

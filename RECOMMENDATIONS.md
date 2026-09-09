@@ -96,7 +96,6 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Release-Ref statt main-Freeze (ADR + fail-closed Absicherung) | 🟠 Hoch (`main` bleibt während eines Releases mergebar) | 🟢 Niedrig (Code, Doku und Ruleset stehen) | – (kein Agent; nächster Release-Lauf) | Blocked (extern) – am 2026-08-31 nach der Abschlussprüfung wiedereröffnet; PR #936 und der aktive Ruleset 21941216 sind belegt, offen ist nur ein Lauf, dessen Post-Release-Abnahme nachweislich auf `release/vX.Y.Z` startete |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Betrieb: Self-hosted-Runner (Heartbeat-Alarmkanal) | 🟡 Mittel (Betriebskanal, kein Produktcode) | 🟢 Niedrig (reine Beobachtung) | – (kein Agent; Repo-Owner) | Dauerhaft offen – nicht schließen (`RUNNER_HEARTBEAT_ISSUE`); der FAIL vom 2026-08-31 war der geplante Meldeweg-Test, der Aufräumschritt ist erledigt (planmäßiger Lauf 33496675995 grün, x86_64 übersprungen, Mac und Pi bestanden) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
-| [#1044](https://github.com/NikolayDA/picture_helper/issues/1044) | Test-Suite-Audit 2026-09-09: `preview3d_controller`-Testlücke, zwei Dopplungen | 🟡 Mittel (schließt die Regressionslücke zu #1004/#1005 auf Logikebene; Coverage 93 %, Gate bestanden) | 🟢 Niedrig (ein GL-freier Test; die beiden Aufräumpunkte sind ausdrücklich optional) | Sonnet, mittel | Ready for PR – der kleinste nützliche nächste PR; die Dopplungen optional im selben Zug |
 | [#1043](https://github.com/NikolayDA/picture_helper/issues/1043) | `docs/PROZESSE_UML.md` auf den Happy Path kürzen | 🟡 Mittel (773 Zeilen und 30 Rauten; dupliziert die Wiederanlaufmatrix des Runbooks) | 🟡 Mittel (vier Diagramme plus Verweise ins Runbook und in die ADRs) | Sonnet, hoch | Blocked – letztes Arbeitspaket; wartet auf #1040, #1035, #1036, #1037 und #1041 |
 | [#1042](https://github.com/NikolayDA/picture_helper/issues/1042) | Analyse-Kommandos (`.claude/commands/analyze-*`) auf GitHub-Issues umstellen | 🟡 Mittel (Analyseergebnisse landen dort, wo der offene Bestand geführt wird) | 🟢 Niedrig (fünf Kommandodateien) | Sonnet, mittel | Blocked – wartet auf #1040; empfohlen im selben PR |
 | [#1041](https://github.com/NikolayDA/picture_helper/issues/1041) | `make pr-ready`: Drift-Pflichten aus dem Diff erkennen | 🟡 Mittel (ersetzt sechs manuelle Entscheidungsrauten durch ein Kommando) | 🟠 Mittel-Hoch (neues streng getyptes Skript, NUL-Pfade, Umbenennungen, Python-3.10-Matrix) | Opus, hoch | Blocked – wartet auf #1040; sinnvoll erst nach #1036 und #1037, weil dann zwei Pflichten ersatzlos entfallen |
@@ -114,9 +113,9 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 
 1. **#1031** (Priorität 0) – Provenienzprüfung im SessionStart-Hook; ohne sie kann ein
    grüner Subprozess-Test alten Code geprüft haben.
-2. **#1044** – ein kleiner, klar abgegrenzter PR: die Testlücke zu #1004/#1005 in
-   `tests/test_preview3d_controller.py`. (#1045, die fehlende `#1023`-Referenz in sechs
-   CHANGELOG-Fassungen, ist erledigt.)
+2. **#1044** und **#1045** – erledigt: die Testlücke zu #1004/#1005 in
+   `tests/test_preview3d_controller.py` und die fehlende `#1023`-Referenz in sechs
+   CHANGELOG-Fassungen.
 3. **v2.10.0 anstoßen** – der Umfang steht in `[Unreleased]`; Runbook-Schritt
    1/2 über `scripts/prepare_release.py 2.10.0`. Der Lauf schließt zugleich die offene
    End-to-End-Evidenz von #914 und #918.

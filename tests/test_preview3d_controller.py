@@ -14,7 +14,13 @@ from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
 from bgremover.preview3d_capability import UNAVAILABLE_KEY, RendererCapability
 from bgremover.preview3d_controller import Preview3DController
 from bgremover.relief_mesh import MeshQuality, build_relief_mesh
-from bgremover.viewer_3d import Relief3DView
+from bgremover.viewer_3d import (
+    STATE_EMPTY,
+    STATE_ERROR,
+    STATE_LOADING,
+    STATE_READY,
+    Relief3DView,
+)
 
 
 def _field(value: int = 5000, size: int = 24) -> HeightField:
@@ -250,3 +256,125 @@ def test_retry_reevaluates(qapp) -> None:
     state["cap"] = _ok()
     ctrl.retry()
     assert view.state == "loading"
+
+
+# ── Asynchroner Renderbeweis: ready → error (#1004/#1005, Testlücke #1044) ──
+
+
+def _ready(qapp) -> tuple[Preview3DController, _FakeCanvas, _FakeWorker, Relief3DView]:
+    """Controller mit erfolgreich gebautem und angezeigtem Mesh."""
+    ctrl, canvas, worker, view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    ctrl._start_build()
+    _deliver(ctrl, worker)
+    assert view.state == STATE_READY
+    return ctrl, canvas, worker, view
+
+
+def _render_proof_fails(view: Relief3DView) -> None:
+    """Die Absage auf dem Produktivpfad: ``GLReliefViewer._fail`` → ``initFailed``
+    → ``Relief3DView.show_error``. Bewusst nicht ``view.show_error()`` allein –
+    das verschöbe nur den Container, der Viewer bliebe gesund, und
+    ``_ensure_viewer`` (#1005) verhielte sich anders (Review PR #1051)."""
+    viewer = view.viewer()
+    assert viewer is not None and not viewer.has_failed
+    viewer._fail("Qt hält keinen Widget-Framebuffer")
+    assert viewer.has_failed
+    assert view.state == STATE_ERROR
+
+
+def test_async_error_after_ready_lets_the_next_build_show_loading(qapp) -> None:
+    """Der Renderbeweis des Viewers zieht den Zustand **asynchron** von ``ready``
+    auf ``error`` (kein Widget-Framebuffer), nachdem ``_show_cached`` gelaufen
+    ist. Ein mitgeführtes „zeigt ein Mesh"-Flag behauptete danach weiter das
+    Gegenteil und unterdrückte die Ladeseite über der Fehlerseite; seit #1004
+    fragt der Controller die Ansicht direkt.
+
+    Der fertige Build landet danach wieder auf der Fehlerseite: Ein Viewer ohne
+    Renderbeweis wird nicht bei jeder Inhaltsänderung neu gebaut (#1005) –
+    erst der ausdrückliche Retry gibt den Neuaufbau frei.
+    """
+    ctrl, canvas, worker, view = _ready(qapp)
+    failed_viewer = view.viewer()
+    _render_proof_fails(view)
+    canvas.content_revision = 2
+    ctrl.refresh()
+    assert view.state == STATE_LOADING  # der #1004-Zweig: state != ready
+    ctrl._start_build()
+    _deliver(ctrl, worker)
+    assert view.state == STATE_ERROR  # #1005: kein stiller Neuaufbau
+    assert view.viewer() is failed_viewer
+
+    ctrl.retry()
+    assert view.state == STATE_LOADING
+    ctrl._start_build()
+    _deliver(ctrl, worker)
+    assert view.state == STATE_READY
+    assert view.viewer() is not failed_viewer
+    assert len(worker.calls) == 3
+
+
+def test_displayed_mesh_stays_visible_while_rebuilding(qapp) -> None:
+    """Gegenkontrolle: Ohne Absage bleibt das angezeigte Mesh während des
+    Rebuilds stehen (kein Schwarzbild) – die Ladeseite erscheint nur über
+    einem Nicht-``ready``-Zustand."""
+    ctrl, canvas, worker, view = _ready(qapp)
+    canvas.content_revision = 2
+    ctrl.refresh()
+    assert view.state == STATE_READY
+    ctrl._start_build()
+    _deliver(ctrl, worker)
+    assert view.state == STATE_READY
+
+
+def test_cache_hit_after_async_error_stays_on_error_until_retry(qapp) -> None:
+    """Nach einer asynchronen Abstufung startet ein Cache-Treffer keinen Build,
+    zeigt das gecachte Mesh aber auch nicht wieder an: Der Viewer hat den
+    Renderbeweis verloren und wird erst nach ``retry`` neu aufgebaut (#1005)."""
+    ctrl, _canvas, worker, view = _ready(qapp)
+    _render_proof_fails(view)
+    ctrl.refresh()
+    assert view.state == STATE_ERROR
+    assert len(worker.calls) == 1
+    ctrl.retry()
+    assert view.state == STATE_LOADING
+    ctrl._start_build()
+    assert len(worker.calls) == 2
+
+
+# ── Ränder von Build-Start und Ergebnisübernahme (Restzeilen aus #1044) ──
+
+
+def test_debounced_build_does_not_start_after_deactivation(qapp) -> None:
+    """Feuert der Debounce nach dem Verlassen des 3D-Modus, startet kein Build."""
+    ctrl, _canvas, worker, _view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    ctrl.set_active(False)
+    ctrl._start_build()
+    assert worker.calls == []
+
+
+def test_field_vanishing_before_build_start_shows_empty(qapp) -> None:
+    """Zwischen Entprellung und Build-Start kann das Höhenfeld verschwinden
+    (Ebene gelöscht): dann Leerseite statt Build mit ``None``."""
+    ctrl, canvas, worker, view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    assert view.state == STATE_LOADING
+    canvas._field = None
+    ctrl._start_build()
+    assert worker.calls == []
+    assert view.state == STATE_EMPTY
+
+
+def test_mesh_arriving_after_deactivation_is_not_shown(qapp) -> None:
+    """Ein Ergebnis, das nach dem Wechsel zurück auf 2D eintrifft, wird weder
+    angezeigt noch gecacht – ein späteres Aktivieren baut neu."""
+    ctrl, _canvas, worker, view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    ctrl._start_build()
+    ctrl.set_active(False)
+    _deliver(ctrl, worker)
+    assert view.state == STATE_LOADING  # unverändert, kein Mesh übernommen
+    ctrl.set_active(True)
+    ctrl._start_build()
+    assert len(worker.calls) == 2  # kein Cache-Treffer aus dem verworfenen Ergebnis

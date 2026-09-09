@@ -1,9 +1,6 @@
 """Deterministische Qt-freie Relief-Vorschau (#385)."""
 from __future__ import annotations
 
-import ast
-from pathlib import Path
-
 import numpy as np
 import pytest
 from PIL import Image
@@ -16,6 +13,7 @@ from bgremover.relief_preview import (
     compose_over,
     relief_shading,
 )
+from tests._qt_free_check import assert_module_is_qt_free
 
 
 def _field(
@@ -139,13 +137,4 @@ def test_compose_rejects_non_rgba_base_and_size_mismatch() -> None:
 
 
 def test_module_is_qt_free() -> None:
-    tree = ast.parse(Path(relief_module.__file__).read_text(encoding="utf-8"))
-    imported: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imported.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module is not None:
-            imported.add(node.module)
-    assert not any(
-        name.split(".")[0] in {"PyQt6", "PyQt5", "PySide6"} for name in imported
-    )
+    assert_module_is_qt_free(relief_module)
