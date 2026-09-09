@@ -1,4 +1,4 @@
-.PHONY: all check pr-check install-test doctor lint lint-shell type test coverage ui gl-stress screenshots screenshots-live-3d bench bench-height bench-compare release-freeze-check clean
+.PHONY: all check pr-ready pr-check install-test doctor lint lint-shell type test coverage ui gl-stress screenshots screenshots-live-3d bench bench-height bench-compare release-freeze-check clean
 
 VENV_BIN := $(CURDIR)/.venv/bin
 PYTHON ?= $(shell if [ -x "$(VENV_BIN)/python" ]; then printf '%s' "$(VENV_BIN)/python"; elif command -v python >/dev/null 2>&1; then printf '%s' python; else printf '%s' python3; fi)
@@ -16,6 +16,14 @@ PIP_INSTALL := $(RUN_ENV) "$(PYTHON)" -m pip install --constraint "$(PIP_CONSTRA
 DOCTOR_ARGS ?=
 pr-check: override DOCTOR_ARGS := --require-installed
 pr-check: install-test doctor check release-freeze-check
+
+# Benennt vor dem Gate die Drift-Pflichten, die der eigene Diff gegen
+# origin/main ausloest (#1041) – die drei mit versetztem Waechter faellt einem
+# sonst erst nach dem Commit oder erst in der PR-CI auf. Netzfrei und ohne
+# git fetch; danach laeuft unveraendert pr-check.
+pr-ready:
+	$(RUN_ENV) "$(PYTHON)" scripts/pr_ready.py
+	$(MAKE) pr-check
 
 install-test:
 	$(PIP_INSTALL) ".[test]"

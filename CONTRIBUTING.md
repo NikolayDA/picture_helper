@@ -124,8 +124,14 @@ make doctor
 3. Tests schreiben oder anpassen (siehe [Tests](#tests)).
 4. Gate lokal bestehen lassen:
    ```bash
-   make check
+   make pr-ready
    ```
+   `make pr-ready` nennt zuerst die Drift-Pflichten, die *dein* Diff gegen
+   `origin/main` auslöst (i18n-Parität, `ANLEITUNG.pdf`, Lizenz-Snapshot,
+   CHANGELOG, unbekannte Pfade) und läuft danach in `make pr-check`
+   (Installation, `doctor`, `make check`, Freeze-Gate). Drei dieser Pflichten
+   haben versetzte Wächter — sie fielen sonst erst nach dem Commit oder erst
+   in der PR-CI auf. Wer nur schnell die Baseline will: `make check`.
 5. Commit mit aussagekräftiger Nachricht (Englisch oder Deutsch, Imperativ):
    ```
    feat(canvas): Drehen via Tastenkürzel ergänzen

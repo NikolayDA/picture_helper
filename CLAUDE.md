@@ -19,6 +19,19 @@ Alles läuft über den Makefile-Wrapper. Er nutzt `python -m <tool>` (robust
 gegen PATH-/venv-Eigenheiten) und setzt `QT_QPA_PLATFORM=offscreen` für den
 headless-Qt-Betrieb:
 
+- `make pr-ready` — nennt zuerst die Drift-Pflichten, die der eigene Diff
+  gegen `origin/main` auslöst (`scripts/pr_ready.py`, #1041), und läuft
+  danach in `pr-check`. Fehler sind nachweisbare Verstöße (i18n-Parität,
+  `ANLEITUNG.pdf`, Lizenz-Snapshot), Hinweise brauchen eine menschliche
+  Beurteilung (CHANGELOG, unbekannte Pfade). Der Nutzen liegt bei den drei
+  Pflichten mit **versetztem** Wächter: `tests/test_anleitung_pdf_sync.py`
+  schlägt erst nach dem Commit an, `license-check.yml` und
+  `release-freeze-check` erst in der PR-CI. Netzfrei, kein `git fetch` –
+  Basis-Ref und SHA werden gedruckt, damit ein veralteter lokaler Stand
+  auffällt. Der Lizenz-Vergleich ist **semantisch** (nur die fünf von
+  `generate_license_report.py` gelesenen `[project]`-Felder; `[tool.*]`
+  erzeugt keinen Fehlalarm) und fällt ohne TOML-Parser (Python 3.10 ohne
+  `tomli`) auf einen Hinweis zurück.
 - `make check` — Lint + Typecheck + Tests. **Die maßgebliche Baseline.**
 - `make lint` — `ruff check bgremover scripts tests` + `lint-shell` (shellcheck
   für `BgRemover.command`/`create_BgRemover_app.sh`/`diagnose_mac.sh`/
@@ -750,7 +763,7 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **sechzehn** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **siebzehn** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
@@ -762,7 +775,8 @@ Ein Paket, `bgremover/`:
   `scripts/release_update_dispatch.py` (#919),
   `scripts/scan_release_artifacts.py` (#920),
   `scripts/runner_heartbeat.py` (#921),
-  `scripts/check_install_provenance.py` (#1031) und
+  `scripts/check_install_provenance.py` (#1031),
+  `scripts/pr_ready.py` (#1041) und
   `scripts/triage_issue_cutover.py` (#1033) – als
   eigenständige Dateien ohne `scripts/__init__.py` explizit per Dateipfad in
   `files` sowie per Modul-Override (Modulname = Dateibasisname) erfasst.
@@ -1516,6 +1530,12 @@ die Kopie mit; sonst bleibt `make check` grün und die Doku still falsch:
   beschreibt. Ein Bump ohne Nachzug lässt das Paket sonst eine veraltete Grenze
   deklarieren, und die App stirbt auf einem zu alten System erst beim Start
   statt bei der Installation.
+- `tests/test_pr_ready.py` (#1041): die handgepflegten Kopien in
+  `scripts/pr_ready.py` gegen ihre Quellen – `DOC_NAMES`/`LANGUAGES` gegen
+  `tests/test_i18n_docs.py`, die fünf Lizenzfelder gegen die
+  `proj.get(...)`-Zugriffe in `scripts/generate_license_report.py`. Das
+  Produktionsskript darf kein Testmodul importieren; ohne die Wächter
+  prüfte die Vorabprüfung still die alte Menge.
 - `tests/test_process_documentation.py`: den Ein-Review-Trigger von
   `claude-code-review.yml` gegen seine sechs Doku-Stellen.
 - `tests/test_release_governance.py`: dass hier in CLAUDE.md kein
