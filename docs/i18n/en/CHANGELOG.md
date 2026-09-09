@@ -74,7 +74,7 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   fault instead of a message. The viewer now restores its own context after
   drawing. Observed in the full test run under a session platform (`xcb`); the
   cause is object lifetime, not a driver.
-- **The 3D relief preview could fall into the error state by mistake.** The
+- **The 3D relief preview could fall into the error state by mistake (#1023).** The
   preview's render proof reports a missing widget framebuffer through a short
   timer. If the graphics driver delivered the first frame only after that, the
   already requested error still went through: the 3D view showed the error page

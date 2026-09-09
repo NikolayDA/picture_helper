@@ -79,7 +79,7 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   de sesión (`xcb`); la causa es el ciclo de vida de los objetos, no un
   controlador.
 - **La vista previa de relieve 3D podía caer por error en el estado de
-  error.** La prueba de renderizado de la vista previa informa de un
+  error (#1023).** La prueba de renderizado de la vista previa informa de un
   framebuffer de widget ausente mediante un temporizador breve. Si el
   controlador gráfico entregaba el primer fotograma solo después, el error ya
   solicitado se emitía igualmente: la vista 3D mostraba la página de error
