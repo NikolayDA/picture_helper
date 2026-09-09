@@ -1,0 +1,113 @@
+# Vorbelegt wird bewusst nur die Art (`bug`/`enhancement`), kein `prio:*`:
+# Die Priorität ist nach CONTRIBUTING §„Issue-Triage" eine Entscheidung des
+# Repository-Owners, keine Angabe des Melders. Ein form-erzeugtes Issue
+# startet daher ohne Prioritäts-Label und bekommt es in der Triage.
+name: Fehlerbericht
+description: Einen reproduzierbaren Fehler in der BgRemover-Desktop-App melden
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für den Bericht. Bitte zuerst prüfen, ob der Fehler schon als
+        Issue existiert. **Sicherheitslücken gehören nicht hierher** – dafür
+        die [Sicherheitsrichtlinie](https://github.com/NikolayDA/picture_helper/security/policy)
+        nutzen.
+  - type: input
+    id: version
+    attributes:
+      label: BgRemover-Version
+      description: Steht im Fenstertitel – `BgRemover Pro <Version>`.
+      placeholder: "2.9.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plattform
+      description: Rechner, auf dem der Fehler auftritt.
+      options:
+        - macOS arm64 (Apple Silicon)
+        - macOS x86_64 (Intel)
+        - Linux x86_64
+        - Linux arm64 (Raspberry Pi)
+        - Sonstige
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installationsart
+      description: Woher stammt die laufende Anwendung?
+      options:
+        - DMG (macOS)
+        - AppImage (Linux)
+        - .deb-Paket (Linux)
+        - Quellinstallation / venv
+        - Web-Session
+    validations:
+      required: true
+  - type: input
+    id: os_version
+    attributes:
+      label: Betriebssystem-Version
+      placeholder: "macOS 26.6.2 · Debian 13 · Ubuntu 24.04"
+  - type: input
+    id: python_version
+    attributes:
+      label: Python-Version
+      description: Nur bei Quellinstallation/venv oder Web-Session nötig (`python3 --version`).
+      placeholder: "3.12.6"
+  - type: dropdown
+    id: ai_backend
+    attributes:
+      label: KI-Hintergrundentfernung installiert?
+      description: Extras → „KI-Modell verwalten…" zeigt den Zustand.
+      options:
+        - ja
+        - nein
+        - unbekannt
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Schritte zur Reproduktion
+      description: Nummerierte Schritte vom Start der Anwendung bis zum Fehler.
+      placeholder: |
+        1. Anwendung starten
+        2. Bild „foto.png" öffnen
+        3. Schritt „Freistellen" wählen und „Hintergrund entfernen" klicken
+        4. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+  - type: textarea
+    id: observed
+    attributes:
+      label: Beobachtetes Verhalten
+      description: Fehlermeldung möglichst wörtlich.
+  - type: textarea
+    id: log
+    attributes:
+      label: Logauszug aus bgremover.log
+      description: >
+        Einstellungen → „Protokolldatei" → „Ordner öffnen". Die letzten Zeilen
+        um den Fehlerzeitpunkt genügen.
+      render: text
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot (optional)
+      description: Bilddateien lassen sich direkt in dieses Feld ziehen.
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Bestätigung
+      options:
+        - label: >
+            Logauszug, Screenshots und angehängte Dateien enthalten keine
+            personenbezogenen oder vertraulichen Inhalte (gilt auch, wenn nichts
+            angehängt ist).
+          required: true

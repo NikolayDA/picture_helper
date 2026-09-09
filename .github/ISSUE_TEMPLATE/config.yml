@@ -1,0 +1,9 @@
+# Freie Issues bleiben möglich (Owner und Agenten legen Prozess-/Epic-Issues
+# ohne Vorlage an); Sicherheitsmeldungen führen bewusst aus dem Issue-Tracker
+# heraus. `contact_links.url` erwartet eine absolute URL – ein relativer
+# Markdown-Pfad wie SECURITY.md wird von GitHub abgewiesen.
+blank_issues_enabled: true
+contact_links:
+  - name: Sicherheitslücke melden
+    url: https://github.com/NikolayDA/picture_helper/security/policy
+    about: Sicherheitslücken bitte nicht als öffentliches Issue, sondern über die Sicherheitsrichtlinie melden.
