@@ -16,8 +16,11 @@ Verträge geprüft, die sich gegenseitig ausschließen:
 
 Ohne Option akzeptiert der Doctor **einen** der beiden Zustände und benennt
 ihn; ``--require-installed`` (``make pr-check``) lässt nur den zweiten gelten.
-Ein Link auf einen fremden Checkout, eine veraltete Kopie neben einem
-gültigen Link oder mehrere Distributionen sind in beiden Modi ein Fehler.
+Ein Link auf einen fremden Checkout (auch ein Legacy-``egg-info`` ohne
+``direct_url.json``), eine veraltete Kopie neben einem gültigen Link oder
+mehrere nicht-editable Distributionen sind in beiden Modi ein Fehler; im
+installed-Vertrag muss der neutrale Import zur anerkannten Distribution
+gehören.
 """
 
 from __future__ import annotations
@@ -132,14 +135,33 @@ def _neutral_import_location(python: str = sys.executable) -> tuple[Path | None,
     return (Path(printed[-1].strip()) if printed else Path("")), ""
 
 
-def classify_install(findings: Sequence[object]) -> tuple[str | None, str]:
+def _is_dist_info(dist: metadata.Distribution) -> bool:
+    """pip-installiertes Wheel/Verzeichnis (``*.dist-info``) – kein Legacy-``egg-info``.
+
+    Ein Legacy-editable-Link auf einen **fremden** Checkout hat keine
+    ``direct_url.json`` und faellt in der Provenienzregel als
+    ``non-editable`` durch; als „installed" gilt er trotzdem nicht (Review
+    PR #1055): Der nicht-editable Vertrag verlangt ein echtes ``dist-info``.
+    """
+    info_dir = cip._metadata_dir(dist)
+    return info_dir is not None and info_dir.name.endswith(".dist-info")
+
+
+def classify_install(
+    findings: Sequence[object], dists: Sequence[metadata.Distribution] = ()
+) -> tuple[str | None, str]:
     """Metadaten-Befunde der Provenienzregel auf genau einen Vertrag abbilden.
 
     Rueckgabe ``(Vertrag, Begruendung)``; ``None`` heisst: passt zu keinem –
     fremder Checkout, veraltete Kopie neben einem Link, unlesbare Metadaten
-    oder mehrere Distributionen. Die Gueltigkeit eines editierbaren Links
-    entscheidet ``check_install_provenance`` (``Finding.ok``); hier wird nur
-    der nicht-editable Fall als zweiter, eigener Vertrag anerkannt.
+    oder mehrere nicht-editable Distributionen. Die Gueltigkeit eines
+    editierbaren Links entscheidet ``check_install_provenance`` (``Finding.ok``);
+    wie dort gelten **mehrere** gueltige Links auf diesen Checkout als ein
+    Zustand – jeder fuehrt zum selben Code (gemessen: ``bgremover.egg-info`` in
+    der Repo-Wurzel neben dem PEP-660-Link der venv, sobald die Repo-Wurzel
+    auf dem Suchpfad steht). Der nicht-editable Fall wird als zweiter, eigener
+    Vertrag anerkannt – nur fuer genau **ein** ``*.dist-info`` (``dists``),
+    nicht fuer einen Legacy-Link auf einen fremden Checkout.
     """
     if not findings:
         # Fail-closed wie ``ProvenanceReport.ok``: ``all([])`` waere True.
@@ -147,9 +169,12 @@ def classify_install(findings: Sequence[object]) -> tuple[str | None, str]:
     details = "; ".join(f"{f.kind}: {f.detail}" for f in findings)  # type: ignore[attr-defined]
     if all(f.ok for f in findings):  # type: ignore[attr-defined]
         return CONTRACT_EDITABLE, details
-    kinds = {f.kind for f in findings}  # type: ignore[attr-defined]
-    if len(findings) == 1 and kinds == {cip.KIND_NON_EDITABLE}:
-        return CONTRACT_INSTALLED, details
+    if len(findings) != 1:
+        return None, f"{len(findings)} Distributionen: {details}"
+    if findings[0].kind == cip.KIND_NON_EDITABLE:  # type: ignore[attr-defined]
+        if len(dists) == 1 and _is_dist_info(dists[0]):
+            return CONTRACT_INSTALLED, details
+        return None, f"{details} (kein *.dist-info – Legacy-Link auf einen fremden Checkout?)"
     return None, details
 
 
@@ -165,11 +190,11 @@ def _check_bgremover_install(
     if any(f.kind == cip.KIND_MISSING for f in findings):
         reporter.fail("bgremover is not installed. Run: make install-test")
         return
-    # Version aus demselben Suchpfad wie die Befunde – nicht aus dem des
+    # Distributionen aus demselben Suchpfad wie die Befunde – nicht aus dem des
     # laufenden Interpreters (unter dem Testhaken fielen beide auseinander).
     dists = cip.find_distributions(search_path=search_path)
     version = dists[0].version if dists else "?"
-    contract, details = classify_install(findings)
+    contract, details = classify_install(findings, dists)
     if contract is None:
         reporter.fail(
             "bgremover installation matches neither contract (editable link on this "
@@ -214,6 +239,9 @@ def _check_bgremover_install(
 
     imported_from, stderr = _neutral_import_location(python)
     source_package = repo_root / "bgremover"
+    # Der Import muss zur anerkannten Distribution gehoeren (ihr Root, z. B.
+    # site-packages) – nicht zu irgendeiner Kopie auf dem Suchpfad.
+    dist_root = Path(str(dists[0].locate_file("")))
     if imported_from is None:
         reporter.fail(
             "Cannot import bgremover from a neutral cwd. "
@@ -225,8 +253,13 @@ def _check_bgremover_install(
             "bgremover imports from the source tree in a neutral cwd although the "
             "distribution is non-editable; a clean non-editable test install is recommended."
         )
-    else:
+    elif dist_root.resolve() in imported_from.parents:
         reporter.ok(f"bgremover imports from installed package: {imported_from}")
+    else:
+        reporter.fail(
+            f"bgremover imports from {imported_from}, which does not belong to the "
+            f"installed distribution under {dist_root}. Run: make install-test"
+        )
 
 
 def _check_optional_ai_extra(reporter: Reporter) -> None:

@@ -93,6 +93,24 @@ def imports(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
     return state
 
 
+def _classify(repo: Path, *sites: Path) -> tuple[str | None, str]:
+    search_path = [str(site) for site in sites]
+    return cte.classify_install(
+        cip.check_metadata_provenance(repo, search_path=search_path),
+        cip.find_distributions(search_path=search_path),
+    )
+
+
+def _egg_info(checkout: Path, *, version: str = "1.0") -> Path:
+    """Legacy-editable: ``bgremover.egg-info`` liegt im Checkout selbst."""
+    info = checkout / "bgremover.egg-info"
+    info.mkdir(parents=True)
+    (info / "PKG-INFO").write_text(
+        f"Metadata-Version: 2.1\nName: bgremover\nVersion: {version}\n", encoding="utf-8"
+    )
+    return info
+
+
 def _run(repo: Path, site: Path, *, require_installed: bool = False) -> cte.Reporter:
     reporter = cte.Reporter()
     cte._check_bgremover_install(
@@ -109,13 +127,13 @@ def _run(repo: Path, site: Path, *, require_installed: bool = False) -> cte.Repo
 
 def test_classify_editable_link_on_this_checkout(repo: Path, site: Path) -> None:
     _dist_info(site, direct_url=_editable(repo))
-    contract, _ = cte.classify_install(cip.check_metadata_provenance(repo, search_path=[str(site)]))
+    contract, _ = _classify(repo, site)
     assert contract == cte.CONTRACT_EDITABLE
 
 
 def test_classify_single_non_editable_install(repo: Path, site: Path) -> None:
     _dist_info(site, direct_url=_editable(repo, editable=False))
-    contract, _ = cte.classify_install(cip.check_metadata_provenance(repo, search_path=[str(site)]))
+    contract, _ = _classify(repo, site)
     assert contract == cte.CONTRACT_INSTALLED
 
 
@@ -123,9 +141,7 @@ def test_classify_foreign_checkout_matches_no_contract(repo: Path, site: Path, t
     other = tmp_path / "other"
     other.mkdir()
     _dist_info(site, direct_url=_editable(other))
-    contract, details = cte.classify_install(
-        cip.check_metadata_provenance(repo, search_path=[str(site)])
-    )
+    contract, details = _classify(repo, site)
     assert contract is None
     assert cip.KIND_FOREIGN_EDITABLE in details
 
@@ -138,10 +154,43 @@ def test_classify_stale_copy_next_to_a_link_matches_no_contract(
     other_site = tmp_path / "other-site"
     _dist_info(site, direct_url=_editable(repo))
     _dist_info(other_site, direct_url=_editable(tmp_path / "snapshot", editable=False))
-    contract, _ = cte.classify_install(
-        cip.check_metadata_provenance(repo, search_path=[str(site), str(other_site)])
-    )
+    contract, _ = _classify(repo, site, other_site)
     assert contract is None
+
+
+def test_classify_legacy_link_on_this_checkout_is_editable(repo: Path) -> None:
+    _egg_info(repo)
+    contract, _ = _classify(repo, repo)
+    assert contract == cte.CONTRACT_EDITABLE
+
+
+def test_classify_legacy_link_on_a_foreign_checkout_matches_no_contract(
+    repo: Path, tmp_path: Path
+) -> None:
+    """Codex-Befund PR #1055: ohne direct_url.json stuft die Provenienzregel
+    einen fremden Legacy-Link als ``non-editable`` ein – als „installed" gilt
+    aber nur ein echtes ``*.dist-info``, nie ein ``egg-info`` eines anderen
+    Checkouts."""
+    other = tmp_path / "other-checkout"
+    (other / "bgremover").mkdir(parents=True)
+    _egg_info(other)
+    contract, details = _classify(repo, other)
+    assert contract is None
+    assert "dist-info" in details
+
+
+def test_classify_two_valid_editable_links_are_one_editable_state(
+    repo: Path, site: Path, tmp_path: Path
+) -> None:
+    """Wie ``check_install_provenance``: zwei gültige Links auf **diesen**
+    Checkout führen zum selben Code. Real gemessen: ``bgremover.egg-info`` in
+    der Repo-Wurzel neben dem PEP-660-Link der venv, sobald die Repo-Wurzel
+    auf dem Suchpfad steht (pytest tut das)."""
+    other_site = tmp_path / "other-site"
+    _dist_info(site, direct_url=_editable(repo))
+    _dist_info(other_site, direct_url=_editable(repo), version="0.9")
+    contract, _ = _classify(repo, site, other_site)
+    assert contract == cte.CONTRACT_EDITABLE
 
 
 def test_classify_empty_findings_match_no_contract() -> None:
@@ -155,9 +204,7 @@ def test_classify_two_non_editable_copies_match_no_contract(
     other_site = tmp_path / "other-site"
     _dist_info(site, direct_url=_editable(tmp_path / "a", editable=False))
     _dist_info(other_site, direct_url=_editable(tmp_path / "b", editable=False), version="0.9")
-    contract, _ = cte.classify_install(
-        cip.check_metadata_provenance(repo, search_path=[str(site), str(other_site)])
-    )
+    contract, _ = _classify(repo, site, other_site)
     assert contract is None
 
 
@@ -213,6 +260,18 @@ def test_non_editable_install_importing_from_source_tree_warns(
     reporter = _run(repo, site)
     assert not reporter.errors
     assert len(reporter.warnings) == 1 and "source tree" in reporter.warnings[0]
+
+
+def test_non_editable_install_importing_a_foreign_copy_fails(
+    repo: Path, site: Path, tmp_path: Path, imports: dict
+) -> None:
+    """Der Import muss zur anerkannten Distribution gehören, nicht zu einer
+    Kopie anderswo auf dem Suchpfad (Codex-Befund PR #1055)."""
+    _dist_info(site, direct_url=_editable(repo, editable=False))
+    imports["installed_from"] = tmp_path / "elsewhere" / "bgremover" / "__init__.py"
+    reporter = _run(repo, site)
+    assert len(reporter.errors) == 1
+    assert "does not belong to the installed distribution" in reporter.errors[0]
 
 
 def test_non_editable_install_that_cannot_import_fails(
@@ -301,5 +360,12 @@ def test_the_real_environment_matches_one_contract() -> None:
     einem der beiden Vertraege entsprechen. Bewusst nur die Vertragsregel
     in-process (Review PR #1055): kein Skriptlauf, kein Qt, kein PATH – der
     Test schlaegt bei Vertragsdrift an, nicht bei einer fehlenden Qt-Bibliothek."""
-    contract, details = cte.classify_install(cip.check_metadata_provenance(ROOT))
+    # Sicht des per Dateipfad gestarteten Doctors (``sys.path[0]`` = scripts/):
+    # ohne die Repo-Wurzel, die pytest vorn einträgt – dort läge sonst ein
+    # ``bgremover.egg-info`` neben der installierten Distribution.
+    search_path = [entry for entry in sys.path if entry and Path(entry).resolve() != ROOT]
+    contract, details = cte.classify_install(
+        cip.check_metadata_provenance(ROOT, search_path=search_path),
+        cip.find_distributions(search_path=search_path),
+    )
     assert contract in {cte.CONTRACT_EDITABLE, cte.CONTRACT_INSTALLED}, details
