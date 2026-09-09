@@ -79,7 +79,7 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   désormais lui-même son contexte après le dessin. Observé lors de l'exécution
   complète des tests sous une plateforme de session (`xcb`) ; la cause est le
   cycle de vie des objets, pas un pilote.
-- **L'aperçu 3D du relief pouvait basculer à tort dans l'état d'erreur.** La
+- **L'aperçu 3D du relief pouvait basculer à tort dans l'état d'erreur (#1023).** La
   preuve de rendu de l'aperçu signale un framebuffer de widget manquant via un
   minuteur bref. Si le pilote graphique ne livrait la première image qu'après
   coup, l'erreur déjà demandée était tout de même émise : la vue 3D affichait

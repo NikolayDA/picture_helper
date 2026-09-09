@@ -38,8 +38,8 @@ segmentation fault. Two reasons argue against waiting further: the security effe
 Qt jump only reaches users with the artifact, and the raised glibc floor (aarch64 2.39,
 x86_64 2.34) is a platform change that deserves to be published and announced. The COLOR
 tone engine (#693 ff.) is **not** a reason to wait – it is the scope after this one.
-Before the candidate build: finish item 1 of #1045 (the release body is generated from
-the CHANGELOG), then runbook steps 1/2 via `scripts/prepare_release.py 2.10.0`, including
+Before the candidate build (item 1 of #1045, the `#1023` reference in the CHANGELOG, is
+done): runbook steps 1/2 via `scripts/prepare_release.py 2.10.0`, including
 the editorial `TODO(release)` gaps (`NOTES-01`). The same run also supplies the still
 missing end-to-end evidence for #914 and #918.
 
@@ -95,7 +95,6 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Release ref instead of a main freeze (ADR + fail-closed safeguards) | 🟠 High (`main` stays mergeable during a release) | 🟢 Low (code, docs, and ruleset are in place) | – (no agent; next release run) | Blocked (external) – reopened on 2026-08-31 after its completion check; PR #936 and the active ruleset 21941216 are documented, only a run whose post-release acceptance demonstrably started on `release/vX.Y.Z` is missing |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Operations: self-hosted runners (heartbeat alert channel) | 🟡 Medium (operations channel, no product code) | 🟢 Low (observation only) | – (no agent; repo owner) | Permanently open – do not close (`RUNNER_HEARTBEAT_ISSUE`); the FAIL of 2026-08-31 was the planned alert-path test, and the cleanup step is done (scheduled run 33496675995 green, x86_64 skipped, Mac and Pi passed) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
-| [#1045](https://github.com/NikolayDA/picture_helper/issues/1045) | CHANGELOG.md: missing PR reference (#1023); historical headings | 🟢 Low (documentation accuracy – though the release body is generated from exactly this file) | 🟢 Low (one line in six versions) | Sonnet, low | Ready for PR – finish item 1 before the next candidate build; leave item 2 deliberately frozen as history |
 | [#1044](https://github.com/NikolayDA/picture_helper/issues/1044) | Test-suite audit 2026-09-09: `preview3d_controller` test gap, two duplications | 🟡 Medium (closes the #1004/#1005 regression gap at logic level; coverage 93 %, gate passed) | 🟢 Low (one GL-free test; both cleanup items are explicitly optional) | Sonnet, medium | Ready for PR – the smallest useful next PR; the duplications optionally in the same go |
 | [#1043](https://github.com/NikolayDA/picture_helper/issues/1043) | Trim `docs/PROZESSE_UML.md` down to the happy path | 🟡 Medium (773 lines and 30 diamonds; duplicates the runbook's restart matrix) | 🟡 Medium (four diagrams plus references into the runbook and the ADRs) | Sonnet, high | Blocked – the last work package; waits for #1040, #1035, #1036, #1037 and #1041 |
 | [#1042](https://github.com/NikolayDA/picture_helper/issues/1042) | Switch the analysis commands (`.claude/commands/analyze-*`) to GitHub issues | 🟡 Medium (analysis results land where the open inventory is kept) | 🟢 Low (five command files) | Sonnet, medium | Blocked – waits for #1040; recommended in the same PR |
@@ -114,10 +113,10 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 
 1. **#1031** (priority 0) – the provenance check in the SessionStart hook; without it a
    green subprocess test may have checked old code.
-2. **#1045** and **#1044** – two small, clearly bounded PRs: the missing `#1023`
-   reference in six CHANGELOG versions, and the #1004/#1005 test gap in
-   `tests/test_preview3d_controller.py`.
-3. **Start v2.10.0** – the scope is in `[Unreleased]`; after #1045, runbook steps 1/2 via
+2. **#1044** – one small, clearly bounded PR: the #1004/#1005 test gap in
+   `tests/test_preview3d_controller.py`. (#1045, the missing `#1023` reference in six
+   CHANGELOG versions, is done.)
+3. **Start v2.10.0** – the scope is in `[Unreleased]`; runbook steps 1/2 via
    `scripts/prepare_release.py 2.10.0`. That run also closes the outstanding end-to-end
    evidence for #914 and #918.
 4. **#1033 → #1040 (+#1042)** – start the process slimming; #1034, #1035, #1036, #1037

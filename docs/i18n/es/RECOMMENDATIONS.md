@@ -38,9 +38,9 @@ de las cuales #1024 repara un fallo de segmentación. Dos razones desaconsejan e
 más: el efecto de seguridad del salto de Qt solo llega a las personas usuarias con el
 artefacto, y el mínimo de glibc elevado (aarch64 2.39, x86_64 2.34) es un cambio de
 plataforma que merece publicarse y anunciarse. El motor de tonos COLOR (#693 y ss.)
-**no** es motivo para esperar: es el alcance siguiente. Antes de construir el candidato:
-resolver el punto 1 de #1045 (el cuerpo de la publicación se genera desde el CHANGELOG) y
-después los pasos 1/2 del runbook con `scripts/prepare_release.py 2.10.0`, incluidas las
+**no** es motivo para esperar: es el alcance siguiente. Antes de construir el candidato
+(el punto 1 de #1045, la referencia `#1023` en el CHANGELOG, ya está resuelto): los
+pasos 1/2 del runbook con `scripts/prepare_release.py 2.10.0`, incluidas las
 lagunas editoriales `TODO(release)` (`NOTES-01`). Esa misma ejecución aporta además la
 evidencia de extremo a extremo que aún falta para #914 y #918.
 
@@ -96,7 +96,6 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Referencia de publicación en lugar de congelar main (ADR + salvaguardas fail-closed) | 🟠 Alto (`main` sigue fusionable durante una publicación) | 🟢 Bajo (código, documentación y ruleset están listos) | – (sin agente; próxima publicación) | Bloqueado (externo): reabierto el 2026-08-31 tras su comprobación final; el PR #936 y el ruleset activo 21941216 están documentados, solo falta una ejecución cuya aceptación posterior arrancara demostrablemente en `release/vX.Y.Z` |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Operación: runners autoalojados (canal de alerta del heartbeat) | 🟡 Medio (canal operativo, sin código de producto) | 🟢 Bajo (solo observación) | – (sin agente; owner del repositorio) | Permanentemente abierto: no cerrar (`RUNNER_HEARTBEAT_ISSUE`); el FAIL del 2026-08-31 fue la prueba planificada del canal y el paso de limpieza está hecho (ejecución programada 33496675995 en verde, x86_64 omitido, Mac y Pi superados) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja (solo bloquea un escaneo manual opcional) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: facturación) | Bloqueada (externa) – la última ejecución (29233060507, 2026-07-13) no demuestra un escaneo exitoso; facturación/cuota sigue sin resolver |
-| [#1045](https://github.com/NikolayDA/picture_helper/issues/1045) | CHANGELOG.md: falta la referencia de PR (#1023); encabezados históricos | 🟢 Baja (exactitud documental, aunque el cuerpo de la publicación se genera justo desde este archivo) | 🟢 Baja (una línea en seis versiones) | Sonnet, bajo | Ready for PR: resolver el punto 1 antes de la próxima construcción del candidato; dejar el punto 2 congelado como historia |
 | [#1044](https://github.com/NikolayDA/picture_helper/issues/1044) | Auditoría de la suite 2026-09-09: hueco de test en `preview3d_controller`, dos duplicados | 🟡 Media (cierra el hueco de regresión de #1004/#1005 a nivel lógico; cobertura 93 %, gate superado) | 🟢 Baja (un test sin GL; los dos puntos de limpieza son explícitamente opcionales) | Sonnet, medio | Ready for PR: el siguiente PR útil más pequeño; los duplicados, opcionalmente, en la misma tanda |
 | [#1043](https://github.com/NikolayDA/picture_helper/issues/1043) | Recortar `docs/PROZESSE_UML.md` a la ruta feliz | 🟡 Media (773 líneas y 30 rombos; duplica la matriz de reanudación del runbook) | 🟡 Media (cuatro diagramas y referencias al runbook y a los ADR) | Sonnet, alto | Bloqueado: último paquete de trabajo; espera a #1040, #1035, #1036, #1037 y #1041 |
 | [#1042](https://github.com/NikolayDA/picture_helper/issues/1042) | Pasar los comandos de análisis (`.claude/commands/analyze-*`) a incidencias de GitHub | 🟡 Media (los resultados del análisis llegan donde se lleva el inventario abierto) | 🟢 Baja (cinco archivos de comando) | Sonnet, medio | Bloqueado: espera a #1040; se recomienda en el mismo PR |
@@ -115,10 +114,10 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 
 1. **#1031** (prioridad 0): la comprobación de procedencia en el hook SessionStart; sin
    ella, una prueba por subproceso en verde puede haber comprobado código antiguo.
-2. **#1045** y **#1044**: dos PR pequeños y bien delimitados: la referencia `#1023` que
-   falta en seis versiones del CHANGELOG y el hueco de test de #1004/#1005 en
-   `tests/test_preview3d_controller.py`.
-3. **Lanzar v2.10.0**: el alcance está en `[Unreleased]`; tras #1045, los pasos 1/2 del
+2. **#1044**: un PR pequeño y bien delimitado: el hueco de test de #1004/#1005 en
+   `tests/test_preview3d_controller.py`. (#1045, la referencia `#1023` que faltaba en
+   seis versiones del CHANGELOG, ya está resuelto.)
+3. **Lanzar v2.10.0**: el alcance está en `[Unreleased]`; los pasos 1/2 del
    runbook con `scripts/prepare_release.py 2.10.0`. Esa ejecución cierra además la
    evidencia de extremo a extremo pendiente de #914 y #918.
 4. **#1033 → #1040 (+#1042)**: iniciar el adelgazamiento del proceso; #1034, #1035,

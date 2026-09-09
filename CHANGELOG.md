@@ -79,7 +79,7 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   seinen Kontext nach dem Zeichnen jetzt selbst wieder her. Beobachtet im
   vollständigen Testlauf unter einer Sitzungsplattform (`xcb`); die Ursache
   ist der Objektlebenszyklus, kein Treiber.
-- **3D-Reliefvorschau konnte fälschlich in den Fehlerzustand fallen.** Der
+- **3D-Reliefvorschau konnte fälschlich in den Fehlerzustand fallen (#1023).** Der
   Renderbeweis der 3D-Vorschau meldet einen fehlenden Widget-Framebuffer über
   einen kurzen Zeitgeber. Lieferte die Grafikkarte den ersten Frame erst
   danach, blieb die bereits angeforderte Fehlermeldung stehen: Die 3D-Ansicht
