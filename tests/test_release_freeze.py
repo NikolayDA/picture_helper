@@ -109,6 +109,18 @@ def test_every_neutral_rule_has_reason_evidence_and_a_covered_sample() -> None:
         assert rule.reason.strip() and rule.evidence
 
 
+def test_session_start_hook_is_explicitly_release_neutral() -> None:
+    """#1031: Der Web-Session-Hook ist kein Build-, Release- oder Gate-Eingang.
+
+    Ohne expliziten Eintrag blockierte jede Änderung an ihm fail-closed als
+    ``unclassified-path`` – und ein bekannter neutraler Pfad soll auch nach
+    einer Lockerung der Unbekannt-Regel (#1037) nicht kandidatenrelevant sein.
+    """
+    result = rpp.classify_path(".claude/hooks/session-start.sh", rpp.load_policy())
+    assert result.explicit and result.classification == rpp.RELEASE_NEUTRAL
+    assert result.rule_id == "claude-session-start-hook"
+
+
 def test_every_relevant_rule_has_a_covered_sample() -> None:
     policy = rpp.load_policy()
     assert policy.relevant_rules
