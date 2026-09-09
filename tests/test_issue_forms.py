@@ -60,6 +60,9 @@ def _load(path: Path) -> dict[str, Any]:
 _CODE_SPAN_RE = re.compile(r"`[^`]*`")
 _ANGLE_PLACEHOLDER_RE = re.compile(r"<[A-Za-zÄÖÜäöü][^<>\s]*>")
 
+# GitHub erlaubt in ``id`` nur Ziffern, Buchstaben, ``-`` und ``_``.
+_ID_RE = re.compile(r"[0-9A-Za-z_-]+")
+
 # Felder, die GitHub als Markdown rendert.
 _RENDERED_KEYS = ("label", "description", "value")
 
@@ -130,6 +133,15 @@ def test_required_fields_are_enforced(path: Path) -> None:
     expected = _REQUIRED_IDS[path.name]
     missing = sorted(expected - required)
     assert not missing, f"{path.name}: nicht als required markiert: {', '.join(missing)}"
+    # Die Gegenrichtung ist die, die Melder aussperrt: Issue Forms kennen keine
+    # bedingten Pflichtfelder, ``python_version`` etwa gilt nur bei einer
+    # Quellinstallation. Auf ``required`` gesetzt blockierte es jeden DMG- und
+    # AppImage-Melder – ohne dass ein Test anschlüge (Review PR #1060).
+    surplus = sorted(required - expected)
+    assert not surplus, (
+        f"{path.name}: zusätzlich als required markiert, obwohl die Angabe nicht"
+        f" für jeden Melder zutrifft: {', '.join(surplus)}"
+    )
 
 
 @pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
@@ -189,6 +201,46 @@ def test_bug_form_confirmation_holds_without_an_attachment() -> None:
     assert "auch, wenn nichts angehängt ist" in text, (
         "die bedingte Formulierung ist der Grund, warum die Pflicht keinen Bericht blockiert"
     )
+
+
+@pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
+def test_form_avoids_the_documented_rejection_reasons(path: Path) -> None:
+    """Die Regeln, an denen GitHub eine Form nach dem Merge kommentarlos abweist.
+
+    Quelle ist die Fehlerliste „Common validation errors when creating issue
+    forms". Geprüft werden die Gründe, die hier überhaupt eintreten können und
+    die die übrigen Tests nicht schon abdecken: mindestens ein Eingabefeld,
+    eindeutige Beschriftungen, ``id`` nur aus erlaubten Zeichen und Optionen
+    ohne Dubletten, ohne das reservierte ``none`` und ohne Wahrheitswerte.
+    Ein ``ja``/``nein``-Paar ist dabei die reale Falle: YAML 1.1 liest
+    ``no``/``yes``/``on``/``off`` als Boolean, die deutschen Wörter nicht.
+    """
+
+    body = _load(path)["body"]
+    inputs = [element for element in body if element.get("type") != "markdown"]
+    assert inputs, f"{path.name}: Body ohne Eingabefeld"
+
+    labels = [element["attributes"]["label"].strip().casefold() for element in inputs]
+    assert len(labels) == len(set(labels)), f"{path.name}: doppelte Beschriftung"
+
+    for element in inputs:
+        assert _ID_RE.fullmatch(element["id"]), (
+            f"{path.name}: id {element['id']!r} enthält unerlaubte Zeichen"
+        )
+        options = element["attributes"].get("options") or []
+        texts = [
+            option["label"] if isinstance(option, dict) else option for option in options
+        ]
+        assert all(isinstance(text, str) for text in texts), (
+            f"{path.name}: {element['id']!r} hat eine Option, die YAML nicht als Text liest"
+        )
+        normalised = [text.strip().casefold() for text in texts]
+        assert len(normalised) == len(set(normalised)), (
+            f"{path.name}: {element['id']!r} hat doppelte Optionen"
+        )
+        assert "none" not in normalised, (
+            f"{path.name}: {element['id']!r} nutzt das reservierte Wort 'none'"
+        )
 
 
 def test_config_enables_blank_issues_and_links_the_security_policy() -> None:
