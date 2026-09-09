@@ -266,7 +266,11 @@ def test_form_avoids_the_documented_rejection_reasons(path: Path) -> None:
     forms". Geprüft werden die Gründe, die hier überhaupt eintreten können und
     die die übrigen Tests nicht schon abdecken: mindestens ein Eingabefeld,
     eindeutige Beschriftungen, ``id`` nur aus erlaubten Zeichen und Optionen
-    ohne Dubletten, ohne das reservierte ``none`` und ohne Wahrheitswerte.
+    ohne Dubletten, ohne die reservierten ``none``/``n/a`` und ohne
+    Wahrheitswerte. Die beiden reservierten Wörter sind erst mit der
+    Vorauswahl scharf geworden: GitHub verbietet sie ausdrücklich, „when a
+    default option is specified" – und der Defaultwächter verlangt für jedes
+    optionale Dropdown genau so eine Vorauswahl.
     Ein ``ja``/``nein``-Paar ist dabei die reale Falle: YAML 1.1 liest
     ``no``/``yes``/``on``/``off`` als Boolean, die deutschen Wörter nicht.
     """
@@ -293,8 +297,10 @@ def test_form_avoids_the_documented_rejection_reasons(path: Path) -> None:
         assert len(normalised) == len(set(normalised)), (
             f"{path.name}: {element['id']!r} hat doppelte Optionen"
         )
-        assert "none" not in normalised, (
-            f"{path.name}: {element['id']!r} nutzt das reservierte Wort 'none'"
+        reserved = {"none", "n/a"} & set(normalised)
+        assert not reserved, (
+            f"{path.name}: {element['id']!r} nutzt ein reserviertes Wort"
+            f" ({', '.join(sorted(reserved))})"
         )
 
 
