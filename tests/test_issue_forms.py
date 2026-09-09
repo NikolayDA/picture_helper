@@ -162,6 +162,44 @@ def test_dropdowns_offer_a_choice(path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
+def test_dropdown_defaults_follow_the_requiredness(path: Path) -> None:
+    """Ein optionales Dropdown braucht eine Vorauswahl, ein Pflicht-Dropdown darf keine haben.
+
+    GitHub rendert ein nicht ausgefülltes Dropdown im erzeugten Issue als
+    ``None`` – bei Textfeldern steht dort ``_No response_``. Für „KI-Hinter-
+    grundentfernung installiert?" las sich das wie die Antwort „nein" statt
+    wie „nicht ausgefüllt" (beobachtet an #1061), also ausgerechnet in einem
+    Feld, das die Triage lenken soll.
+
+    Umgekehrt wäre eine Vorauswahl an einem Pflicht-Dropdown schädlich: Sie
+    nähme dem `required` seine Wirkung, weil das Formular schon mit der
+    voreingestellten Antwort absendbar ist – „Plattform: macOS arm64" wäre
+    dann keine Angabe, sondern eine Vermutung.
+    """
+
+    for element in _load(path)["body"]:
+        if element.get("type") != "dropdown":
+            continue
+        attributes = element["attributes"]
+        default = attributes.get("default")
+        if _is_required(element):
+            assert default is None, (
+                f"{path.name}: Pflicht-Dropdown {element['id']!r} hat eine Vorauswahl –"
+                " damit ist das Formular ohne bewusste Antwort absendbar"
+            )
+            continue
+        assert isinstance(default, int) and not isinstance(default, bool), (
+            f"{path.name}: optionales Dropdown {element['id']!r} ohne default –"
+            " unausgefüllt erscheint es im Issue als 'None'"
+        )
+        options = attributes["options"]
+        assert 0 <= default < len(options), (
+            f"{path.name}: default {default} von {element['id']!r} liegt ausserhalb"
+            f" der {len(options)} Optionen"
+        )
+
+
+@pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
 def test_form_presets_its_label(path: Path) -> None:
     """Die Vorbelegung spart den ersten Triage-Handgriff."""
 

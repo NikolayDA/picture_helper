@@ -38,6 +38,9 @@ body:
         - Relief & Ebenen
         - Export
         - übergreifend
+      # Wie oben: „None" wäre hier keine Aussage. „übergreifend" ist der
+      # richtige Rückfall für einen Wunsch, der keinem Schritt gehört.
+      default: 6
   - type: textarea
     id: alternatives
     attributes:
