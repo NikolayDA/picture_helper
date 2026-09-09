@@ -212,6 +212,44 @@ def test_constraints_change_without_snapshot_is_an_error(pr_repo: Path) -> None:
     assert "lizenz-snapshot" in _codes(output)
 
 
+def test_constraints_stay_decidable_without_a_toml_parser(
+    pr_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Der häufigste Fall darf nicht am fehlenden Parser vorbeirutschen.
+
+    Ein Dependency-Bump berührt typischerweise ``constraints.txt`` **und**
+    ``pyproject.toml``. Ohne ``tomli`` (Python 3.10, die Mindestversion) ist
+    nur der zweite Teil unentscheidbar; der erste bleibt ein reiner
+    Pfadvergleich. Ein gemeinsamer Abbruch hätte den Lauf grün gemacht,
+    obwohl die Pflicht nachweisbar fällig ist (Review-Befund PR #1065).
+    """
+    monkeypatch.setattr(pr_ready, "_load_toml", lambda text: None)
+    _write(pr_repo, "requirements/constraints.txt", "pillow==11.0.0\n")
+    _write(pr_repo, "pyproject.toml", _pyproject(deps='["pillow", "numpy"]'))
+    _commit_all(pr_repo, "bump")
+
+    code, output = _check(pr_repo)
+
+    assert code == 1, output
+    assert "FEHLER" in output and "HINWEIS" in output
+    assert "requirements/constraints.txt" in output
+    assert "ohne TOML-Parser" in output
+
+
+def test_pyproject_alone_without_a_toml_parser_stays_a_note(
+    pr_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ohne Parser ist der pyproject-Teil allein wirklich unentscheidbar."""
+    monkeypatch.setattr(pr_ready, "_load_toml", lambda text: None)
+    _write(pr_repo, "pyproject.toml", _pyproject(deps='["pillow", "numpy"]'))
+    _commit_all(pr_repo, "bump")
+
+    code, output = _check(pr_repo)
+
+    assert code == 0, output
+    assert "ohne TOML-Parser" in output
+
+
 def test_changelog_heuristic_stays_a_note(pr_repo: Path) -> None:
     """Nicht jede Codeänderung ist nutzersichtbar – deshalb kein Fehler."""
     _write(pr_repo, "bgremover/canvas.py", "x = 1\n")

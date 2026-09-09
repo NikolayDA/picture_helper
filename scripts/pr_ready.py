@@ -295,13 +295,24 @@ def _rule_anleitung_pdf(paths: frozenset[str]) -> list[Finding]:
 
 
 def _rule_license_snapshot(repo: Path, changes: ChangeSet) -> list[Finding]:
+    """Zwei Auslöser, die getrennt entscheidbar sind.
+
+    ``requirements/constraints.txt`` ist ein reiner Pfadvergleich und damit
+    **immer** entscheidbar; nur der ``pyproject.toml``-Teil braucht einen
+    TOML-Parser. Beides zusammen abzubrechen, sobald der Parser fehlt, ließe
+    genau den häufigen Fall durchgehen – ein Dependency-Bump berührt
+    typischerweise beide Dateien, und ohne ``tomli`` (Python 3.10, die
+    Mindestversion) wäre der Lauf grün, obwohl die Pflicht nachweisbar fällig
+    ist (Review-Befund PR #1065).
+    """
     paths = changes.paths
+    findings: list[Finding] = []
     reasons: list[str] = []
     if CONSTRAINTS_PATH in paths:
         reasons.append(CONSTRAINTS_PATH)
     fields = license_relevant_pyproject_fields(repo, changes)
     if fields is None:
-        return [
+        findings.append(
             Finding(
                 NOTE,
                 "lizenz-snapshot",
@@ -309,23 +320,24 @@ def _rule_license_snapshot(repo: Path, changes: ChangeSet) -> list[Finding]:
                 "prüfbar (Python 3.10 ohne tomli). license-check.yml entscheidet.",
                 ("optional: pip install tomli",),
             )
-        ]
-    if fields:
-        reasons.append(f"{PYPROJECT_PATH} [project]: {_join(list(fields))}")
-    if not reasons or LICENSES_PATH in paths:
-        return []
-    return [
-        Finding(
-            ERROR,
-            "lizenz-snapshot",
-            f"Lizenzrelevante Eingabe geändert ({_join(reasons)}), {LICENSES_PATH} nicht.",
-            (
-                "in einem frischen venv wie license-check.yml (Python 3.12):",
-                f'pip install --constraint {CONSTRAINTS_PATH} ".[ai,test]"',
-                f"python scripts/generate_license_report.py --report {LICENSES_PATH} --all-langs",
-            ),
         )
-    ]
+    elif fields:
+        reasons.append(f"{PYPROJECT_PATH} [project]: {_join(list(fields))}")
+    if reasons and LICENSES_PATH not in paths:
+        findings.append(
+            Finding(
+                ERROR,
+                "lizenz-snapshot",
+                f"Lizenzrelevante Eingabe geändert ({_join(reasons)}), {LICENSES_PATH} nicht.",
+                (
+                    "in einem frischen venv wie license-check.yml (Python 3.12):",
+                    f'pip install --constraint {CONSTRAINTS_PATH} ".[ai,test]"',
+                    "python scripts/generate_license_report.py "
+                    f"--report {LICENSES_PATH} --all-langs",
+                ),
+            )
+        )
+    return findings
 
 
 def _rule_path_policy(paths: frozenset[str]) -> list[Finding]:
