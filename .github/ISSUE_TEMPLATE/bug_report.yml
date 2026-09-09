@@ -13,7 +13,7 @@ body:
     id: version
     attributes:
       label: BgRemover-Version
-      description: Steht im Fenstertitel – „BgRemover Pro <Version>".
+      description: Steht im Fenstertitel – `BgRemover Pro <Version>`.
       placeholder: "2.9.0"
     validations:
       required: true

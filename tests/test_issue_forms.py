@@ -16,6 +16,7 @@ PyYAML ist seit #1016 deklarierte ``[test]``-Abhängigkeit.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +51,17 @@ def _load(path: Path) -> dict[str, Any]:
         pytest.fail(f"{path.name} ist kein valides YAML: {exc}")
     assert isinstance(doc, dict), f"{path.name}: Top-Level ist kein Mapping"
     return doc
+
+
+# Ein spitzklammer-Platzhalter wie ``<Version>`` ausserhalb eines Code-Spans:
+# GitHub rendert Labels, Beschreibungen und ``markdown``-Bloecke der Forms als
+# Markdown und entfernt ihn als unbekanntes HTML-Tag – der Hinweis verliert
+# lautlos genau das Beispiel, das er erklaeren soll (Review PR #1060).
+_CODE_SPAN_RE = re.compile(r"`[^`]*`")
+_ANGLE_PLACEHOLDER_RE = re.compile(r"<[A-Za-zÄÖÜäöü][^<>\s]*>")
+
+# Felder, die GitHub als Markdown rendert.
+_RENDERED_KEYS = ("label", "description", "value")
 
 
 def _is_required(element: dict[str, Any]) -> bool:
@@ -205,6 +217,40 @@ def test_no_legacy_markdown_templates_remain() -> None:
 
     leftovers = sorted(path.name for path in _TEMPLATE_DIR.glob("*.md"))
     assert not leftovers, f"veraltete Markdown-Vorlagen: {', '.join(leftovers)}"
+
+
+@pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
+def test_angle_bracket_placeholders_stay_inside_code_spans(path: Path) -> None:
+    """Ein Platzhalter ausserhalb eines Code-Spans verschwindet beim Rendern.
+
+    Sichtbar wird das erst im fertigen Formular, und dort als *fehlender* Text –
+    kein Parse-Fehler, keine Warnung. Geprueft werden die drei Felder, die
+    GitHub als Markdown rendert.
+    """
+
+    offenders: list[str] = []
+    for index, element in enumerate(_load(path)["body"]):
+        attributes = element.get("attributes") or {}
+        texts = [(key, attributes[key]) for key in _RENDERED_KEYS if key in attributes]
+        # Auch die Beschriftung einer Checkbox-Option wird als Markdown gerendert.
+        texts += [
+            ("option", option["label"])
+            for option in attributes.get("options") or []
+            if isinstance(option, dict) and isinstance(option.get("label"), str)
+        ]
+        for key, value in texts:
+            if not isinstance(value, str):
+                continue
+            bare = _CODE_SPAN_RE.sub("", value)
+            offenders += [
+                f"{path.name}[{index}].{key}: {match}"
+                for match in _ANGLE_PLACEHOLDER_RE.findall(bare)
+            ]
+
+    assert not offenders, (
+        "Platzhalter ausserhalb eines Code-Spans (GitHub entfernt sie beim Rendern):\n"
+        + "\n".join(offenders)
+    )
 
 
 def test_feature_form_workflow_steps_match_the_stepper() -> None:

@@ -26,7 +26,7 @@ Konstruktiver, respektvoller Umgang ist Voraussetzung für Beiträge. Beleidigun
 1. Zunächst prüfen, ob das Issue bereits existiert.
 2. Unter „New issue" die Vorlage **Fehlerbericht** wählen (deutsches Issue-Formular).
 3. Pflichtangaben des Formulars:
-   - **BgRemover-Version** — steht im Fenstertitel („BgRemover Pro <Version>").
+   - **BgRemover-Version** — steht im Fenstertitel (`BgRemover Pro <Version>`).
    - **Plattform** — macOS arm64/x86_64, Linux x86_64, Linux arm64 (Raspberry Pi) oder Sonstige.
    - **Installationsart** — DMG, AppImage, `.deb`, Quellinstallation/venv oder Web-Session.
    - **Schritte zur Reproduktion** — nummeriert, vom Start der Anwendung bis zum Fehler.
