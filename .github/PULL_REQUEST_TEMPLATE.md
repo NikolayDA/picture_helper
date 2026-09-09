@@ -20,10 +20,9 @@ Closes #
 
 ## Standard-Gate
 
-- [ ] `make check` (bzw. `make pr-check`) läuft lokal grün.
-- [ ] CHANGELOG (`[Unreleased]`) bei nutzersichtbarer Änderung aktualisiert.
-- [ ] Bei berührten Docs: i18n-Parität (`docs/i18n/`) gewahrt, keine toten
-      Markdown-Links.
+- [ ] `make pr-ready` läuft lokal grün (nennt die fälligen Drift-Pflichten —
+      CHANGELOG, i18n-Parität, `ANLEITUNG.pdf`, Lizenz-Snapshot, Pfadpolicy —
+      und läuft danach in `make pr-check`).
 - [ ] Kommentare/Docstrings auf Deutsch, Code-Identifier englisch.
 
 ## Tests
