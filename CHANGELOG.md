@@ -38,6 +38,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **Issue-Triage nach GitHub: Prioritäts- und Blocker-Labels (#1032, #1033).**
+  Jedes offene Issue trägt genau ein `prio:now`/`prio:next`/`prio:later`-Label,
+  interne Blocker stehen ausschließlich als native Abhängigkeit „blocked by",
+  externe als `blocked:extern` plus Kommentarzeile. Relevanz, Komplexität und
+  nächster Schritt der 41 Tabellenzeilen aus `RECOMMENDATIONS.md` wurden
+  wortgleich als Übernahmekommentar in die Issues übertragen; der einmalige,
+  idempotente Cutover samt der zwei Abnahme-Abgleiche liegt in
+  `scripts/triage_issue_cutover.py`. Die Tabelle selbst entfällt erst mit
+  #1040; Regeln in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - **EufyMake-Druckflächen-Warnung auf das bestätigte Standard-Flatbed
   335 × 420 mm (#687, #689, #971).** `STANDARD_FLATBED_MM` stand mit
   330 × 420 mm auf einer nur per Suchmaschinen-Extraktion belegten

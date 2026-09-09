@@ -750,7 +750,7 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **sechzehn** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **siebzehn** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
@@ -762,8 +762,9 @@ Ein Paket, `bgremover/`:
   `scripts/release_update_dispatch.py` (#919),
   `scripts/scan_release_artifacts.py` (#920),
   `scripts/runner_heartbeat.py` (#921),
-  `scripts/recommendations_live_check.py` (#752) und
-  `scripts/check_install_provenance.py` (#1031) – als
+  `scripts/recommendations_live_check.py` (#752),
+  `scripts/check_install_provenance.py` (#1031) und
+  `scripts/triage_issue_cutover.py` (#1033) – als
   eigenständige Dateien ohne `scripts/__init__.py` explizit per Dateipfad in
   `files` sowie per Modul-Override (Modulname = Dateibasisname) erfasst.
   `tests/test_process_documentation.py` hält Zahl und Namensliste gegen
@@ -777,7 +778,16 @@ Ein Paket, `bgremover/`:
   (Markdown-Links, i18n-Parität, CHANGELOG, Lizenzen, Screenshot-Set-Referenzen)
   — Docs als Code behandeln.
 - **Befunde** werden in `RECOMMENDATIONS.md` mit IDs geführt (`N#`/`O#`);
-  Historie unter `docs/history/`. Abnahme-Matrizen je Epic ebenfalls dort
+  Historie unter `docs/history/`. Die Triage des **offenen** Bestands liegt
+  seit #1033 in den Issues selbst: genau ein `prio:now`/`prio:next`/
+  `prio:later` je offenem Issue, interne Blocker ausschließlich als native
+  Abhängigkeit „blocked by", externe als `blocked:extern` plus Kommentarzeile
+  (kein `status:ready`, kein Label für Zustände, die GitHub selbst kennt –
+  Regeln in [`CONTRIBUTING.md`](CONTRIBUTING.md)). Der einmalige Cutover lief
+  über `scripts/triage_issue_cutover.py` (versionierte Entscheidungsakte,
+  idempotentes `apply`, `verify` für die zwei Abnahme-Abgleiche; bewusst kein
+  Wächter und kein Workflow); die Tabelle in `RECOMMENDATIONS.md` entfällt
+  mit #1040. Abnahme-Matrizen je Epic ebenfalls dort
   ([`EPIC-581-ABNAHME.md`](docs/history/EPIC-581-ABNAHME.md) 16-Bit-Höhenpipeline,
   [`EPIC-582-ABNAHME.md`](docs/history/EPIC-582-ABNAHME.md) 3D-Vorschau). Der
   Kurzstatus driftete mehrfach kurz nach einer Aktualisierung vom
