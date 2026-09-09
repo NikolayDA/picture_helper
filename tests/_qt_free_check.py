@@ -20,7 +20,11 @@ QT_BINDINGS: frozenset[str] = frozenset({"PyQt6", "PyQt5", "PySide6"})
 
 
 def imported_top_level_names(module: ModuleType) -> set[str]:
-    """Oberste Paketnamen aller ``import``/``from … import`` des Modulquelltexts."""
+    """Oberste Paketnamen der absoluten ``import``/``from … import`` im Quelltext.
+
+    Relative Importe ohne Modulnamen (``from . import x``) tragen kein Ziel und
+    werden übersprungen – ein Qt-Binding ist so ohnehin nicht erreichbar.
+    """
     assert module.__file__ is not None, module.__name__
     tree = ast.parse(Path(module.__file__).read_text(encoding="utf-8"))
     imported: set[str] = set()

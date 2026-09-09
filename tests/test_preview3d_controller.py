@@ -14,7 +14,13 @@ from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
 from bgremover.preview3d_capability import UNAVAILABLE_KEY, RendererCapability
 from bgremover.preview3d_controller import Preview3DController
 from bgremover.relief_mesh import MeshQuality, build_relief_mesh
-from bgremover.viewer_3d import STATE_ERROR, STATE_LOADING, STATE_READY, Relief3DView
+from bgremover.viewer_3d import (
+    STATE_EMPTY,
+    STATE_ERROR,
+    STATE_LOADING,
+    STATE_READY,
+    Relief3DView,
+)
 
 
 def _field(value: int = 5000, size: int = 24) -> HeightField:
@@ -357,7 +363,7 @@ def test_field_vanishing_before_build_start_shows_empty(qapp) -> None:
     canvas._field = None
     ctrl._start_build()
     assert worker.calls == []
-    assert view.state == "empty"
+    assert view.state == STATE_EMPTY
 
 
 def test_mesh_arriving_after_deactivation_is_not_shown(qapp) -> None:
