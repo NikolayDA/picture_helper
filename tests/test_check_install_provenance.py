@@ -188,6 +188,37 @@ def test_unrelated_distributions_are_ignored_and_names_are_normalised(
     assert finding.ok
 
 
+def test_name_normalisation_follows_pep_503() -> None:
+    assert cip._normalise_name("Bg__Remover") == "bg-remover"
+    assert cip._normalise_name("bg.-_remover") == "bg-remover"
+
+
+def test_two_dist_info_dirs_of_the_same_version_stay_two_findings(repo: Path, site: Path) -> None:
+    """Rest einer abgebrochenen Deinstallation: gleiches ``site-packages``,
+    gleiche Version, zwei Metadatenverzeichnisse – der Dedupe darf sie nicht
+    zu einem Fund zusammenfassen (Review PR #1047)."""
+    _dist_info(site, direct_url=_editable(repo))
+    stale = site / "~gremover-1.0.dist-info"
+    stale.mkdir()
+    (stale / "METADATA").write_text(_metadata_text(), encoding="utf-8")
+    findings = cip.check_metadata_provenance(repo, search_path=[str(site)])
+    assert len(findings) >= 2 and not all(item.ok for item in findings)
+
+
+def test_missing_private_metadata_path_disables_dedupe_fail_closed(
+    repo: Path, site: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fehlt ``PathDistribution._path`` (private API), wird nicht dedupliziert –
+    derselbe Fund zweimal ergibt zwei Eintraege und damit hoechstens einen
+    ueberfluessigen Befund, nie eine still zusammengefasste Kopie."""
+    _dist_info(site, direct_url=_editable(repo))
+    (dist,) = cip.find_distributions(search_path=[str(site)])
+    monkeypatch.setattr(cip.metadata, "distributions", lambda **_kw: iter([dist, dist]))
+    assert len(cip.find_distributions(search_path=[str(site)])) == 1
+    monkeypatch.setattr(cip, "_metadata_dir", lambda _dist: None)
+    assert len(cip.find_distributions(search_path=[str(site)])) == 2
+
+
 def test_malformed_direct_url_is_invalid_metadata(repo: Path, site: Path) -> None:
     _dist_info(site, raw_direct_url="{not json")
     finding = _only(cip.check_metadata_provenance(repo, search_path=[str(site)]))
@@ -216,13 +247,20 @@ def test_only_local_file_urls_link_to_the_checkout(
     assert finding.ok is expected
 
 
-def test_percent_encoded_file_url_resolves_to_the_checkout(tmp_path: Path, site: Path) -> None:
-    checkout = tmp_path / "check out"
+@pytest.mark.parametrize("dirname", ["check out", "a%20b", "100%"])
+def test_percent_encoded_file_url_resolves_to_the_checkout(
+    tmp_path: Path, site: Path, dirname: str
+) -> None:
+    """Genau **eine** Dekodierung: Ein literales ``%20`` im Checkout-Pfad wird
+    von ``as_uri`` als ``%2520`` abgelegt und darf nicht zum Leerzeichen
+    werden (Review PR #1047 – eine zweite Dekodierung machte den Link zu
+    ``foreign-editable``, und der Hook brach nach jeder Neuinstallation ab)."""
+    checkout = tmp_path / dirname
     (checkout / "bgremover").mkdir(parents=True)
     _dist_info(site, direct_url=_editable(checkout))
-    assert "%20" in checkout.resolve().as_uri()
+    assert "%" in checkout.resolve().as_uri()
     finding = _only(cip.check_metadata_provenance(checkout, search_path=[str(site)]))
-    assert finding.ok
+    assert finding.ok, finding
 
 
 # ── Import-Postcondition aus neutralem Arbeitsverzeichnis ────────────
@@ -239,6 +277,16 @@ def test_neutral_import_hits_the_checkout(repo: Path) -> None:
     finding = cip.check_neutral_import(repo, env=_env_with(repo))
     assert finding.ok, finding
     assert str((repo / "bgremover" / "__init__.py").resolve()) in finding.detail
+
+
+def test_neutral_import_tolerates_noise_on_stdout(repo: Path) -> None:
+    """``sitecustomize``/``.pth`` duerfen vor dem Ergebnis auf stdout schreiben
+    (Review PR #1047): Gewertet wird die letzte nichtleere Zeile."""
+    (repo / "sitecustomize.py").write_text(
+        "print('Container-Rauschen aus sitecustomize')\nprint()\n", encoding="utf-8"
+    )
+    finding = cip.check_neutral_import(repo, env=_env_with(repo))
+    assert finding.ok, finding
 
 
 def test_neutral_import_from_a_foreign_copy_is_rejected(repo: Path, tmp_path: Path) -> None:

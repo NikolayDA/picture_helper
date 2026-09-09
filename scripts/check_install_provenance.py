@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -52,21 +53,22 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from importlib import metadata
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import urlsplit
 from urllib.request import url2pathname
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DISTRIBUTION_NAME = "bgremover"
 LOG_PREFIX = "[install-provenance]"
 
-#: Provenienzklassen (``Finding.kind``). Die beiden ersten sind gueltig.
+#: Provenienzklassen (``Finding.kind``); ob eine Klasse gueltig ist,
+#: entscheidet allein ``Finding.ok`` aus ``classify_distribution`` – keine
+#: zweite Quelle derselben Regel.
 KIND_PEP660_EDITABLE = "pep660-editable"
 KIND_LEGACY_EDITABLE = "legacy-editable"
 KIND_FOREIGN_EDITABLE = "foreign-editable"
 KIND_NON_EDITABLE = "non-editable"
 KIND_MISSING = "missing"
 KIND_INVALID_METADATA = "invalid-metadata"
-VALID_KINDS: frozenset[str] = frozenset({KIND_PEP660_EDITABLE, KIND_LEGACY_EDITABLE})
 
 
 @dataclass(frozen=True)
@@ -106,7 +108,7 @@ class ProvenanceReport:
 
 def _normalise_name(name: str) -> str:
     """PEP-503-Normalisierung, damit ``BgRemover``/``bgremover`` gleich zaehlen."""
-    return "".join("-" if ch in "-_." else ch.lower() for ch in name)
+    return re.sub(r"[-_.]+", "-", name).lower()
 
 
 def _same_path(candidate: Path, repo_root: Path) -> bool:
@@ -125,10 +127,23 @@ def _file_url_to_path(url: str) -> Path | None:
     parts = urlsplit(url)
     if parts.scheme != "file" or parts.netloc not in ("", "localhost"):
         return None
-    local = url2pathname(unquote(parts.path))
+    # ``url2pathname`` dekodiert Prozent-Escapes unter POSIX bereits selbst –
+    # ein vorgeschaltetes ``unquote`` machte aus einem literalen ``%20`` im
+    # Checkout-Pfad ein Leerzeichen (Review PR #1047).
+    local = url2pathname(parts.path)
     if not local:
         return None
     return Path(local)
+
+
+def _metadata_dir(dist: metadata.Distribution) -> Path | None:
+    """Metadatenverzeichnis (``*.dist-info``/``*.egg-info``) einer Distribution.
+
+    ``PathDistribution._path`` ist privat; fehlt es, gibt es keinen
+    Dedupe-Schluessel (siehe ``find_distributions``).
+    """
+    info_dir = getattr(dist, "_path", None)
+    return None if info_dir is None else Path(str(info_dir))
 
 
 def find_distributions(
@@ -139,7 +154,13 @@ def find_distributions(
     ``search_path`` ersetzt ``sys.path`` (Testhaken); ohne Angabe gilt der
     Suchpfad des laufenden Interpreters. Ein Verzeichnis, das mehrfach auf dem
     Suchpfad steht, liefert dieselbe Distribution mehrfach – das ist kein
-    zweiter Fund.
+    zweiter Fund. Schluessel ist das Metadatenverzeichnis selbst
+    (``PathDistribution._path``): Nur es trennt zwei ``*.dist-info`` gleicher
+    Version unter demselben ``site-packages`` (Rest einer abgebrochenen
+    Deinstallation). Fehlt das private Attribut in einer kuenftigen
+    CPython-Version, wird **nicht** dedupliziert – fail-closed: Ein
+    Mehrfachfund erzeugt hoechstens einen ueberfluessigen Befund, nie eine
+    still zusammengefasste Kopie.
     """
     wanted = _normalise_name(name)
     found: list[metadata.Distribution] = []
@@ -158,10 +179,11 @@ def find_distributions(
             continue
         if not dist_name or _normalise_name(dist_name) != wanted:
             continue
-        key = str(Path(str(dist.locate_file(""))).resolve()) + "|" + str(dist.version)
-        info_dir = getattr(dist, "_path", None)
-        if info_dir is not None:
-            key = str(Path(str(info_dir)).resolve())
+        info_dir = _metadata_dir(dist)
+        if info_dir is None:
+            found.append(dist)
+            continue
+        key = str(info_dir.resolve())
         if key in seen:
             continue
         seen.add(key)
@@ -289,7 +311,11 @@ def check_neutral_import(
             "neutral-import",
             f"import {name} aus neutralem Arbeitsverzeichnis scheitert: {tail}",
         )
-    imported = Path(proc.stdout.strip())
+    # Letzte nichtleere Zeile: ``.pth``-Dateien (der ``__editable__``-Finder
+    # ist selbst eine) und ``sitecustomize`` duerfen vorher auf stdout
+    # schreiben, ohne den Vergleich zu verschieben (Review PR #1047).
+    printed = [line for line in proc.stdout.splitlines() if line.strip()]
+    imported = Path(printed[-1].strip()) if printed else Path("")
     if imported == expected:
         return Finding(True, "neutral-import", f"import {name} aus neutralem cwd trifft {expected}")
     return Finding(
