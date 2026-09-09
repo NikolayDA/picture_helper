@@ -16,9 +16,9 @@
 **Audit quotidien du 2026-09-09 (état `dd6c572`) :** les 56 tickets ouverts ont été
 revus ; les quinze nouveaux (#1031–#1045) figurent désormais dans le tableau de triage.
 La nouveauté de fond est l'épopée de processus #1032 avec onze lots de travail : la
-fenêtre `85eeea4^..dd6c572` compte 156 commits de la branche principale, dont 27 (17 %)
+fenêtre `85eeea4^..dd6c572` compte 156 commits de la branche principale, dont 28 (18 %)
 constitués uniquement d'entretien de triage – c'est-à-dire du tableau même que cette
-entrée met à jour. #1040 veut le supprimer avec le workflow de vérification en direct ;
+entrée met à jour (#1032 en compte 27 ; l'écart est un commit qui touche aussi l'archive). #1040 veut le supprimer avec le workflow de vérification en direct ;
 d'ici là il reste le contrat valable, et cette vérification est rouge depuis le
 2026-09-08 pour cette raison précise (exécution 34282863300), sans le moindre changement
 de code. Le seul constat nouveau qui touche la base de preuves est #1031 (priorité 0) :
@@ -109,7 +109,7 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | [#1035](https://github.com/NikolayDA/picture_helper/issues/1035) | Réglages du dépôt : squash uniquement, suppression automatique des branches, un relecteur automatique | 🟡 Moyenne (moins de bruit de fusion et de relecture, aucun effet produit) | 🟢 Faible (réglages et configuration du connecteur, sans code) | – (pas d'agent ; owner du dépôt) | Prêt à démarrer (owner) : la comparaison en direct du 2026-09-09 confirme les quatre valeurs actuelles ; le réglage de relecture automatique de `chatgpt-codex-connector` n'est visible que dans la configuration du connecteur |
 | [#1034](https://github.com/NikolayDA/picture_helper/issues/1034) | Formulaires de tickets pour l'application de bureau au lieu des modèles par défaut | 🟡 Moyenne (qualité des signalements ; les champs navigateur/smartphone ne conviennent pas à une application PyQt6) | 🟢 Faible (deux formulaires YAML plus `config.yml`) | Sonnet, moyen | Ready for PR : indépendant de #1033/#1040, insérable à tout moment |
 | [#1033](https://github.com/NikolayDA/picture_helper/issues/1033) | Transférer le contenu de triage dans les tickets et introduire des étiquettes priorité/blocage | 🟠 Élevée (prérequis dur pour #1040 ; sinon les textes curés sont perdus) | 🟡 Moyenne (sans code, mais étiqueter tous les tickets ouverts et commenter 41 d'entre eux) | Sonnet, élevé | Prêt à démarrer : curation de tickets via l'API, pas une PR ; l'inventaire au 2026-09-09 est de 56 tickets ouverts, et non les 54 notés |
-| [#1032](https://github.com/NikolayDA/picture_helper/issues/1032) | [Épopée] Allègement du processus : triage vers GitHub, moins de devoirs de dérive | 🟠 Élevée (27 des 156 commits de la branche principale dans la fenêtre mesurée ne sont que de l'entretien de triage) | 🔴 Élevée (onze lots de travail #1033–#1043 avec ordre et dépendances) | – (épopée) | En cours : ordre #1033 → #1040 (+#1042) → #1041/#1043 ; #1031 passe en priorité 0 avant |
+| [#1032](https://github.com/NikolayDA/picture_helper/issues/1032) | [Épopée] Allègement du processus : triage vers GitHub, moins de devoirs de dérive | 🟠 Élevée (28 des 156 commits de la branche principale dans la fenêtre mesurée ne sont que de l'entretien de triage) | 🔴 Élevée (onze lots de travail #1033–#1043 avec ordre et dépendances) | – (épopée) | En cours : ordre #1033 → #1040 (+#1042) → #1041/#1043 ; #1031 passe en priorité 0 avant |
 | [#1031](https://github.com/NikolayDA/picture_helper/issues/1031) | Le hook SessionStart ne détecte pas un `bgremover` non éditable et obsolète | 🟠 Élevée (les tests par sous-processus mesurent du code étranger : une exécution verte peut avoir vérifié un ancien état) | 🟡 Moyenne (contrôle de provenance dans le hook, cas PEP 660 et hérité, entrée de politique de chemins) | Sonnet, élevé | Ready for PR : priorité 0 avant l'épopée #1032 ; la même PR porte l'entrée `release-neutral` pour `.claude/hooks/session-start.sh` |
 
 ### Recommandé ensuite

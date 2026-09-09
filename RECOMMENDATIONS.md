@@ -16,8 +16,9 @@
 **Tagesaudit 2026-09-09 (Stand `dd6c572`):** Alle 56 offenen Issues geprüft;
 die fünfzehn neuen (#1031–#1045) sind in die Triage-Tabelle aufgenommen. Inhaltlich
 neu ist das Prozess-Epic #1032 mit elf Arbeitspaketen: Im Fenster `85eeea4^..dd6c572`
-liegen 156 Mainline-Commits, 27 davon (17 %) bestehen ausschließlich aus
-Triage-Pflege – also aus derselben Tabelle, die dieser Eintrag gerade fortschreibt.
+liegen 156 Mainline-Commits, 28 davon (18 %) bestehen ausschließlich aus
+Triage-Pflege – also aus derselben Tabelle, die dieser Eintrag gerade fortschreibt
+(#1032 nennt 27; der Unterschied ist ein Commit, der zusätzlich das Archiv berührt).
 #1040 will sie samt Live-Check-Workflow abschaffen; bis dahin bleibt sie der gültige
 Vertrag, und der Live-Check war genau deshalb seit dem 2026-09-08 rot (Lauf
 34282863300), ohne dass sich am Code etwas geändert hätte. Einziger neuer Befund mit
@@ -108,7 +109,7 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#1035](https://github.com/NikolayDA/picture_helper/issues/1035) | Repository-Einstellungen: Squash-only, Auto-Löschung, ein automatischer Reviewer | 🟡 Mittel (weniger Merge- und Review-Rauschen, keine Produktwirkung) | 🟢 Niedrig (Einstellungen und Connector-Konfiguration, kein Code) | – (kein Agent; Repo-Owner) | Startbereit (Owner) – der Live-Abgleich vom 2026-09-09 bestätigt alle vier Ist-Werte; die Auto-Review-Einstellung des `chatgpt-codex-connector` ist nur in der Connector-Konfiguration prüfbar |
 | [#1034](https://github.com/NikolayDA/picture_helper/issues/1034) | Issue Forms für die Desktop-App statt GitHub-Standardvorlagen | 🟡 Mittel (Meldequalität; Browser-/Smartphone-Felder passen nicht zu einer PyQt6-App) | 🟢 Niedrig (zwei YAML-Formulare plus `config.yml`) | Sonnet, mittel | Ready for PR – unabhängig von #1033/#1040, jederzeit einschiebbar |
 | [#1033](https://github.com/NikolayDA/picture_helper/issues/1033) | Triage-Inhalte in die Issues übernehmen, Prioritäts-/Blocker-Labels einführen | 🟠 Hoch (harte Voraussetzung für #1040; sonst gehen die kuratierten Texte verloren) | 🟡 Mittel (kein Code, aber alle offenen Issues labeln und 41 Übernahmekommentare setzen) | Sonnet, hoch | Startbereit – reine Issue-Kuratierung über die API, kein PR; Cutover-Bestand am 2026-09-09: 56 offene Issues statt der im Issue notierten 54 |
-| [#1032](https://github.com/NikolayDA/picture_helper/issues/1032) | [Epic] Prozess-Entschlackung: Triage nach GitHub, weniger Drift-Pflichten | 🟠 Hoch (27 von 156 Mainline-Commits im Messfenster sind reine Triage-Pflege) | 🔴 Hoch (elf Arbeitspakete #1033–#1043 mit Reihenfolge und Abhängigkeiten) | – (Epic) | In Bearbeitung – Reihenfolge #1033 → #1040 (+#1042) → #1041/#1043; #1031 hat Priorität 0 davor |
+| [#1032](https://github.com/NikolayDA/picture_helper/issues/1032) | [Epic] Prozess-Entschlackung: Triage nach GitHub, weniger Drift-Pflichten | 🟠 Hoch (28 von 156 Mainline-Commits im Messfenster sind reine Triage-Pflege) | 🔴 Hoch (elf Arbeitspakete #1033–#1043 mit Reihenfolge und Abhängigkeiten) | – (Epic) | In Bearbeitung – Reihenfolge #1033 → #1040 (+#1042) → #1041/#1043; #1031 hat Priorität 0 davor |
 | [#1031](https://github.com/NikolayDA/picture_helper/issues/1031) | SessionStart-Hook erkennt einen veralteten nicht-editable `bgremover` nicht | 🟠 Hoch (Subprozess-Tests messen fremden Code – ein grüner Lauf kann alten Stand geprüft haben) | 🟡 Mittel (Provenienzprüfung im Shell-Hook, PEP-660- und Legacy-Fall, Pfadpolicy-Eintrag) | Sonnet, hoch | Ready for PR – Priorität 0 vor dem Epic #1032; derselbe PR trägt den `release-neutral`-Eintrag für `.claude/hooks/session-start.sh` |
 
 ### Als Nächstes empfohlen

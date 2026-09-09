@@ -16,9 +16,9 @@
 **Auditoría diaria 2026-09-09 (estado `dd6c572`):** se revisaron las 56 incidencias
 abiertas; las quince nuevas (#1031–#1045) ya están en la tabla de triaje. La novedad de
 fondo es la épica de proceso #1032 con once paquetes de trabajo: en la ventana
-`85eeea4^..dd6c572` hay 156 commits de la rama principal, 27 de ellos (17 %) formados
+`85eeea4^..dd6c572` hay 156 commits de la rama principal, 28 de ellos (18 %) formados
 únicamente por mantenimiento de triaje, es decir, por la misma tabla que actualiza esta
-entrada. #1040 pretende suprimirla junto con el workflow de comprobación en vivo; hasta
+entrada (#1032 cuenta 27; la diferencia es un commit que además toca el archivo). #1040 pretende suprimirla junto con el workflow de comprobación en vivo; hasta
 entonces sigue siendo el contrato válido, y esa comprobación lleva en rojo desde el
 2026-09-08 precisamente por ello (ejecución 34282863300) sin ningún cambio de código. El
 único hallazgo nuevo que afecta a la base probatoria es #1031 (prioridad 0): un
@@ -109,7 +109,7 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | [#1035](https://github.com/NikolayDA/picture_helper/issues/1035) | Ajustes del repositorio: solo squash, borrado automático de ramas, un revisor automático | 🟡 Media (menos ruido de fusión y revisión, sin efecto en el producto) | 🟢 Baja (ajustes y configuración del conector, sin código) | – (sin agente; owner del repositorio) | Listo para empezar (owner): la comparación en vivo del 2026-09-09 confirma los cuatro valores actuales; el ajuste de revisión automática de `chatgpt-codex-connector` solo es visible en la configuración del conector |
 | [#1034](https://github.com/NikolayDA/picture_helper/issues/1034) | Formularios de incidencia para la app de escritorio en vez de las plantillas estándar | 🟡 Media (calidad de los informes; los campos de navegador/smartphone no encajan en una app PyQt6) | 🟢 Baja (dos formularios YAML y `config.yml`) | Sonnet, medio | Ready for PR: independiente de #1033/#1040, se puede intercalar en cualquier momento |
 | [#1033](https://github.com/NikolayDA/picture_helper/issues/1033) | Trasladar el contenido de triaje a las incidencias e introducir etiquetas de prioridad/bloqueo | 🟠 Alta (requisito duro para #1040; de lo contrario se pierden los textos curados) | 🟡 Media (sin código, pero hay que etiquetar todas las incidencias abiertas y comentar 41) | Sonnet, alto | Listo para empezar: curación de incidencias vía API, no un PR; el inventario del cambio a 2026-09-09 son 56 incidencias abiertas, no las 54 anotadas |
-| [#1032](https://github.com/NikolayDA/picture_helper/issues/1032) | [Épica] Adelgazar el proceso: triaje a GitHub, menos deberes de deriva | 🟠 Alta (27 de 156 commits de la rama principal en la ventana medida son solo mantenimiento de triaje) | 🔴 Alta (once paquetes de trabajo #1033–#1043 con orden y dependencias) | – (épica) | En curso: orden #1033 → #1040 (+#1042) → #1041/#1043; #1031 tiene prioridad 0 por delante |
+| [#1032](https://github.com/NikolayDA/picture_helper/issues/1032) | [Épica] Adelgazar el proceso: triaje a GitHub, menos deberes de deriva | 🟠 Alta (28 de 156 commits de la rama principal en la ventana medida son solo mantenimiento de triaje) | 🔴 Alta (once paquetes de trabajo #1033–#1043 con orden y dependencias) | – (épica) | En curso: orden #1033 → #1040 (+#1042) → #1041/#1043; #1031 tiene prioridad 0 por delante |
 | [#1031](https://github.com/NikolayDA/picture_helper/issues/1031) | El hook SessionStart no detecta un `bgremover` no editable y obsoleto | 🟠 Alta (las pruebas por subproceso miden código ajeno: una ejecución verde puede haber comprobado un estado antiguo) | 🟡 Media (comprobación de procedencia en el hook, casos PEP 660 y heredado, entrada en la política de rutas) | Sonnet, alto | Ready for PR: prioridad 0 antes de la épica #1032; el mismo PR aporta la entrada `release-neutral` para `.claude/hooks/session-start.sh` |
 
 ### Recomendado a continuación
