@@ -10,14 +10,18 @@ PIP_INSTALL := $(RUN_ENV) "$(PYTHON)" -m pip install --constraint "$(PIP_CONSTRA
 
 # Schnelle lokale PR-Pruefung; entspricht .github/workflows/pr-ci.yml.
 # Installiert das Paket bewusst nicht-editable, damit die App-Smoke-Tests
-# denselben Einstieg wie CI/Release/App-Bundle pruefen.
+# denselben Einstieg wie CI/Release/App-Bundle pruefen – und der Doctor
+# verlangt hier genau diesen Zustand (#1053). Ein blankes `make doctor`
+# akzeptiert auch den editable Link des SessionStart-Hooks (#1031).
+DOCTOR_ARGS ?=
+pr-check: DOCTOR_ARGS := --require-installed
 pr-check: install-test doctor check release-freeze-check
 
 install-test:
 	$(PIP_INSTALL) ".[test]"
 
 doctor:
-	$(RUN_ENV) "$(PYTHON)" scripts/check_test_env.py
+	$(RUN_ENV) "$(PYTHON)" scripts/check_test_env.py $(DOCTOR_ARGS)
 
 # Standardpruefung. Laeuft in der PR-CI und in der vollen Release-/Manual-
 # Matrix. 'test' zieht ueber das addopts-Filter '-m not ui or ui_smoke' das

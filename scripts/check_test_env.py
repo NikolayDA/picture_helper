@@ -1,21 +1,62 @@
 #!/usr/bin/env python3
-"""Diagnose the local BgRemover test environment."""
+"""Diagnose the local BgRemover test environment.
+
+Der Installationszustand von ``bgremover`` wird seit #1053 gegen **zwei**
+Verträge geprüft, die sich gegenseitig ausschließen:
+
+* **editable** – der SessionStart-Hook (#1031/#1047) installiert bewusst
+  ``pip install -e ".[test]"``: ein editierbarer Link auf genau diesen
+  Checkout, damit per Dateipfad gestartete Subprozess-Tests denselben Code
+  messen wie der In-Prozess-Import. Gültig ist genau das, was
+  ``scripts/check_install_provenance.py`` als gültig einstuft – die Regel hat
+  nur diese eine Quelle und wird hier importiert, nicht kopiert.
+* **installed** – ``make pr-check`` installiert bewusst nicht-editable, damit
+  die App-Smoke-Tests die installierte Paketrealität sehen (Console-Script,
+  Ressourcen, Einstieg wie CI/Release/App-Bundle).
+
+Ohne Option akzeptiert der Doctor **einen** der beiden Zustände und benennt
+ihn; ``--require-installed`` (``make pr-check``) lässt nur den zweiten gelten.
+Ein Link auf einen fremden Checkout, eine veraltete Kopie neben einem
+gültigen Link oder mehrere Distributionen sind in beiden Modi ein Fehler.
+"""
 
 from __future__ import annotations
 
+import argparse
 import importlib.metadata as metadata
 import importlib.util
-import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE_PACKAGE = ROOT / "bgremover"
 REQUIRED_DISTS = ("pytest", "pytest-qt", "ruff", "mypy", "PyQt6", "PyQt6-Qt6", "PyYAML")
+PROVENANCE_SCRIPT = ROOT / "scripts" / "check_install_provenance.py"
+
+
+def _load_provenance_module():  # type: ignore[no-untyped-def]
+    """``scripts/`` ist kein Paket; die Regel wird ueber den Dateipfad geladen."""
+    spec = importlib.util.spec_from_file_location("check_install_provenance", PROVENANCE_SCRIPT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {PROVENANCE_SCRIPT}")
+    module = importlib.util.module_from_spec(spec)
+    # Dataclasses loesen Annotationen ueber sys.modules auf – ohne Eintrag
+    # bricht ``exec_module`` in ``dataclasses._is_type``.
+    sys.modules.setdefault(spec.name, module)
+    spec.loader.exec_module(module)
+    return module
+
+
+cip = _load_provenance_module()
+
+#: Die beiden Installationsvertraege (siehe Modul-Docstring).
+CONTRACT_EDITABLE = "editable"
+CONTRACT_INSTALLED = "installed"
 
 
 class Reporter:
@@ -69,25 +110,80 @@ def _check_required_dists(reporter: Reporter) -> None:
         )
 
 
-def _check_bgremover_install(reporter: Reporter) -> None:
-    try:
-        dist = metadata.distribution("bgremover")
-    except metadata.PackageNotFoundError:
+def _neutral_import_location(python: str = sys.executable) -> tuple[Path | None, str]:
+    """Woher ``import bgremover`` aus einem leeren Arbeitsverzeichnis kommt.
+
+    Liefert ``(Pfad, "")`` bei Erfolg, sonst ``(None, stderr)``.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        proc = subprocess.run(
+            [
+                python,
+                "-c",
+                "import pathlib, bgremover; print(pathlib.Path(bgremover.__file__).resolve())",
+            ],
+            cwd=td,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+    if proc.returncode != 0:
+        return None, (proc.stderr or "").strip()
+    printed = [line for line in proc.stdout.splitlines() if line.strip()]
+    return (Path(printed[-1].strip()) if printed else Path("")), ""
+
+
+def classify_install(findings: Sequence[object]) -> tuple[str | None, str]:
+    """Metadaten-Befunde der Provenienzregel auf genau einen Vertrag abbilden.
+
+    Rueckgabe ``(Vertrag, Begruendung)``; ``None`` heisst: passt zu keinem –
+    fremder Checkout, veraltete Kopie neben einem Link, unlesbare Metadaten
+    oder mehrere Distributionen. Die Gueltigkeit eines editierbaren Links
+    entscheidet ``check_install_provenance`` (``Finding.ok``); hier wird nur
+    der nicht-editable Fall als zweiter, eigener Vertrag anerkannt.
+    """
+    details = "; ".join(f"{f.kind}: {f.detail}" for f in findings)  # type: ignore[attr-defined]
+    if all(f.ok for f in findings):  # type: ignore[attr-defined]
+        return CONTRACT_EDITABLE, details
+    kinds = {f.kind for f in findings}  # type: ignore[attr-defined]
+    if len(findings) == 1 and kinds == {cip.KIND_NON_EDITABLE}:
+        return CONTRACT_INSTALLED, details
+    return None, details
+
+
+def _check_bgremover_install(
+    reporter: Reporter,
+    *,
+    require_installed: bool = False,
+    repo_root: Path = ROOT,
+    search_path: Sequence[str] | None = None,
+    python: str = sys.executable,
+) -> None:
+    findings = cip.check_metadata_provenance(repo_root, search_path=search_path)
+    if any(f.kind == cip.KIND_MISSING for f in findings):
         reporter.fail("bgremover is not installed. Run: make install-test")
         return
-
-    reporter.ok(f"bgremover {dist.version} installed")
-    direct_url = dist.read_text("direct_url.json")
-    if direct_url:
-        try:
-            data = json.loads(direct_url)
-        except json.JSONDecodeError:
-            data = {}
-        if data.get("dir_info", {}).get("editable"):
-            reporter.fail(
-                "bgremover is installed editable; app smoke tests need the "
-                "installed package reality. Run: make install-test"
-            )
+    version = _dist_version("bgremover") or "?"
+    contract, details = classify_install(findings)
+    if contract is None:
+        reporter.fail(
+            "bgremover installation matches neither contract (editable link on this "
+            f"checkout, or one non-editable install): {details}. "
+            "Run: make install-test (pr-check) or pip install -e '.[test]' (session)"
+        )
+        return
+    if contract == CONTRACT_EDITABLE and require_installed:
+        reporter.fail(
+            "bgremover is installed editable; --require-installed (make pr-check) needs "
+            "the installed package reality. Run: make install-test"
+        )
+    elif contract == CONTRACT_EDITABLE:
+        reporter.ok(
+            f"bgremover {version} is an editable link on this checkout "
+            "(SessionStart hook contract, #1031)"
+        )
+    else:
+        reporter.ok(f"bgremover {version} installed non-editable (pr-check contract)")
 
     script = shutil.which("bgremover")
     if script is None:
@@ -98,34 +194,31 @@ def _check_bgremover_install(reporter: Reporter) -> None:
     else:
         reporter.ok(f"console script found: {script}")
 
-    with tempfile.TemporaryDirectory() as td:
-        proc = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                "import pathlib, bgremover; "
-                "print(pathlib.Path(bgremover.__file__).resolve())",
-            ],
-            cwd=td,
-            text=True,
-            capture_output=True,
-            timeout=30,
-        )
-    if proc.returncode != 0:
+    if contract == CONTRACT_EDITABLE:
+        # Postcondition des Hook-Vertrags: der neutrale Import trifft den
+        # Checkout – dieselbe Pruefung, die der Hook selbst faehrt.
+        finding = cip.check_neutral_import(repo_root, python=python)
+        if finding.ok:
+            reporter.ok(f"bgremover imports from this checkout in a neutral cwd ({finding.detail})")
+        else:
+            reporter.fail(f"neutral-cwd import does not hit this checkout: {finding.detail}")
+        return
+
+    imported_from, stderr = _neutral_import_location(python)
+    source_package = repo_root / "bgremover"
+    if imported_from is None:
         reporter.fail(
             "Cannot import bgremover from a neutral cwd. "
             "Run: make install-test\n"
-            f"stderr: {(proc.stderr or '').strip()}"
+            f"stderr: {stderr}"
+        )
+    elif imported_from == source_package or source_package in imported_from.parents:
+        reporter.warn(
+            "bgremover imports from the source tree in a neutral cwd although the "
+            "distribution is non-editable; a clean non-editable test install is recommended."
         )
     else:
-        imported_from = Path(proc.stdout.strip())
-        if imported_from == SOURCE_PACKAGE or SOURCE_PACKAGE in imported_from.parents:
-            reporter.warn(
-                "bgremover imports from the source tree in a neutral cwd; "
-                "a non-editable test install is recommended."
-            )
-        else:
-            reporter.ok(f"bgremover imports from installed package: {imported_from}")
+        reporter.ok(f"bgremover imports from installed package: {imported_from}")
 
 
 def _check_optional_ai_extra(reporter: Reporter) -> None:
@@ -170,11 +263,23 @@ def _check_qt_offscreen(reporter: Reporter) -> None:
     )
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--require-installed",
+        action="store_true",
+        help="nur den nicht-editable Vertrag akzeptieren (make pr-check); "
+        "ohne Option gilt auch der editable Link des SessionStart-Hooks",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
     reporter = Reporter()
     _check_python(reporter)
     _check_required_dists(reporter)
-    _check_bgremover_install(reporter)
+    _check_bgremover_install(reporter, require_installed=args.require_installed)
     _check_optional_ai_extra(reporter)
     _check_qt_offscreen(reporter)
 
