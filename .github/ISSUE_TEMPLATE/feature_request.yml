@@ -1,0 +1,45 @@
+name: Funktionswunsch
+description: Eine Verbesserung oder neue Funktion für BgRemover vorschlagen
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für den Vorschlag. Größere Änderungen an der Architektur bitte
+        zuerst hier diskutieren, bevor Code entsteht.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem oder Anlass
+      description: Welche Aufgabe gelingt heute nicht oder nur umständlich?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Gewünschtes Verhalten
+      description: Wie soll die Funktion bedienbar sein?
+    validations:
+      required: true
+  - type: dropdown
+    id: workflow_step
+    attributes:
+      label: Betroffener Workflow-Schritt
+      description: Die sechs Schritte der Schrittleiste.
+      options:
+        - Öffnen
+        - Freistellen
+        - Anpassen
+        - Form & Maße
+        - Relief & Ebenen
+        - Export
+        - übergreifend
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Erwogene Alternativen
+  - type: textarea
+    id: context
+    attributes:
+      label: Zusätzlicher Kontext
+      description: Beispielbilder, Zielgerät (etwa eufyMake E1), Verweise auf verwandte Issues.

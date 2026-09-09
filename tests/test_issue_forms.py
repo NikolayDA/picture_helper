@@ -1,0 +1,238 @@
+"""Netzfreies Gate für die GitHub-Issue-Forms (#1034).
+
+Die Forms erscheinen im Template-Chooser erst **nach** dem Merge in den
+Default-Branch – ein YAML- oder Schemafehler fällt dort also frühestens auf,
+wenn jemand ein Issue anlegen will, und GitHub verwirft die Vorlage dann
+kommentarlos. Dieser Test ist deshalb der einzige Wächter vor dem Merge: Er
+parst beide Forms und die ``config.yml`` und prüft genau die Eigenschaften,
+die die Diagnose trägt (Pflichtangaben, eindeutige IDs, gefüllte Dropdowns,
+absoluter Kontaktlink).
+
+Bewusst **nicht** geprüft wird das vollständige GitHub-Schema: Es ist nicht
+versioniert abrufbar, und eine nachgebaute Vollkopie wäre eine weitere
+Drift-Quelle. Geprüft wird, was hier zu Fehlern geführt hat.
+
+PyYAML ist seit #1016 deklarierte ``[test]``-Abhängigkeit.
+"""
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+import pytest
+import yaml
+
+_ROOT = Path(__file__).resolve().parent.parent
+_TEMPLATE_DIR = _ROOT / ".github" / "ISSUE_TEMPLATE"
+
+_BUG_FORM = _TEMPLATE_DIR / "bug_report.yml"
+_FEATURE_FORM = _TEMPLATE_DIR / "feature_request.yml"
+_CONFIG = _TEMPLATE_DIR / "config.yml"
+
+_FORMS = (_BUG_FORM, _FEATURE_FORM)
+
+# Die von GitHub für Issue Forms dokumentierten Elementtypen.
+_ALLOWED_TYPES = {"markdown", "input", "textarea", "dropdown", "checkboxes"}
+
+# Pflichtangaben je Form: ohne sie ist ein Bericht nicht triagierbar.
+_REQUIRED_IDS = {
+    _BUG_FORM.name: {"version", "platform", "installation", "reproduction", "confirmation"},
+    _FEATURE_FORM.name: {"problem", "proposal"},
+}
+
+_EXPECTED_LABELS = {_BUG_FORM.name: "bug", _FEATURE_FORM.name: "enhancement"}
+
+
+def _load(path: Path) -> dict[str, Any]:
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:  # pragma: no cover - der Fehlertext ist die Aussage
+        pytest.fail(f"{path.name} ist kein valides YAML: {exc}")
+    assert isinstance(doc, dict), f"{path.name}: Top-Level ist kein Mapping"
+    return doc
+
+
+def _is_required(element: dict[str, Any]) -> bool:
+    """Wahr, wenn das Element eine Eingabe erzwingt.
+
+    ``checkboxes`` kennt kein ``validations.required`` – dort hängt die Pflicht
+    an der einzelnen Option. Beide Formen zählen hier gleich.
+    """
+
+    validations = element.get("validations") or {}
+    if isinstance(validations, dict) and validations.get("required") is True:
+        return True
+    options = (element.get("attributes") or {}).get("options") or []
+    return any(
+        isinstance(option, dict) and option.get("required") is True for option in options
+    )
+
+
+@pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
+def test_form_has_the_chooser_fields(path: Path) -> None:
+    """``name``/``description``/``body`` sind Pflicht – ohne sie zeigt GitHub die Vorlage nicht."""
+
+    doc = _load(path)
+    for key in ("name", "description"):
+        value = doc.get(key)
+        assert isinstance(value, str) and value.strip(), f"{path.name}: {key} fehlt oder ist leer"
+    body = doc.get("body")
+    assert isinstance(body, list) and body, f"{path.name}: body fehlt oder ist leer"
+
+
+@pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
+def test_form_elements_are_well_formed(path: Path) -> None:
+    """Erlaubter ``type``, eindeutige ``id`` je Eingabeelement, gefüllte ``attributes``."""
+
+    body = _load(path)["body"]
+    seen: set[str] = set()
+    for index, element in enumerate(body):
+        where = f"{path.name}[{index}]"
+        assert isinstance(element, dict), f"{where}: Element ist kein Mapping"
+        kind = element.get("type")
+        assert kind in _ALLOWED_TYPES, f"{where}: unbekannter type {kind!r}"
+        attributes = element.get("attributes")
+        assert isinstance(attributes, dict) and attributes, f"{where}: attributes fehlen"
+        if kind == "markdown":
+            # Reine Hinweistexte tragen bewusst keine id (GitHub weist sie ab).
+            assert "id" not in element, f"{where}: markdown-Element darf keine id tragen"
+            assert str(attributes.get("value", "")).strip(), f"{where}: markdown ohne Text"
+            continue
+        element_id = element.get("id")
+        assert isinstance(element_id, str) and element_id.strip(), f"{where}: id fehlt"
+        assert element_id not in seen, f"{path.name}: id {element_id!r} doppelt vergeben"
+        seen.add(element_id)
+        assert str(attributes.get("label", "")).strip(), f"{where}: label fehlt"
+
+
+@pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
+def test_required_fields_are_enforced(path: Path) -> None:
+    """Genau die Angaben, ohne die eine Triage nicht möglich ist, sind Pflicht."""
+
+    body = _load(path)["body"]
+    required = {
+        element["id"]
+        for element in body
+        if element.get("type") != "markdown" and _is_required(element)
+    }
+    expected = _REQUIRED_IDS[path.name]
+    missing = sorted(expected - required)
+    assert not missing, f"{path.name}: nicht als required markiert: {', '.join(missing)}"
+
+
+@pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
+def test_dropdowns_offer_a_choice(path: Path) -> None:
+    """Ein Dropdown mit einer Option ist ein verstecktes Pflichtfeld ohne Aussage."""
+
+    body = _load(path)["body"]
+    dropdowns = [element for element in body if element.get("type") == "dropdown"]
+    assert dropdowns, f"{path.name}: kein Dropdown – die Plattform-/Schritt-Auswahl fehlt"
+    for element in dropdowns:
+        options = element["attributes"].get("options")
+        assert isinstance(options, list) and len(options) >= 2, (
+            f"{path.name}: Dropdown {element['id']!r} hat weniger als zwei Optionen"
+        )
+        assert all(
+            isinstance(option, str) and option.strip() for option in options
+        ), f"{path.name}: Dropdown {element['id']!r} hat leere Optionen"
+
+
+@pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
+def test_form_presets_its_label(path: Path) -> None:
+    """Die Vorbelegung spart den ersten Triage-Handgriff."""
+
+    labels = _load(path).get("labels")
+    assert isinstance(labels, list), f"{path.name}: labels fehlen"
+    assert _EXPECTED_LABELS[path.name] in labels, (
+        f"{path.name}: Label {_EXPECTED_LABELS[path.name]!r} nicht vorbelegt"
+    )
+
+
+def test_bug_form_asks_for_the_log_as_plain_text() -> None:
+    """``render: text`` verhindert, dass ein Logauszug als Markdown zerfällt.
+
+    GitHub erlaubt bei gerenderten Textareas kein ``required`` – der Logauszug
+    bleibt deshalb optional und steht bewusst nicht in ``_REQUIRED_IDS``.
+    """
+
+    body = _load(_BUG_FORM)["body"]
+    log = next(element for element in body if element.get("id") == "log")
+    assert log["attributes"].get("render") == "text"
+    assert not _is_required(log), "gerenderte Textarea darf nicht required sein"
+
+
+def test_bug_form_confirmation_holds_without_an_attachment() -> None:
+    """Issue Forms kennen keine bedingten Pflichtfelder (#1034).
+
+    Die Bestätigung ist deshalb immer erforderlich und bedingt formuliert –
+    ein Bericht ohne Anhang bleibt absendbar.
+    """
+
+    body = _load(_BUG_FORM)["body"]
+    confirmation = next(element for element in body if element.get("id") == "confirmation")
+    options = confirmation["attributes"]["options"]
+    assert len(options) == 1, "genau eine Bestätigung, sonst wird sie überlesen"
+    text = " ".join(options[0]["label"].split())
+    assert options[0].get("required") is True
+    assert "auch, wenn nichts angehängt ist" in text, (
+        "die bedingte Formulierung ist der Grund, warum die Pflicht keinen Bericht blockiert"
+    )
+
+
+def test_config_enables_blank_issues_and_links_the_security_policy() -> None:
+    """``contact_links.url`` braucht eine absolute URL; ein relativer Pfad wird abgewiesen."""
+
+    doc = _load(_CONFIG)
+    assert doc.get("blank_issues_enabled") is True, (
+        "Owner und Agenten legen weiterhin freie Prozess-Issues an"
+    )
+    links = doc.get("contact_links")
+    assert isinstance(links, list) and links, "config.yml ohne Kontaktlink"
+    for link in links:
+        assert isinstance(link, dict), "Kontaktlink ist kein Mapping"
+        for key in ("name", "url", "about"):
+            assert str(link.get(key, "")).strip(), f"Kontaktlink ohne {key}"
+        assert str(link["url"]).startswith("https://"), (
+            f"Kontaktlink {link['name']!r}: keine absolute https-URL"
+        )
+    assert any("/security/policy" in link["url"] for link in links), (
+        "der Weg für Sicherheitsmeldungen fehlt"
+    )
+
+
+def test_no_legacy_markdown_templates_remain() -> None:
+    """Negativkontrolle: eine zurückkehrende ``.md``-Vorlage erschiene neben den Forms."""
+
+    leftovers = sorted(path.name for path in _TEMPLATE_DIR.glob("*.md"))
+    assert not leftovers, f"veraltete Markdown-Vorlagen: {', '.join(leftovers)}"
+
+
+def test_feature_form_workflow_steps_match_the_stepper() -> None:
+    """Drift-Wächter: die Auswahl führt genau die sechs Schritte der Schrittleiste.
+
+    Ein umbenannter Schritt bliebe hier sonst still stehen und die Meldung
+    zeigte auf einen Schritt, den die Anwendung nicht mehr kennt. Die Auswahl
+    trägt zusätzlich „übergreifend" für alles, was keinem Schritt gehört.
+    """
+
+    from bgremover.i18n import configure_locale, current_locale
+    from bgremover.stepper import WorkflowStep, step_label
+
+    previous = current_locale()
+    configure_locale("de")
+    try:
+        expected = [step_label(step) for step in WorkflowStep]
+    finally:
+        configure_locale(previous)
+
+    body = _load(_FEATURE_FORM)["body"]
+    element = next(item for item in body if item.get("id") == "workflow_step")
+    options = element["attributes"]["options"]
+
+    assert options[: len(expected)] == expected, (
+        "Schrittnamen weichen von bgremover.stepper ab: "
+        f"{options[: len(expected)]} statt {expected}"
+    )
+    assert options[len(expected) :] == ["übergreifend"], (
+        "nach den sechs Schritten steht genau die übergreifende Auswahl"
+    )

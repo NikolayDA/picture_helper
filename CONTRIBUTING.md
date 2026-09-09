@@ -24,19 +24,41 @@ Konstruktiver, respektvoller Umgang ist Voraussetzung für Beiträge. Beleidigun
 ## Fehler melden
 
 1. Zunächst prüfen, ob das Issue bereits existiert.
-2. Ein neues Issue mit dem Template **Bug Report** öffnen.
-3. Angaben: BgRemover-Version, Python-Version, Betriebssystem, reproduzierbare Schritte, erwartetes vs. tatsächliches Verhalten, ggf. Log-Ausschnitt (Log-Pfad: Einstellungen → Log-Datei anzeigen).
+2. Unter „New issue" die Vorlage **Fehlerbericht** wählen (deutsches Issue-Formular).
+3. Pflichtangaben des Formulars:
+   - **BgRemover-Version** — steht im Fenstertitel („BgRemover Pro <Version>").
+   - **Plattform** — macOS arm64/x86_64, Linux x86_64, Linux arm64 (Raspberry Pi) oder Sonstige.
+   - **Installationsart** — DMG, AppImage, `.deb`, Quellinstallation/venv oder Web-Session.
+   - **Schritte zur Reproduktion** — nummeriert, vom Start der Anwendung bis zum Fehler.
+   - **Bestätigung**, dass Logauszug, Screenshots und Anhänge keine
+     personenbezogenen oder vertraulichen Inhalte enthalten. Sie ist immer
+     erforderlich (GitHub Issue Forms kennen keine bedingten Pflichtfelder) und
+     bedingt formuliert — ein Bericht ohne Anhang bleibt absendbar.
+4. Freiwillig, aber hilfreich: Betriebssystem-Version, **Python-Version bei
+   Quellinstallation/venv oder Web-Session**, ob die KI-Hintergrundentfernung
+   installiert ist, erwartetes vs. beobachtetes Verhalten, Screenshot und ein
+   Logauszug aus `bgremover.log` (Einstellungen → **Protokolldatei** →
+   **Ordner öffnen**).
 
-Sicherheitslücken bitte **nicht** als öffentliches Issue melden — siehe [SECURITY.md](SECURITY.md).
+Sicherheitslücken bitte **nicht** als öffentliches Issue melden — siehe [SECURITY.md](SECURITY.md);
+das Issue-Formular verlinkt denselben Weg als Kontaktlink.
 
 ## Feature-Vorschläge
 
-Ein Issue mit dem Template **Feature Request** öffnen und beschreiben:
-- Welches Problem soll gelöst werden?
-- Wie soll die Funktion bedienbar sein?
-- Alternativen, die du bereits erwogen hast.
+Unter „New issue" die Vorlage **Funktionswunsch** wählen. Pflichtangaben:
+- **Problem oder Anlass** — welche Aufgabe gelingt heute nicht oder nur umständlich?
+- **Gewünschtes Verhalten** — wie soll die Funktion bedienbar sein?
 
-Größere Änderungen am Architektur vorab im Issue diskutieren, bevor Code geschrieben wird.
+Dazu optional der betroffene Workflow-Schritt (Öffnen · Freistellen · Anpassen ·
+Form & Maße · Relief & Ebenen · Export · übergreifend), erwogene Alternativen und
+zusätzlicher Kontext.
+
+Größere Änderungen an der Architektur vorab im Issue diskutieren, bevor Code geschrieben wird.
+
+Beide Vorlagen liegen als YAML-Issue-Forms unter `.github/ISSUE_TEMPLATE/`;
+freie Issues ohne Vorlage bleiben möglich (`config.yml`). Änderungen an den
+Formularen prüft `tests/test_issue_forms.py` vor dem Merge — im
+Template-Chooser erscheinen sie erst danach.
 
 ## Issue-Triage: Priorität und Blocker
 
