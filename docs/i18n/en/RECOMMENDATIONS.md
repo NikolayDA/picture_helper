@@ -38,8 +38,8 @@ segmentation fault. Two reasons argue against waiting further: the security effe
 Qt jump only reaches users with the artifact, and the raised glibc floor (aarch64 2.39,
 x86_64 2.34) is a platform change that deserves to be published and announced. The COLOR
 tone engine (#693 ff.) is **not** a reason to wait – it is the scope after this one.
-Before the candidate build: finish item 1 of #1045 (the release body is generated from
-the CHANGELOG), then runbook steps 1/2 via `scripts/prepare_release.py 2.10.0`, including
+Before the candidate build (item 1 of #1045, the `#1023` reference in the CHANGELOG, is
+done): runbook steps 1/2 via `scripts/prepare_release.py 2.10.0`, including
 the editorial `TODO(release)` gaps (`NOTES-01`). The same run also supplies the still
 missing end-to-end evidence for #914 and #918.
 
@@ -113,10 +113,10 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 
 1. **#1031** (priority 0) – the provenance check in the SessionStart hook; without it a
    green subprocess test may have checked old code.
-2. **#1045** and **#1044** – two small, clearly bounded PRs: the missing `#1023`
-   reference in six CHANGELOG versions, and the #1004/#1005 test gap in
-   `tests/test_preview3d_controller.py`.
-3. **Start v2.10.0** – the scope is in `[Unreleased]`; after #1045, runbook steps 1/2 via
+2. **#1044** – one small, clearly bounded PR: the #1004/#1005 test gap in
+   `tests/test_preview3d_controller.py`. (#1045, the missing `#1023` reference in six
+   CHANGELOG versions, is done.)
+3. **Start v2.10.0** – the scope is in `[Unreleased]`; runbook steps 1/2 via
    `scripts/prepare_release.py 2.10.0`. That run also closes the outstanding end-to-end
    evidence for #914 and #918.
 4. **#1033 → #1040 (+#1042)** – start the process slimming; #1034, #1035, #1036, #1037

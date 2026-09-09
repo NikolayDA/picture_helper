@@ -39,8 +39,8 @@ Die Sicherheitswirkung des Qt-Sprungs erreicht Anwender:innen erst mit dem Artef
 und die angehobene glibc-Untergrenze (aarch64 2.39, x86_64 2.34) ist eine
 Plattformänderung, die veröffentlicht und angekündigt gehört. Die COLOR-Tonwert-Engine
 (#693 ff.) ist **kein** Grund zu warten – sie ist der Umfang danach. Vor dem
-Kandidatenbau: #1045 Punkt 1 erledigen (der Release-Body entsteht aus dem CHANGELOG),
-dann Runbook-Schritt 1/2 über `scripts/prepare_release.py 2.10.0` einschließlich der
+Kandidatenbau (#1045 Punkt 1, die `#1023`-Referenz im CHANGELOG, ist erledigt):
+Runbook-Schritt 1/2 über `scripts/prepare_release.py 2.10.0` einschließlich der
 redaktionellen `TODO(release)`-Lücken (`NOTES-01`). Derselbe Lauf liefert zugleich die
 noch fehlende End-to-End-Evidenz für #914 und #918.
 
@@ -114,10 +114,10 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 
 1. **#1031** (Priorität 0) – Provenienzprüfung im SessionStart-Hook; ohne sie kann ein
    grüner Subprozess-Test alten Code geprüft haben.
-2. **#1045** und **#1044** – zwei kleine, klar abgegrenzte PRs: die fehlende
-   `#1023`-Referenz in sechs CHANGELOG-Fassungen und die Testlücke zu #1004/#1005 in
-   `tests/test_preview3d_controller.py`.
-3. **v2.10.0 anstoßen** – der Umfang steht in `[Unreleased]`; nach #1045 Runbook-Schritt
+2. **#1044** – ein kleiner, klar abgegrenzter PR: die Testlücke zu #1004/#1005 in
+   `tests/test_preview3d_controller.py`. (#1045, die fehlende `#1023`-Referenz in sechs
+   CHANGELOG-Fassungen, ist erledigt.)
+3. **v2.10.0 anstoßen** – der Umfang steht in `[Unreleased]`; Runbook-Schritt
    1/2 über `scripts/prepare_release.py 2.10.0`. Der Lauf schließt zugleich die offene
    End-to-End-Evidenz von #914 und #918.
 4. **#1033 → #1040 (+#1042)** – die Prozess-Entschlackung starten; #1034, #1035, #1036,

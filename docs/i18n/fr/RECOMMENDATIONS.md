@@ -38,9 +38,9 @@ répare une erreur de segmentation. Deux raisons déconseillent d'attendre : l'e
 sécurité du saut Qt n'atteint les utilisateurs qu'avec l'artefact, et le seuil glibc
 relevé (aarch64 2.39, x86_64 2.34) est un changement de plateforme qui mérite d'être
 publié et annoncé. Le moteur de tonalité COLOR (#693 et suiv.) n'est **pas** une raison
-d'attendre : c'est le périmètre suivant. Avant la construction du candidat : traiter le
-point 1 de #1045 (le corps de publication est généré depuis le CHANGELOG), puis les
-étapes 1/2 du runbook via `scripts/prepare_release.py 2.10.0`, y compris les lacunes
+d'attendre : c'est le périmètre suivant. Avant la construction du candidat (le point 1
+de #1045, la référence `#1023` dans le CHANGELOG, est traité) : les étapes 1/2 du
+runbook via `scripts/prepare_release.py 2.10.0`, y compris les lacunes
 rédactionnelles `TODO(release)` (`NOTES-01`). La même exécution fournit aussi la preuve
 de bout en bout encore manquante pour #914 et #918.
 
@@ -114,10 +114,10 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 
 1. **#1031** (priorité 0) : le contrôle de provenance dans le hook SessionStart ; sans
    lui, un test par sous-processus au vert peut avoir vérifié du code ancien.
-2. **#1045** et **#1044** : deux petites PR bien délimitées : la référence `#1023`
-   manquante dans six versions du CHANGELOG et la lacune de test #1004/#1005 dans
-   `tests/test_preview3d_controller.py`.
-3. **Lancer v2.10.0** : le périmètre est dans `[Unreleased]` ; après #1045, les étapes
+2. **#1044** : une petite PR bien délimitée : la lacune de test #1004/#1005 dans
+   `tests/test_preview3d_controller.py`. (#1045, la référence `#1023` manquante dans
+   six versions du CHANGELOG, est traitée.)
+3. **Lancer v2.10.0** : le périmètre est dans `[Unreleased]` ; les étapes
    1/2 du runbook via `scripts/prepare_release.py 2.10.0`. Cette exécution referme aussi
    la preuve de bout en bout en attente pour #914 et #918.
 4. **#1033 → #1040 (+#1042)** : démarrer l'allègement du processus ; #1034, #1035, #1036,

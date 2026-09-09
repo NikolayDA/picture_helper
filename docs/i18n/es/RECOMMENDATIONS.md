@@ -38,9 +38,9 @@ de las cuales #1024 repara un fallo de segmentación. Dos razones desaconsejan e
 más: el efecto de seguridad del salto de Qt solo llega a las personas usuarias con el
 artefacto, y el mínimo de glibc elevado (aarch64 2.39, x86_64 2.34) es un cambio de
 plataforma que merece publicarse y anunciarse. El motor de tonos COLOR (#693 y ss.)
-**no** es motivo para esperar: es el alcance siguiente. Antes de construir el candidato:
-resolver el punto 1 de #1045 (el cuerpo de la publicación se genera desde el CHANGELOG) y
-después los pasos 1/2 del runbook con `scripts/prepare_release.py 2.10.0`, incluidas las
+**no** es motivo para esperar: es el alcance siguiente. Antes de construir el candidato
+(el punto 1 de #1045, la referencia `#1023` en el CHANGELOG, ya está resuelto): los
+pasos 1/2 del runbook con `scripts/prepare_release.py 2.10.0`, incluidas las
 lagunas editoriales `TODO(release)` (`NOTES-01`). Esa misma ejecución aporta además la
 evidencia de extremo a extremo que aún falta para #914 y #918.
 
@@ -114,10 +114,10 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 
 1. **#1031** (prioridad 0): la comprobación de procedencia en el hook SessionStart; sin
    ella, una prueba por subproceso en verde puede haber comprobado código antiguo.
-2. **#1045** y **#1044**: dos PR pequeños y bien delimitados: la referencia `#1023` que
-   falta en seis versiones del CHANGELOG y el hueco de test de #1004/#1005 en
-   `tests/test_preview3d_controller.py`.
-3. **Lanzar v2.10.0**: el alcance está en `[Unreleased]`; tras #1045, los pasos 1/2 del
+2. **#1044**: un PR pequeño y bien delimitado: el hueco de test de #1004/#1005 en
+   `tests/test_preview3d_controller.py`. (#1045, la referencia `#1023` que faltaba en
+   seis versiones del CHANGELOG, ya está resuelto.)
+3. **Lanzar v2.10.0**: el alcance está en `[Unreleased]`; los pasos 1/2 del
    runbook con `scripts/prepare_release.py 2.10.0`. Esa ejecución cierra además la
    evidencia de extremo a extremo pendiente de #914 y #918.
 4. **#1033 → #1040 (+#1042)**: iniciar el adelgazamiento del proceso; #1034, #1035,
