@@ -235,6 +235,18 @@ def test_sudo_only_when_not_root(tmp_path: Path) -> None:
 
 
 @_needs_bash
+def test_help_prints_the_header_without_touching_apt(tmp_path: Path) -> None:
+    result, calls = _run_with_fakes(tmp_path, "--help")
+    assert result.returncode == 0, result.stderr
+    assert "--best-effort-update" in result.stdout
+    assert "ZUSATZPAKET" in result.stdout
+    # Nur der Kommentarkopf – keine Codezeile, kein apt-Aufruf.
+    assert "set -euo pipefail" not in result.stdout
+    assert "QT_PACKAGES" not in result.stdout
+    assert not calls
+
+
+@_needs_bash
 def test_unknown_option_is_rejected_before_touching_apt(tmp_path: Path) -> None:
     result, calls = _run_with_fakes(tmp_path, "--no-such-option")
     assert result.returncode == 2

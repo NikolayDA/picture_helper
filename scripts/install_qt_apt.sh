@@ -37,7 +37,9 @@ for arg in "$@"; do
   case "$arg" in
     --best-effort-update) best_effort_update=1 ;;
     --print-packages) printf '%s\n' "${QT_PACKAGES[@]}"; exit 0 ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+    # Hilfe = der Kommentarkopf bis zur ersten Nicht-Kommentarzeile (kein
+    # fester Zeilenbereich, der bei jeder Kopfänderung still driftete).
+    -h|--help) awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"; exit 0 ;;
     -*) echo "install_qt_apt.sh: unbekannte Option: $arg" >&2; exit 2 ;;
     *) extras+=("$arg") ;;
   esac
