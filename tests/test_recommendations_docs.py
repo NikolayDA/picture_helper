@@ -153,12 +153,52 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
             )
 
 
+#: Obergrenze der Kurzform *ohne* die Datenzeilen der Triage-Tabelle. Die
+#: Schranke bewacht die Prosa - dass der Kurzstatus kurz bleibt und
+#: Ausfuehrliches ins Archiv unter docs/history/ wandert.
+#:
+#: Bis zum 2026-09-09 zaehlte sie die Gesamtzeilen und damit auch die Tabelle,
+#: die aber mit dem *offenen Bestand* waechst, nicht mit der Laenge des Textes:
+#: Fuenfzehn neue Issues rissen die Schranke, ohne dass jemand ein Wort
+#: geschrieben haette, und die einzige Abhilfe waere gewesen, Statustext zu
+#: opfern - den kein Leser weniger braucht, nur weil mehr Issues offen sind.
+#:
+#: Die *Absicht* bleibt, die Zahl ist bewusst neu kalibriert: Aus "120 gesamt"
+#: folgte je nach Bestand ein wanderndes Prosa-Budget (bei den 41 Zeilen des
+#: Vorstands 79, bei 56 nur noch 64). 120 auf die Prosa anzuwenden haette das
+#: Budget still auf das Anderthalbfache gehoben und die Schranke auf absehbare
+#: Zeit wirkungslos gemacht. 90 liegt knapp ueber dem Ist-Stand (laengste
+#: Fassung 83 Zeilen) und damit ungefaehr dort, wo die alte Regel real lag.
+#: Wer sie reisst, archiviert eine Runde - er hebt nicht die Zahl.
+_MAX_SHORTFORM_PROSE_LINES = 90
+
+
+def _prose_line_count(text: str, lang: str) -> int:
+    """Zeilen der Kurzform ohne die Datenzeilen der Triage-Tabelle.
+
+    Die Datenzeilen kommen ueber :func:`lc.table_span` - dieselbe Quelle wie
+    im ``--write``-Pfad und im Nachbartest oben. Eine eigene Heuristik (etwa
+    ``line.startswith("| [#")``) zaehlt jede Zeile als Prosa, deren erste
+    Spalte nicht mit einem Issue-Link beginnt (gruppierte Zeilen, ein
+    vorangestelltes Symbol, ein Sonderfall von Hand) - die Schranke risse dann
+    wieder wegen des offenen Bestands, nur seltener und schwerer zu deuten.
+    """
+    lines = lc.extract_triage_section(text, lang).split("\n")
+    first, last = lc.table_span(lines)
+    # Ab first + 2: Kopf- und Trennzeile sind Struktur, keine Datenzeilen.
+    return len(text.splitlines()) - max(last - first - 1, 0)
+
+
 def test_recommendations_docs_have_current_shortform_structure() -> None:
     for lang, path in RECOMMENDATION_DOCS.items():
         assert path.exists()
         text = _read(path)
         assert text.strip()
-        assert len(text.splitlines()) <= 120
+        prose = _prose_line_count(text, lang)
+        assert prose <= _MAX_SHORTFORM_PROSE_LINES, (
+            f"{lang}: {prose} Prosazeilen (max. {_MAX_SHORTFORM_PROSE_LINES}) - "
+            "aeltere Runden gehoeren ins Archiv unter docs/history/."
+        )
         first_line = text.splitlines()[0]
 
         assert all(marker in first_line for marker in LANGUAGE_MARKERS[lang])

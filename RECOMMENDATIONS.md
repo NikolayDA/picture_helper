@@ -11,40 +11,38 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-09-07, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
+## Aktueller Stand (2026-09-09, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
 
-**Tagesaudit 2026-09-02 (Stand `91b32b4`):** Alle 42 offenen Issues wurden mit
-Code, Merges, Kommentaren und – beim Mac-App-Store-Epic – aktuellen
-Primärquellen abgeglichen. Statuskorrekturen stehen nun direkt in #681, #688,
-#691, #682/#693, #914/#918 und #949. Inhaltlich neu: Die Lizenz/Provenienz des
-separaten `u2net.onnx`-Artefakts ist nicht als Apache-2.0 belegt (#883/#893),
-Apple kann auch bei einer Gratis-App Zahlungskontoangaben für Trader verlangen
-(#884/#904), und die App-Downloadvalidierung muss in #895/#899/#906 ausdrücklich
-entschieden und getestet werden. Kein neuer Produktfehler und kein 🔴-Befund.
+**Tagesaudit 2026-09-09 (Stand `dd6c572`):** Alle 56 offenen Issues geprüft;
+die fünfzehn neuen (#1031–#1045) sind in die Triage-Tabelle aufgenommen. Inhaltlich
+neu ist das Prozess-Epic #1032 mit elf Arbeitspaketen: Im Fenster `85eeea4^..dd6c572`
+liegen 156 Mainline-Commits, 28 davon (18 %) bestehen ausschließlich aus
+Triage-Pflege – also aus derselben Tabelle, die dieser Eintrag gerade fortschreibt
+(#1032 nennt 27; der Unterschied ist ein Commit, der zusätzlich das Archiv berührt).
+#1040 will sie samt Live-Check-Workflow abschaffen; bis dahin bleibt sie der gültige
+Vertrag, und der Live-Check war genau deshalb seit dem 2026-09-08 rot (Lauf
+34282863300), ohne dass sich am Code etwas geändert hätte. Einziger neuer Befund mit
+Auswirkung auf die Beweislage ist #1031 (Priorität 0): Ein veralteter nicht-editable
+`bgremover` lässt per Dateipfad gestartete Subprozess-Tests fremden Code messen – die
+gefährliche Richtung ist ein dadurch **grüner** Test. #1044 (Testlücke zu #1004/#1005,
+Coverage 93 %) und #1045 (fehlende `#1023`-Referenz im CHANGELOG) sind zwei kleine,
+sofort umsetzbare PRs. Kein neuer Produktfehler und kein 🔴-Befund.
 
-**Nachprüfung 2026-09-03 (Stand `e7c379d`):** Die neuen PRs #955–#957 wurden
-gegen die offenen Punkte geprüft. PR #956 hat die falsche Evidenzreferenz des
-EufyMake-Profils bewusst innerhalb der noch unveröffentlichten v1 korrigiert
-und zusätzliche Snapshot-/Bundle-Guards ergänzt; der frühere releasekritische
-#691-Punkt ist damit erledigt. #955 betrifft die Test-Suite-Dokumentation, #957
-die Release-Skripte; beide verändern die EufyMake-Empirie nicht.
-
-**Nachprüfung 2026-09-06 (Stand `74972f5`):** Vier neue Issues sind erfasst. #992/#993 kommen aus einer Dead-Code-Analyse der gesamten Codebase (ruff, vulture, repo-weiter Symbol-Cross-Reference): ungenutzte Importe, lokale Variablen und Module liegen bei null, alle 572 `de`-i18n-Keys, 24 Statusmeldungen und acht Icon-Assets sind referenziert. Übrig bleiben ein abgelöster Vorgänger (`has_blocking_gaps`), eine nirgends gelesene Vertragskonstante (`qt_gl_probe.STAGES`) und Stil-/Modell-API ohne Verbraucher. #994 meldete zwei Qt-SVG-CVEs im Pin `PyQt6-Qt6==6.7.3` und ist mit dem Sprung auf Qt 6.11 erledigt: Die Begründung des alten Pins war überholt, weil Raspberry Pi OS inzwischen Debian 13 baut, und der Sprung schließt rund zehn Advisories statt der zwei gemeldeten. Zwei Messungen dazu: Die Testsuite bleibt unter 6.11 bei 3156 bestandenen Tests, und der dokumentierte Angriffspfad existierte nicht, weil der Dateidialog das MIME-Icon rendert und nicht den Dateiinhalt. #995 ist der CI-Befund zu genau dieser Tabellendrift. Kein neuer Produktfehler.
-
-**EufyMake-Nachprüfung 2026-09-07:** Das additive Profil v2 ist nun der Default für Studio 4.3.3, Editor 1.20.0 und Firmware 4.0.9; Profil v1 bleibt als eingefrorene Studio-4.2.2-Referenz auswählbar. v2 warnt mit `physical_size_missing`, wenn die physische Projektgröße fehlt; fehlerhaft geformte Werte bleiben der blockierende Fehler `INVALID_TARGET_PARAMS`.
-Die GUI-Rohimportmatrix ist mit 29/29 Zellen vollständig und funktional wie unter 4.2.2. Nur I-06 änderte sich im Ablauf: `manifest.json` ist auswählbar und wird danach mit `Unsupported file type.` abgewiesen. Alle 13/13 nativen Projekte ließen sich laden; die zwölf aktiven Projekte erreichten mit `Unidirectional` die Vorschau ohne Warnung, während Projekt 03 seine Zeit-/Tintenschätzung auch nach `Retry` ein zweites Mal nicht berechnen konnte.
-`Bidirectional` bleibt ungetestet. Es wurde nicht gedruckt: Y-Tinte, Scraper und Luftfilter waren abgelaufen, schwarzer Karton (0,1 mm) war vorhanden. Die physischen E1-Tests bleiben offen.
-
-**Release-Einschätzung: noch kein Kandidat angestoßen.** Seit `v2.9.0`
-(2026-08-29) liegen am geprüften Mainline-Stand `74972f5` 58 Commits vor. Mit PR #953 (versioniertes
-EufyMake-Zielprofil, 16-Bit-HEIGHT-Default, Profil- und X/Y-DPI-Anzeige im
-Dialog, Manifest-Provenienz), #971 (bestätigtes Flatbed-Maß) und #996 (Projekt-DPI als PNG-`pHYs`)
-stehen nutzersichtbare Einträge in `[Unreleased]`; alles andere ist Release-Automatisierung, Doku und Governance.
-Ob **v2.10.0** mit dem angesammelten Umfang (#953/#971/#996) oder erst mit der COLOR-Tonwert-Engine
-(#693/#694 aus Epic #682, ADR #692) gebaut wird, ist ein Owner-Entscheid. PR
-#956 hat die falsche Evidenzreferenz mit bewusster v1-Entscheidung und
-Golden-/Bundle-Guards korrigiert. Damit besteht aus #691 kein zusätzlicher
-Releaseblocker; das normale Release-Gate bleibt maßgeblich.
+**Release-Einschätzung: v2.10.0 wird empfohlen.** Seit `v2.9.0` (2026-08-29) liegen
+83 First-Parent-Commits vor, zwölf davon mit Produktcode. `[Unreleased]` trägt damit
+einen vollständigen Minor-Umfang: EufyMake-Zielprofil v2 samt Studio-4.3.3-Preflight
+(#681/#691), bestätigtes Flatbed-Maß 335 × 420 mm (#971), Projekt-DPI als PNG-`pHYs`
+(#996), der Qt-Sprung auf 6.11 (#994, rund zehn Advisories, darunter CVE-2025-10728 und
+CVE-2025-10729) sowie vier 3D-Korrekturen (#1002, #1004, #1023, #1024), von denen
+#1024 einen Speicherzugriffsfehler behebt. Zwei Gründe sprechen gegen weiteres Warten:
+Die Sicherheitswirkung des Qt-Sprungs erreicht Anwender:innen erst mit dem Artefakt,
+und die angehobene glibc-Untergrenze (aarch64 2.39, x86_64 2.34) ist eine
+Plattformänderung, die veröffentlicht und angekündigt gehört. Die COLOR-Tonwert-Engine
+(#693 ff.) ist **kein** Grund zu warten – sie ist der Umfang danach. Vor dem
+Kandidatenbau: #1045 Punkt 1 erledigen (der Release-Body entsteht aus dem CHANGELOG),
+dann Runbook-Schritt 1/2 über `scripts/prepare_release.py 2.10.0` einschließlich der
+redaktionellen `TODO(release)`-Lücken (`NOTES-01`). Derselbe Lauf liefert zugleich die
+noch fehlende End-to-End-Evidenz für #914 und #918.
 
 **EufyMake #681/#687–#691:** Der reproduzierbare Satz umfasst 42 Einzel-Fixtures und sieben unveränderte echte Exportpakete (Schema 5). Die 29 verpflichtenden druckfreien Importzellen sind sowohl in der historischen Studio-4.2.2-Baseline als auch im vollständigen 4.3.3-Regressionslauf erledigt; I-09 (`.empf`) bleibt nicht blockierend.
 13/13 vorbereitete native Projekte laden, zwölf aktive Projekte erreichen die Vorschau. Das belegt die GUI- und Projektvorbereitung, aber keine physische HEIGHT-, Maß-, Gloss- oder Registrierungswirkung. Offen sind die E1-Messungen zu #688–#690 und die Abschluss-Review von #687.
@@ -98,15 +96,42 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Release-Ref statt main-Freeze (ADR + fail-closed Absicherung) | 🟠 Hoch (`main` bleibt während eines Releases mergebar) | 🟢 Niedrig (Code, Doku und Ruleset stehen) | – (kein Agent; nächster Release-Lauf) | Blocked (extern) – am 2026-08-31 nach der Abschlussprüfung wiedereröffnet; PR #936 und der aktive Ruleset 21941216 sind belegt, offen ist nur ein Lauf, dessen Post-Release-Abnahme nachweislich auf `release/vX.Y.Z` startete |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Betrieb: Self-hosted-Runner (Heartbeat-Alarmkanal) | 🟡 Mittel (Betriebskanal, kein Produktcode) | 🟢 Niedrig (reine Beobachtung) | – (kein Agent; Repo-Owner) | Dauerhaft offen – nicht schließen (`RUNNER_HEARTBEAT_ISSUE`); der FAIL vom 2026-08-31 war der geplante Meldeweg-Test, der Aufräumschritt ist erledigt (planmäßiger Lauf 33496675995 grün, x86_64 übersprungen, Mac und Pi bestanden) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
+| [#1045](https://github.com/NikolayDA/picture_helper/issues/1045) | CHANGELOG.md: fehlende PR-Referenz (#1023); historische Überschriften | 🟢 Niedrig (Doku-Genauigkeit – der Release-Body entsteht allerdings aus genau dieser Datei) | 🟢 Niedrig (eine Zeile in sechs Fassungen) | Sonnet, niedrig | Ready for PR – Punkt 1 vor dem nächsten Kandidatenbau erledigen; Punkt 2 bewusst als historisch eingefroren belassen |
+| [#1044](https://github.com/NikolayDA/picture_helper/issues/1044) | Test-Suite-Audit 2026-09-09: `preview3d_controller`-Testlücke, zwei Dopplungen | 🟡 Mittel (schließt die Regressionslücke zu #1004/#1005 auf Logikebene; Coverage 93 %, Gate bestanden) | 🟢 Niedrig (ein GL-freier Test; die beiden Aufräumpunkte sind ausdrücklich optional) | Sonnet, mittel | Ready for PR – der kleinste nützliche nächste PR; die Dopplungen optional im selben Zug |
+| [#1043](https://github.com/NikolayDA/picture_helper/issues/1043) | `docs/PROZESSE_UML.md` auf den Happy Path kürzen | 🟡 Mittel (773 Zeilen und 30 Rauten; dupliziert die Wiederanlaufmatrix des Runbooks) | 🟡 Mittel (vier Diagramme plus Verweise ins Runbook und in die ADRs) | Sonnet, hoch | Blocked – letztes Arbeitspaket; wartet auf #1040, #1035, #1036, #1037 und #1041 |
+| [#1042](https://github.com/NikolayDA/picture_helper/issues/1042) | Analyse-Kommandos (`.claude/commands/analyze-*`) auf GitHub-Issues umstellen | 🟡 Mittel (Analyseergebnisse landen dort, wo der offene Bestand geführt wird) | 🟢 Niedrig (fünf Kommandodateien) | Sonnet, mittel | Blocked – wartet auf #1040; empfohlen im selben PR |
+| [#1041](https://github.com/NikolayDA/picture_helper/issues/1041) | `make pr-ready`: Drift-Pflichten aus dem Diff erkennen | 🟡 Mittel (ersetzt sechs manuelle Entscheidungsrauten durch ein Kommando) | 🟠 Mittel-Hoch (neues streng getyptes Skript, NUL-Pfade, Umbenennungen, Python-3.10-Matrix) | Opus, hoch | Blocked – wartet auf #1040; sinnvoll erst nach #1036 und #1037, weil dann zwei Pflichten ersatzlos entfallen |
+| [#1040](https://github.com/NikolayDA/picture_helper/issues/1040) | Recommendations-Live-Triage entfernen (Tabelle, Kurzstatus, Workflow, Wächter) | 🟠 Hoch (größter Hebel des Epics: 2.123 Zeilen Mechanik und keine roten Läufe mehr durch Issue-Wechsel) | 🟡 Mittel (sechs Fassungen, Skript, Workflow, 42 Testfunktionen in drei Dateien, Restverweise in `TESTING.md` und `docs/PROZESSE_UML.md`) | Opus, hoch | Blocked – wartet auf #1033; empfohlen atomar zusammen mit #1042 |
+| [#1039](https://github.com/NikolayDA/picture_helper/issues/1039) | Owner-Skript für die Release-Dispatches statt Run-IDs von Hand | 🟡 Mittel (Handarbeit im Release-Ablauf, kein Produktrisiko) | 🟡 Mittel (Run-ID-/Artefaktauflösung über die API, streng getypt, netzabhängig testbar) | Sonnet, hoch | Zurückgestellt – laut Epic bewusst erst nach dem nächsten echten Release; bis dahin ist der Handlauf die Referenz für #914/#918 |
+| [#1038](https://github.com/NikolayDA/picture_helper/issues/1038) | Pfadfilter für CodeQL, Dependency-Audit und License-Check auf Pull Requests | 🟢 Niedrig (spart CI-Zeit, kein Qualitäts- oder Risikogewinn) | 🟢 Niedrig (drei `paths-ignore`-Blöcke) | Sonnet, mittel | Ready for PR – unkritisch, weil keiner der drei Läufe Pflichtcheck ist (einziger Pflichtcheck: `Lightweight PR checks`) |
+| [#1037](https://github.com/NikolayDA/picture_helper/issues/1037) | Pfadpolicy: unbekannte Pfade warnen statt zu blockieren | 🟠 Hoch (das Gate läuft auf jedem PR; 22 Policy-Änderungen im Messfenster) | 🟡 Mittel (Policy-Version 17→18, ADR-Nachtrag, `prepare_release.py`, Freeze-Dokument, Tests) | Opus, hoch | Ready for PR – die Release-Gates bleiben unberührt: Die Klassifikation ändert sich nicht, nur die Blockade entfällt. Nachweis über den nächsten Dry-Run |
+| [#1036](https://github.com/NikolayDA/picture_helper/issues/1036) | Qt-Systempaketliste aus einer Quelle (Befund N6 ablösen) | 🟡 Mittel (löst eine der sechs manuellen Drift-Pflichten ab) | 🟡 Mittel (neues Shell-Skript, sechs Aufrufer, Wächtertest auf Negativkontrolle umbauen) | Sonnet, hoch | Ready for PR – unabhängig; braucht denselben `release-neutral`-Eintrag wie #1031, den der zuerst gemergte PR trägt |
+| [#1035](https://github.com/NikolayDA/picture_helper/issues/1035) | Repository-Einstellungen: Squash-only, Auto-Löschung, ein automatischer Reviewer | 🟡 Mittel (weniger Merge- und Review-Rauschen, keine Produktwirkung) | 🟢 Niedrig (Einstellungen und Connector-Konfiguration, kein Code) | – (kein Agent; Repo-Owner) | Startbereit (Owner) – der Live-Abgleich vom 2026-09-09 bestätigt alle vier Ist-Werte; die Auto-Review-Einstellung des `chatgpt-codex-connector` ist nur in der Connector-Konfiguration prüfbar |
+| [#1034](https://github.com/NikolayDA/picture_helper/issues/1034) | Issue Forms für die Desktop-App statt GitHub-Standardvorlagen | 🟡 Mittel (Meldequalität; Browser-/Smartphone-Felder passen nicht zu einer PyQt6-App) | 🟢 Niedrig (zwei YAML-Formulare plus `config.yml`) | Sonnet, mittel | Ready for PR – unabhängig von #1033/#1040, jederzeit einschiebbar |
+| [#1033](https://github.com/NikolayDA/picture_helper/issues/1033) | Triage-Inhalte in die Issues übernehmen, Prioritäts-/Blocker-Labels einführen | 🟠 Hoch (harte Voraussetzung für #1040; sonst gehen die kuratierten Texte verloren) | 🟡 Mittel (kein Code, aber alle offenen Issues labeln und 41 Übernahmekommentare setzen) | Sonnet, hoch | Startbereit – reine Issue-Kuratierung über die API, kein PR; Cutover-Bestand am 2026-09-09: 56 offene Issues statt der im Issue notierten 54 |
+| [#1032](https://github.com/NikolayDA/picture_helper/issues/1032) | [Epic] Prozess-Entschlackung: Triage nach GitHub, weniger Drift-Pflichten | 🟠 Hoch (28 von 156 Mainline-Commits im Messfenster sind reine Triage-Pflege) | 🔴 Hoch (elf Arbeitspakete #1033–#1043 mit Reihenfolge und Abhängigkeiten) | – (Epic) | In Bearbeitung – Reihenfolge #1033 → #1040 (+#1042) → #1041/#1043; #1031 hat Priorität 0 davor |
+| [#1031](https://github.com/NikolayDA/picture_helper/issues/1031) | SessionStart-Hook erkennt einen veralteten nicht-editable `bgremover` nicht | 🟠 Hoch (Subprozess-Tests messen fremden Code – ein grüner Lauf kann alten Stand geprüft haben) | 🟡 Mittel (Provenienzprüfung im Shell-Hook, PEP-660- und Legacy-Fall, Pfadpolicy-Eintrag) | Sonnet, hoch | Ready for PR – Priorität 0 vor dem Epic #1032; derselbe PR trägt den `release-neutral`-Eintrag für `.claude/hooks/session-start.sh` |
 
 ### Als Nächstes empfohlen
 
-1. **#693** (Qt-freier Kern) – der ADR #692 ist verabschiedet; danach folgen
-   #694, #695 und #696 in dieser Reihenfolge.
-2. **#883** – Qt-/Code-Lizenz entscheiden und die Rechte/Provenienz des konkreten
+1. **#1031** (Priorität 0) – Provenienzprüfung im SessionStart-Hook; ohne sie kann ein
+   grüner Subprozess-Test alten Code geprüft haben.
+2. **#1045** und **#1044** – zwei kleine, klar abgegrenzte PRs: die fehlende
+   `#1023`-Referenz in sechs CHANGELOG-Fassungen und die Testlücke zu #1004/#1005 in
+   `tests/test_preview3d_controller.py`.
+3. **v2.10.0 anstoßen** – der Umfang steht in `[Unreleased]`; nach #1045 Runbook-Schritt
+   1/2 über `scripts/prepare_release.py 2.10.0`. Der Lauf schließt zugleich die offene
+   End-to-End-Evidenz von #914 und #918.
+4. **#1033 → #1040 (+#1042)** – die Prozess-Entschlackung starten; #1034, #1035, #1036,
+   #1037 und #1038 sind unabhängig und jederzeit einschiebbar.
+5. **#693** (Qt-freier Kern) – ADR #692 ist verabschiedet; danach folgen #694, #695 und
+   #696 in dieser Reihenfolge.
+6. **#883** – Qt-/Code-Lizenz entscheiden und die Rechte/Provenienz des konkreten
    `u2net.onnx` belegen oder ein eindeutig lizenzierbares Ersatzmodell wählen.
-3. Nach Geräte-/Materialfreigabe die offenen physischen Messungen aus **#689** zusammen mit #687 (Rest), #688 und #690 durchführen; native HEIGHT-/Gloss-Pfade und I-08 sind vorgeprüft.
-   Danach den Evidenzstatus von Profil v2 bewerten; Profil v1 bleibt eingefroren, und neue oder widersprechende Semantik erhält eine weitere Profilversion.
+7. Nach Geräte-/Materialfreigabe die offenen physischen Messungen aus **#689** zusammen
+   mit #687 (Rest), #688 und #690 durchführen; danach den Evidenzstatus von Profil v2
+   bewerten. Profil v1 bleibt eingefroren, neue oder widersprechende Semantik erhält eine
+   weitere Profilversion.
 
 ## Vorige Runden
 

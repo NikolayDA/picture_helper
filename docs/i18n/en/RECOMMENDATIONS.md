@@ -11,39 +11,37 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-09-07, v2.9.0 published, open inventory fully audited)
+## Current Status (2026-09-09, v2.9.0 published, open inventory fully audited)
 
-**Daily audit 2026-09-02 (state `91b32b4`):** All 42 open issues were checked
-against code, merges, comments, and—within the Mac App Store epic—current
-primary sources. Status corrections are now recorded in #681, #688, #691,
-#682/#693, #914/#918, and #949. New substantive findings: the separate
-`u2net.onnx` artifact is not proven Apache-2.0 (#883/#893), Apple may require
-payment-account details from traders even for a free app (#884/#904), and
-app-download validation must be explicitly chosen and tested in #895/#899/#906.
-No new product defect and no 🔴 finding.
+**Daily audit 2026-09-09 (state `dd6c572`):** All 56 open issues reviewed; the
+fifteen new ones (#1031–#1045) are now in the triage table. What is substantively new
+is process epic #1032 with eleven work packages: the window `85eeea4^..dd6c572` holds
+156 mainline commits, 28 of them (18 %) consisting solely of triage upkeep – that is,
+of the very table this entry is updating (#1032 counts 27; the difference is one commit
+that also touches the archive). #1040 wants to abolish it together with the
+live-check workflow; until then it remains the valid contract, and the live check has
+been red since 2026-09-08 for exactly that reason (run 34282863300) without a single
+code change. The only new finding that affects the evidence base is #1031 (priority
+0): a stale non-editable `bgremover` makes subprocess tests started by file path
+measure foreign code – the dangerous direction being a test that turns **green** that
+way. #1044 (test gap for #1004/#1005, coverage 93 %) and #1045 (missing `#1023`
+reference in the CHANGELOG) are two small PRs that can be done immediately. No new
+product defect and no 🔴 finding.
 
-**Follow-up audit 2026-09-03 (state `e7c379d`):** New PRs #955–#957 were
-checked against the open items. PR #956 deliberately corrected the EufyMake
-profile's bad evidence reference within the still-unreleased v1 and added
-snapshot/bundle guards, resolving the former release-critical #691 item. #955
-only affects test-suite documentation and #957 release scripts; neither changes
-the EufyMake empirical findings.
-
-**Follow-up audit 2026-09-06 (state `74972f5`):** Four new issues are on record. #992/#993 come from a dead-code analysis of the whole codebase (ruff, vulture, repo-wide symbol cross-reference): unused imports, local variables, and modules are all at zero, and all 572 `de` i18n keys, 24 status messages, and eight icon assets are referenced. What remains is a superseded predecessor (`has_blocking_gaps`), a contract constant nothing reads (`qt_gl_probe.STAGES`), and style/model API without consumers. #994 reported two Qt SVG CVEs in the `PyQt6-Qt6==6.7.3` pin and is settled by the move to Qt 6.11: the old pin's rationale had expired because Raspberry Pi OS now builds Debian 13, and the move closes about ten advisories instead of the two reported. Two measurements back this: the test suite stays at 3156 passing tests under 6.11, and the documented attack path did not exist, because the file dialog renders the MIME icon rather than the file's contents. #995 is the CI finding about exactly this table drift. No new product defect.
-
-**EufyMake follow-up 2026-09-07:** Additive profile v2 is now the default for Studio 4.3.3, Editor 1.20.0, and firmware 4.0.9; profile v1 remains selectable as a frozen Studio 4.2.2 reference. v2 reports `physical_size_missing` when the project has no physical size, while malformed values remain the blocking `INVALID_TARGET_PARAMS` error.
-The GUI raw-import matrix is complete at 29/29 cells and behaves functionally like 4.2.2. Only the I-06 flow changed: `manifest.json` can be selected and is then rejected with `Unsupported file type.`. All 13/13 native projects loaded; the twelve active projects reached Preview without a warning using `Unidirectional`, while project 03 failed its time/ink estimate a second time after `Retry`.
-`Bidirectional` remains untested. No print was started: Y ink, the scraper, and the air filter were expired, while 0.1 mm black cardboard was available. The physical E1 tests remain open.
-
-**Release assessment: no candidate started yet.** Since `v2.9.0` (2026-08-29)
-there are 58 mainline commits at the audited `74972f5` state. With PR #953 (versioned EufyMake target profile,
-16-bit HEIGHT default, profile and X/Y DPI display in the dialog, manifest
-provenance), #971 (confirmed flatbed dimensions), and #996 (project DPI as PNG `pHYs`)
-`[Unreleased]` holds user-visible entries; everything else is release automation, documentation, and governance. Whether **v2.10.0** ships
-with the accumulated #953/#971/#996 scope or waits for the COLOR tone engine (#693/#694 from epic
-#682, ADR #692) is an owner decision. PR #956 corrected the bad evidence
-reference with an explicit v1 decision and Golden/bundle guards. #691
-therefore adds no release blocker; the normal release gate remains authoritative.
+**Release assessment: v2.10.0 is recommended.** Since `v2.9.0` (2026-08-29) there are
+83 first-parent commits, twelve of them touching product code. `[Unreleased]` therefore
+carries a full minor scope: EufyMake target profile v2 with the Studio 4.3.3 preflight
+(#681/#691), the confirmed flatbed size 335 × 420 mm (#971), project DPI as PNG `pHYs`
+(#996), the Qt jump to 6.11 (#994, about ten advisories including CVE-2025-10728 and
+CVE-2025-10729) and four 3D fixes (#1002, #1004, #1023, #1024), of which #1024 repairs a
+segmentation fault. Two reasons argue against waiting further: the security effect of the
+Qt jump only reaches users with the artifact, and the raised glibc floor (aarch64 2.39,
+x86_64 2.34) is a platform change that deserves to be published and announced. The COLOR
+tone engine (#693 ff.) is **not** a reason to wait – it is the scope after this one.
+Before the candidate build: finish item 1 of #1045 (the release body is generated from
+the CHANGELOG), then runbook steps 1/2 via `scripts/prepare_release.py 2.10.0`, including
+the editorial `TODO(release)` gaps (`NOTES-01`). The same run also supplies the still
+missing end-to-end evidence for #914 and #918.
 
 **EufyMake #681/#687–#691:** The reproducible set contains 42 single fixtures and seven unchanged real export packages (schema 5). The 29 mandatory print-free import cells are complete both in the historical Studio 4.2.2 baseline and in the full 4.3.3 regression run; I-09 (`.empf`) remains non-blocking.
 All 13/13 prepared native projects load and twelve active projects reach Preview. This proves the GUI and project preparation, but no physical HEIGHT, size, gloss, or registration effect. The E1 measurements for #688–#690 and #687's closeout review remain open.
@@ -97,14 +95,42 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Release ref instead of a main freeze (ADR + fail-closed safeguards) | 🟠 High (`main` stays mergeable during a release) | 🟢 Low (code, docs, and ruleset are in place) | – (no agent; next release run) | Blocked (external) – reopened on 2026-08-31 after its completion check; PR #936 and the active ruleset 21941216 are documented, only a run whose post-release acceptance demonstrably started on `release/vX.Y.Z` is missing |
 | [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Operations: self-hosted runners (heartbeat alert channel) | 🟡 Medium (operations channel, no product code) | 🟢 Low (observation only) | – (no agent; repo owner) | Permanently open – do not close (`RUNNER_HEARTBEAT_ISSUE`); the FAIL of 2026-08-31 was the planned alert-path test, and the cleanup step is done (scheduled run 33496675995 green, x86_64 skipped, Mac and Pi passed) |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
+| [#1045](https://github.com/NikolayDA/picture_helper/issues/1045) | CHANGELOG.md: missing PR reference (#1023); historical headings | 🟢 Low (documentation accuracy – though the release body is generated from exactly this file) | 🟢 Low (one line in six versions) | Sonnet, low | Ready for PR – finish item 1 before the next candidate build; leave item 2 deliberately frozen as history |
+| [#1044](https://github.com/NikolayDA/picture_helper/issues/1044) | Test-suite audit 2026-09-09: `preview3d_controller` test gap, two duplications | 🟡 Medium (closes the #1004/#1005 regression gap at logic level; coverage 93 %, gate passed) | 🟢 Low (one GL-free test; both cleanup items are explicitly optional) | Sonnet, medium | Ready for PR – the smallest useful next PR; the duplications optionally in the same go |
+| [#1043](https://github.com/NikolayDA/picture_helper/issues/1043) | Trim `docs/PROZESSE_UML.md` down to the happy path | 🟡 Medium (773 lines and 30 diamonds; duplicates the runbook's restart matrix) | 🟡 Medium (four diagrams plus references into the runbook and the ADRs) | Sonnet, high | Blocked – the last work package; waits for #1040, #1035, #1036, #1037 and #1041 |
+| [#1042](https://github.com/NikolayDA/picture_helper/issues/1042) | Switch the analysis commands (`.claude/commands/analyze-*`) to GitHub issues | 🟡 Medium (analysis results land where the open inventory is kept) | 🟢 Low (five command files) | Sonnet, medium | Blocked – waits for #1040; recommended in the same PR |
+| [#1041](https://github.com/NikolayDA/picture_helper/issues/1041) | `make pr-ready`: detect drift duties from the diff | 🟡 Medium (replaces six manual decision diamonds with one command) | 🟠 Medium-high (new strictly typed script, NUL-separated paths, renames, Python 3.10 matrix) | Opus, high | Blocked – waits for #1040; sensible only after #1036 and #1037, because two duties then disappear entirely |
+| [#1040](https://github.com/NikolayDA/picture_helper/issues/1040) | Remove the recommendations live triage (table, status, workflow, guards) | 🟠 High (the epic's biggest lever: 2,123 lines of mechanics and no more red runs from an issue state change) | 🟡 Medium (six language versions, script, workflow, 42 test functions in three files, leftover references in `TESTING.md` and `docs/PROZESSE_UML.md`) | Opus, high | Blocked – waits for #1033; recommended atomically together with #1042 |
+| [#1039](https://github.com/NikolayDA/picture_helper/issues/1039) | Owner script for the release dispatches instead of copying run IDs by hand | 🟡 Medium (manual work in the release flow, no product risk) | 🟡 Medium (run-ID/artifact resolution via the API, strictly typed, network-dependent to test) | Sonnet, high | Deferred – the epic deliberately puts this after the next real release; until then the manual path is the reference for #914/#918 |
+| [#1038](https://github.com/NikolayDA/picture_helper/issues/1038) | Path filters for CodeQL, dependency audit and license check on pull requests | 🟢 Low (saves CI time, no quality or risk gain) | 🟢 Low (three `paths-ignore` blocks) | Sonnet, medium | Ready for PR – uncritical because none of the three runs is a required check (the only required check is `Lightweight PR checks`) |
+| [#1037](https://github.com/NikolayDA/picture_helper/issues/1037) | Path policy: unknown paths warn instead of blocking | 🟠 High (the gate runs on every PR; 22 policy changes in the measured window) | 🟡 Medium (policy version 17→18, ADR addendum, `prepare_release.py`, freeze document, tests) | Opus, high | Ready for PR – the release gates stay untouched: classification is unchanged, only the block goes away. Evidence via the next dry run |
+| [#1036](https://github.com/NikolayDA/picture_helper/issues/1036) | Qt system package list from one source (retires finding N6) | 🟡 Medium (retires one of the six manual drift duties) | 🟡 Medium (new shell script, six callers, guard test rebuilt around a negative control) | Sonnet, high | Ready for PR – independent; needs the same `release-neutral` entry as #1031, carried by whichever PR merges first |
+| [#1035](https://github.com/NikolayDA/picture_helper/issues/1035) | Repository settings: squash-only, auto-delete branches, one automatic reviewer | 🟡 Medium (less merge and review noise, no product impact) | 🟢 Low (settings and connector configuration, no code) | – (no agent; repo owner) | Ready to start (owner) – the live comparison of 2026-09-09 confirms all four current values; the `chatgpt-codex-connector` auto-review setting is only visible in the connector configuration |
+| [#1034](https://github.com/NikolayDA/picture_helper/issues/1034) | Issue forms for the desktop app instead of GitHub's default templates | 🟡 Medium (report quality; browser/smartphone fields do not fit a PyQt6 app) | 🟢 Low (two YAML forms plus `config.yml`) | Sonnet, medium | Ready for PR – independent of #1033/#1040 and can be slotted in at any time |
+| [#1033](https://github.com/NikolayDA/picture_helper/issues/1033) | Move triage content into the issues, introduce priority/blocker labels | 🟠 High (hard prerequisite for #1040; otherwise the curated texts are lost) | 🟡 Medium (no code, but every open issue needs a label and 41 need a takeover comment) | Sonnet, high | Ready to start – pure issue curation via the API, not a PR; cutover inventory on 2026-09-09 is 56 open issues, not the 54 noted in the issue |
+| [#1032](https://github.com/NikolayDA/picture_helper/issues/1032) | [Epic] Process slimming: triage moves to GitHub, fewer drift duties | 🟠 High (28 of 156 mainline commits in the measured window are pure triage upkeep) | 🔴 High (eleven work packages #1033–#1043 with order and dependencies) | – (epic) | In progress – order #1033 → #1040 (+#1042) → #1041/#1043; #1031 takes priority 0 ahead of it |
+| [#1031](https://github.com/NikolayDA/picture_helper/issues/1031) | SessionStart hook does not detect a stale non-editable `bgremover` | 🟠 High (subprocess tests measure foreign code – a green run may have checked an old snapshot) | 🟡 Medium (provenance check in the shell hook, PEP 660 and legacy case, path-policy entry) | Sonnet, high | Ready for PR – priority 0 ahead of epic #1032; the same PR carries the `release-neutral` entry for `.claude/hooks/session-start.sh` |
 
 ### Recommended Next
 
-1. **#693** (Qt-free core) – ADR #692 is approved; #694, #695, and #696 follow in that order.
-2. **#883** – decide Qt/code licensing and prove rights/provenance for the exact `u2net.onnx`,
-   or choose a clearly licensed replacement model.
-3. After device/material approval, perform the remaining physical measurements for **#689** together with the remainder of #687, #688, and #690; native HEIGHT/Gloss paths and I-08 are preflighted.
-   Then review profile v2's evidence status; profile v1 stays frozen, and new or contradictory semantics require another profile version.
+1. **#1031** (priority 0) – the provenance check in the SessionStart hook; without it a
+   green subprocess test may have checked old code.
+2. **#1045** and **#1044** – two small, clearly bounded PRs: the missing `#1023`
+   reference in six CHANGELOG versions, and the #1004/#1005 test gap in
+   `tests/test_preview3d_controller.py`.
+3. **Start v2.10.0** – the scope is in `[Unreleased]`; after #1045, runbook steps 1/2 via
+   `scripts/prepare_release.py 2.10.0`. That run also closes the outstanding end-to-end
+   evidence for #914 and #918.
+4. **#1033 → #1040 (+#1042)** – start the process slimming; #1034, #1035, #1036, #1037
+   and #1038 are independent and can be slotted in at any time.
+5. **#693** (Qt-free core) – ADR #692 is approved; #694, #695 and #696 follow in that
+   order.
+6. **#883** – decide Qt/code licensing and prove rights/provenance for the exact
+   `u2net.onnx`, or choose a clearly licensed replacement model.
+7. After device/material approval, perform the remaining physical measurements for
+   **#689** together with the remainder of #687, #688 and #690; then review profile v2's
+   evidence status. Profile v1 stays frozen, and new or contradictory semantics require
+   another profile version.
 
 ## Previous Rounds
 
