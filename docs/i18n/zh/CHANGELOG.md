@@ -31,6 +31,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 变更
 
+- **议题分诊迁移到 GitHub：优先级与阻塞标签（#1032、#1033）。**
+  每个未结议题恰好带有一个 `prio:now`/`prio:next`/`prio:later` 标签；内部阻塞仅以原生
+  “blocked by” 依赖表示，外部阻塞以 `blocked:extern` 加一行评论表示。
+  `RECOMMENDATIONS.md` 表格中 41 行的相关性、复杂度和下一步已逐字作为交接评论转入议题；
+  一次性、幂等的切换及其两项验收核对位于 `scripts/triage_issue_cutover.py`。
+  表格本身要到 #1040 才移除；规则见 [`CONTRIBUTING.md`](../../../CONTRIBUTING.md)。
 - **EufyMake 打印区域警告改用已确认的 335 × 420 mm 标准平板（#687、#689、#971）。**
   `STANDARD_FLATBED_MM` 此前为 330 × 420 mm，仅由搜索引擎提取的厂商数据支撑。该尺寸
   现已由所有者确认，并与 eufyMake Studio 4.2.2 显示的工作区域一致；因此

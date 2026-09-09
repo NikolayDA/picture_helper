@@ -38,6 +38,16 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
+- **Triage des tickets déplacé vers GitHub : étiquettes de priorité et de blocage (#1032, #1033).**
+  Chaque ticket ouvert porte exactement une étiquette
+  `prio:now`/`prio:next`/`prio:later` ; les blocages internes n'existent que
+  comme dépendances natives « blocked by », les externes comme `blocked:extern`
+  plus une ligne de commentaire. Pertinence, complexité et prochaine étape des
+  41 lignes du tableau de `RECOMMENDATIONS.md` ont été reprises mot pour mot
+  dans les tickets sous forme de commentaire de transfert ; le cutover unique
+  et idempotent, avec ses deux rapprochements d'acceptation, se trouve dans
+  `scripts/triage_issue_cutover.py`. Le tableau lui-même ne disparaît qu'avec
+  #1040 ; règles dans [`CONTRIBUTING.md`](../../../CONTRIBUTING.md).
 - **L'avertissement de surface d'impression EufyMake utilise désormais le
   plateau standard confirmé de 335 × 420 mm (#687, #689, #971).**
   `STANDARD_FLATBED_MM` valait 330 × 420 mm, une donnée du fabricant étayée

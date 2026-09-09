@@ -38,6 +38,16 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **Triage de incidencias trasladado a GitHub: etiquetas de prioridad y bloqueo (#1032, #1033).**
+  Cada incidencia abierta lleva exactamente una etiqueta
+  `prio:now`/`prio:next`/`prio:later`; los bloqueos internos existen solo como
+  dependencias nativas «blocked by», los externos como `blocked:extern` más una
+  línea de comentario. Relevancia, complejidad y siguiente paso de las 41 filas
+  de la tabla de `RECOMMENDATIONS.md` se copiaron literalmente a las incidencias
+  como comentario de traspaso; el cutover único e idempotente, con sus dos
+  comprobaciones de aceptación, está en `scripts/triage_issue_cutover.py`. La
+  tabla se elimina solo con #1040; reglas en
+  [`CONTRIBUTING.md`](../../../CONTRIBUTING.md).
 - **La advertencia de área de impresión de EufyMake usa ahora el flatbed
   estándar confirmado de 335 × 420 mm (#687, #689, #971).** `STANDARD_FLATBED_MM`
   estaba en 330 × 420 mm, un dato del fabricante respaldado solo por extracción

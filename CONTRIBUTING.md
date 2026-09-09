@@ -7,12 +7,13 @@ Danke für dein Interesse! Bugs, Verbesserungsvorschläge und Pull Requests sind
 1. [Verhaltenskodex](#verhaltenskodex)
 2. [Fehler melden](#fehler-melden)
 3. [Feature-Vorschläge](#feature-vorschläge)
-4. [Entwicklungsumgebung einrichten](#entwicklungsumgebung-einrichten)
-5. [Code beitragen](#code-beitragen)
-6. [Konventionen](#konventionen)
-7. [Tests](#tests)
-8. [Dokumentation](#dokumentation)
-9. [Releases](#releases)
+4. [Issue-Triage: Priorität und Blocker](#issue-triage-priorität-und-blocker)
+5. [Entwicklungsumgebung einrichten](#entwicklungsumgebung-einrichten)
+6. [Code beitragen](#code-beitragen)
+7. [Konventionen](#konventionen)
+8. [Tests](#tests)
+9. [Dokumentation](#dokumentation)
+10. [Releases](#releases)
 
 ---
 
@@ -36,6 +37,33 @@ Ein Issue mit dem Template **Feature Request** öffnen und beschreiben:
 - Alternativen, die du bereits erwogen hast.
 
 Größere Änderungen am Architektur vorab im Issue diskutieren, bevor Code geschrieben wird.
+
+## Issue-Triage: Priorität und Blocker
+
+GitHub ist die einzige Quelle für den offenen Bestand (#1032/#1033). Jedes
+offene Issue trägt seine Triage selbst:
+
+- **Genau ein Prioritäts-Label:** `prio:now` (als Nächstes empfohlen),
+  `prio:next` (eingeplant, aber nicht das nächste Paket) oder `prio:later`
+  (zurückgestellt oder mehrstufig blockiert). Die Zuordnung ist eine
+  Entscheidung des Repository-Owners; wer ein Issue eröffnet, setzt einen
+  Vorschlag, der Owner passt ihn bei Bedarf an.
+- **Interne Blocker** (ein anderes Issue) ausschließlich als native
+  GitHub-Abhängigkeit „blocked by" – kein Label. GitHub aktualisiert die
+  Abhängigkeit beim Schließen des Blockers selbst.
+- **Externe Blocker** (Hardware, Account, Billing, ein künftiger
+  Release-Lauf) als `blocked:extern` plus eine Kommentarzeile
+  „Blockiert extern durch: …". Je Blocker genau eine Darstellung.
+- Bewusst **kein** `status:ready` und kein Label für Zustände, die GitHub
+  selbst kennt: „bereit" ergibt sich aus dem Fehlen offener Abhängigkeiten und
+  externer Blocker. Alles, was neben einer GitHub-eigenen Darstellung von Hand
+  synchron gehalten werden müsste, wiederholt die Drift-Schleife im Kleinen.
+- Epics erhalten ihre Teil-Issues als Sub-Issues; dauerhaft offene
+  Betriebs-Issues (etwa der Heartbeat-Alarmkanal) tragen kein Blocker-Label.
+
+Der einmalige Cutover aus der früheren Tabelle in `RECOMMENDATIONS.md` lief
+über `scripts/triage_issue_cutover.py` (Entscheidungsakte, idempotentes
+`apply`, `verify`); das Skript ist kein Wächter und läuft in keinem Workflow.
 
 ## Entwicklungsumgebung einrichten
 

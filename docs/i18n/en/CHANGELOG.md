@@ -37,6 +37,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **Issue triage moved to GitHub: priority and blocker labels (#1032, #1033).**
+  Every open issue carries exactly one `prio:now`/`prio:next`/`prio:later`
+  label; internal blockers exist only as native "blocked by" dependencies,
+  external ones as `blocked:extern` plus a comment line. Relevance, complexity
+  and next step of the 41 table rows in `RECOMMENDATIONS.md` were transferred
+  verbatim into the issues as hand-over comments; the one-off, idempotent
+  cutover including its two acceptance reconciliations lives in
+  `scripts/triage_issue_cutover.py`. The table itself is removed only with
+  #1040; rules in [`CONTRIBUTING.md`](../../../CONTRIBUTING.md).
 - **EufyMake print-area warning now uses the confirmed 335 × 420 mm standard
   flatbed (#687, #689, #971).** `STANDARD_FLATBED_MM` was 330 × 420 mm, a
   vendor figure backed only by search-engine extraction. The size is now
