@@ -265,22 +265,47 @@ def _ready(qapp) -> tuple[Preview3DController, _FakeCanvas, _FakeWorker, Relief3
     return ctrl, canvas, worker, view
 
 
+def _render_proof_fails(view: Relief3DView) -> None:
+    """Die Absage auf dem Produktivpfad: ``GLReliefViewer._fail`` → ``initFailed``
+    → ``Relief3DView.show_error``. Bewusst nicht ``view.show_error()`` allein –
+    das verschöbe nur den Container, der Viewer bliebe gesund, und
+    ``_ensure_viewer`` (#1005) verhielte sich anders (Review PR #1051)."""
+    viewer = view.viewer()
+    assert viewer is not None and not viewer.has_failed
+    viewer._fail("Qt hält keinen Widget-Framebuffer")
+    assert viewer.has_failed
+    assert view.state == STATE_ERROR
+
+
 def test_async_error_after_ready_lets_the_next_build_show_loading(qapp) -> None:
     """Der Renderbeweis des Viewers zieht den Zustand **asynchron** von ``ready``
     auf ``error`` (kein Widget-Framebuffer), nachdem ``_show_cached`` gelaufen
     ist. Ein mitgeführtes „zeigt ein Mesh"-Flag behauptete danach weiter das
     Gegenteil und unterdrückte die Ladeseite über der Fehlerseite; seit #1004
     fragt der Controller die Ansicht direkt.
+
+    Der fertige Build landet danach wieder auf der Fehlerseite: Ein Viewer ohne
+    Renderbeweis wird nicht bei jeder Inhaltsänderung neu gebaut (#1005) –
+    erst der ausdrückliche Retry gibt den Neuaufbau frei.
     """
     ctrl, canvas, worker, view = _ready(qapp)
-    view.show_error()  # asynchroner Befund des Renderbeweises, nicht des Controllers
-    assert view.state == STATE_ERROR
+    failed_viewer = view.viewer()
+    _render_proof_fails(view)
     canvas.content_revision = 2
     ctrl.refresh()
+    assert view.state == STATE_LOADING  # der #1004-Zweig: state != ready
+    ctrl._start_build()
+    _deliver(ctrl, worker)
+    assert view.state == STATE_ERROR  # #1005: kein stiller Neuaufbau
+    assert view.viewer() is failed_viewer
+
+    ctrl.retry()
     assert view.state == STATE_LOADING
     ctrl._start_build()
     _deliver(ctrl, worker)
     assert view.state == STATE_READY
+    assert view.viewer() is not failed_viewer
+    assert len(worker.calls) == 3
 
 
 def test_displayed_mesh_stays_visible_while_rebuilding(qapp) -> None:
@@ -296,14 +321,19 @@ def test_displayed_mesh_stays_visible_while_rebuilding(qapp) -> None:
     assert view.state == STATE_READY
 
 
-def test_cache_hit_after_async_error_restores_the_mesh_without_rebuild(qapp) -> None:
-    """Nach einer asynchronen Abstufung zeigt ein Cache-Treffer das gecachte
-    Mesh erneut (Retry-Weg der Ansicht), ohne einen neuen Build zu starten."""
+def test_cache_hit_after_async_error_stays_on_error_until_retry(qapp) -> None:
+    """Nach einer asynchronen Abstufung startet ein Cache-Treffer keinen Build,
+    zeigt das gecachte Mesh aber auch nicht wieder an: Der Viewer hat den
+    Renderbeweis verloren und wird erst nach ``retry`` neu aufgebaut (#1005)."""
     ctrl, _canvas, worker, view = _ready(qapp)
-    view.show_error()
+    _render_proof_fails(view)
     ctrl.refresh()
-    assert view.state == STATE_READY
+    assert view.state == STATE_ERROR
     assert len(worker.calls) == 1
+    ctrl.retry()
+    assert view.state == STATE_LOADING
+    ctrl._start_build()
+    assert len(worker.calls) == 2
 
 
 # ── Ränder von Build-Start und Ergebnisübernahme (Restzeilen aus #1044) ──
