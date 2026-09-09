@@ -67,6 +67,11 @@ body:
         - ja
         - nein
         - unbekannt
+      # Ohne Vorauswahl rendert GitHub ein nicht ausgefülltes Dropdown als
+      # „None" – hier läse sich das wie die Antwort „nein" (#1061). Der Index
+      # zeigt deshalb auf „unbekannt": derselbe Informationsgehalt, aber als
+      # Aussage statt als Lücke.
+      default: 2
   - type: textarea
     id: reproduction
     attributes:

@@ -43,6 +43,17 @@ _REQUIRED_IDS = {
 
 _EXPECTED_LABELS = {_BUG_FORM.name: "bug", _FEATURE_FORM.name: "enhancement"}
 
+# Vorauswahl je optionalem Dropdown – als **Label**, nicht als Index. Der Index
+# ist eine Position: Bekommt ``WorkflowStep`` je einen siebten Schritt, rutscht
+# „übergreifend" auf 7 und ``default: 6`` zeigte auf den neuen Schritt. Das wäre
+# der Schaden dieses PRs in umgekehrter Richtung – statt einer Lücke, die wie
+# eine Antwort aussieht, eine falsche Antwort, die plausibel aussieht
+# (Review PR #1063).
+_EXPECTED_DROPDOWN_DEFAULTS = {
+    _BUG_FORM.name: {"ai_backend": "unbekannt"},
+    _FEATURE_FORM.name: {"workflow_step": "übergreifend"},
+}
+
 
 def _load(path: Path) -> dict[str, Any]:
     try:
@@ -162,6 +173,50 @@ def test_dropdowns_offer_a_choice(path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
+def test_dropdown_defaults_follow_the_requiredness(path: Path) -> None:
+    """Ein optionales Dropdown braucht eine Vorauswahl, ein Pflicht-Dropdown darf keine haben.
+
+    GitHub rendert ein nicht ausgefülltes Dropdown im erzeugten Issue als
+    ``None`` – bei Textfeldern steht dort ``_No response_``. Für „KI-Hinter-
+    grundentfernung installiert?" las sich das wie die Antwort „nein" statt
+    wie „nicht ausgefüllt" (beobachtet an #1061), also ausgerechnet in einem
+    Feld, das die Triage lenken soll.
+
+    Umgekehrt wäre eine Vorauswahl an einem Pflicht-Dropdown schädlich: Sie
+    nähme dem `required` seine Wirkung, weil das Formular schon mit der
+    voreingestellten Antwort absendbar ist – „Plattform: macOS arm64" wäre
+    dann keine Angabe, sondern eine Vermutung.
+    """
+
+    for element in _load(path)["body"]:
+        if element.get("type") != "dropdown":
+            continue
+        attributes = element["attributes"]
+        default = attributes.get("default")
+        if _is_required(element):
+            assert default is None, (
+                f"{path.name}: Pflicht-Dropdown {element['id']!r} hat eine Vorauswahl –"
+                " damit ist das Formular ohne bewusste Antwort absendbar"
+            )
+            continue
+        assert isinstance(default, int) and not isinstance(default, bool), (
+            f"{path.name}: optionales Dropdown {element['id']!r} ohne default –"
+            " unausgefüllt erscheint es im Issue als 'None'"
+        )
+        options = attributes["options"]
+        assert 0 <= default < len(options), (
+            f"{path.name}: default {default} von {element['id']!r} liegt ausserhalb"
+            f" der {len(options)} Optionen"
+        )
+        expected = _EXPECTED_DROPDOWN_DEFAULTS[path.name][element["id"]]
+        assert options[default] == expected, (
+            f"{path.name}: Vorauswahl von {element['id']!r} zeigt auf"
+            f" {options[default]!r} statt auf {expected!r} – der Index folgt der"
+            " Position, nicht der Aussage"
+        )
+
+
+@pytest.mark.parametrize("path", _FORMS, ids=lambda p: p.name)
 def test_form_presets_its_label(path: Path) -> None:
     """Die Vorbelegung spart den ersten Triage-Handgriff."""
 
@@ -211,7 +266,11 @@ def test_form_avoids_the_documented_rejection_reasons(path: Path) -> None:
     forms". Geprüft werden die Gründe, die hier überhaupt eintreten können und
     die die übrigen Tests nicht schon abdecken: mindestens ein Eingabefeld,
     eindeutige Beschriftungen, ``id`` nur aus erlaubten Zeichen und Optionen
-    ohne Dubletten, ohne das reservierte ``none`` und ohne Wahrheitswerte.
+    ohne Dubletten, ohne die reservierten ``none``/``n/a`` und ohne
+    Wahrheitswerte. Die beiden reservierten Wörter sind erst mit der
+    Vorauswahl scharf geworden: GitHub verbietet sie ausdrücklich, „when a
+    default option is specified" – und der Defaultwächter verlangt für jedes
+    optionale Dropdown genau so eine Vorauswahl.
     Ein ``ja``/``nein``-Paar ist dabei die reale Falle: YAML 1.1 liest
     ``no``/``yes``/``on``/``off`` als Boolean, die deutschen Wörter nicht.
     """
@@ -238,8 +297,10 @@ def test_form_avoids_the_documented_rejection_reasons(path: Path) -> None:
         assert len(normalised) == len(set(normalised)), (
             f"{path.name}: {element['id']!r} hat doppelte Optionen"
         )
-        assert "none" not in normalised, (
-            f"{path.name}: {element['id']!r} nutzt das reservierte Wort 'none'"
+        reserved = {"none", "n/a"} & set(normalised)
+        assert not reserved, (
+            f"{path.name}: {element['id']!r} nutzt ein reserviertes Wort"
+            f" ({', '.join(sorted(reserved))})"
         )
 
 
