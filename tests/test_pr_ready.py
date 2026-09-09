@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -28,6 +29,57 @@ ROOT = Path(__file__).resolve().parent.parent
 
 #: Existiert real im Repository und ist der Grund für ``-z``.
 SPACED_UMLAUT_PATH = "design/Prototyp Ä - Geführter Workflow.dc.html"
+
+#: Diese Datei kennt **nur** die Policy des Fixtures. Klassifizierte das
+#: Skript gegen die Policy des eigenen Checkouts, erschiene sie als unbekannt –
+#: der Test würde den Unterschied also sehen (Review-Befund PR #1065).
+FIXTURE_ONLY_PATH = "nur-im-fixture.md"
+
+
+def _fixture_policy() -> str:
+    """Minimale, gültige Pfadpolicy für die synthetischen Repositories.
+
+    ``design/`` bleibt bewusst unklassifiziert – daran hängt der Nachweis für
+    Sonderzeichen-Pfade.
+    """
+    return json.dumps(
+        {
+            "schema": 1,
+            "policy_version": 1,
+            "unknown_path_behavior": "candidate-relevant-warning",
+            "release_neutral": [
+                {
+                    "id": "fixture-only",
+                    "kind": "exact",
+                    "path": FIXTURE_ONLY_PATH,
+                    "sample_path": FIXTURE_ONLY_PATH,
+                    "reason": "Nur im Fixture – Beleg, dass --repo zählt.",
+                    "evidence": ["Kein Build-Input; existiert nur im Test"],
+                }
+            ],
+            "candidate_relevant": [
+                {"id": name.replace("/", "-").replace(".", "-"), "kind": kind,
+                 "path": name, "sample_path": sample,
+                 "reason": "Fixture-Regel."}
+                for name, kind, sample in (
+                    ("docs/", "prefix", "docs/x.md"),
+                    ("bgremover/", "prefix", "bgremover/x.py"),
+                    ("packaging/", "prefix", "packaging/x.sh"),
+                    ("requirements/", "prefix", "requirements/x.txt"),
+                    ("release/", "prefix", "release/path-policy.json"),
+                    ("scripts/", "prefix", "scripts/x.py"),
+                    ("README.md", "exact", "README.md"),
+                    ("LIESMICH.md", "exact", "LIESMICH.md"),
+                    ("ANLEITUNG.md", "exact", "ANLEITUNG.md"),
+                    ("ANLEITUNG.pdf", "exact", "ANLEITUNG.pdf"),
+                    ("LICENSES.md", "exact", "LICENSES.md"),
+                    ("pyproject.toml", "exact", "pyproject.toml"),
+                )
+            ],
+            "drift_guards": {},
+        },
+        indent=2,
+    )
 
 
 def _run(repo: Path, *args: str) -> None:
@@ -61,6 +113,7 @@ def pr_repo(tmp_path: Path) -> Path:
     _write(repo, "ANLEITUNG.pdf", "%PDF-basis\n")
     _write(repo, "LICENSES.md", "basis\n")
     _write(repo, "pyproject.toml", _pyproject(deps='["pillow"]'))
+    _write(repo, "release/path-policy.json", _fixture_policy())
     for language in pr_ready.LANGUAGES:
         for name in pr_ready.DOC_NAMES:
             _write(repo, f"docs/i18n/{language}/{name}", "basis\n")
@@ -224,6 +277,7 @@ def test_constraints_stay_decidable_without_a_toml_parser(
     obwohl die Pflicht nachweisbar fällig ist (Review-Befund PR #1065).
     """
     monkeypatch.setattr(pr_ready, "_load_toml", lambda text: None)
+    monkeypatch.setattr(pr_ready, "toml_parser_available", lambda: False)
     _write(pr_repo, "requirements/constraints.txt", "pillow==11.0.0\n")
     _write(pr_repo, "pyproject.toml", _pyproject(deps='["pillow", "numpy"]'))
     _commit_all(pr_repo, "bump")
@@ -233,7 +287,7 @@ def test_constraints_stay_decidable_without_a_toml_parser(
     assert code == 1, output
     assert "FEHLER" in output and "HINWEIS" in output
     assert "requirements/constraints.txt" in output
-    assert "ohne TOML-Parser" in output
+    assert "kein TOML-Parser" in output
 
 
 def test_pyproject_alone_without_a_toml_parser_stays_a_note(
@@ -241,13 +295,61 @@ def test_pyproject_alone_without_a_toml_parser_stays_a_note(
 ) -> None:
     """Ohne Parser ist der pyproject-Teil allein wirklich unentscheidbar."""
     monkeypatch.setattr(pr_ready, "_load_toml", lambda text: None)
+    monkeypatch.setattr(pr_ready, "toml_parser_available", lambda: False)
     _write(pr_repo, "pyproject.toml", _pyproject(deps='["pillow", "numpy"]'))
     _commit_all(pr_repo, "bump")
 
     code, output = _check(pr_repo)
 
     assert code == 0, output
-    assert "ohne TOML-Parser" in output
+    assert "kein TOML-Parser" in output
+
+
+def test_invalid_toml_in_the_worktree_does_not_crash(pr_repo: Path) -> None:
+    """Der Arbeitsbaum ist der Normalfall – auch halb editiert.
+
+    ``tomllib.loads`` wirft bei kaputtem TOML; ohne Abfangen endete
+    ``make pr-ready`` mit einem Traceback statt mit dem zugesicherten
+    Verhalten (Review-Befund PR #1065).
+    """
+    (pr_repo / "pyproject.toml").write_text("[project\nkaputt = \n", encoding="utf-8")
+
+    code, output = _check(pr_repo)
+
+    assert code == 0, output
+    assert "ungültiges TOML" in output
+    assert "lizenz-snapshot" in _codes(output)
+
+
+def test_path_policy_comes_from_the_repository_under_check(pr_repo: Path) -> None:
+    """``--repo`` muss auch für die Pfadpolicy gelten.
+
+    Die Fixture-Policy kennt ``nur-im-fixture.md``, die echte Policy dieses
+    Checkouts nicht. Klassifizierte das Skript gegen die eigene, erschiene die
+    Datei als unbekannter Pfad – der Unterschied ist hier der ganze Nachweis.
+    """
+    from scripts import release_path_policy as rpp
+
+    assert not rpp.classify_path(FIXTURE_ONLY_PATH, rpp.load_policy()).explicit
+
+    _write(pr_repo, FIXTURE_ONLY_PATH, "inhalt\n")
+    _commit_all(pr_repo, "fixture-eigener pfad")
+
+    code, output = _check(pr_repo)
+
+    assert code == 0, output
+    assert "pfadpolicy" not in _codes(output)
+
+
+def test_missing_policy_in_the_checked_repository_is_a_note(pr_repo: Path) -> None:
+    """Ohne Policy entfällt die Regel mit Hinweis statt mit einem Abbruch."""
+    (pr_repo / "release" / "path-policy.json").unlink()
+    _commit_all(pr_repo, "policy entfernt")
+
+    code, output = _check(pr_repo)
+
+    assert code == 0, output
+    assert "fehlt in diesem Repository" in output
 
 
 def test_changelog_heuristic_stays_a_note(pr_repo: Path) -> None:
@@ -310,6 +412,23 @@ def test_path_with_space_and_umlaut_survives_quotepath(pr_repo: Path) -> None:
     assert code == 0, output
     assert "pfadpolicy" in _codes(output)
     assert SPACED_UMLAUT_PATH in output
+
+
+def test_leading_space_in_the_first_entry_survives(pr_repo: Path) -> None:
+    """``strip`` über die NUL-Liste beschädigt genau den ersten Eintrag.
+
+    Gemessen: git terminiert auch den letzten Eintrag mit NUL, ein
+    *abschließendes* Leerzeichen ist dadurch geschützt – ein *führendes* im
+    ersten Eintrag nicht. Diese Datei ist die einzige Änderung und damit
+    zugleich der erste Eintrag (Review-Befund PR #1065).
+    """
+    leading = " führend.txt"
+    _write(pr_repo, leading, "inhalt\n")
+
+    changes = pr_ready.collect_changes(pr_repo, "main")
+
+    assert leading in changes.paths
+    assert leading.strip() not in changes.paths
 
 
 def test_rename_reports_both_sides(pr_repo: Path) -> None:

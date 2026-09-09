@@ -125,10 +125,21 @@ class ChangeSet:
 
 
 def _git(repo: Path, *args: str) -> str:
+    """Rohe Ausgabe – bewusst **ohne** ``strip``.
+
+    Diese Funktion bedient nur NUL-getrennte Listen, und ``strip`` liefe über
+    die **gesamte** Ausgabe statt über die Einträge. Betroffen ist der erste:
+    Ein unter Linux völlig legales ``" führend.txt"`` verlöre sein
+    Leerzeichen und würde gegen einen anderen Pfad klassifiziert – dieselbe
+    Fehlerklasse, gegen die ``-z`` hier antritt (Review-Befund PR #1065). Das
+    Listen*ende* ist dagegen unkritisch: git terminiert auch den letzten
+    Eintrag mit NUL, und der schirmt abschließende Leerzeichen ab (gemessen).
+    ``_split_nul`` wirft leere Einträge ohnehin weg.
+    """
     result = subprocess.run(
         ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True
     )
-    return result.stdout.strip()
+    return result.stdout
 
 
 def _git_optional(repo: Path, *args: str) -> str | None:
@@ -185,12 +196,29 @@ def collect_changes(repo: Path, base_ref: str) -> ChangeSet:
     )
 
 
-def _load_toml(text: str) -> dict[str, Any] | None:
-    """TOML lesen, sofern ein Parser da ist.
+def toml_parser_available() -> bool:
+    """Ob überhaupt ein TOML-Parser bereitsteht (``tomllib`` bzw. ``tomli``)."""
+    try:
+        import tomllib  # noqa: F401
+    except ModuleNotFoundError:  # pragma: no cover - nur unter Python 3.10
+        try:
+            import tomli  # noqa: F401
+        except ModuleNotFoundError:
+            return False
+    return True
 
-    ``tomllib`` gibt es erst ab Python 3.11; das Projekt unterstützt 3.10.
-    Fehlt auch ``tomli``, liefert die Funktion ``None`` und der Aufrufer stuft
-    auf einen Hinweis herab, statt eine Pflicht zu erfinden oder zu verschweigen.
+
+def _load_toml(text: str) -> dict[str, Any] | None:
+    """TOML lesen, sofern es lesbar ist.
+
+    ``None`` steht für „nicht entscheidbar" und hat **zwei** Ursachen:
+    ``tomllib`` gibt es erst ab Python 3.11 (das Projekt unterstützt 3.10),
+    und der gelesene Text kann ungültig sein. Der zweite Fall ist hier der
+    wahrscheinlichere: Gelesen wird ``pyproject.toml`` aus dem **Arbeitsbaum**,
+    und der ist der ausdrückliche Normalfall dieses Skripts – eine halb
+    editierte Datei beendete den Lauf sonst mit einem Traceback statt mit dem
+    zugesicherten Verhalten (Review-Befund PR #1065). Der Aufrufer stuft in
+    beiden Fällen auf einen Hinweis herab.
     """
     try:
         import tomllib
@@ -199,7 +227,10 @@ def _load_toml(text: str) -> dict[str, Any] | None:
             import tomli as tomllib  # type: ignore[no-redef]
         except ModuleNotFoundError:
             return None
-    return tomllib.loads(text)
+    try:
+        return tomllib.loads(text)
+    except tomllib.TOMLDecodeError:
+        return None
 
 
 def _project_license_fields(text: str) -> dict[str, Any] | None:
@@ -312,13 +343,22 @@ def _rule_license_snapshot(repo: Path, changes: ChangeSet) -> list[Finding]:
         reasons.append(CONSTRAINTS_PATH)
     fields = license_relevant_pyproject_fields(repo, changes)
     if fields is None:
+        cause = (
+            "ungültiges TOML"
+            if toml_parser_available()
+            else "kein TOML-Parser (Python 3.10 ohne tomli)"
+        )
         findings.append(
             Finding(
                 NOTE,
                 "lizenz-snapshot",
-                f"{PYPROJECT_PATH} geändert, aber ohne TOML-Parser nicht semantisch "
-                "prüfbar (Python 3.10 ohne tomli). license-check.yml entscheidet.",
-                ("optional: pip install tomli",),
+                f"{PYPROJECT_PATH} geändert, aber nicht semantisch prüfbar "
+                f"({cause}). license-check.yml entscheidet.",
+                (
+                    "pyproject.toml auf gültiges TOML prüfen"
+                    if toml_parser_available()
+                    else "optional: pip install tomli",
+                ),
             )
         )
     elif fields:
@@ -340,8 +380,28 @@ def _rule_license_snapshot(repo: Path, changes: ChangeSet) -> list[Finding]:
     return findings
 
 
-def _rule_path_policy(paths: frozenset[str]) -> list[Finding]:
-    policy = rpp.load_policy()
+def _rule_path_policy(repo: Path, paths: frozenset[str]) -> list[Finding]:
+    """Klassifiziert gegen die Policy **des geprüften** Repositories.
+
+    ``rpp.load_policy()`` nähme die Vorgabe – also immer die Policy dieses
+    Checkouts – während alle anderen Regeln aus ``--repo`` lesen. Bei einem
+    zweiten Worktree klassifizierte das fremde Pfade still gegen die hiesigen
+    Regeln (Review-Befund PR #1065). Fehlt dort eine Policy, entfällt die
+    Regel mit Hinweis statt mit einem Abbruch.
+    """
+    if not paths:
+        return []
+    policy_path = repo / rpp.POLICY_PATH
+    if not policy_path.is_file():
+        return [
+            Finding(
+                NOTE,
+                "pfadpolicy",
+                f"{rpp.POLICY_PATH} fehlt in diesem Repository – Pfade bleiben "
+                "unklassifiziert.",
+            )
+        ]
+    policy = rpp.load_policy(policy_path)
     unknown = sorted(
         path for path in paths if not rpp.classify_path(path, policy).explicit
     )
@@ -375,7 +435,7 @@ def evaluate(repo: Path, changes: ChangeSet) -> list[Finding]:
         *_rule_i18n(changes.paths),
         *_rule_anleitung_pdf(changes.paths),
         *_rule_license_snapshot(repo, changes),
-        *_rule_path_policy(changes.paths),
+        *_rule_path_policy(repo, changes.paths),
         *_rule_changelog(changes.paths),
     ]
     return sorted(findings, key=lambda item: (item.level != ERROR, item.code, item.message))
