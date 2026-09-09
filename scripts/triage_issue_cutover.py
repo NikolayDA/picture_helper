@@ -39,6 +39,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
@@ -345,12 +346,16 @@ def validate_decisions(
     decisions: Mapping[int, Decision], rows: Mapping[int, TriageRow],
 ) -> None:
     """Innere Konsistenz der Akte gegen die Tabelle (netzfrei)."""
+    # Nur die Zeilen, deren Text übernommen wird, müssen in der Tabelle stehen und
+    # entschieden sein. Die Tabelle selbst ist bewusst *kein* Prüfgegenstand: Sie
+    # wächst mit jedem neuen Issue weiter (bis #1040), und die Voll-Abdeckung des
+    # offenen Bestands bindet ``validate_live_coverage`` an den Live-Stand.
     missing_rows = sorted(LEGACY_ROWS - rows.keys())
     if missing_rows:
         raise CutoverError(f"Legacy-Zeilen fehlen in der Tabelle: {missing_rows}")
-    undecided = sorted(rows.keys() - decisions.keys())
+    undecided = sorted(LEGACY_ROWS - decisions.keys())
     if undecided:
-        raise CutoverError(f"Tabellenzeilen ohne Entscheidung: {undecided}")
+        raise CutoverError(f"Legacy-Zeilen ohne Entscheidung: {undecided}")
     for number, decision in decisions.items():
         if decision.prio not in PRIO_LABELS:
             raise CutoverError(f"#{number}: unbekanntes Prio-Label {decision.prio!r}")
@@ -401,6 +406,13 @@ def render_comment(row: TriageRow, decision: Decision) -> str:
     if decision.note is not None:
         lines.append(f"Bewusste Abweichung vom Tabellentext: {decision.note}.")
     return "\n".join(lines) + FOOTER
+
+
+def render_extern_note(decision: Decision) -> str:
+    """Begründungszeile für ``blocked:extern`` ohne Legacy-Übernahme."""
+    if decision.extern is None:
+        raise CutoverError("render_extern_note ohne externen Blocker")
+    return f"{EXTERN_PREFIX}{decision.extern}" + FOOTER
 
 
 def render_epic_comment(next_steps: Iterable[str], cutover_commit: str) -> str:
@@ -492,11 +504,13 @@ class GitHubClient:
         ]
 
     def list_blocked_by(self, number: int) -> set[int]:
+        """Offene native Blocker; ein geschlossener Blocker blockiert nicht mehr."""
         return {
             int(item["number"])
             for item in self._paginate(
                 f"/repos/{self.repo}/issues/{number}/dependencies/blocked_by"
             )
+            if item.get("state", "open") == "open"
         }
 
     # -- Schreiben
@@ -526,8 +540,28 @@ class GitHubClient:
 # --- Plan / Apply ------------------------------------------------------------
 
 
-def _has_marker(bodies: Iterable[str], marker: str) -> int:
-    return sum(1 for body in bodies if marker in body)
+def _marker_state(bodies: Iterable[str], marker: str, expected: str) -> tuple[int, int]:
+    """(Kommentare mit Marker, davon byteweise gleich der erwarteten Fassung)."""
+    marked = [body for body in bodies if marker in body]
+    return len(marked), sum(1 for body in marked if body == expected)
+
+
+def _needs_comment(number: int, bodies: Iterable[str], marker: str, expected: str) -> bool:
+    """Fehlt der Kommentar → True; vorhanden und wortgleich → False; sonst Abbruch.
+
+    Ein abweichender oder doppelter Kommentar wird nie still übersprungen: Ein
+    verkürzter Altbestand mit passendem Marker ließe sonst „übertragen“ melden,
+    wo der Text gar nicht wortgleich ist – das behebt ein Mensch, nicht das Skript.
+    """
+    marked, exact = _marker_state(bodies, marker, expected)
+    if marked == 0:
+        return True
+    if marked == 1 and exact == 1:
+        return False
+    raise CutoverError(
+        f"#{number}: {marked} Kommentar(e) mit Marker {marker[:40]!r}, "
+        f"{exact} davon wortgleich – von Hand bereinigen"
+    )
 
 
 def build_plan(
@@ -554,22 +588,28 @@ def build_plan(
             actions.append(Action("add_label", number, label))
         for label in sorted(unwanted & issue.labels):
             actions.append(Action("remove_label", number, label))
-        if decision.blocked_by:
-            present = client.list_blocked_by(number)
-            for blocker in decision.blocked_by:
-                if blocker not in present:
-                    actions.append(Action("add_blocked_by", number, str(blocker)))
+        present = client.list_blocked_by(number)
+        unexpected = sorted(present - set(decision.blocked_by))
+        if unexpected:
+            # Ein von Hand gesetzter Blocker außerhalb der Akte wird nicht still
+            # entfernt und nicht still geduldet: Akte oder Issue muss jemand angleichen.
+            raise CutoverError(f"#{number}: native Blocker außerhalb der Akte: {unexpected}")
+        for blocker in decision.blocked_by:
+            if blocker not in present:
+                actions.append(Action("add_blocked_by", number, str(blocker)))
         if number in LEGACY_ROWS:
-            bodies = client.list_comment_bodies(number)
-            count = _has_marker(bodies, COMMENT_MARKER)
-            if count > 1:
-                raise CutoverError(f"#{number} trägt bereits {count} Übernahmekommentare")
-            if count == 0:
-                actions.append(Action("comment", number, render_comment(rows[number], decision)))
-    if _has_marker(client.list_comment_bodies(EPIC_ISSUE), EPIC_MARKER) == 0:
-        actions.append(
-            Action("comment", EPIC_ISSUE, render_epic_comment(next_steps, cutover_commit))
-        )
+            expected = render_comment(rows[number], decision)
+            if _needs_comment(number, client.list_comment_bodies(number), COMMENT_MARKER, expected):
+                actions.append(Action("comment", number, expected))
+        elif decision.extern is not None:
+            expected = render_extern_note(decision)
+            if _needs_comment(number, client.list_comment_bodies(number), EXTERN_PREFIX, expected):
+                actions.append(Action("comment", number, expected))
+    expected_epic = render_epic_comment(next_steps, cutover_commit)
+    if _needs_comment(
+        EPIC_ISSUE, client.list_comment_bodies(EPIC_ISSUE), EPIC_MARKER, expected_epic
+    ):
+        actions.append(Action("comment", EPIC_ISSUE, expected_epic))
     return actions
 
 
@@ -597,7 +637,12 @@ def apply_plan(
         elif action.kind == "remove_label":
             client.remove_label(action.issue, action.payload)
         elif action.kind == "add_blocked_by":
-            client.add_blocked_by(action.issue, live[int(action.payload)].issue_id)
+            blocker = live.get(int(action.payload))
+            if blocker is None:
+                raise CutoverError(
+                    f"#{action.issue}: Blocker #{action.payload} ist nicht mehr offen"
+                )
+            client.add_blocked_by(action.issue, blocker.issue_id)
         elif action.kind == "comment":
             client.create_comment(action.issue, action.payload)
         else:  # pragma: no cover - Programmierfehler
@@ -611,9 +656,15 @@ def verify(
     client: GitHubClient,
     rows: Mapping[int, TriageRow],
     decisions: Mapping[int, Decision],
+    next_steps: list[str],
+    cutover_commit: str,
     now: datetime | None = None,
 ) -> VerifyReport:
-    """Die zwei Cutover-Abgleiche aus #1033 plus Blocker-Konsistenz; schreibt nichts."""
+    """Die zwei Cutover-Abgleiche aus #1033 plus Blocker-Konsistenz; schreibt nichts.
+
+    Übernahme- und Epic-Kommentar gelten nur **wortgleich** zur gerenderten
+    Fassung als übertragen – ein Marker allein reicht nicht.
+    """
     checked_at = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
     live = client.list_open_issues()
     report = VerifyReport(
@@ -621,26 +672,47 @@ def verify(
         query=f"GET /repos/{client.repo}/issues?state=open (Pull Requests ausgeschlossen)",
         open_count=len(live),
     )
-    # (a) Legacy-Tabellenzeilen ↔ genau ein Übernahmekommentar
+    # (a) Legacy-Tabellenzeilen ↔ genau ein wortgleicher Übernahmekommentar
     missing: list[int] = []
     duplicated: list[int] = []
-    for number in sorted(LEGACY_ROWS):
-        if number not in live:
-            continue
-        count = _has_marker(client.list_comment_bodies(number), COMMENT_MARKER)
-        if count == 0:
-            missing.append(number)
-        elif count > 1:
-            duplicated.append(number)
+    divergent: list[int] = []
     legacy_open = sorted(n for n in LEGACY_ROWS if n in live)
+    for number in legacy_open:
+        decision = decisions.get(number)
+        row = rows.get(number)
+        if decision is None or row is None:
+            missing.append(number)
+            continue
+        marked, exact = _marker_state(
+            client.list_comment_bodies(number), COMMENT_MARKER, render_comment(row, decision)
+        )
+        if marked == 0:
+            missing.append(number)
+        elif marked > 1:
+            duplicated.append(number)
+        elif exact != 1:
+            divergent.append(number)
+    conforming = len(legacy_open) - len(missing) - len(duplicated) - len(divergent)
     report.lines.append(
-        f"(a) Tabellenzeilen ↔ Übernahmekommentare: {len(legacy_open) - len(missing)}/"
-        f"{len(legacy_open)} offene Legacy-Zeilen mit genau einem Kommentar"
+        f"(a) Tabellenzeilen ↔ Übernahmekommentare: {conforming}/{len(legacy_open)} "
+        "offene Legacy-Zeilen mit genau einem wortgleichen Kommentar"
     )
     if missing:
         report.problems.append(f"(a) ohne Übernahmekommentar: {missing}")
     if duplicated:
         report.problems.append(f"(a) mehrfacher Übernahmekommentar: {duplicated}")
+    if divergent:
+        report.problems.append(f"(a) Übernahmekommentar nicht wortgleich: {divergent}")
+    if EPIC_ISSUE in live:
+        marked, exact = _marker_state(
+            client.list_comment_bodies(EPIC_ISSUE), EPIC_MARKER,
+            render_epic_comment(next_steps, cutover_commit),
+        )
+        if (marked, exact) != (1, 1):
+            report.problems.append(
+                f"Epic #{EPIC_ISSUE}: {marked} Kommentar(e) „Als Nächstes empfohlen“, "
+                f"{exact} wortgleich"
+            )
     # (b) Live-Bestand ↔ genau ein prio:*-Label
     bad_prio: list[int] = []
     for number, issue in sorted(live.items()):
@@ -652,9 +724,12 @@ def verify(
     )
     if bad_prio:
         report.problems.append(f"(b) nicht genau ein prio-Label: {bad_prio}")
-    # Blocker-Konsistenz gegen die Akte
+    # Blocker-Konsistenz gegen die Akte: Label, Begründungszeile, native Abhängigkeiten
     extern_mismatch: list[int] = []
+    extern_unexplained: list[int] = []
     dep_missing: list[str] = []
+    dep_unexpected: list[str] = []
+    dep_expected = 0
     for number, issue in sorted(live.items()):
         decision = decisions.get(number)
         if decision is None:
@@ -662,21 +737,36 @@ def verify(
             continue
         if (BLOCKED_EXTERN in issue.labels) != (decision.extern is not None):
             extern_mismatch.append(number)
-        if decision.blocked_by:
-            present = client.list_blocked_by(number)
-            for blocker in decision.blocked_by:
-                if blocker not in present:
-                    dep_missing.append(f"#{number}←#{blocker}")
+        if decision.extern is not None:
+            first_lines = {
+                body.splitlines()[0] for body in client.list_comment_bodies(number) if body
+            }
+            if f"{EXTERN_PREFIX}{decision.extern}" not in first_lines:
+                extern_unexplained.append(number)
+        present = client.list_blocked_by(number)
+        # Ein inzwischen geschlossener Blocker ist erfüllt, nicht fehlend – GitHub
+        # führt ihn nicht mehr als offene Abhängigkeit, die Akte bleibt Snapshot.
+        expected = [b for b in decision.blocked_by if b in live]
+        dep_expected += len(expected)
+        dep_missing.extend(f"#{number}←#{b}" for b in expected if b not in present)
+        dep_unexpected.extend(
+            f"#{number}←#{b}" for b in sorted(present - set(decision.blocked_by))
+        )
     extern_count = sum(1 for issue in live.values() if BLOCKED_EXTERN in issue.labels)
-    dep_count = sum(len(d.blocked_by) for n, d in decisions.items() if n in live)
+    dep_count = dep_expected
     report.lines.append(
-        f"Blocker: {extern_count} × `{BLOCKED_EXTERN}`, {dep_count - len(dep_missing)}/"
-        f"{dep_count} native Abhängigkeiten aus der Akte vorhanden"
+        f"Blocker: {extern_count} × `{BLOCKED_EXTERN}` (je mit Begründungszeile), "
+        f"{dep_count - len(dep_missing)}/{dep_count} native Abhängigkeiten aus der Akte "
+        f"vorhanden, {len(dep_unexpected)} außerhalb der Akte"
     )
     if extern_mismatch:
         report.problems.append(f"blocked:extern ≠ Akte: {extern_mismatch}")
+    if extern_unexplained:
+        report.problems.append(f"blocked:extern ohne Begründungszeile: {extern_unexplained}")
     if dep_missing:
         report.problems.append(f"fehlende Abhängigkeiten: {dep_missing}")
+    if dep_unexpected:
+        report.problems.append(f"native Blocker außerhalb der Akte: {dep_unexpected}")
     return report
 
 
@@ -709,6 +799,32 @@ def render_decision_table(
 
 
 # --- CLI ---------------------------------------------------------------------
+
+
+_SHA_RE: Final = re.compile(r"^[0-9a-f]{7,40}$")
+
+
+def resolve_commit(
+    ref: str, repo_root: Path, run: Callable[..., Any] = subprocess.run,
+) -> str:
+    """Löst eine Git-Referenz auf einen unveränderlichen Kurz-SHA auf.
+
+    Der Cutover-Stand wandert wörtlich in Epic-Kommentar und Bericht; ein
+    ``HEAD`` dort bezeichnete nach dem nächsten Commit einen anderen Stand.
+    """
+    if _SHA_RE.match(ref):
+        return ref
+    try:
+        result = run(
+            ["git", "-C", str(repo_root), "rev-parse", "--short=7", "--verify", f"{ref}^{{commit}}"],
+            capture_output=True, text=True, check=False,
+        )
+    except OSError as exc:
+        raise CutoverError(f"git nicht aufrufbar: {exc}") from exc
+    sha = str(result.stdout).strip()
+    if result.returncode != 0 or not _SHA_RE.match(sha):
+        raise CutoverError(f"Cutover-Commit {ref!r} nicht auflösbar: {str(result.stderr).strip()}")
+    return sha
 
 
 def _load_table(path: Path) -> tuple[dict[int, TriageRow], list[str]]:
@@ -745,22 +861,24 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         rows, next_steps = _load_table(args.recommendations)
+        cutover_commit = resolve_commit(str(args.cutover_commit), args.recommendations.parent)
         if args.command == "plan":
             print(render_decision_table(rows, DECISIONS))
             print(f"\n{len(rows)} Tabellenzeilen, {len(LEGACY_ROWS)} Legacy-Zeilen, "
-                  f"{len(DECISIONS)} Entscheidungen, {len(next_steps)} Als-Nächstes-Punkte")
+                  f"{len(DECISIONS)} Entscheidungen, {len(next_steps)} Als-Nächstes-Punkte, "
+                  f"Cutover-Stand {cutover_commit}")
             return 0
         client = _client(args)
         if args.command == "apply":
-            actions = build_plan(client, rows, DECISIONS, next_steps, str(args.cutover_commit))
+            actions = build_plan(client, rows, DECISIONS, next_steps, cutover_commit)
             for action in actions:
                 print(f"[cutover] {'plan' if args.dry_run else 'do'}: {describe(action)}")
             print(f"[cutover] {len(actions)} Aktionen")
             if not args.dry_run and actions:
                 apply_plan(client, actions, client.list_open_issues())
             return 0
-        report = verify(client, rows, DECISIONS)
-        print(render_report(report, str(args.cutover_commit)))
+        report = verify(client, rows, DECISIONS, next_steps, cutover_commit)
+        print(render_report(report, cutover_commit))
         return 0 if report.ok else 1
     except CutoverError as exc:
         print(f"[cutover] Fehler: {exc}", file=sys.stderr)

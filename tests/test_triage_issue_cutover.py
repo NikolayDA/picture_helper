@@ -82,15 +82,29 @@ def test_parse_triage_table_fails_closed(broken: str) -> None:
         tic.parse_triage_table(broken)
 
 
+def _synthetic_rows(numbers: set[int]) -> dict[int, Any]:
+    return {n: tic.TriageRow(n, f"T{n}", "🟡 Mittel", "🟢 Niedrig", "x") for n in numbers}
+
+
 def test_decision_record_is_internally_consistent() -> None:
-    """Die Akte gegen die echte Tabelle im Checkout – so lange es sie gibt (#1040)."""
-    text = (ROOT / "RECOMMENDATIONS.md").read_text(encoding="utf-8")
-    rows = tic.parse_triage_table(text)
-    tic.validate_decisions(tic.DECISIONS, rows)
+    """Innere Konsistenz der Akte – bewusst ohne die echte Tabelle im Checkout.
+
+    Die Tabelle wächst bis #1040 mit jedem neuen Issue weiter und entfällt
+    danach; ein Test gegen die Datei machte die tote Akte zum Wächter.
+    """
+    tic.validate_decisions(tic.DECISIONS, _synthetic_rows(set(tic.LEGACY_ROWS)))
     assert len(tic.LEGACY_ROWS) == 41
     assert set(tic.DECISIONS) >= tic.LEGACY_ROWS
     for number, decision in tic.DECISIONS.items():
         assert decision.prio in tic.PRIO_LABELS, number
+
+
+def test_validate_decisions_ignores_table_rows_without_decision() -> None:
+    """Eine neue Tabellenzeile (Issue nach dem Cutover) ist kein Fehler der Akte."""
+    rows = _synthetic_rows(set(tic.LEGACY_ROWS) | {999_999})
+    tic.validate_decisions(tic.DECISIONS, rows)
+    with pytest.raises(tic.CutoverError, match="Legacy-Zeilen fehlen"):
+        tic.validate_decisions(tic.DECISIONS, _synthetic_rows(set(tic.LEGACY_ROWS) - {245}))
 
 
 def test_validate_decisions_rejects_unknown_blocker_and_self_block(
@@ -184,7 +198,7 @@ class _FakeGitHub:
             data = [{"body": b} for b in bodies] if page == 1 else []
             return _FakeResponse(json.dumps(data).encode())
         if method == "GET" and query.endswith("/blocked_by"):
-            deps = [{"number": n} for n in self.issues[number]["blocked_by"]]
+            deps = [{"number": n, "state": "open"} for n in self.issues[number]["blocked_by"]]
             return _FakeResponse(json.dumps(deps).encode())
         if method == "POST" and query.endswith("/labels") and len(parts) == 4:
             self.labels.add(body["name"])
@@ -236,7 +250,8 @@ def test_plan_apply_verify_roundtrip_is_idempotent(monkeypatch: pytest.MonkeyPat
     assert ("add_blocked_by", 11, "10") in kinds
     assert sum(1 for a in actions if a.kind == "comment") == 3  # #10, #11, Epic
 
-    report_before = tic.verify(client, rows, decisions, now=datetime(2026, 9, 9, tzinfo=timezone.utc))
+    when = datetime(2026, 9, 9, tzinfo=timezone.utc)
+    report_before = tic.verify(client, rows, decisions, next_steps, "abc1234", now=when)
     assert not report_before.ok
     assert any("(a)" in p for p in report_before.problems)
     assert any("(b)" in p for p in report_before.problems)
@@ -249,14 +264,111 @@ def test_plan_apply_verify_roundtrip_is_idempotent(monkeypatch: pytest.MonkeyPat
     assert fake.issues[tic.EPIC_ISSUE]["comments"][0].startswith(tic.EPIC_MARKER)
 
     assert tic.build_plan(client, rows, decisions, next_steps, "abc1234") == []
-    report = tic.verify(client, rows, decisions, now=datetime(2026, 9, 9, tzinfo=timezone.utc))
+    report = tic.verify(client, rows, decisions, next_steps, "abc1234", now=when)
     assert report.ok, report.problems
     assert report.open_count == 3
     rendered = tic.render_report(report, "abc1234")
     assert rendered.startswith("**Cutover-Abgleich grün** – 2026-09-09T00:00:00Z")
-    assert "2/2 offene Legacy-Zeilen" in rendered
+    assert "2/2 offene Legacy-Zeilen mit genau einem wortgleichen Kommentar" in rendered
     assert "3/3 Issues" in rendered
-    assert "1 × `blocked:extern`, 1/1 native Abhängigkeiten" in rendered
+    assert "1 × `blocked:extern` (je mit Begründungszeile), 1/1 native" in rendered
+    assert "0 außerhalb der Akte" in rendered
+
+
+def test_verify_counts_duplicates_and_divergent_comments_as_nonconforming(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(tic, "LEGACY_ROWS", frozenset({10, 11}))
+    fake, rows, decisions, next_steps = _fixture_world()
+    client = tic.GitHubClient("o/r", token=None, opener=fake)
+    tic.apply_plan(client, tic.build_plan(client, rows, decisions, next_steps, "abc1234"),
+                   client.list_open_issues())
+    fake.issues[10]["comments"].append(f"{tic.COMMENT_MARKER} zweite Kopie")
+    fake.issues[11]["comments"][0] = f"{tic.COMMENT_MARKER} verkürzt"
+    report = tic.verify(client, rows, decisions, next_steps, "abc1234")
+    assert "0/2 offene Legacy-Zeilen" in report.lines[0]
+    assert any("mehrfacher Übernahmekommentar: [10]" in p for p in report.problems)
+    assert any("nicht wortgleich: [11]" in p for p in report.problems)
+    assert any("blocked:extern ohne Begründungszeile: [11]" in p for p in report.problems)
+    with pytest.raises(tic.CutoverError, match=r"#10: 2 Kommentar\(e\) mit Marker"):
+        tic.build_plan(client, rows, decisions, next_steps, "abc1234")
+
+
+def test_epic_comment_must_match_verbatim(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(tic, "LEGACY_ROWS", frozenset({10, 11}))
+    fake, rows, decisions, next_steps = _fixture_world()
+    client = tic.GitHubClient("o/r", token=None, opener=fake)
+    tic.apply_plan(client, tic.build_plan(client, rows, decisions, next_steps, "abc1234"),
+                   client.list_open_issues())
+    report = tic.verify(client, rows, decisions, next_steps, "0000000")
+    assert any("Epic #1032" in p and "0 wortgleich" in p for p in report.problems)
+    with pytest.raises(tic.CutoverError, match="#1032: 1 Kommentar"):
+        tic.build_plan(client, rows, decisions, next_steps, "0000000")
+
+
+def test_unexpected_native_blocker_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(tic, "LEGACY_ROWS", frozenset({10, 11}))
+    fake, rows, decisions, next_steps = _fixture_world()
+    client = tic.GitHubClient("o/r", token=None, opener=fake)
+    fake.issues[10]["blocked_by"] = {11}
+    with pytest.raises(tic.CutoverError, match=r"#10: native Blocker außerhalb der Akte: \[11\]"):
+        tic.build_plan(client, rows, decisions, next_steps, "abc1234")
+    report = tic.verify(client, rows, decisions, next_steps, "abc1234")
+    assert any("außerhalb der Akte: ['#10←#11']" in p for p in report.problems)
+    assert "1 außerhalb der Akte" in report.lines[-1]
+
+
+def test_extern_outside_legacy_rows_gets_reason_line(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(tic, "LEGACY_ROWS", frozenset({10}))
+    fake, rows, decisions, next_steps = _fixture_world()
+    client = tic.GitHubClient("o/r", token=None, opener=fake)
+    actions = tic.build_plan(client, rows, decisions, next_steps, "abc1234")
+    note = [a for a in actions if a.kind == "comment" and a.issue == 11]
+    assert len(note) == 1
+    assert note[0].payload == f"Blockiert extern durch: Hardware{tic.FOOTER}"
+    tic.apply_plan(client, actions, client.list_open_issues())
+    assert tic.build_plan(client, rows, decisions, next_steps, "abc1234") == []
+    assert tic.verify(client, rows, decisions, next_steps, "abc1234").ok
+
+
+def test_verify_treats_closed_blocker_as_satisfied(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Nach dem Cutover schließen Blocker; die Akte bleibt Snapshot und meldet nichts."""
+    monkeypatch.setattr(tic, "LEGACY_ROWS", frozenset({10, 11}))
+    fake, rows, decisions, next_steps = _fixture_world()
+    client = tic.GitHubClient("o/r", token=None, opener=fake)
+    tic.apply_plan(client, tic.build_plan(client, rows, decisions, next_steps, "abc1234"),
+                   client.list_open_issues())
+    del fake.issues[10]  # Blocker #10 geschlossen; GitHub führt ihn nicht mehr als offen
+    fake.issues[11]["blocked_by"].clear()
+    monkeypatch.setattr(tic, "LEGACY_ROWS", frozenset({11}))
+    report = tic.verify(client, rows, decisions, next_steps, "abc1234")
+    assert report.ok, report.problems
+    assert "0/0 native Abhängigkeiten" in report.lines[-1]
+
+
+def test_apply_plan_names_a_blocker_closed_since_planning() -> None:
+    fake, rows, decisions, next_steps = _fixture_world()
+    client = tic.GitHubClient("o/r", token=None, opener=fake)
+    live = client.list_open_issues()
+    del live[10]
+    with pytest.raises(tic.CutoverError, match="#11: Blocker #10 ist nicht mehr offen"):
+        tic.apply_plan(client, [tic.Action("add_blocked_by", 11, "10")], live)
+
+
+def test_resolve_commit_turns_refs_into_short_shas(tmp_path: Path) -> None:
+    assert tic.resolve_commit("9650799", tmp_path) == "9650799"
+
+    def ok(argv: list[str], **_: Any) -> Any:
+        assert argv[:4] == ["git", "-C", str(tmp_path), "rev-parse"]
+        return type("R", (), {"returncode": 0, "stdout": "b72fc7a\n", "stderr": ""})()
+
+    assert tic.resolve_commit("HEAD", tmp_path, run=ok) == "b72fc7a"
+
+    def bad(argv: list[str], **_: Any) -> Any:
+        return type("R", (), {"returncode": 128, "stdout": "", "stderr": "fatal: nope"})()
+
+    with pytest.raises(tic.CutoverError, match="nicht auflösbar: fatal: nope"):
+        tic.resolve_commit("HEAD", tmp_path, run=bad)
 
 
 def test_build_plan_refuses_duplicate_transfer_comment(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -264,7 +376,7 @@ def test_build_plan_refuses_duplicate_transfer_comment(monkeypatch: pytest.Monke
     fake, rows, decisions, next_steps = _fixture_world()
     fake.issues[10]["comments"] = [f"{tic.COMMENT_MARKER} x", f"{tic.COMMENT_MARKER} y"]
     client = tic.GitHubClient("o/r", token=None, opener=fake)
-    with pytest.raises(tic.CutoverError, match="bereits 2 Übernahmekommentare"):
+    with pytest.raises(tic.CutoverError, match=r"#10: 2 Kommentar\(e\) mit Marker"):
         tic.build_plan(client, rows, decisions, next_steps, "abc1234")
 
 
@@ -289,12 +401,21 @@ def test_http_errors_become_cutover_errors() -> None:
         client.list_labels()
 
 
-def test_cli_plan_is_offline_and_reports_counts(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
-    exit_code = tic.main(["plan"])
+def test_cli_plan_is_offline_and_reports_counts(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(tic, "LEGACY_ROWS", frozenset({10, 11}))
+    monkeypatch.setattr(tic, "DECISIONS", _fixture_world()[2])
+    table = tmp_path / "RECOMMENDATIONS.md"
+    table.write_text(TABLE, encoding="utf-8")
+    argv = ["--recommendations", str(table), "--cutover-commit", "abc1234", "plan"]
+    assert tic.main(argv) == 0
     out = capsys.readouterr().out
-    assert exit_code == 0
-    assert "41 Legacy-Zeilen" in out
-    assert f"{len(tic.DECISIONS)} Entscheidungen" in out
-    broken = tmp_path / "RECOMMENDATIONS.md"
+    assert "2 Tabellenzeilen, 2 Legacy-Zeilen, 3 Entscheidungen, 2 Als-Nächstes-Punkte" in out
+    assert "Cutover-Stand abc1234" in out
+    # Ohne Git-Repository lässt sich das Standard-``HEAD`` nicht auflösen → benannter Fehler.
+    assert tic.main(["--recommendations", str(table), "plan"]) == 2
+    assert "nicht auflösbar" in capsys.readouterr().err
+    broken = tmp_path / "broken.md"
     broken.write_text("# nichts\n", encoding="utf-8")
-    assert tic.main(["--recommendations", str(broken), "plan"]) == 2
+    assert tic.main(["--recommendations", str(broken), "--cutover-commit", "abc1234", "plan"]) == 2
