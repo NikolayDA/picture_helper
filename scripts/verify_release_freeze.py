@@ -28,10 +28,10 @@ import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Final, cast
+from typing import Any, Final, TextIO, cast
 
 try:  # Dateiaufruf: ``python scripts/verify_release_freeze.py``
     import release_path_policy as rpp
@@ -103,6 +103,10 @@ RELEASE_BODY_MARKERS: Final[dict[str, tuple[str, ...]]] = {
 
 _ERROR: Final = "error"
 _WARNING: Final = "warning"
+#: Je Commit genannte unbekannte Pfade, bevor die Liste gekuerzt wird.
+_UNKNOWN_PATHS_SHOWN: Final = 5
+#: Schweregrade, die unter GitHub Actions als Annotation gespiegelt werden.
+_ACTIONS_LEVELS: Final = {_ERROR: "error", _WARNING: "warning"}
 _OK: Final = "ok"
 
 _SEVERITY_ORDER: Final = {_ERROR: 0, _WARNING: 1, _OK: 2}
@@ -518,7 +522,9 @@ def classify_commits(
     findings: list[Finding] = []
     records: list[CommitRecord] = []
     unknown_severity = _ERROR if policy.unknown_paths_block else _WARNING
-    unknown_total = 0
+    # Verschiedene Pfade, nicht Vorkommen: Derselbe unklassifizierte Pfad in
+    # drei Commits ist genau ein fehlender Policy-Eintrag (Review #1057).
+    unknown_paths: set[str] = set()
     window = tuple(reversed(commits_between(repo, base, head, first_parent=True)))
     for sha in window:
         paths = changed_paths(repo, sha)
@@ -532,14 +538,19 @@ def classify_commits(
             )
         classified = tuple(rpp.classify_path(path, policy) for path in paths)
         unknown = tuple(item.path for item in classified if not item.explicit)
-        unknown_total += len(unknown)
+        unknown_paths.update(unknown)
         if unknown:
+            # Unter ``warning`` laeuft der Build weiter – die Pfade 6+ stuenden
+            # sonst nur noch in der Provenienz-JSON, die niemand routinemaessig
+            # oeffnet. Deshalb wenigstens die Zahl der gekuerzten Eintraege.
+            shown = ", ".join(unknown[:_UNKNOWN_PATHS_SHOWN])
+            if len(unknown) > _UNKNOWN_PATHS_SHOWN:
+                shown += f" (+{len(unknown) - _UNKNOWN_PATHS_SHOWN} weitere)"
             findings.append(
                 Finding(
                     unknown_severity,
                     "unclassified-path",
-                    f"{sha} ({subject(repo, sha)}) enthält unbekannte Pfade: "
-                    + ", ".join(unknown[:5]),
+                    f"{sha} ({subject(repo, sha)}) enthält unbekannte Pfade: {shown}",
                 )
             )
         commit_class = (
@@ -567,7 +578,9 @@ def classify_commits(
         relevant = sum(record.classification == rpp.CANDIDATE_RELEVANT for record in records)
         neutral = len(records) - relevant
         unknown_note = (
-            f", {unknown_total} unklassifizierte Pfad(e) als Warnung" if unknown_total else ""
+            f", {len(unknown_paths)} unklassifizierte Pfad(e) als Warnung"
+            if unknown_paths
+            else ""
         )
         findings.append(
             Finding(
@@ -879,6 +892,55 @@ def format_findings(findings: Sequence[Finding]) -> str:
     return "\n".join(f"{symbols[f.severity]} [{f.code}] {f.message}" for f in ordered)
 
 
+def _actions_escape(text: str, *, property_value: bool = False) -> str:
+    """Maskiert die Steuerzeichen der Actions-Workflow-Kommandos (``::warning …::``)."""
+    text = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    if property_value:
+        text = text.replace(":", "%3A").replace(",", "%2C")
+    return text
+
+
+def emit_actions_annotations(
+    findings: Sequence[Finding],
+    *,
+    environ: Mapping[str, str] = os.environ,
+    stream: TextIO | None = None,
+) -> int:
+    """Spiegelt Fehler und Warnungen als Actions-Annotationen und in die Job-Summary.
+
+    Unter ``candidate-relevant-warning`` (#1037) bleibt der Job gruen; eine
+    Zeile im Step-Log ist dann kein Kanal, den jemand liest (Review #1057).
+    Die Annotation erscheint in der Actions-Oberflaeche am Lauf, der
+    Summary-Block dauerhaft in der Job-Zusammenfassung – der Unterschied
+    zwischen „warnt" und „warnt jemanden". Ausserhalb von Actions passiert
+    nichts. Liefert die Zahl der gespiegelten Befunde.
+    """
+    if environ.get("GITHUB_ACTIONS") != "true":
+        return 0
+    # ``sys.stdout`` erst hier binden: Ein Default-Argument fixierte das beim
+    # Import gueltige Objekt und liefe an einer spaeteren Umleitung vorbei.
+    out = sys.stdout if stream is None else stream
+    ordered = sorted(findings, key=lambda f: (_SEVERITY_ORDER[f.severity], f.code))
+    relevant = [finding for finding in ordered if finding.severity in _ACTIONS_LEVELS]
+    for finding in relevant:
+        title = _actions_escape(f"release-freeze-check [{finding.code}]", property_value=True)
+        out.write(
+            f"::{_ACTIONS_LEVELS[finding.severity]} title={title}::"
+            f"{_actions_escape(finding.message)}\n"
+        )
+    summary_path = environ.get("GITHUB_STEP_SUMMARY")
+    if relevant and summary_path:
+        lines = ["### Release-Freeze-Gate: Befunde", ""]
+        lines.extend(
+            f"- **{_ACTIONS_LEVELS[finding.severity].upper()}** `{finding.code}`: "
+            f"{finding.message}"
+            for finding in relevant
+        )
+        with open(summary_path, "a", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n\n")
+    return len(relevant)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rev", default="HEAD", help="Zu pruefender Commit (Default: HEAD)")
@@ -930,6 +992,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(format_findings(findings))
+    emit_actions_annotations(findings)
     errors = sum(1 for finding in findings if finding.severity == _ERROR)
     warnings = sum(1 for finding in findings if finding.severity == _WARNING)
     print(f"\n{errors} Fehler, {warnings} Warnung(en).")

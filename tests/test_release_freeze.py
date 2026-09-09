@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import io
 import json
 import re
 import subprocess
@@ -539,6 +540,88 @@ def test_unknown_path_warns_but_does_not_block_under_warning_policy(
             "explicit": False,
         }
     ]
+
+
+def test_unknown_paths_are_counted_distinctly_and_truncated_lists_say_so(
+    tiny_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review #1057: verschiedene Pfade zaehlen, gekuerzte Listen kennzeichnen."""
+    _disable_content_checks(monkeypatch)
+    _seed_release_repo(tiny_repo, rpp.UNKNOWN_WARNING)
+    _write(tiny_repo, "unknown/same.txt", "1\n")
+    _commit_all(tiny_repo, "same unknown path, first touch")
+    _write(tiny_repo, "unknown/same.txt", "2\n")
+    _commit_all(tiny_repo, "same unknown path, second touch")
+    for index in range(7):
+        _write(tiny_repo, f"unknown/many-{index}.txt", "x\n")
+    _commit_all(tiny_repo, "seven unknown paths at once")
+
+    findings = vrf.verify(tiny_repo, "HEAD")
+    classification = next(f for f in findings if f.code == "classification")
+    # 1 (same.txt) + 7 (many-*) verschiedene Pfade – nicht 9 Vorkommen.
+    assert "8 unklassifizierte Pfad(e) als Warnung" in classification.message
+    many = next(
+        f for f in findings if f.code == "unclassified-path" and "seven unknown" in f.message
+    )
+    assert many.message.endswith("(+2 weitere)")
+    assert many.message.count("unknown/many-") == 5
+    single = [
+        f for f in findings if f.code == "unclassified-path" and "same unknown" in f.message
+    ]
+    assert len(single) == 2 and all("weitere" not in f.message for f in single)
+
+
+def test_main_mirrors_warnings_as_actions_annotations_and_step_summary(
+    tiny_repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Review #1057: Im gruenen Kandidatenbau ist das Step-Log kein Kanal."""
+    _disable_content_checks(monkeypatch)
+    _seed_release_repo(tiny_repo, rpp.UNKNOWN_WARNING)
+    _write(tiny_repo, "docs/history/ISSUE-1037-neue-akte.md", "# Akte\n")
+    _commit_all(tiny_repo, "neue Akte ohne Policy-Eintrag")
+
+    # Ohne Actions-Kontext: reiner Textbericht, keine Workflow-Kommandos.
+    assert vrf.main(["--repo", str(tiny_repo)]) == 0
+    plain = capsys.readouterr().out
+    assert "WARNUNG [unclassified-path]" in plain
+    assert "::warning" not in plain
+
+    head = vrf.rev_parse(tiny_repo, "HEAD")
+    summary = tmp_path / "summary.md"
+    for name, value in {
+        "GITHUB_ACTIONS": "true",
+        "GITHUB_SHA": head,
+        "GITHUB_REPOSITORY": "o/r",
+        "GITHUB_WORKFLOW": "wf",
+        "GITHUB_RUN_ID": "1",
+        "GITHUB_RUN_ATTEMPT": "1",
+        "GITHUB_STEP_SUMMARY": str(summary),
+    }.items():
+        monkeypatch.setenv(name, value)
+    assert vrf.main(["--repo", str(tiny_repo)]) == 0
+    out = capsys.readouterr().out
+    annotation = next(line for line in out.splitlines() if line.startswith("::warning"))
+    assert annotation.startswith("::warning title=release-freeze-check [unclassified-path]::")
+    assert "docs/history/ISSUE-1037-neue-akte.md" in annotation
+    assert "::error" not in out
+    written = summary.read_text(encoding="utf-8")
+    assert "### Release-Freeze-Gate: Befunde" in written
+    assert "**WARNING** `unclassified-path`" in written
+    assert "docs/history/ISSUE-1037-neue-akte.md" in written
+
+
+def test_actions_annotations_escape_control_characters() -> None:
+    findings = [
+        vrf.Finding(vrf._WARNING, "code:x", "Zeile 1\nZeile 2 mit 100% und , Komma"),
+        vrf.Finding(vrf._OK, "fine", "wird nicht gespiegelt"),
+    ]
+    stream = io.StringIO()
+    count = vrf.emit_actions_annotations(findings, environ={"GITHUB_ACTIONS": "true"}, stream=stream)
+    assert count == 1
+    assert stream.getvalue() == (
+        "::warning title=release-freeze-check [code%3Ax]::Zeile 1%0AZeile 2 mit 100%25 und , Komma\n"
+    )
+    assert vrf.emit_actions_annotations(findings, environ={}, stream=io.StringIO()) == 0
 
 
 def test_unknown_path_moves_the_content_candidate(

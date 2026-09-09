@@ -150,8 +150,12 @@ blockierend" fest. Seit Policy-Version `18` gilt
 klassifizierter Pfad bleibt kandidatenrelevant, wird je Commit als
 `unclassified-path` mit Schweregrad **Warnung** ausgewiesen (Text unverändert,
 Commit-Klassifikation `candidate-relevant`, der `classification`-Befund nennt
-die Zahl) und steht in der Provenienz weiterhin mit `explicit=false` je Pfad
-– er blockiert aber weder PR-CI noch Kandidatenbau.
+die Zahl verschiedener Pfade) und steht in der Provenienz weiterhin mit
+`explicit=false` je Pfad – er blockiert aber weder PR-CI noch Kandidatenbau.
+Damit die Warnung in einem grünen Job nicht im Step-Log untergeht, spiegelt
+das Skript unter GitHub Actions jeden Warn- und Fehlerbefund als
+Annotation (`::warning::`/`::error::`) und in die Job-Zusammenfassung
+(`GITHUB_STEP_SUMMARY`) – „warnt jemanden", nicht nur „warnt".
 
 **Sicherheitsargument.** Die kandidatenrelevante Klasse kann den abgeleiteten
 Inhaltskandidaten nur nach hinten (auf einen jüngeren Commit) verschieben, nie

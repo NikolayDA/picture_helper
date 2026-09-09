@@ -174,9 +174,10 @@ git rev-parse HEAD
 Der Laufkopf ist der Kandidat. Kandidatenrelevante Änderungen nach der
 abgeleiteten Basis blockieren fail-closed; unbekannte Pfade gelten als
 kandidatenrelevant und erscheinen seit #1037 als Warnung `unclassified-path`
-in Befundliste und Provenienz (`explicit=false` je Pfad) – prüfe sie hier,
-bevor du den Kandidaten festlegst. Ein manueller SHA-Ledger wird nicht
-gepflegt.
+in Befundliste und Provenienz (`explicit=false` je Pfad); im Kandidatenbau
+zusätzlich als Actions-Annotation und in der Job-Zusammenfassung von
+`verify-candidate`. Prüfe sie hier, bevor du den Kandidaten festlegst. Ein
+manueller SHA-Ledger wird nicht gepflegt.
 
 Lege den Kandidaten jetzt auf dem unveränderlichen Release-Ref fest. Ab hier
 laufen **alle** Dispatches auf diesem Ref, und `main` bleibt mergebar (#918,

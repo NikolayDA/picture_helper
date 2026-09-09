@@ -964,7 +964,13 @@ Entscheidung steht in ADR
   kandidatenrelevant und erscheinen seit #1037 (`unknown_path_behavior:
   candidate-relevant-warning`, Policy-Version 18) als **Warnung**
   `unclassified-path` in Befundliste und Provenienz (`explicit=false` je
-  Pfad), statt PR-CI oder Kandidatenbau zu blockieren. Sicherheitsargument:
+  Pfad), statt PR-CI oder Kandidatenbau zu blockieren; unter GitHub Actions
+  spiegelt `emit_actions_annotations` jede Warnung (und jeden Fehler) als
+  `::warning::`-/`::error::`-Annotation und in `GITHUB_STEP_SUMMARY`, weil
+  eine Zeile im Step-Log eines grünen Jobs kein Kanal ist, den jemand liest.
+  Der `classification`-Befund zählt **verschiedene** unbekannte Pfade,
+  die Liste je Commit nennt gekürzte Einträge als „(+N weitere)".
+  Sicherheitsargument:
   Die kandidatenrelevante Klasse kann den abgeleiteten Inhaltskandidaten nur
   nach hinten verschieben, nie nach vorn; die Blockade erzwang nur die
   Vollständigkeit der Allowlist. Ein bewusst neutraler Pfad braucht
