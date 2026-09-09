@@ -153,12 +153,34 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
             )
 
 
+#: Obergrenze der Kurzform *ohne* die Triage-Zeilen. Die Schranke bewacht die
+#: Prosa - dass der Kurzstatus kurz bleibt und Ausfuehrliches ins Archiv
+#: wandert. Bis zum 2026-09-09 zaehlte sie die Gesamtzeilen und damit auch die
+#: Tabelle, die aber mit dem *offenen Bestand* waechst, nicht mit der Laenge
+#: des Textes: Fuenfzehn neue Issues rissen die Schranke, ohne dass jemand ein
+#: Wort geschrieben haette, und die einzige Abhilfe waere gewesen, Statustext
+#: zu opfern - den kein Leser weniger braucht, nur weil mehr Issues offen sind.
+#: Zahl und Absicht bleiben; gemessen wird jetzt der Gegenstand, den sie meint.
+_MAX_SHORTFORM_PROSE_LINES = 120
+
+
+def _prose_line_count(text: str, lang: str) -> int:
+    """Zeilen der Kurzform ohne die Datenzeilen der Triage-Tabelle."""
+    section = lc.extract_triage_section(text, lang)
+    rows = sum(1 for line in section.splitlines() if line.startswith("| [#"))
+    return len(text.splitlines()) - rows
+
+
 def test_recommendations_docs_have_current_shortform_structure() -> None:
     for lang, path in RECOMMENDATION_DOCS.items():
         assert path.exists()
         text = _read(path)
         assert text.strip()
-        assert len(text.splitlines()) <= 120
+        prose = _prose_line_count(text, lang)
+        assert prose <= _MAX_SHORTFORM_PROSE_LINES, (
+            f"{lang}: {prose} Prosazeilen (max. {_MAX_SHORTFORM_PROSE_LINES}) - "
+            "aeltere Runden gehoeren ins Archiv unter docs/history/."
+        )
         first_line = text.splitlines()[0]
 
         assert all(marker in first_line for marker in LANGUAGE_MARKERS[lang])
