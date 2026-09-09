@@ -164,10 +164,14 @@ def test_classify_two_non_editable_copies_match_no_contract(
 # ── Doctor-Verdikt je Modus ───────────────────────────────────────────
 
 
-def test_editable_link_is_ok_in_session_mode(repo: Path, site: Path, imports: dict) -> None:
-    _dist_info(site, direct_url=_editable(repo))
+def test_editable_link_is_ok_in_session_mode(
+    repo: Path, site: Path, imports: dict, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _dist_info(site, direct_url=_editable(repo), version="7.7")
     reporter = _run(repo, site)
     assert not reporter.errors and not reporter.warnings
+    # Version aus dem Suchpfad der Befunde, nicht aus dem des Interpreters.
+    assert "bgremover 7.7 is an editable link" in capsys.readouterr().out
     assert imports["called"] == ["neutral"], "Postcondition des Hook-Vertrags muss laufen"
 
 
@@ -177,6 +181,7 @@ def test_editable_link_fails_with_require_installed(repo: Path, site: Path, impo
     assert len(reporter.errors) == 1
     assert "make install-test" in reporter.errors[0]
     assert "editable" in reporter.errors[0]
+    assert imports["called"] == [], "nach dem FAIL kein widersprüchliches OK der Postcondition"
 
 
 def test_editable_link_whose_neutral_import_misses_fails(

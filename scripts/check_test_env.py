@@ -34,7 +34,6 @@ from collections.abc import Sequence
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE_PACKAGE = ROOT / "bgremover"
 REQUIRED_DISTS = ("pytest", "pytest-qt", "ruff", "mypy", "PyQt6", "PyQt6-Qt6", "PyYAML")
 PROVENANCE_SCRIPT = ROOT / "scripts" / "check_install_provenance.py"
 
@@ -166,7 +165,10 @@ def _check_bgremover_install(
     if any(f.kind == cip.KIND_MISSING for f in findings):
         reporter.fail("bgremover is not installed. Run: make install-test")
         return
-    version = _dist_version("bgremover") or "?"
+    # Version aus demselben Suchpfad wie die Befunde – nicht aus dem des
+    # laufenden Interpreters (unter dem Testhaken fielen beide auseinander).
+    dists = cip.find_distributions(search_path=search_path)
+    version = dists[0].version if dists else "?"
     contract, details = classify_install(findings)
     if contract is None:
         reporter.fail(
@@ -176,11 +178,14 @@ def _check_bgremover_install(
         )
         return
     if contract == CONTRACT_EDITABLE and require_installed:
+        # Kein weiterer Befund zu dieser Installation: Ein anschliessendes
+        # „OK … imports from this checkout" laese sich widerspruechlich.
         reporter.fail(
             "bgremover is installed editable; --require-installed (make pr-check) needs "
             "the installed package reality. Run: make install-test"
         )
-    elif contract == CONTRACT_EDITABLE:
+        return
+    if contract == CONTRACT_EDITABLE:
         reporter.ok(
             f"bgremover {version} is an editable link on this checkout "
             "(SessionStart hook contract, #1031)"
