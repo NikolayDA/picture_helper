@@ -390,98 +390,6 @@ Gerät · OS · Qt : <Modell> · <OS> (<Arch>) · Qt <Version> / PyQt <Version> 
 <die drei Zeilen „sichtbar/verborgen/verdeckt" der Sonde, unverändert>
 ```
 
-## Recommendations-Live-Check (#752)
-
-`RECOMMENDATIONS.md` driftete wiederholt kurz nach einer Aktualisierung vom
-tatsächlichen GitHub-Stand ab (#669, #728, erneut #752). Zwei getrennte
-Prüfungen sichern das ab:
-
-- **Netzfrei, läuft in der Default-Suite mit:**
-  `tests/test_recommendations_freeze_consistency.py` bestimmt das aktive
-  Freeze-Dokument aus `pyproject.toml` und prüft, dass alle sechs
-  Sprachfassungen dasselbe Kurzstatus-Datum und dieselbe Menge an
-  Triage-Issue-Nummern führen (der Mengenvergleich ersetzt seit #821 den
-  früheren Vergleich einer separat deklarierten Anzahl: gleiche Mengen heißt
-  gleiche Anzahl, und die Zahl musste zuvor sechsfach von Hand gepflegt
-  werden). `tests/test_recommendations_live_check.py`
-  deckt die Kernlogik von `scripts/recommendations_live_check.py` (Triage-
-  Tabellen-Parsing inkl. gruppierter Zeilen wie `#680 / #685 / #686`,
-  Vergleichslogik) über gespeicherte Fixtures ab – ohne Netzwerk oder
-  GitHub-Token. `tests/test_recommendations_docs.py` prüft als dritte
-  netzfreie Absicherung, dass jede Triage-Zeile genau so viele Zellen hat
-  wie die Kopfzeile. **Daraus folgt eine Schreibregel für die
-  handgepflegten Bewertungsspalten: Ein Pipe im Zellinhalt muss als `\|`
-  geschrieben werden** – auch innerhalb von Backticks, denn GFM trennt die
-  Zellen *vor* der Inline-Auswertung und verwirft die überzähligen. Nur den
-  API-Titel maskiert `render_triage_row` selbst; alle übrigen Spalten sind
-  Handarbeit (#851).
-- **Netzwerkzugriff, separat ausführbar:**
-  `python scripts/recommendations_live_check.py` fragt die tatsächlich
-  offenen GitHub-Issues ab und vergleicht sie gegen die Triage-Tabelle in
-  `RECOMMENDATIONS.md` (Abschnitt `## Offene GitHub-Issues`). Gemeldet
-  werden offene Issues, die in der Tabelle fehlen, sowie Issues, die die
-  Tabelle weiterhin als offen führt, obwohl sie auf GitHub bereits
-  geschlossen sind. Die Anzahl offener Issues nennt der Bericht, leitet sie
-  aber aus der Tabelle ab (#821, Stufe 1). Offline/reproduzierbar mit einer
-  gespeicherten API-Antwort:
-
-  ```bash
-  python scripts/recommendations_live_check.py                     # Live-Abfrage
-  python scripts/recommendations_live_check.py \
-    --data tests/fixtures/recommendations_live_check/open_issues_sample.json
-  ```
-
-  Exit 0 = deckungsgleich, 1 = mindestens ein Befund, 2 = Aufruf-/
-  Netzwerkfehler.
-
-**Wann ausführen:** vor jedem PR, der `RECOMMENDATIONS.md` (oder eine der
-fünf Übersetzungen) inhaltlich ändert – insbesondere nach dem Schließen
-oder Neuerfassen von Issues, nicht erst als nachträgliche Korrektur wie bei
-#669/#728. Das Archiv **„Vorige Runden"** ist bewusst historisch: einmal
-geschriebene Einträge dort bleiben unverändert und werden weder vom
-netzfreien Paritätstest noch vom Live-Check angefasst – nur der Kurzstatus
-(„## Aktueller Stand") und die Triage-Tabelle darunter müssen den aktuellen
-GitHub-Stand widerspiegeln.
-
-- **Schreibmodus (#821, Stufe 2):** `python scripts/recommendations_live_check.py --write`
-  schreibt die Triage-Tabellen **aller sechs** Sprachfassungen auf den
-  Live-Stand fort: Zeilen geschlossener Issues entfallen, neu offene Issues
-  bekommen eine Zeile mit Nummer und Titel aus der API sowie `TODO` in den
-  redaktionellen Spalten. Bestehende Zeilen bleiben wortgleich und in ihrer
-  Reihenfolge – Relevanz, Komplexität, Modell und „Nächster Schritt" sind
-  Handarbeit, ebenso die Übersetzung des Titels: Anders als die
-  redaktionellen Spalten trägt Spalte 2 keinen Platzhalter, eine
-  unübersetzt gebliebene Fassung wird von keinem Test gemeldet (#829,
-  Befund 5). Der Lauf endet mit Exit 1,
-  solange ein `TODO` offen ist; `tests/test_recommendations_freeze_consistency.py`
-  prüft dasselbe netzfrei für alle sechs Fassungen, damit ein unbewerteter
-  Platzhalter nicht gemergt wird. Das Werkzeug läuft bewusst **lokal**, sein
-  Ergebnis geht wie jede andere Änderung durch einen PR – der CI-Check bleibt
-  read-only. Eine **gruppierte** Zeile (mehrere Issue-Links in Spalte 1)
-  bleibt komplett stehen, solange eines ihrer Issues offen ist – eine
-  bereits geschlossene Nummer darin trennt `--write` nicht automatisch ab;
-  das erfordert Handarbeit (#829, Befund 4).
-
-- **Automatisiert, wiederkehrend (#777):** `recommendations-live-check.yml`
-  führt genau diesen Live-Check ohne menschliches Zutun aus – täglich
-  (06:30 UTC), zusätzlich bei jedem `issues`-Ereignis (opened/closed/
-  reopened), nach jedem Abschluss von `codex-security-scan.yml` und
-  `benchmark.yml` (`workflow_run`; deren mit dem Standard-`GITHUB_TOKEN`
-  eröffnete Issues lösen selbst kein `issues`-Ereignis für Folge-Workflows
-  aus) und manuell per `workflow_dispatch`. Der Job schlägt sichtbar fehl,
-  sobald `RECOMMENDATIONS.md` vom echten GitHub-Stand abweicht. Das
-  manuelle Nachziehen allein hatte den Drift in #669/#728/#752 mehrfach und
-  in #777 sogar zweimal am selben Tag reproduziert; die wiederkehrende
-  Ausführung schließt genau diese Lücke. Unabhängig vom Exit-Status sichert
-  der Workflow den Bericht in der Job-Zusammenfassung und 30 Tage als
-  Actions-Artefakt. **Owner ist der Repository-Owner:** Ein roter Lauf bleibt
-  ein aktiver Dokumentationsbefund, bis Kurzstatus und Triage in der deutschen
-  Fassung sowie allen fünf Übersetzungen aktualisiert sind und der Live-Check
-  erneut grün ist. Die Reaktion erfolgt vor dem nächsten Merge mit Issue- oder
-  Recommendations-Bezug, spätestens innerhalb eines Arbeitstags. Der Check
-  bleibt bewusst read-only und eröffnet kein Tracking-Issue, weil dieses den
-  zu prüfenden offenen Bestand selbst verändern würde.
-
 ## Einzelne Tests / nützliche Aufrufe
 
 ```bash
@@ -556,7 +464,6 @@ Diese Wächter laufen mit `make check` und brauchen weder Qt noch Netzzugang.
 | `tests/test_anleitung_pdf_sync.py` | `ANLEITUNG.pdf` fällt weder hinter `ANLEITUNG.md` noch hinter `scripts/generate_anleitung_pdf.py` zurück — geprüft über die Git-Mitänderung, nicht über Bytes (#974) |
 | `tests/test_resource_docs.py` | `RESOURCES.md` gegen den CI-Stand |
 | `tests/test_changelog_metadata.py` | CHANGELOG-Abschnitte und AppStream-Metadaten |
-| `tests/test_recommendations_freeze_consistency.py` | Kurzstatus und Triage-Menge über alle sechs `RECOMMENDATIONS.md` |
 
 Die Ankerprüfung bildet die GitHub-Slug-Regel nach (Kleinschreibung,
 Satzzeichen entfallen ersatzlos, Leerzeichen zu `-`, Dubletten mit `-1`);

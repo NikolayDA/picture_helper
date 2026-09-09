@@ -46,8 +46,7 @@ müssen in den
 authentifiziert kontrolliert werden.
 
 Verantwortlich für den Snapshot ist der Repository-Owner. Er wird bei jeder
-Änderung der GitHub-Einstellungen und bei der Turnusprüfung in
-[`RECOMMENDATIONS.md`](../RECOMMENDATIONS.md) erneut mit der Live-Konfiguration
+Änderung der GitHub-Einstellungen erneut mit der Live-Konfiguration
 verglichen.
 
 ## Notation
@@ -69,9 +68,11 @@ UML-Aktivitätsdiagramm-Semantik:
 
 ## 1. Commit in einem Branch
 
-**Auslöser:** Eine Änderung soll umgesetzt werden. Ein Issue oder ein Befund
-aus `RECOMMENDATIONS.md` kann die Grundlage sein; größere Änderungen werden
-vorher in einem Issue abgestimmt.
+**Auslöser:** Eine Änderung soll umgesetzt werden. Grundlage ist ein
+GitHub-Issue (Priorität und Blocker stehen dort als Labels und
+Abhängigkeiten, siehe [`CONTRIBUTING.md`](../CONTRIBUTING.md)) oder ein klar
+umrissener Beitrag; größere Änderungen werden vorher in einem Issue
+abgestimmt.
 **Ergebnis:** Ein Commit auf einem Feature-Branch liegt auf `origin`, das
 Standard-Gate war lokal grün.
 **Quellen:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) §„Code beitragen“ und
@@ -85,7 +86,7 @@ flowchart TD
 
   subgraph DEV["Partition: Entwickler:in"]
     direction TB
-    D1["Arbeitsgrundlage klären<br/>bei größerer Änderung Issue abstimmen; sonst Issue, Befund oder klar umrissener Beitrag"]
+    D1["Arbeitsgrundlage klären<br/>bei größerer Änderung Issue abstimmen; sonst Issue (prio-Label, keine offenen Blocker) oder klar umrissener Beitrag"]
     D2["main aktualisieren<br/>git fetch origin main · git pull --ff-only origin main"]
     D3["Feature-Branch anlegen<br/>git checkout -b feature/kurze-beschreibung"]
     D4["Code ändern<br/>deutsche Kommentare; englische Identifier; kompakter Stil; ruff-Zeilenlänge 100"]
@@ -113,7 +114,7 @@ flowchart TD
     DQ6{"Abhängigkeit oder Pin in pyproject.toml bzw. requirements/constraints.txt geändert?"}
     DA6["Lizenz-Snapshot im selben Commit neu erzeugen<br/>in einem frischen venv wie der Workflow: Python 3.12, pip install --constraint requirements/constraints.txt '.[ai,test]', nichts sonst · python scripts/generate_license_report.py --report LICENSES.md --all-langs<br/>license-check.yml vergleicht LICENSES.md und die fünf Übersetzungen fail-closed; make check prüft nur die Titelversion"]
     DQ5{"Berührt der Commit einen Pfad, den release/path-policy.json nicht kennt?"}
-    DA5["Pfadpolicy im selben PR nachziehen<br/>Eintrag ergänzen (release-neutral nur eng begründet); policy_version nur bei Semantikänderung anheben, dann Versionszeile im aktiven Freeze-Dokument nachziehen<br/>unbekannte Pfade blockieren fail-closed in release-freeze-check (make pr-check, PR-CI) — make check sieht sie nicht"]
+    DA5["Pfadpolicy nur bei bewusst neutralem Pfad nachziehen<br/>release-neutral-Eintrag eng begründet ergänzen (reine Allowlist-Ergänzung, kein Versionssprung); policy_version nur bei Semantikänderung anheben, dann Versionszeile im aktiven Freeze-Dokument nachziehen<br/>unbekannte Pfade gelten als kandidatenrelevant und erscheinen in release-freeze-check als Warnung (#1037) — sie blockieren nicht"]
   end
 
   subgraph GATE["Partition: Standard-Gate · make check"]
@@ -178,15 +179,17 @@ flowchart TD
   PR-CI mit `fetch-depth: 0`, ein flacher Klon überspringt sichtbar. Das
   `docs`-Extra ist bewusst in keinem CI-Pfad installiert — die Regeneration
   bleibt ein manueller Schritt außerhalb der `make`-Ziele.
-- Die Pfadpolicy (`release/path-policy.json`, #742/#743) ist eine Drift-Pflicht
-  mit versetztem Wächter: Ein Pfad, den sie nicht kennt, ist kandidatenrelevant
-  und blockiert `release-freeze-check` fail-closed (`unclassified-path`) — das
-  läuft in `make pr-check` und in der PR-CI, nicht in `make check`. Wer eine
-  Datei außerhalb der bekannten Muster **berührt**, ergänzt im selben PR den
-  Eintrag. Das Gate klassifiziert alle geänderten Pfade eines Commits, nicht
-  nur neu angelegte: In diesem Fenster traf es zweimal Dateien, die seit
-  August bestehen und erst jetzt zum ersten Mal geändert wurden (#1001 und
-  #1003, je ein Dokument unter `docs/history/`). Der Regelfall ist die
+- Die Pfadpolicy (`release/path-policy.json`, #742/#743) kennt seit #1037
+  keine Blockade durch unbekannte Pfade mehr: Ein Pfad, den sie nicht kennt,
+  ist kandidatenrelevant und erscheint in `release-freeze-check` als
+  Warnung `unclassified-path` (Befundliste und Provenienz, `make pr-check`
+  und PR-CI; `make check` sieht ihn nicht). Bis Policy-Version 17 scheiterte
+  das Gate daran, und weil es alle geänderten Pfade eines Commits
+  klassifiziert, nicht nur neu angelegte, traf es zweimal Dateien, die seit
+  August bestanden und erst dann zum ersten Mal geändert wurden (#1001 und
+  #1003, je ein Dokument unter `docs/history/`). Ein Eintrag ist nur noch für
+  einen bewusst **neutralen** Pfad nötig, damit er den Inhaltskandidaten
+  nicht verschiebt. Der Regelfall ist die
   kandidatenrelevante Klasse; `release-neutral` bleibt eng
   begründeten Einträgen vorbehalten. `policy_version` bindet die
   Klassifikations**semantik**, nicht die Regelmenge: Eine reine
@@ -346,7 +349,6 @@ nicht bestehen, werden nicht gemergt“),
 [`coverage.yml`](../.github/workflows/coverage.yml),
 [`codeql.yml`](../.github/workflows/codeql.yml),
 [`license-check.yml`](../.github/workflows/license-check.yml),
-[`recommendations-live-check.yml`](../.github/workflows/recommendations-live-check.yml),
 [`codex-security-scan.yml`](../.github/workflows/codex-security-scan.yml),
 [`benchmark.yml`](../.github/workflows/benchmark.yml),
 sowie die lineare Commit-Historie von `main` (ein Squash-Commit je PR).
@@ -388,10 +390,6 @@ flowchart TD
     IQ{"Closing-Verknüpfung vorhanden?"}
     N1["verknüpfte Issues schließen automatisch"]
     N2["push auf main<br/>coverage.yml, codeql.yml, license-check.yml"]
-    NEV(("Ereignis issues opened oder reopened<br/>auch ohne PR")):::terminal
-    N3["recommendations-live-check.yml prüft gegen den Live-Stand<br/>Trigger sind issues-Ereignisse, kein Merge und kein Push"]
-    NQ{"Drift in der Triage-Tabelle?"}
-    N4["Kurzstatus lokal in sechs Sprachfassungen nachziehen<br/>scripts/recommendations_live_check.py --write, prüfen, committen und per Folge-PR einreichen"]
   end
 
   R1 --> RQ1
@@ -407,13 +405,9 @@ flowchart TD
   MQ -->|"ja"| M2 --> J3
   MQ -->|"nein"| J3
   J2 --> IQ
-  IQ -->|"ja"| N1 --> N3
+  IQ -->|"ja"| N1 --> J3
   IQ -->|"nein"| J3
-  NEV --> N3
-  N3 --> NQ
   J2 --> N2
-  NQ -->|"ja"| N4 --> FOLGE["Artefakt: Folge-PR eingereicht"] --> J3
-  NQ -->|"nein"| J3
   N2 --> J3
   J3 --> ENDE(("Ende")):::terminal
 
@@ -433,16 +427,6 @@ flowchart TD
   Bot-Befunde sind Input der Merge-Entscheidung, keine Merge-Bedingung –
   konvergieren Befunde nicht mehr (jeder Fix zieht neue oder umformulierte
   nach), ist Aufhören die richtige Auflösung, nicht der nächste Fix-Push.
-- Der Live-Check hängt am `issues`-Ereignis, nicht am Merge: Eine
-  Closing-Verknüpfung erreicht ihn nur mittelbar, weil das Schließen selbst
-  das Ereignis auslöst; ein Merge ohne Verknüpfung löst gar nichts aus.
-  Dieselbe Prüfung startet aber unabhängig von jedem PR bei `opened` und
-  `reopened` sowie über die unten genannten Zeitplan- und Folgeeinstiege.
-  Drift entsteht deshalb in beide Richtungen: Ein neu eröffnetes Issue fehlt
-  in der Triage-Tabelle, ein gemergter Fix lässt eine Zeile zurück. Im
-  Fenster #1007–#1029 waren beide Richtungen je dreimal fällig
-  (#1011/#1017/#1025 ergänzt, #1020/#1022/#1027 entfernt); der Nachzug ist
-  jedes Mal ein eigener Folge-PR.
 - Squash-Merge ist die aus der `main`-Historie belegte Projektpraxis. GitHub
   erzwingt sie nicht: Auch Merge-Commit und Rebase sind freigeschaltet.
 - Ein formales `APPROVED`-Review ist derzeit keine Branch-Protection-Pflicht.
@@ -455,22 +439,15 @@ flowchart TD
   `ui-nightly.yml` (täglich 03:00 UTC), `ci.yml` (sonntags, volle Matrix),
   `dependency-audit.yml` (montags 05:00 UTC), `benchmark.yml` und `codeql.yml`
   (montags 05:17 UTC),
-  `recommendations-live-check.yml` (täglich 06:30 UTC),
   `clamav-db-refresh.yml` (montags 03:00 UTC),
   `runner-heartbeat.yml` (täglich 05:30 UTC, Erreichbarkeit der Self-hosted
   Abnahme-Runner; eskaliert seit #958 gestuft nach 7/12/21 Tagen offline bis
   zur automatischen Austragung der Plattform, siehe Abschnitt 4) und der
   monatliche Dry-Run von `release-linux.yml` (am 3. um 04:40 UTC, siehe
   Abschnitt 4).
-- Ebenfalls nicht gezeichnet ist der `workflow_run`-Einstieg von
-  `recommendations-live-check.yml` nach jedem Abschluss von
-  `codex-security-scan.yml` und `benchmark.yml`: Deren automatisch eröffnete
-  Issues entstehen mit dem Standard-`GITHUB_TOKEN` und lösen deshalb selbst
-  kein `issues`-Ereignis für Folge-Workflows aus.
-- Ein roter `recommendations-live-check` gehört dem Repository-Owner und bleibt
-  bis zur synchronen Korrektur aller sechs Fassungen aktiv. Der Workflow hat
-  nur Leserechte; `--write` ändert lokale Dateien und braucht daher einen neuen
-  Commit und PR.
+- Ein Issue-Zustandswechsel (öffnen, schließen, wiedereröffnen) löst seit
+  #1040 keinen Workflow mehr aus; Priorität und Blocker stehen im Issue
+  selbst (#1033), eine gespiegelte Triage-Tabelle gibt es nicht mehr.
 - GitHub-verwaltete Funktionen wie der `Dependency Graph` sind nicht als
   Workflows versioniert. Regelmäßige Dependabot-Versionsupdates sind nicht
   konfiguriert, weil `.github/dependabot.yml` fehlt. Nur sofern

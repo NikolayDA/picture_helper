@@ -1,11 +1,11 @@
 # Registro histórico de trabajo: recomendaciones rondas 1-5
 
 Congelado el: 2026-05-24, commit 1cf8461.
-Estado actual: ../i18n/es/RECOMMENDATIONS.md.
+Estado actual: ../../RECOMMENDATIONS.md.
 
 ---
 
-[Deutsch](../../RECOMMENDATIONS.md) · [English](../i18n/en/RECOMMENDATIONS.md) · **Español** · [Français](../i18n/fr/RECOMMENDATIONS.md) · [Українська](../i18n/uk/RECOMMENDATIONS.md) · [简体中文](../i18n/zh/RECOMMENDATIONS.md)
+[Deutsch](RECOMMENDATIONS-2026-pre-v2.2.md) · [English](RECOMMENDATIONS-2026-pre-v2.2.en.md) · **Español** · [Français](RECOMMENDATIONS-2026-pre-v2.2.fr.md) · [Українська](RECOMMENDATIONS-2026-pre-v2.2.uk.md) · [简体中文](RECOMMENDATIONS-2026-pre-v2.2.zh.md)
 
 # Análisis de código y recomendaciones evaluadas: BgRemover
 

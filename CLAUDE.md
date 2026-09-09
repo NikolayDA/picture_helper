@@ -750,7 +750,7 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **siebzehn** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **sechzehn** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
@@ -762,7 +762,6 @@ Ein Paket, `bgremover/`:
   `scripts/release_update_dispatch.py` (#919),
   `scripts/scan_release_artifacts.py` (#920),
   `scripts/runner_heartbeat.py` (#921),
-  `scripts/recommendations_live_check.py` (#752),
   `scripts/check_install_provenance.py` (#1031) und
   `scripts/triage_issue_cutover.py` (#1033) – als
   eigenständige Dateien ohne `scripts/__init__.py` explizit per Dateipfad in
@@ -777,38 +776,32 @@ Ein Paket, `bgremover/`:
   Default-`addopts`: `-m 'not ui or ui_smoke'`. Viele Doku-Governance-Tests
   (Markdown-Links, i18n-Parität, CHANGELOG, Lizenzen, Screenshot-Set-Referenzen)
   — Docs als Code behandeln.
-- **Befunde** werden in `RECOMMENDATIONS.md` mit IDs geführt (`N#`/`O#`);
-  Historie unter `docs/history/`. Die Triage des **offenen** Bestands liegt
-  seit #1033 in den Issues selbst: genau ein `prio:now`/`prio:next`/
-  `prio:later` je offenem Issue, interne Blocker ausschließlich als native
-  Abhängigkeit „blocked by", externe als `blocked:extern` plus Kommentarzeile
-  (kein `status:ready`, kein Label für Zustände, die GitHub selbst kennt –
-  Regeln in [`CONTRIBUTING.md`](CONTRIBUTING.md)). Der einmalige Cutover lief
-  über `scripts/triage_issue_cutover.py` (versionierte Entscheidungsakte,
-  idempotentes `apply`, `verify` für die zwei Abnahme-Abgleiche; bewusst kein
-  Wächter und kein Workflow); die Tabelle in `RECOMMENDATIONS.md` entfällt
-  mit #1040. Abnahme-Matrizen je Epic ebenfalls dort
+- **Befunde und Triage** leben in den GitHub-Issues (#1032/#1033/#1040):
+  genau ein `prio:now`/`prio:next`/`prio:later` je offenem Issue, interne
+  Blocker ausschließlich als native Abhängigkeit „blocked by", externe als
+  `blocked:extern` plus Kommentarzeile (kein `status:ready`, kein Label für
+  Zustände, die GitHub selbst kennt – Regeln in
+  [`CONTRIBUTING.md`](CONTRIBUTING.md)). Die Analyse-Routinen unter
+  `.claude/commands/` schlagen Befunde direkt als Issue-Entwürfe vor (#1042).
+  `RECOMMENDATIONS.md` ist seit #1040 nur noch ein kurzer deutscher Index
+  (Bewertungsskala, Verweis auf Issues und Labels, Links auf die historischen
+  Berichte) – ohne Live-Tabelle, Kurzstatus, Übersetzungen, Live-Check-
+  Workflow oder Wächtertests; die frühere sechsfach gespiegelte Triage-
+  Tabelle kostete im Fenster `85eeea4^..dd6c572` 27 reine Nachzieh-Commits
+  und machte den Live-Check bei jedem Issue-Zustandswechsel rot. Der
+  einmalige Cutover lief über `scripts/triage_issue_cutover.py`
+  (versionierte Entscheidungsakte, idempotentes `apply`, `verify` für die
+  zwei Abnahme-Abgleiche; bewusst kein Wächter und kein Workflow). Historie
+  unter `docs/history/` (letzter Kurzstatus im Abschlussabschnitt von
+  [`RECOMMENDATIONS-2026-v2.2-v2.9.md`](docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.md));
+  Abnahme-Matrizen je Epic ebenfalls dort
   ([`EPIC-581-ABNAHME.md`](docs/history/EPIC-581-ABNAHME.md) 16-Bit-Höhenpipeline,
-  [`EPIC-582-ABNAHME.md`](docs/history/EPIC-582-ABNAHME.md) 3D-Vorschau). Der
-  Kurzstatus driftete mehrfach kurz nach einer Aktualisierung vom
-  GitHub-Live-Stand ab (#669/#728/#752); `scripts/recommendations_live_check.py`
-  vergleicht die Triage-Tabelle separat ausführbar gegen die tatsächlich
-  offenen Issues, `tests/test_recommendations_freeze_consistency.py` hält
-  Kurzstatus-Datum und Triage-Issue-Menge netzfrei über alle sechs
-  Sprachfassungen synchron. Eine separat deklarierte Anzahl offener Issues
-  gibt es seit #821 (Stufe 1) nicht mehr – sie war gegenüber dem
-  Mengenvergleich redundant und musste dafür sechsfach gepflegt werden; der
-  Live-Check leitet die Zahl aus der Tabelle ab. Mit `--write` schreibt
-  dasselbe Skript die Tabellen aller sechs Fassungen aus dem Live-Stand fort
-  (#821, Stufe 2): Nummer und Titel kommen aus der API, die redaktionellen
-  Spalten bleiben Handarbeit und tragen bis dahin `TODO`; bestehende Zeilen
-  werden nie verändert. `TRIAGE_SECTION_PATTERNS`/`RECOMMENDATION_DOCS` im
-  Skript sind die einzige Quelle der Sprachanker und Pfade – die Tests lesen
-  sie von dort (Details in [`TESTING.md`](TESTING.md)).
+  [`EPIC-582-ABNAHME.md`](docs/history/EPIC-582-ABNAHME.md) 3D-Vorschau).
 
 ## CI-Automatisierung
 
-Workflows unter `.github/workflows/` (17):
+Workflows unter `.github/workflows/` (die feste Anzahl wird bewusst nicht mehr
+notiert – sie hätte keinen Wächter, #1040):
 
 - **Test/Qualität:** `pr-ci.yml` (jeder PR, Ubuntu + Py3.12), `ci.yml` (volle
   Matrix Ubuntu/macOS × Py3.10–3.13; Kandidaten-Gate, wöchentlich und manuell —
@@ -837,16 +830,6 @@ Workflows unter `.github/workflows/` (17):
   rotierenden Signaturcache für den Artefakt-Malware-Scan, siehe
   *Artefakt-Sicherheitsscan* unten). Modell/Begründung:
   ADR [`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`](docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md).
-- **Doku:** `recommendations-live-check.yml` (#777) — täglich (06:30 UTC), bei
-  jedem `issues`-Ereignis (opened/closed/reopened), nach jedem Abschluss von
-  `codex-security-scan.yml`/`benchmark.yml` (`workflow_run`) und manuell:
-  `scripts/recommendations_live_check.py` gegen den echten GitHub-Live-Stand,
-  schlägt bei Drift sichtbar fehl und sichert Bericht, Owner und Reaktionsweg
-  in der Job-Zusammenfassung sowie 30 Tage als Artefakt. Ein roter Lauf gehört
-  dem Repository-Owner und bleibt bis zur synchronen Korrektur aller sechs
-  Fassungen aktiv (vor dem nächsten betroffenen Merge, spätestens innerhalb
-  eines Arbeitstags). Der Check bleibt read-only, damit er den geprüften
-  offenen Bestand nicht durch ein eigenes Issue verändert.
 - **Release:** `release-linux.yml` baut den Kandidaten (zwei
   AppImages, zwei `.deb`, ein macOS-`.dmg`) nach `verify-candidate` + Full-CI —
   ein Kandidat entsteht ausschließlich per Dispatch; kein Tag-Trigger, keine
@@ -978,8 +961,22 @@ Entscheidung steht in ADR
 
 - Nur eng begründete Einträge der positiven Klasse **release-neutral**
   verschieben den Inhaltskandidaten nicht. Unbekannte Pfade bleiben
-  kandidatenrelevant **und blockieren**, bis die Policy bewusst ergänzt und
-  versioniert wurde.
+  kandidatenrelevant und erscheinen seit #1037 (`unknown_path_behavior:
+  candidate-relevant-warning`, Policy-Version 18) als **Warnung**
+  `unclassified-path` in Befundliste und Provenienz (`explicit=false` je
+  Pfad), statt PR-CI oder Kandidatenbau zu blockieren; unter GitHub Actions
+  spiegelt `emit_actions_annotations` jede Warnung (und jeden Fehler) als
+  `::warning::`-/`::error::`-Annotation und in `GITHUB_STEP_SUMMARY`, weil
+  eine Zeile im Step-Log eines grünen Jobs kein Kanal ist, den jemand liest.
+  Der `classification`-Befund zählt **verschiedene** unbekannte Pfade,
+  die Liste je Commit nennt gekürzte Einträge als „(+N weitere)".
+  Sicherheitsargument:
+  Die kandidatenrelevante Klasse kann den abgeleiteten Inhaltskandidaten nur
+  nach hinten verschieben, nie nach vorn; die Blockade erzwang nur die
+  Vollständigkeit der Allowlist. Ein bewusst neutraler Pfad braucht
+  weiterhin seinen expliziten Eintrag (reine Allowlist-Ergänzung ohne
+  Versionssprung); `candidate-relevant-blocking` bleibt als Wert gültig, ein
+  neutrales Unbekannt-Verhalten weist `parse_policy` ab.
 - Das Skript prüft am abgeleiteten Commit Versionsquellen, CHANGELOG-Abschnitt
   in sechs Sprachen, AppStream-Metadaten, Lizenz-Snapshots, die vollständige
   Commit-Klassifizierung und den Release-Body, den `extract_release_notes.py`
@@ -1409,8 +1406,8 @@ Produktartefakte verfallen nach 3 statt 90 Tagen.
 
 Ein roter Dry-Run ist handlungsfähig statt nur sichtbar: Der Job
 **Dry-Run-Ergebnis** nennt die gefallene Stufe, das Diagnosematerial, den Owner
-(Repository-Owner) und den Reaktionsweg — Muster von
-`recommendations-live-check.yml`. Abgebrochene oder übersprungene Stufen
+(Repository-Owner) und den Reaktionsweg dauerhaft in der Job-Zusammenfassung
+(sichtbar **und** handlungsfähig). Abgebrochene oder übersprungene Stufen
 meldet er als „unvollständig", nie als bestanden. Zweck, Kosten und Abgrenzung
 zum Kandidatenlauf: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §8.
 
@@ -1520,10 +1517,7 @@ die Kopie mit; sonst bleibt `make check` grün und die Doku still falsch:
   deklarieren, und die App stirbt auf einem zu alten System erst beim Start
   statt bei der Installation.
 - `tests/test_process_documentation.py`: den Ein-Review-Trigger von
-  `claude-code-review.yml` gegen seine sechs Doku-Stellen und die
-  Quellworkflow-Liste des Live-Checks gegen ihre drei.
-- `tests/test_recommendations_freeze_consistency.py`: Kurzstatus-Datum und
-  Triage-Issue-Menge über alle sechs Sprachfassungen von `RECOMMENDATIONS.md`.
+  `claude-code-review.yml` gegen seine sechs Doku-Stellen.
 - `tests/test_release_governance.py`: dass hier in CLAUDE.md kein
   handgepflegter Release-Stand zurückkehrt (#737).
 

@@ -26,7 +26,8 @@ name: Runner-Heartbeat
 on:
   schedule:
     # Taeglich 05:30 UTC – vor dem Arbeitstag und ausserhalb der Fenster von
-    # recommendations-live-check (06:30) und clamav-db-refresh (Mo 03:00).
+    # dependency-audit (Mo 05:00), benchmark/codeql (Mo 05:17) und
+    # clamav-db-refresh (Mo 03:00).
     - cron: '30 5 * * *'
   workflow_dispatch:
     inputs:

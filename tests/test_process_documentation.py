@@ -5,8 +5,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import yaml
-
 _ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -118,95 +116,6 @@ def test_review_workflow_runs_once_per_pr_not_per_push() -> None:
         "github.event.label.name == 're-review'",
     ):
         assert condition in body, f"Job-if verliert die Bedingung {condition!r}"
-
-
-def test_workflow_run_sources_are_documented_at_all_three_places() -> None:
-    """Die dokumentierte workflow_run-Quellliste darf nicht vom Workflow driften.
-
-    Der workflow_run-Einstieg von recommendations-live-check.yml steht in
-    drei Doku-Stellen (PROZESSE_UML.md, TESTING.md, CLAUDE.md). Die
-    Anzeigenamen aus dem Trigger werden über das ``name:``-Feld der
-    Workflow-Dateien auf Dateinamen abgebildet; jede Doku-Stelle muss alle
-    Quellworkflows im Umfeld ihrer ``workflow_run``-Erwähnung nennen
-    (Muster wie N6/gl_smoke: Listenkopie ohne Abgleich driftet still).
-
-    Liest die Workflows über PyYAML – seit #1016 deklarierte
-    ``[test]``-Abhängigkeit. Der frühere textbasierte Rückfall für ein
-    fehlendes PyYAML ist entfallen: Er war in jeder deklarierten Umgebung
-    unerreichbar und pinnte nebenbei die Inline-Flow-Schreibweise des Triggers.
-    """
-    workflow_dir = _ROOT / ".github" / "workflows"
-    workflow_files = sorted(workflow_dir.glob("*.yml")) + sorted(workflow_dir.glob("*.yaml"))
-    trigger_text = (workflow_dir / "recommendations-live-check.yml").read_text(encoding="utf-8")
-
-    by_name: dict[str, list[str]] = {}
-    trigger_doc = yaml.safe_load(trigger_text)
-    # PyYAML (YAML 1.1) liest den Schlüssel ``on:`` als ``True``; ein
-    # quotiertes ``"on":`` bliebe ein String. Die ``get``-Kette (Idiom aus
-    # test_release_gate) lässt jeden Driftfall am ``assert`` mit seiner
-    # Aussage enden statt an einem nackten ``KeyError``.
-    triggers = trigger_doc.get(True, trigger_doc.get("on")) or {}
-    display_names = (triggers.get("workflow_run") or {}).get("workflows") or []
-    # Einmalige Namenstabelle statt erneutem Parsen je Anzeigename; die
-    # Parsebarkeit sichert bereits tests/test_ci_workflow_yaml.py.
-    for path in workflow_files:
-        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
-        if isinstance(doc, dict) and isinstance(doc.get("name"), str):
-            by_name.setdefault(doc["name"], []).append(path.name)
-    assert display_names, "workflow_run-Trigger ohne Workflow-Namen"
-
-    filenames = []
-    for display in display_names:
-        matches = by_name.get(display, [])
-        # Der leere Fall ist der wertvollste Fund: Der Anzeigename passt auf
-        # kein name:-Feld mehr, der Trigger feuert also nie wieder.
-        assert matches, (
-            f"Anzeigename {display!r} passt auf kein name:-Feld mehr – "
-            "der workflow_run-Einstieg würde nie wieder feuern"
-        )
-        assert len(matches) == 1, (
-            f"Anzeigename {display!r} nicht eindeutig auflösbar: {matches}"
-        )
-        filenames.append(matches[0])
-
-    # Mengenvergleich statt Teilmengenprüfung: So fällt auch ein aus dem
-    # Trigger ENTFERNTER Quellworkflow auf, den die Doku noch behauptet.
-    # Verglichen wird je Doku-Stelle der Aufzählungspunkt/Absatz um die
-    # ``workflow_run``-Erwähnung; die Doku ist damit bewusst an die
-    # Backtick-Schreibweise der Workflow-Dateinamen gebunden. Der
-    # Trigger-Workflow selbst zählt nicht als Quelle. Der GANZE Punkt zählt:
-    # Auch ein dort ergänzter, unbeteiligter Workflow-Verweis macht den Test
-    # rot – bewusst fail-closed; die Meldung stellt beide Mengen gegenüber.
-    expected = set(filenames)
-    for doc in ("docs/PROZESSE_UML.md", "TESTING.md", "CLAUDE.md"):
-        text = (_ROOT / doc).read_text(encoding="utf-8")
-        anchors = [match.start() for match in re.finditer(r"`workflow_run`", text)]
-        assert anchors, f"{doc} erwähnt den workflow_run-Einstieg nicht"
-        segments = []
-        for anchor in anchors:
-            start = max(text.rfind("\n- ", 0, anchor), text.rfind("\n\n", 0, anchor), 0)
-            ends = [
-                pos
-                for pos in (text.find("\n- ", anchor), text.find("\n\n", anchor))
-                if pos != -1
-            ]
-            segment = text[start : min(ends) if ends else len(text)]
-            mentioned = {
-                name
-                for name in re.findall(r"`([A-Za-z0-9_.-]+\.ya?ml)`", segment)
-                if (workflow_dir / name).is_file()
-            }
-            mentioned.discard("recommendations-live-check.yml")
-            segments.append(mentioned)
-        # ``all`` statt ``any``: Jede Erwähnung muss zum Trigger passen –
-        # sonst könnte eine später ergänzte, driftende Zweitnennung hinter
-        # einer noch passenden Erstnennung verschwinden. Die Segmentgrenzen
-        # kennen nur Top-Level-Aufzählungspunkte; ein verschachtelter Punkt
-        # fiele auf den Elternpunkt zurück und schlüge fail-closed an.
-        assert all(mentioned == expected for mentioned in segments), (
-            f"workflow_run-Quellworkflows in {doc} decken sich nicht mit dem "
-            f"Trigger: erwartet {sorted(expected)}, gefunden {[sorted(m) for m in segments]}"
-        )
 
 
 def test_claude_md_lists_exactly_the_strictly_typed_scripts() -> None:

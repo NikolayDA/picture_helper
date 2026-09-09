@@ -159,7 +159,9 @@ jobs:
       # Gate 1b (#742/#743): Der Laufkopf ist der Kandidat. Freeze-Dokument und
       # Policy enthalten nur vor dem Merge bekannte Angaben; Commitliste,
       # Pfadklassen und Zaehler werden aus der First-Parent-Historie abgeleitet.
-      # Unbekannte Pfade sind fail-closed kandidatenrelevant UND blockierend.
+      # Unbekannte Pfade sind kandidatenrelevant und erscheinen seit #1037 als
+      # Warnung – als Actions-Annotation und in der Job-Zusammenfassung, nicht
+      # nur im Step-Log; blockieren tun sie nicht mehr.
       # Die JSON-Evidenz bindet Basis, github.sha, Policy-Digest und Run-IDs,
       # ohne einen selbstreferenziellen Pin-/Ledger-Nachtrag zu verlangen.
       - name: Release-Freeze-Gate und Provenienz
@@ -718,8 +720,8 @@ jobs:
           retention-days: ${{ env.DRY_RUN == '1' && env.DRY_RUN_RETENTION_DAYS || 90 }}
 
   # #922: Ein roter Dry-Run muss handlungsfaehig sein, nicht nur sichtbar -
-  # dasselbe Muster wie recommendations-live-check.yml (Ursache, Owner und
-  # Reaktionsweg dauerhaft in der Job-Zusammenfassung). Der Job buendelt das
+  # Ursache, Owner und Reaktionsweg stehen dauerhaft in der
+  # Job-Zusammenfassung. Der Job buendelt das
   # Ergebnis der drei Stufen an einer Stelle: Wer den Lauf oeffnet, sieht
   # sofort, WELCHE Stufe gefallen ist, statt drei Jobs durchsuchen zu muessen.
   # Er laeuft nur im Dry-Run - beim Kandidatenbau folgt ohnehin das Runbook.

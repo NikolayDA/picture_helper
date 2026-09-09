@@ -1,11 +1,11 @@
 # Journal de travail historique : recommandations séries 1-5
 
 Gelé le : 2026-05-24, commit 1cf8461.
-État actuel : ../i18n/fr/RECOMMENDATIONS.md.
+État actuel : ../../RECOMMENDATIONS.md.
 
 ---
 
-[Deutsch](../../RECOMMENDATIONS.md) · [English](../i18n/en/RECOMMENDATIONS.md) · [Español](../i18n/es/RECOMMENDATIONS.md) · **Français** · [Українська](../i18n/uk/RECOMMENDATIONS.md) · [简体中文](../i18n/zh/RECOMMENDATIONS.md)
+[Deutsch](RECOMMENDATIONS-2026-pre-v2.2.md) · [English](RECOMMENDATIONS-2026-pre-v2.2.en.md) · [Español](RECOMMENDATIONS-2026-pre-v2.2.es.md) · **Français** · [Українська](RECOMMENDATIONS-2026-pre-v2.2.uk.md) · [简体中文](RECOMMENDATIONS-2026-pre-v2.2.zh.md)
 
 # Analyse de code et recommandations évaluées : BgRemover
 

@@ -1215,7 +1215,7 @@ def test_dry_run_artifacts_expire_quickly_but_evidence_survives() -> None:
 
 
 def test_a_red_dry_run_names_cause_owner_and_reaction() -> None:
-    """Muster von ``recommendations-live-check.yml``: sichtbar UND handlungsfaehig."""
+    """Ein roter Dry-Run ist sichtbar UND handlungsfaehig (Ursache, Owner, Reaktionsweg)."""
     doc = _load(_RELEASE)
     report = doc["jobs"]["dry-run-report"]
     assert set(report["needs"]) == {"verify-candidate", "test", "build"}
