@@ -29,6 +29,7 @@ from bgremover.project_schema import (
     build_manifest,
     migrate_manifest,
 )
+from tests._qt_free_check import assert_module_is_qt_free
 
 # ── Helfer ──────────────────────────────────────────────────────────────
 
@@ -600,23 +601,10 @@ def test_corrupt_layer_png_is_rejected(tmp_path) -> None:
 
 
 def test_module_is_qt_free() -> None:
-    import ast
-    from pathlib import Path
-
     import bgremover.project_io as pio
     import bgremover.project_schema as psc
 
-    for mod in (pio, psc):
-        tree = ast.parse(Path(mod.__file__).read_text(encoding="utf-8"))
-        imported: set[str] = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                imported.update(alias.name for alias in node.names)
-            elif isinstance(node, ast.ImportFrom) and node.module is not None:
-                imported.add(node.module)
-        assert not any(
-            name.split(".")[0] in {"PyQt6", "PyQt5", "PySide6"} for name in imported
-        ), mod.__name__
+    assert_module_is_qt_free(pio, psc)
 
 
 # ── 16-Bit-HEIGHT-Payload an der v1-Formatgrenze (#587) ──────────────────

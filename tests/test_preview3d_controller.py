@@ -14,7 +14,7 @@ from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
 from bgremover.preview3d_capability import UNAVAILABLE_KEY, RendererCapability
 from bgremover.preview3d_controller import Preview3DController
 from bgremover.relief_mesh import MeshQuality, build_relief_mesh
-from bgremover.viewer_3d import Relief3DView
+from bgremover.viewer_3d import STATE_ERROR, STATE_LOADING, STATE_READY, Relief3DView
 
 
 def _field(value: int = 5000, size: int = 24) -> HeightField:
@@ -250,3 +250,95 @@ def test_retry_reevaluates(qapp) -> None:
     state["cap"] = _ok()
     ctrl.retry()
     assert view.state == "loading"
+
+
+# ── Asynchroner Renderbeweis: ready → error (#1004/#1005, Testlücke #1044) ──
+
+
+def _ready(qapp) -> tuple[Preview3DController, _FakeCanvas, _FakeWorker, Relief3DView]:
+    """Controller mit erfolgreich gebautem und angezeigtem Mesh."""
+    ctrl, canvas, worker, view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    ctrl._start_build()
+    _deliver(ctrl, worker)
+    assert view.state == STATE_READY
+    return ctrl, canvas, worker, view
+
+
+def test_async_error_after_ready_lets_the_next_build_show_loading(qapp) -> None:
+    """Der Renderbeweis des Viewers zieht den Zustand **asynchron** von ``ready``
+    auf ``error`` (kein Widget-Framebuffer), nachdem ``_show_cached`` gelaufen
+    ist. Ein mitgeführtes „zeigt ein Mesh"-Flag behauptete danach weiter das
+    Gegenteil und unterdrückte die Ladeseite über der Fehlerseite; seit #1004
+    fragt der Controller die Ansicht direkt.
+    """
+    ctrl, canvas, worker, view = _ready(qapp)
+    view.show_error()  # asynchroner Befund des Renderbeweises, nicht des Controllers
+    assert view.state == STATE_ERROR
+    canvas.content_revision = 2
+    ctrl.refresh()
+    assert view.state == STATE_LOADING
+    ctrl._start_build()
+    _deliver(ctrl, worker)
+    assert view.state == STATE_READY
+
+
+def test_displayed_mesh_stays_visible_while_rebuilding(qapp) -> None:
+    """Gegenkontrolle: Ohne Absage bleibt das angezeigte Mesh während des
+    Rebuilds stehen (kein Schwarzbild) – die Ladeseite erscheint nur über
+    einem Nicht-``ready``-Zustand."""
+    ctrl, canvas, worker, view = _ready(qapp)
+    canvas.content_revision = 2
+    ctrl.refresh()
+    assert view.state == STATE_READY
+    ctrl._start_build()
+    _deliver(ctrl, worker)
+    assert view.state == STATE_READY
+
+
+def test_cache_hit_after_async_error_restores_the_mesh_without_rebuild(qapp) -> None:
+    """Nach einer asynchronen Abstufung zeigt ein Cache-Treffer das gecachte
+    Mesh erneut (Retry-Weg der Ansicht), ohne einen neuen Build zu starten."""
+    ctrl, _canvas, worker, view = _ready(qapp)
+    view.show_error()
+    ctrl.refresh()
+    assert view.state == STATE_READY
+    assert len(worker.calls) == 1
+
+
+# ── Ränder von Build-Start und Ergebnisübernahme (Restzeilen aus #1044) ──
+
+
+def test_debounced_build_does_not_start_after_deactivation(qapp) -> None:
+    """Feuert der Debounce nach dem Verlassen des 3D-Modus, startet kein Build."""
+    ctrl, _canvas, worker, _view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    ctrl.set_active(False)
+    ctrl._start_build()
+    assert worker.calls == []
+
+
+def test_field_vanishing_before_build_start_shows_empty(qapp) -> None:
+    """Zwischen Entprellung und Build-Start kann das Höhenfeld verschwinden
+    (Ebene gelöscht): dann Leerseite statt Build mit ``None``."""
+    ctrl, canvas, worker, view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    assert view.state == STATE_LOADING
+    canvas._field = None
+    ctrl._start_build()
+    assert worker.calls == []
+    assert view.state == "empty"
+
+
+def test_mesh_arriving_after_deactivation_is_not_shown(qapp) -> None:
+    """Ein Ergebnis, das nach dem Wechsel zurück auf 2D eintrifft, wird weder
+    angezeigt noch gecacht – ein späteres Aktivieren baut neu."""
+    ctrl, _canvas, worker, view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    ctrl._start_build()
+    ctrl.set_active(False)
+    _deliver(ctrl, worker)
+    assert view.state == STATE_LOADING  # unverändert, kein Mesh übernommen
+    ctrl.set_active(True)
+    ctrl._start_build()
+    assert len(worker.calls) == 2  # kein Cache-Treffer aus dem verworfenen Ergebnis

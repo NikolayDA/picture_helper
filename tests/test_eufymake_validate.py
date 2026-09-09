@@ -21,7 +21,6 @@ from bgremover.eufymake_validate import (
     Severity,
     format_finding,
     has_blocking_errors,
-    split_findings,
     validate_export,
 )
 from bgremover.project_model import (
@@ -341,15 +340,21 @@ def test_findings_sorted_by_code_order_within_severity() -> None:
 
 # ── Blockier-/Bestätigungs-Logik ─────────────────────────────────────────
 
-def test_has_blocking_errors_and_split() -> None:
+def test_missing_requested_optional_role_is_the_blocking_error() -> None:
+    """Produktspezifisch: Eine angeforderte, aber fehlende optionale Rolle ist
+    ein *blockierender* Befund mit Rollenkontext.
+
+    Die Split-/Blockierlogik selbst (`has_blocking_errors`/`split_findings`)
+    ist ein Re-Export aus `export_checks` und dort geprüft
+    (`tests/test_export_checks.py`) – hier nur noch der EufyMake-Anteil (#1044).
+    """
     project = _color_project()
     project.metadata[META_PHYSICAL_SIZE_MM] = (50.0, 25.0)
     findings = validate_export(project, requested_optional_roles=[LayerRole.GLOSS_MASK])
-    assert has_blocking_errors(findings) is True  # optional_role_missing
-    errors, warnings = split_findings(findings)
-    assert all(f.is_error for f in errors)
-    assert all(not f.is_error for f in warnings)
-    assert len(errors) + len(warnings) == len(findings)
+    blocking = [f for f in findings if f.is_error]
+    assert has_blocking_errors(findings) is True
+    assert [f.code for f in blocking] == [ExportCheckCode.OPTIONAL_ROLE_MISSING]
+    assert blocking[0].role is LayerRole.GLOSS_MASK
 
 
 def test_clean_project_has_no_blocking_errors() -> None:
@@ -443,9 +448,13 @@ def test_format_finding_renders_every_code() -> None:
             i18n.configure_locale(i18n.DEFAULT_LOCALE)
 
 
-def test_finding_i18n_key_matches_namespace() -> None:
+def test_export_finding_uses_the_eufymake_namespace() -> None:
+    """EufyMake-Befunde leben unter `eufymake.export.*`, nicht unter dem
+    generischen `export.checks.*` der Basis (dort in `test_export_checks.py`
+    geprüft) – die beiden Namensräume dürfen nie zusammenfallen (#1044)."""
     finding = ExportFinding(ExportCheckCode.COLOR_MOTIF_MISSING, Severity.ERROR)
     assert finding.i18n_key == "eufymake.export.color_motif_missing"
+    assert not finding.i18n_key.startswith("export.checks.")
 
 
 # ── Präzisionsverlust-Warnung beim 8-Bit-Ziel (#590) ─────────────────────

@@ -1,9 +1,6 @@
 """Deterministische Qt-freie Gloss-Vorschau (#386)."""
 from __future__ import annotations
 
-import ast
-from pathlib import Path
-
 import numpy as np
 import pytest
 from PIL import Image
@@ -16,6 +13,7 @@ from bgremover.gloss_preview import (
     compose_over,
     gloss_overlay,
 )
+from tests._qt_free_check import assert_module_is_qt_free
 
 
 def test_gloss_mask_produces_exact_visible_overlay() -> None:
@@ -110,13 +108,4 @@ def test_compose_rejects_non_rgba_base_and_size_mismatch() -> None:
 
 
 def test_module_is_qt_free() -> None:
-    tree = ast.parse(Path(gloss_module.__file__).read_text(encoding="utf-8"))
-    imported: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imported.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module is not None:
-            imported.add(node.module)
-    assert not any(
-        name.split(".")[0] in {"PyQt6", "PyQt5", "PySide6"} for name in imported
-    )
+    assert_module_is_qt_free(gloss_module)
