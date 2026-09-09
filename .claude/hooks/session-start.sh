@@ -7,6 +7,16 @@
 # bibliotheken (libEGL & xcb-Familie), die im Web-Container nicht
 # vorinstalliert sind.
 #
+# Installiert wird seit #1048 in eine projekt-lokale venv (`.venv`, in
+# .gitignore; das Makefile bevorzugt `.venv/bin/python` von selbst), nicht
+# mehr in den System-Interpreter: Der Web-Container bringt Debian-Pakete
+# ohne RECORD-Datei mit (pip 24.0 aus #553, PyYAML 6.0.1 aus #1048), die
+# pip beim Anheben auf die Constraints nicht deinstallieren kann
+# („Cannot uninstall …: no RECORD file was found") – der Projekt-Install
+# brach damit ab, bevor irgendetwas installiert war. In einer venv ohne
+# System-Site-Packages steht kein Debian-Paket im Weg, auch nicht das
+# nächste dieser Klasse.
+#
 # Synchron (kein async): die Session startet erst, wenn alle
 # Abhängigkeiten stehen – verhindert, dass Claude Tests/Linter
 # startet, bevor sie verfügbar sind.
@@ -24,32 +34,45 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
 fi
 
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
+PROJECT_DIR="$(pwd -P)"
+VENV_DIR="$PROJECT_DIR/.venv"
+VENV_PY="$VENV_DIR/bin/python"
 
-# Headless-Qt für alle Session-Befehle persistent setzen. conftest.py
-# setzt es für pytest ohnehin per setdefault – das hier deckt direkte
-# Qt-Aufrufe (z. B. `import bgremover` in einem Ad-hoc-Skript) mit ab.
-# Muss VOR der Vorprüfung unten stehen (Review-Fund zu #553): sonst bekommt
-# eine Session, die den Kurzschluss nimmt, nie QT_QPA_PLATFORM gesetzt.
+# Headless-Qt und die venv für alle Session-Befehle persistent setzen.
+# conftest.py setzt QT_QPA_PLATFORM für pytest ohnehin per setdefault – das
+# hier deckt direkte Qt-Aufrufe (z. B. `import bgremover` in einem
+# Ad-hoc-Skript) mit ab. PATH voran, damit `python3`/`pytest`/`ruff` in der
+# Session die venv treffen (#1048) – auch `make` findet sie, weil es
+# `.venv/bin/python` bevorzugt. Muss VOR der Vorprüfung unten stehen
+# (Review-Fund zu #553): sonst bekommt eine Session, die den Kurzschluss
+# nimmt, weder QT_QPA_PLATFORM noch den venv-PATH.
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-  echo 'export QT_QPA_PLATFORM=offscreen' >> "$CLAUDE_ENV_FILE"
+  {
+    echo 'export QT_QPA_PLATFORM=offscreen'
+    printf 'export VIRTUAL_ENV=%q\n' "$VENV_DIR"
+    # `$PATH` bewusst literal: Es wird erst beim Laden der Env-Datei expandiert.
+    # shellcheck disable=SC2016
+    printf 'export PATH=%q:"$PATH"\n' "$VENV_DIR/bin"
+  } >> "$CLAUDE_ENV_FILE"
 fi
 
 # Provenienzprüfung der bgremover-Installation (#1031). Sie läuft bewusst
 # als Skript über den Dateipfad (sys.path[0] = scripts/), nicht als
-# `python3 -c` aus der Repo-Wurzel: Dort steht das Arbeitsverzeichnis vorn
+# `python -c` aus der Repo-Wurzel: Dort steht das Arbeitsverzeichnis vorn
 # auf sys.path, und `import bgremover` träfe den Checkout selbst dann, wenn
 # in site-packages eine veraltete nicht-editable Kopie liegt – der Import
 # wäre kein Beleg. Das Skript wertet nur Distributions-Metadaten aus und
-# prüft den Import zusätzlich aus einem neutralen Arbeitsverzeichnis.
+# prüft den Import zusätzlich aus einem neutralen Arbeitsverzeichnis. Es
+# läuft mit dem venv-Interpreter, denn dessen Suchpfad ist der der Session.
 PROVENANCE_CHECK="scripts/check_install_provenance.py"
 
 # Idempotente Vorprüfung (#553): Läuft der Hook in einer Folge-Session mit
-# gecachtem Container erneut, sind Systemlibs + editable Install oft schon
-# vorhanden. Dann apt/pip-Arbeit überspringen statt sie folgenlos zu
-# wiederholen – spart Zeit und reduziert die Fläche für neue Fehlschläge.
+# gecachtem Container erneut, sind Systemlibs + venv oft schon vorhanden.
+# Dann apt/pip-Arbeit überspringen statt sie folgenlos zu wiederholen –
+# spart Zeit und reduziert die Fläche für neue Fehlschläge.
 #
 # Jede Teilprüfung deckt genau die Lücke ab, die apt/pip weiter unten
-# schließen (Review-Funde zu #553):
+# schließen (Review-Funde zu #553), und alle laufen mit dem venv-Python:
 # - `PyQt6.QtWidgets` statt nur `PyQt6` laden, weil das Namespace-Paket
 #   ohne die Qt-Systemlibs (libGL/libEGL) importierbar bleibt – erst
 #   QtWidgets zieht sie tatsächlich.
@@ -66,10 +89,11 @@ PROVENANCE_CHECK="scripts/check_install_provenance.py"
 #   eingetragenen Checkout unauffällig blieben. Gültig ist nur ein
 #   editierbarer Link (PEP 660 oder Legacy) auf genau diesen Checkout.
 tools_ready=0
-if python3 -m ruff --version >/dev/null 2>&1 \
-  && python3 -m mypy --version >/dev/null 2>&1 \
-  && python3 -m pytest --version >/dev/null 2>&1 \
-  && python3 -c "
+if [ -x "$VENV_PY" ] \
+  && "$VENV_PY" -m ruff --version >/dev/null 2>&1 \
+  && "$VENV_PY" -m mypy --version >/dev/null 2>&1 \
+  && "$VENV_PY" -m pytest --version >/dev/null 2>&1 \
+  && "$VENV_PY" -c "
 import sys
 from packaging.version import Version
 from importlib import metadata
@@ -80,11 +104,12 @@ sys.exit(0 if Version(metadata.version('pip')) >= Version('26.1.2') else 1)
   tools_ready=1
 fi
 provenance_ready=0
-if provenance_report="$(python3 "$PROVENANCE_CHECK" 2>&1)"; then
+provenance_report=""
+if [ -x "$VENV_PY" ] && provenance_report="$("$VENV_PY" "$PROVENANCE_CHECK" 2>&1)"; then
   provenance_ready=1
 fi
 if [ "$tools_ready" = 1 ] && [ "$provenance_ready" = 1 ]; then
-  echo "SessionStart-Hook: Umgebung bereits vollständig (ruff/mypy/pytest/PyQt6/pytest-qt/pip>=26.1.2, bgremover editable auf diesen Checkout) – überspringe Install."
+  echo "SessionStart-Hook: Umgebung bereits vollständig (.venv mit ruff/mypy/pytest/PyQt6/pytest-qt/pip>=26.1.2, bgremover editable auf diesen Checkout) – überspringe Install."
   exit 0
 fi
 if [ "$tools_ready" = 1 ]; then
@@ -112,21 +137,35 @@ if command -v apt-get >/dev/null 2>&1; then
     libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
 fi
 
+# Projekt-lokale venv (#1048). Eine vorhandene, aber unbrauchbare venv
+# (fremde Python-Version, abgebrochener Bau) wird neu angelegt – aber nur,
+# wenn es wirklich eine venv ist (pyvenv.cfg): Ein fremdes `.venv` (Symlink,
+# Fremdverzeichnis) wird nicht gelöscht, sondern ist ein benannter Fehler.
+# `python3 -m venv` braucht ensurepip; Debian/Ubuntu liefern es getrennt als
+# python3-venv – nur dann nachinstallieren.
+if ! "$VENV_PY" -c "import sys" >/dev/null 2>&1; then
+  if [ -e "$VENV_DIR" ]; then
+    if [ -f "$VENV_DIR/pyvenv.cfg" ] && [ ! -L "$VENV_DIR" ]; then
+      echo "SessionStart-Hook: $VENV_DIR ist unbrauchbar – lege die venv neu an."
+      rm -rf "$VENV_DIR"
+    else
+      echo "SessionStart-Hook: $VENV_DIR existiert, ist aber keine venv (kein pyvenv.cfg oder Symlink) – bitte von Hand prüfen." >&2
+      exit 1
+    fi
+  fi
+  if ! python3 -c "import ensurepip" >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv
+  fi
+  python3 -m venv "$VENV_DIR"
+fi
+
 # pip>=26.1.2 vor dem Install erzwingen: schliesst den pip-CVE-Batch (#202,
 # Path-Traversal/Symlink/Modul-Hijacking) auch in der Web-Session – pip ist das
 # Installationswerkzeug selbst und laesst sich daher nicht ueber constraints.txt
 # anheben. Gleiche Mindestversion wie in den CI-Workflows (tests/test_ci_pip_pin.py).
-#
-# --ignore-installed ist hier zwingend (Befund zu #553): Der Web-Container
-# bringt pip 24.0 als Debian-Paket mit (apt, nicht pip-verwaltet) – ohne
-# RECORD-Metadatei kann pip sein eigenes Debian-Paket nicht sauber
-# deinstallieren ("Cannot uninstall pip 24.0, RECORD file not found") und
-# bricht unter set -e sofort ab, VOR dem eigentlichen Projekt-Install in
-# Zeile unten. Das war die tatsächliche Ursache des in #553 beobachteten
-# stillen Fehlschlags (weder Qt-Systemlibs- noch pip-Install-Schritt selbst
-# waren defekt). --ignore-installed installiert die neue Version daneben,
-# ohne das kaputte RECORD zu benötigen.
-python3 -m pip install -q --upgrade --ignore-installed "pip>=26.1.2"
+# In der venv ohne `--ignore-installed`: Das RECORD-lose Debian-pip aus #553
+# liegt im System-Interpreter, nicht hier.
+"$VENV_PY" -m pip install -q --upgrade "pip>=26.1.2"
 
 # Projekt inkl. Test-/Lint-Werkzeuge (pytest, pytest-qt, ruff, mypy).
 # Idempotent; -e nutzt den Container-Cache bei Folge-Sessions. Mit dem
@@ -135,13 +174,24 @@ python3 -m pip install -q --upgrade --ignore-installed "pip>=26.1.2"
 # Web-Container frei auf und kann verwundbare Versionen einspielen.
 # Eine vorhandene nicht-editable Kopie (z. B. aus `make pr-check`) wird
 # dabei von pip durch den editierbaren Link ersetzt.
-python3 -m pip install -q --constraint requirements/constraints.txt -e ".[test]"
+#
+# `bgremover.egg-info` in der Repo-Wurzel ist das setuptools-Nebenprodukt
+# des editierbaren Baus. Ein Rest aus einem abgebrochenen Lauf wird vorher
+# entfernt und nach einem Fehlschlag wieder aufgeräumt (#1048): Er ist
+# Unrat im Arbeitsbaum, und aus `python -c` in der Repo-Wurzel sähe er wie
+# eine installierte Distribution aus.
+rm -rf "$PROJECT_DIR/bgremover.egg-info"
+if ! "$VENV_PY" -m pip install -q --constraint requirements/constraints.txt -e ".[test]"; then
+  rm -rf "$PROJECT_DIR/bgremover.egg-info"
+  echo "SessionStart-Hook: FEHLGESCHLAGEN – pip install -e \".[test]\" in $VENV_DIR ist abgebrochen; siehe pip-Ausgabe oberhalb." >&2
+  exit 1
+fi
 
 # Postcondition (#1031), hart: Nach dem Install muss jede Distribution
 # `bgremover` ein editierbarer Link auf diesen Checkout sein und der Import
 # aus einem neutralen Arbeitsverzeichnis `bgremover/` dieses Checkouts
 # treffen. Scheitert das, würde die Session fremden Code messen – der Hook
 # bricht dann laut ab (set -e + Trap), statt still fortzufahren.
-python3 "$PROVENANCE_CHECK"
+"$VENV_PY" "$PROVENANCE_CHECK"
 
-echo "SessionStart-Hook: Umgebung bereit (ruff/mypy/pytest lauffähig, bgremover editable auf diesen Checkout)."
+echo "SessionStart-Hook: Umgebung bereit (.venv mit ruff/mypy/pytest lauffähig, bgremover editable auf diesen Checkout)."

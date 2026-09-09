@@ -1506,6 +1506,23 @@ Web-Sessions die Qt-Systembibliotheken + `.[test]` und setzt
 `QT_QPA_PLATFORM=offscreen`. Er läuft nur, wenn `CLAUDE_CODE_REMOTE=true`; lokal
 richtest du deine venv selbst ein (siehe `INSTALL_MAC.md` / `INSTALL_LINUX.md`).
 
+Installiert wird seit #1048 in eine **projekt-lokale venv** (`.venv`, in
+`.gitignore`), nicht in den System-Interpreter: Der Web-Container bringt
+Debian-Pakete ohne RECORD-Datei mit (pip 24.0 aus #553, PyYAML 6.0.1 aus
+#1048), die pip beim Anheben auf die Constraints nicht deinstallieren kann
+(`Cannot uninstall …: no RECORD file was found`) – der Projekt-Install brach
+damit ab, bevor irgendetwas installiert war, und ein verwaistes
+`bgremover.egg-info` in der Repo-Wurzel ließ den alten Kurzschluss trotzdem
+greifen. In der venv ohne System-Site-Packages steht kein Debian-Paket im
+Weg. Der Hook schreibt `PATH` (`.venv/bin` voran) und `VIRTUAL_ENV` in
+`CLAUDE_ENV_FILE`, sodass `python3`/`pytest`/`ruff` in der Session die venv
+treffen; `make` bevorzugt `.venv/bin/python` ohnehin. Vorprüfung,
+Provenienzprüfung und Postcondition laufen alle mit dem venv-Interpreter.
+Eine unbrauchbare `.venv` (echte venv mit `pyvenv.cfg`, kein Symlink) wird
+neu angelegt, ein fremdes `.venv` ist ein benannter Fehler; ein Rest
+`bgremover.egg-info` wird vor dem Install entfernt und nach einem Fehlschlag
+aufgeräumt.
+
 Sein Kurzschluss für Folge-Sessions im gecachten Container prüft seit #1031
 die **Installationsprovenienz** von `bgremover`, nicht nur die Existenz der
 Distribution: `make pr-check` installiert bewusst nicht-editable, dieser
