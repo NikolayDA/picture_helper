@@ -24,16 +24,17 @@ Diagramm ist der Fehler.
 Die folgenden Repository-Einstellungen sind **Live-Konfiguration**, nicht Teil
 des versionierten Codes (manuell und authentifiziert geprüft am 22. August
 2026; vollständig nachgeprüft und auf den Stand der Reviewschleifen-
-Entschärfung umgestellt am 24. August 2026). Dieser Snapshot hat noch keinen
-automatischen Drift-Test und muss bei Änderungen in den GitHub-Einstellungen
-erneut abgeglichen werden.
+Entschärfung umgestellt am 24. August 2026; zuletzt am 9. September 2026 mit
+der Umstellung auf Squash-only und automatische Branch-Löschung, #1035).
+Dieser Snapshot hat noch keinen automatischen Drift-Test und muss bei
+Änderungen in den GitHub-Einstellungen erneut abgeglichen werden.
 
 | Einstellung | Aktueller Stand | Bedeutung für die Diagramme |
 |---|---|---|
 | Branch Protection für `main` | einziger erforderlicher Status: `Lightweight PR checks`; Branch muss aktuell zu `main` sein (`strict`); Review-Konversationen sind keine Merge-Sperre (Konversationsauflösungs-Pflicht am 24.08.2026 entfernt); kein formales Approval erforderlich; für Admins nicht erzwungen | Weitere Checks, Review-Kommentare und ein `APPROVED`-Review sind keine technischen Merge-Sperren, ein veralteter Branch oder ein roter Pflichtstatus dagegen schon |
-| Merge-Methoden | Merge-Commit, Squash und Rebase sind erlaubt | Squash ist die gelebte Projektkonvention, nicht die einzige von GitHub erlaubte Methode |
+| Merge-Methoden | nur Squash-Merge; Merge-Commit und Rebase sind deaktiviert; Squash-Voreinstellung `PR_TITLE`/`PR_BODY` (PR-Titel und -Beschreibung) | Die lineare `main`-Historie ist technisch erzwungen statt nur Konvention; die Squash-Commit-Nachricht entsteht aus PR-Titel und PR-Beschreibung, nicht aus den Branch-Commits |
 | Auto-Merge | deaktiviert | Die Merge-Entscheidung erfolgt manuell |
-| Branch nach Merge automatisch löschen | deaktiviert | Das Löschen eines Feature-Branches ist ein optionaler manueller Schritt |
+| Branch nach Merge automatisch löschen | aktiviert | Der Head-Branch eines gemergten PRs verschwindet ohne manuellen Schritt; Branches aus einem Fork kann GitHub nicht löschen, sie bleiben dort stehen |
 
 Der erforderliche Status samt Durchsetzungsebene ist anonym über die
 [`main`-Branch-Metadaten](https://api.github.com/repos/NikolayDA/picture_helper/branches/main)
@@ -328,20 +329,26 @@ flowchart TD
   daher kein gleichwertiger Ersatz.
 - Ebenfalls nicht gezeichnet und kein versionierter Workflow, sondern
   Live-Konfiguration: das Codex-Review der GitHub-App
-  `chatgpt-codex-connector`. Es reviewt laut eigener Beschreibung bei
-  PR-Eröffnung, `ready_for_review` und auf `@codex review` – unabhängig vom
-  Claude-Review und ohne dessen Doku-Pfad-Ausnahme. Wie alle
-  Review-Kommentare ist es laut [GitHub-Rahmen](#aktueller-github-rahmen)
-  keine Merge-Sperre.
+  `chatgpt-codex-connector`. Sein automatisches Review ist seit #1035
+  abgeschaltet; es läuft nur noch auf ausdrückliches `@codex review`. Damit
+  gibt es genau **einen** automatisch konfigurierten Review-Dienst – das
+  versionierte Claude-Review, weil es die Doku-Pfad-Ausnahme trägt und über
+  `re-review` wiederholbar ist. Zwei parallele Erst-Reviews wären unter der
+  Konvergenzregel (höchstens zwei Bot-Runden, Abschnitt 3) doppelte Arbeit
+  mit doppelten Befundlisten. Diese Einstellung liegt in der
+  Connector-Konfiguration und ist über die Repository-API **nicht** prüfbar;
+  sie wird dort direkt kontrolliert. Wie alle Review-Kommentare ist auch ein
+  Codex-Befund laut [GitHub-Rahmen](#aktueller-github-rahmen) keine
+  Merge-Sperre.
 
 ---
 
 ## 3. Pull Request durchführen (Review bis Merge)
 
 **Auslöser:** Der PR ist offen, die Checks laufen.
-**Ergebnis:** Der PR ist nach der üblichen Squash-Konvention auf `main`
-gemergt; vorhandene Closing-Verknüpfungen und die passende
-Folgeautomatisierung sind verarbeitet.
+**Ergebnis:** Der PR ist per Squash auf `main` gemergt – der einzigen
+freigeschalteten Merge-Methode; vorhandene Closing-Verknüpfungen und die
+passende Folgeautomatisierung sind verarbeitet.
 **Quellen:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) („PRs, die `make check`
 nicht bestehen, werden nicht gemergt“),
 [`claude-code-review.yml`](../.github/workflows/claude-code-review.yml),
@@ -378,9 +385,7 @@ flowchart TD
     RQ2{"Änderungswünsche offen?"}
     A1["Merge-Entscheidung treffen<br/>formales Approval ist möglich, aber aktuell nicht technisch vorgeschrieben"]
     RQ3{"Branch aktuell zu main?"}
-    M1["Üblicher Squash-Merge nach main<br/>GitHub erlaubt daneben Merge-Commit und Rebase"]
-    MQ{"Feature-Branch manuell löschen?"}
-    M2["Feature-Branch löschen<br/>automatische Löschung ist deaktiviert"]
+    M1["Squash-Merge nach main<br/>einzige freigeschaltete Merge-Methode, Nachricht aus PR-Titel und -Beschreibung"]
   end
 
   subgraph POST["Partition: main und Folgeautomatisierung"]
@@ -390,6 +395,7 @@ flowchart TD
     IQ{"Closing-Verknüpfung vorhanden?"}
     N1["verknüpfte Issues schließen automatisch"]
     N2["push auf main<br/>coverage.yml, codeql.yml, license-check.yml"]
+    N3["Head-Branch wird automatisch gelöscht<br/>nur im eigenen Repository, nicht im Fork"]
   end
 
   R1 --> RQ1
@@ -401,9 +407,7 @@ flowchart TD
   RQ2 -->|"nein"| A1 --> RQ3
   RQ3 -->|"nein"| F4 --> R1
   RQ3 -->|"ja"| M1 --> J2
-  J2 --> MQ
-  MQ -->|"ja"| M2 --> J3
-  MQ -->|"nein"| J3
+  J2 --> N3 --> J3
   J2 --> IQ
   IQ -->|"ja"| N1 --> J3
   IQ -->|"nein"| J3
@@ -427,8 +431,10 @@ flowchart TD
   Bot-Befunde sind Input der Merge-Entscheidung, keine Merge-Bedingung –
   konvergieren Befunde nicht mehr (jeder Fix zieht neue oder umformulierte
   nach), ist Aufhören die richtige Auflösung, nicht der nächste Fix-Push.
-- Squash-Merge ist die aus der `main`-Historie belegte Projektpraxis. GitHub
-  erzwingt sie nicht: Auch Merge-Commit und Rebase sind freigeschaltet.
+- Squash ist seit #1035 die einzige freigeschaltete Merge-Methode; die
+  lineare `main`-Historie ist damit erzwungen statt nur belegte Praxis. Die
+  Commit-Nachricht entsteht aus PR-Titel und PR-Beschreibung – beide sind
+  deshalb der dauerhafte Text, nicht nur Review-Kontext.
 - Ein formales `APPROVED`-Review ist derzeit keine Branch-Protection-Pflicht.
   GitHub erzwingt für Nicht-Admins nur einen gegenüber `main` aktuellen
   Branch (`strict`); Review-Konversationen sperren den Merge nicht mehr.
