@@ -179,21 +179,41 @@ def resolve_base(repo: Path, base_ref: str) -> str:
 
 
 def collect_changes(repo: Path, base_ref: str) -> ChangeSet:
-    """Sammelt Commits seit der Merge-Basis und den gesamten Arbeitsbaum."""
+    """Sammelt Commits seit der Merge-Basis und den gesamten Arbeitsbaum.
+
+    Jeder git-Fehlschlag wird zu ``PrReadyError``: Ein ``--repo`` ohne
+    Repository und ein Repository ohne Commits (ungeborener ``HEAD``, an dem
+    ``git diff HEAD`` scheitert) endeten sonst im Traceback statt im
+    zugesicherten Exit 2 – der Docstring verspricht „nicht lauffähig", nicht
+    „Stacktrace" (Review-Befund PR #1065).
+    """
+    if not (repo / ".git").exists():
+        raise PrReadyError(
+            f"{repo} ist kein git-Repository (kein .git).",
+            ("--repo auf die Wurzel eines Checkouts zeigen lassen",),
+        )
     base_sha = resolve_base(repo, base_ref)
     merge_base = _git_optional(repo, "merge-base", base_sha, "HEAD")
     # Ohne gemeinsamen Vorfahren (unverbundene Historien) ist der Basis-Commit
     # selbst der beste Vergleichspunkt – besser ein zu weiter Diff als keiner.
     resolved_base = merge_base.strip() if merge_base and merge_base.strip() else base_sha
-    return ChangeSet(
-        base_ref=base_ref,
-        base_sha=base_sha,
-        merge_base=resolved_base,
-        committed=_diff_paths(repo, resolved_base, "HEAD"),
-        # Ein einzelnes ``git diff HEAD`` deckt staged und unstaged gemeinsam ab.
-        worktree=_diff_paths(repo, "HEAD"),
-        untracked=_split_nul(_git(repo, "ls-files", "--others", "--exclude-standard", "-z")),
-    )
+    try:
+        return ChangeSet(
+            base_ref=base_ref,
+            base_sha=base_sha,
+            merge_base=resolved_base,
+            committed=_diff_paths(repo, resolved_base, "HEAD"),
+            # Ein einzelnes ``git diff HEAD`` deckt staged und unstaged gemeinsam ab.
+            worktree=_diff_paths(repo, "HEAD"),
+            untracked=_split_nul(_git(repo, "ls-files", "--others", "--exclude-standard", "-z")),
+        )
+    except subprocess.CalledProcessError as error:
+        detail = (error.stderr or "").strip().splitlines()
+        raise PrReadyError(
+            f"git konnte den Diff in {repo} nicht lesen"
+            + (f": {detail[-1]}" if detail else "."),
+            ("Repository mit mindestens einem Commit und lesbarem HEAD nötig",),
+        ) from error
 
 
 def toml_parser_available() -> bool:

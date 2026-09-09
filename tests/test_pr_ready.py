@@ -174,6 +174,30 @@ def test_missing_base_ref_aborts_with_a_recipe(pr_repo: Path) -> None:
     assert "keine Drift-Pflicht" not in output
 
 
+def test_directory_without_a_repository_aborts_cleanly(tmp_path: Path) -> None:
+    """``--repo`` auf ein beliebiges Verzeichnis: Exit 2, kein Traceback."""
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        code = pr_ready.main(["--repo", str(tmp_path), "--base", "main"])
+
+    assert code == 2
+    assert "kein git-Repository" in buffer.getvalue()
+
+
+def test_repository_without_commits_aborts_cleanly(tmp_path: Path) -> None:
+    """Ungeborener ``HEAD``: ``git diff HEAD`` scheitert – als Befund, nicht als Absturz."""
+    repo = tmp_path / "leer"
+    repo.mkdir()
+    _run(repo, "init", "-q", "-b", "main")
+    _run(repo, "config", "user.email", "test@example.invalid")
+    _run(repo, "config", "user.name", "Test")
+
+    code, output = _check(repo, base="HEAD")
+
+    assert code == 2, output
+    assert "FEHLER" in output
+
+
 # ── Die vier Pflichten ────────────────────────────────────────────────
 
 
