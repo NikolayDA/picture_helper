@@ -43,6 +43,17 @@ _REQUIRED_IDS = {
 
 _EXPECTED_LABELS = {_BUG_FORM.name: "bug", _FEATURE_FORM.name: "enhancement"}
 
+# Vorauswahl je optionalem Dropdown – als **Label**, nicht als Index. Der Index
+# ist eine Position: Bekommt ``WorkflowStep`` je einen siebten Schritt, rutscht
+# „übergreifend" auf 7 und ``default: 6`` zeigte auf den neuen Schritt. Das wäre
+# der Schaden dieses PRs in umgekehrter Richtung – statt einer Lücke, die wie
+# eine Antwort aussieht, eine falsche Antwort, die plausibel aussieht
+# (Review PR #1063).
+_EXPECTED_DROPDOWN_DEFAULTS = {
+    _BUG_FORM.name: {"ai_backend": "unbekannt"},
+    _FEATURE_FORM.name: {"workflow_step": "übergreifend"},
+}
+
 
 def _load(path: Path) -> dict[str, Any]:
     try:
@@ -196,6 +207,12 @@ def test_dropdown_defaults_follow_the_requiredness(path: Path) -> None:
         assert 0 <= default < len(options), (
             f"{path.name}: default {default} von {element['id']!r} liegt ausserhalb"
             f" der {len(options)} Optionen"
+        )
+        expected = _EXPECTED_DROPDOWN_DEFAULTS[path.name][element["id"]]
+        assert options[default] == expected, (
+            f"{path.name}: Vorauswahl von {element['id']!r} zeigt auf"
+            f" {options[default]!r} statt auf {expected!r} – der Index folgt der"
+            " Position, nicht der Aussage"
         )
 
 
