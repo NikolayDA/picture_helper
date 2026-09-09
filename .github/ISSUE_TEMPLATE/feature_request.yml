@@ -1,3 +1,7 @@
+# Vorbelegt wird bewusst nur die Art (`bug`/`enhancement`), kein `prio:*`:
+# Die Priorität ist nach CONTRIBUTING §„Issue-Triage" eine Entscheidung des
+# Repository-Owners, keine Angabe des Melders. Ein form-erzeugtes Issue
+# startet daher ohne Prioritäts-Label und bekommt es in der Triage.
 name: Funktionswunsch
 description: Eine Verbesserung oder neue Funktion für BgRemover vorschlagen
 labels: ["enhancement"]
