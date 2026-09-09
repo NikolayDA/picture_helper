@@ -343,12 +343,17 @@ def roll_over_freeze_policy(
     """Zeigt ``current-freeze`` auf das neue Dokument und hebt die Policy-Version.
 
     Dieser Rollover ist kein Sonderfall, sondern faellt bei **jedem** Release
-    an: Das neue Freeze-Dokument ist ein unbekannter Pfad und blockiert das
-    Gate fail-closed, waehrend der Pfad des bisherigen aktiven Dokuments ohne
-    Regel zurueckbliebe. Beides ist vollstaendig aus den Versionsnummern
-    bestimmt – genau die schematische Arbeit, die dieses Skript abnimmt. Die
-    Begruendungstexte folgen wortgleich dem bisherigen Muster
-    (``historical-freeze-2.8.0`` als Vorlage).
+    an: Das neue Freeze-Dokument waere sonst ein unbekannter Pfad (seit #1037
+    eine Warnung, kein Gate-Fehler mehr, aber ein kandidatenrelevanter), und
+    der Pfad des bisherigen aktiven Dokuments bliebe ohne Regel zurueck. Beides
+    ist vollstaendig aus den Versionsnummern bestimmt – genau die schematische
+    Arbeit, die dieses Skript abnimmt. Die Begruendungstexte folgen wortgleich
+    dem bisherigen Muster (``historical-freeze-2.8.0`` als Vorlage).
+
+    Der Versionssprung bleibt: Das Umhaengen von ``current-freeze`` aendert die
+    Klassifikations**semantik** (ADR-Nachtrag 2026-08-25) – anders als eine
+    reine Allowlist-Ergaenzung fuer einen unbekannten Pfad, die seit #1037
+    keinen Bump verlangt.
 
     Liefert den neuen Dateiinhalt und die angehobene Policy-Version.
     """
@@ -458,8 +463,9 @@ ausdrücklich **nicht** im ausgelieferten Artefakt. Die übrigen Commits seit
 einzeln klassifiziert; der fachliche Scope entsteht hier.
 
 Änderungen außerhalb dieses Scope benötigen vor dem Build eine bewusste
-Scope-Entscheidung. Unbekannte Pfade blockieren das Gate fail-closed, auch wenn
-sie vorsichtshalber als kandidatenrelevant gelten.
+Scope-Entscheidung. Unbekannte Pfade gelten vorsichtshalber als
+kandidatenrelevant; das Gate weist sie als Warnung in Befundliste und
+Provenienz aus, statt an ihnen zu scheitern (#1037).
 
 ## Kandidat und Commit-Ledger
 
@@ -489,8 +495,10 @@ Die einzige Quelle ist [`release/path-policy.json`](../../release/path-policy.js
   Build-Input-Nachweis je Eintrag.
 - `candidate-relevant` umfasst bekannte Produkt-, Metadaten-, Build-, Test-,
   Workflow-, Release- und Evidenzpfade.
-- unbekannte Pfade sind kandidatenrelevant **und blockierend**, bis die Policy
-  bewusst ergänzt und versioniert wurde.
+- unbekannte Pfade sind kandidatenrelevant und werden als Warnung
+  ausgewiesen (#1037); `release-neutral` bleibt nur über einen expliziten,
+  begründeten Eintrag erreichbar – eine reine Allowlist-Ergänzung ohne
+  Versionssprung.
 
 {PLACEHOLDER}: Falls dieser Kandidat die Policy verändert hat, den
 Versionssprung hier begründen (Regel, Anlass, betroffene Pfade). Ohne
@@ -649,8 +657,11 @@ def _read(repo: Path, relative: str) -> str:
 def unknown_paths_since(repo: Path, base_sha: str, head: str = "HEAD") -> tuple[str, ...]:
     """Pfade im Fenster ``base..head`` ohne explizite Klassifikation.
 
-    Sie blockieren das Gate fail-closed. Der Hinweis gehoert in die
-    Vorbereitung, nicht in den Kandidatenbau: Dort kostet er einen ganzen Lauf.
+    Sie sind kandidatenrelevant und erscheinen im Gate als Warnung (#1037);
+    ein bewusst neutraler Pfad braucht weiterhin seinen ``release-neutral``-
+    Eintrag, sonst verschiebt er den Inhaltskandidaten. Der Hinweis gehoert in
+    die Vorbereitung, nicht in den Kandidatenbau: Dort faellt er erst in der
+    Provenienz auf.
     """
     # Die Policy des *gewaehlten* Repositorys, nicht die des Checkouts, in dem
     # dieses Skript liegt: Sonst klassifizierte der Hinweis fremde Historie
@@ -704,7 +715,7 @@ def plan(repo: Path, inputs: ReleaseInputs, *, predecessor_version: str) -> Plan
         )
     )
     # Der Rollover der Pfadpolicy gehoert in denselben Stand: Das neue
-    # Freeze-Dokument ist sonst ein unbekannter Pfad und blockiert das Gate.
+    # Freeze-Dokument waere sonst ein unbekannter Pfad (Warnung, kandidatenrelevant).
     policy_text, policy_version = roll_over_freeze_policy(
         _read(repo, POLICY_PATH), version=inputs.version, predecessor_version=predecessor_version
     )
@@ -804,7 +815,8 @@ def fallback_root(repo: Path) -> Path:
 
     ``tempfile`` folgt ``TMPDIR``. Zeigt das in den Arbeitsbaum, laege die
     Ablage im Repository: ein unbekannter Pfad, den ein ``git add -A``
-    mitnaehme und der dann das fail-closed Freeze-Gate blockiert. Deshalb die
+    mitnaehme und der dann als kandidatenrelevante Warnung in der Provenienz
+    stuende (bis #1037 blockierte er das Freeze-Gate). Deshalb die
     erste beschreibbare Wahl, die wirklich ausserhalb liegt – ``repo.parent``
     schliesst die Kette ab, weil es das per Definition immer ist.
     """
@@ -1097,8 +1109,9 @@ def main(argv: list[str] | None = None) -> int:
     if unknown:
         print(
             f"\nHINWEIS: {len(unknown)} Pfad(e) seit {base_tag} ohne explizite Klassifikation. "
-            "Sie blockieren das Freeze-Gate fail-closed, bis release/path-policy.json "
-            "ergänzt und ihre policy_version angehoben ist:",
+            "Sie gelten als kandidatenrelevant und erscheinen im Freeze-Gate als Warnung; "
+            "ein bewusst neutraler Pfad braucht einen begründeten release-neutral-Eintrag "
+            "in release/path-policy.json (reine Allowlist-Ergänzung, kein Versionssprung):",
             file=sys.stderr,
         )
         for path in unknown:

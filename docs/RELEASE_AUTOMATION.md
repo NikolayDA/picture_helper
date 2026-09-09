@@ -1234,8 +1234,8 @@ der ClamAV-Signaturcache wird nur gelesen, Artefakte gehören je Lauf.
 
 Der Job **Dry-Run-Ergebnis** fasst die drei Stufen an einer Stelle zusammen
 und macht den Lauf rot, sobald eine gefallen ist — mit Ursache,
-Diagnosematerial und Reaktionsweg in der Job-Zusammenfassung (dasselbe Muster
-wie `recommendations-live-check.yml`).
+Diagnosematerial und Reaktionsweg in der Job-Zusammenfassung – sichtbar
+**und** handlungsfähig.
 
 **Owner: Repository-Owner.** Ein roter Dry-Run bleibt ein aktiver
 Pipeline-Befund, bis die Ursache behoben oder bewusst als bekannt eingeordnet

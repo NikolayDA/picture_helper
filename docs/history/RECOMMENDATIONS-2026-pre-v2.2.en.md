@@ -1,11 +1,11 @@
 # Historical work log: recommendations rounds 1-5
 
 Frozen on: 2026-05-24, commit 1cf8461.
-Current status: ../i18n/en/RECOMMENDATIONS.md.
+Current status: ../../RECOMMENDATIONS.md.
 
 ---
 
-[Deutsch](../../RECOMMENDATIONS.md) · **English** · [Español](../i18n/es/RECOMMENDATIONS.md) · [Français](../i18n/fr/RECOMMENDATIONS.md) · [Українська](../i18n/uk/RECOMMENDATIONS.md) · [简体中文](../i18n/zh/RECOMMENDATIONS.md)
+[Deutsch](RECOMMENDATIONS-2026-pre-v2.2.md) · **English** · [Español](RECOMMENDATIONS-2026-pre-v2.2.es.md) · [Français](RECOMMENDATIONS-2026-pre-v2.2.fr.md) · [Українська](RECOMMENDATIONS-2026-pre-v2.2.uk.md) · [简体中文](RECOMMENDATIONS-2026-pre-v2.2.zh.md)
 
 # Code analysis & rated recommendations: BgRemover
 

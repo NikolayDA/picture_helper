@@ -12,7 +12,7 @@ maschinenlesbare Provenienz außerhalb der Git-Historie gespeichert (siehe
 - **Basis-Tag:** `v2.8.0` (= `1bf95b08453b92a6d66cfc13622211bdf47cc5e2`)
 - **Kandidatenversion:** `2.9.0`
 - **Release-Scope:** `minor-release-2.9.0`
-- **Pfadpolicy:** `release/path-policy.json` (Version `17`)
+- **Pfadpolicy:** `release/path-policy.json` (Version `18`)
 
 Der volle Basis-SHA ist unveränderlich. Der Tagname allein genügt nicht: Das
 Gate weist ein verschobenes Tag zurück. Die Policy-Version bindet die Semantik,
@@ -76,8 +76,9 @@ klassifiziert, ändern aber nicht den fachlichen Scope dieses Release:
 selbst gebauten macOS-Bundle – #865 und #866.**
 
 Änderungen außerhalb dieses Scope benötigen vor dem Build eine bewusste
-Scope-Entscheidung. Unbekannte Pfade blockieren das Gate fail-closed, auch wenn
-sie vorsichtshalber als kandidatenrelevant gelten.
+Scope-Entscheidung. Unbekannte Pfade gelten vorsichtshalber als
+kandidatenrelevant; seit Policy-Version `18` (#1037) weist das Gate sie als
+Warnung in Befundliste und Provenienz aus, statt an ihnen zu scheitern.
 
 ## Kandidat und Commit-Ledger
 
@@ -120,8 +121,10 @@ Die einzige Quelle ist [`release/path-policy.json`](../../release/path-policy.js
   Build-Input-Nachweis je Eintrag.
 - `candidate-relevant` umfasst bekannte Produkt-, Metadaten-, Build-, Test-,
   Workflow-, Release- und Evidenzpfade.
-- unbekannte Pfade sind kandidatenrelevant **und blockierend**, bis die Policy
-  bewusst ergänzt und versioniert wurde.
+- unbekannte Pfade sind kandidatenrelevant und werden als Warnung
+  ausgewiesen (`candidate-relevant-warning`, Version `18`, #1037); bis
+  Version `17` blockierten sie das Gate, bis die Policy bewusst ergänzt war.
+  `release-neutral` bleibt nur über einen expliziten Eintrag erreichbar.
 
 Die Policy-Version wurde für diesen Kandidaten zunächst von `5` auf `6`
 angehoben: Das Repointen von `current-freeze` auf dieses Dokument ließ den

@@ -58,3 +58,55 @@
 - **v2.2, „admiring-mayer" (#1–#15)** — externe Liste, erledigt oder bei Fehlalarm verworfen.
 
 Historische Befunde und Arbeitsprotokolle (Runden 1–5): [RECOMMENDATIONS-2026-pre-v2.2.md](RECOMMENDATIONS-2026-pre-v2.2.md).
+
+## Abschluss des Live-Triage-Modells (2026-09-09, #1040)
+
+Mit #1033 wurden Relevanz, Komplexität und nächster Schritt aller 41
+Tabellenzeilen wortgleich als Übernahmekommentar in die Issues übertragen,
+jedes offene Issue trägt seither genau ein `prio:*`-Label, interne Blocker
+sind native Abhängigkeiten und externe tragen `blocked:extern`. #1040 hat die
+sechsfach gespiegelte Triage-Tabelle, den Kurzstatus, den Workflow
+`recommendations-live-check.yml` samt Skript, Schreibmodus und Wächtertests
+entfernt. Dieser Abschnitt ist die einzige, ausdrücklich erlaubte Ergänzung
+des Archivs: der letzte Kurzstatus, wie er zuletzt in `RECOMMENDATIONS.md`
+stand (Cutover-Stand `9650799`).
+
+### Aktueller Stand (2026-09-09, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
+
+**Tagesaudit 2026-09-09 (Stand `dd6c572`):** Alle 56 offenen Issues geprüft;
+die fünfzehn neuen (#1031–#1045) sind in die Triage-Tabelle aufgenommen. Inhaltlich
+neu ist das Prozess-Epic #1032 mit elf Arbeitspaketen: Im Fenster `85eeea4^..dd6c572`
+liegen 156 Mainline-Commits, 28 davon (18 %) bestehen ausschließlich aus
+Triage-Pflege – also aus derselben Tabelle, die dieser Eintrag gerade fortschreibt
+(#1032 nennt 27; der Unterschied ist ein Commit, der zusätzlich das Archiv berührt).
+#1040 will sie samt Live-Check-Workflow abschaffen; bis dahin bleibt sie der gültige
+Vertrag, und der Live-Check war genau deshalb seit dem 2026-09-08 rot (Lauf
+34282863300), ohne dass sich am Code etwas geändert hätte. Einziger neuer Befund mit
+Auswirkung auf die Beweislage ist #1031 (Priorität 0): Ein veralteter nicht-editable
+`bgremover` lässt per Dateipfad gestartete Subprozess-Tests fremden Code messen – die
+gefährliche Richtung ist ein dadurch **grüner** Test. #1044 (Testlücke zu #1004/#1005,
+Coverage 93 %) und #1045 (fehlende `#1023`-Referenz im CHANGELOG) sind zwei kleine,
+sofort umsetzbare PRs. Kein neuer Produktfehler und kein 🔴-Befund.
+
+**Release-Einschätzung: v2.10.0 wird empfohlen.** Seit `v2.9.0` (2026-08-29) liegen
+83 First-Parent-Commits vor, zwölf davon mit Produktcode. `[Unreleased]` trägt damit
+einen vollständigen Minor-Umfang: EufyMake-Zielprofil v2 samt Studio-4.3.3-Preflight
+(#681/#691), bestätigtes Flatbed-Maß 335 × 420 mm (#971), Projekt-DPI als PNG-`pHYs`
+(#996), der Qt-Sprung auf 6.11 (#994, rund zehn Advisories, darunter CVE-2025-10728 und
+CVE-2025-10729) sowie vier 3D-Korrekturen (#1002, #1004, #1023, #1024), von denen
+#1024 einen Speicherzugriffsfehler behebt. Zwei Gründe sprechen gegen weiteres Warten:
+Die Sicherheitswirkung des Qt-Sprungs erreicht Anwender:innen erst mit dem Artefakt,
+und die angehobene glibc-Untergrenze (aarch64 2.39, x86_64 2.34) ist eine
+Plattformänderung, die veröffentlicht und angekündigt gehört. Die COLOR-Tonwert-Engine
+(#693 ff.) ist **kein** Grund zu warten – sie ist der Umfang danach. Vor dem
+Kandidatenbau (#1045 Punkt 1, die `#1023`-Referenz im CHANGELOG, ist erledigt):
+Runbook-Schritt 1/2 über `scripts/prepare_release.py 2.10.0` einschließlich der
+redaktionellen `TODO(release)`-Lücken (`NOTES-01`). Derselbe Lauf liefert zugleich die
+noch fehlende End-to-End-Evidenz für #914 und #918.
+
+**EufyMake #681/#687–#691:** Der reproduzierbare Satz umfasst 42 Einzel-Fixtures und sieben unveränderte echte Exportpakete (Schema 5). Die 29 verpflichtenden druckfreien Importzellen sind sowohl in der historischen Studio-4.2.2-Baseline als auch im vollständigen 4.3.3-Regressionslauf erledigt; I-09 (`.empf`) bleibt nicht blockierend.
+13/13 vorbereitete native Projekte laden, zwölf aktive Projekte erreichen die Vorschau. Das belegt die GUI- und Projektvorbereitung, aber keine physische HEIGHT-, Maß-, Gloss- oder Registrierungswirkung. Offen sind die E1-Messungen zu #688–#690 und die Abschluss-Review von #687.
+
+Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.9.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #943 (PR #944), #692 (PR #947) sowie der ANLEITUNG-Review #963 samt #964–#966, #968 und #969 (PR #972) und #967 (PR #973) sowie das Test-Suite-Audit #949 (PR #977) und der PDF-Wächter #974 (PR #979) sowie die gestufte Heartbeat-Eskalation #958 (PR #981) sowie der Doku-Abgleich #982 (PR #984) sowie der Träger-Nachzug #975 (PR #986) sowie der Triage-Nachzug #995 (PR #997) sowie der Dead-Code-Abbau #992/#993 (PR #998) sowie das Qt-Upgrade #994 (Details: Vorige Runden).
+
+Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noch Zeilen werden seit #821 von Hand gepflegt – `scripts/recommendations_live_check.py --write` schreibt die Tabellen aller sechs Fassungen aus dem GitHub-Live-Stand fort, die Bewertungsspalten bleiben Handarbeit.

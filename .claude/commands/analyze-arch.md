@@ -15,17 +15,21 @@ Vorgehen:
    hinauszuschießen (Altitude beachten).
 
 Ausgabe: Befunde mit `Datei:Zeile`, betroffener Schnittstelle, Begründung und
-konkretem Verbesserungsvorschlag. Schlage Einträge im `RECOMMENDATIONS.md`-Format
-(IDs `N#`/`O#`) vor; die Datei nur nach Bestätigung ändern.
+konkretem Verbesserungsvorschlag. Jeder Befund ist direkt als Issue verwendbar: Titel, Schweregrad, `Datei:Zeile`,
+Reproduktion/Beleg, Vorschlag und Akzeptanzkriterium. Kein Empfehlungs- oder
+Tabellenformat, keine Katalog-IDs; ohne Befund die Aussage „kein Befund".
 
-GitHub-Issues (optional, „bei Bedarf"):
+GitHub-Issues (nur nach ausdrücklicher Bestätigung):
 - Mit dem Argument `issues` (oder auf ausdrückliche Bitte) darf die Routine im
-  Repo `NikolayDA/picture_helper` Issues anlegen bzw. kommentieren.
-- Zuerst per `search_issues`/`list_issues` nach bestehenden Issues suchen und
-  Duplikate vermeiden; passende Befunde lieber als Kommentar ergänzen
-  (`add_issue_comment`) als ein neues Issue zu öffnen.
-- Verwandte Befunde bündeln statt pro Kleinigkeit ein Issue. Im Issue-Body die
-  zugehörige `RECOMMENDATIONS.md`-ID (`N#`/`O#`) referenzieren.
-- Vor jedem Schreibvorgang auf GitHub kurz bestätigen lassen.
+  Repo `NikolayDA/picture_helper` Issues anlegen bzw. kommentieren – vor jedem
+  Schreibvorgang kurz bestätigen lassen.
+- Duplikatsuche ist Pflicht und umfasst offene **und** geschlossene Issues
+  (`search_issues`/`list_issues`); ein bestehendes Issue wird nur bei
+  materiell neuer Evidenz oder geändertem Befund kommentiert
+  (`add_issue_comment`), sonst nichts. Ein Lauf ohne Befund und ein
+  identischer Wiederholungslauf erzeugen null Schreibvorgänge.
+- Verwandte Befunde bündeln statt pro Kleinigkeit ein Issue; Priorität als
+  `prio:now`/`prio:next`/`prio:later` vorschlagen (Regeln in
+  `CONTRIBUTING.md`, Abschnitt „Issue-Triage").
 
 Optionaler Fokus: $ARGUMENTS

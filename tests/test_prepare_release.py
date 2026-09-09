@@ -1123,7 +1123,7 @@ def test_the_default_call_leaves_an_executable_resume(
     body_file = Path(shlex.split(command[command.index("gh issue create") :])[-1])
     assert body_file.is_file(), "der Wiederanlauf darf nur vorhandene Eingaben nennen"
     # Außerhalb des Arbeitsbaums: im Repository wäre die Ablage ein unbekannter
-    # Pfad und blockierte damit das Freeze-Gate.
+    # Pfad und stünde als kandidatenrelevante Warnung in der Provenienz.
     assert fixture_repo not in body_file.parents
 
     before = _worktree_hashes(fixture_repo)
@@ -1218,8 +1218,8 @@ def test_the_fallback_never_lands_inside_the_worktree(fixture_repo: Path, monkey
     """``TMPDIR`` im Arbeitsbaum darf die Ablage nicht ins Repository ziehen.
 
     Sie wäre dort ein unbekannter Pfad, den ein ``git add -A`` mitnimmt – und
-    blockierte damit ausgerechnet das fail-closed Freeze-Gate, das der Rohstand
-    bestehen soll (#933-Review).
+    stünde damit als kandidatenrelevante Warnung ausgerechnet in der Provenienz
+    des Rohstands (bis #1037 blockierte sie das Freeze-Gate, #933-Review).
     """
     inside = fixture_repo / "tmp"
     inside.mkdir()

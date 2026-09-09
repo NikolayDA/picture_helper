@@ -233,11 +233,31 @@ def test_policy_rejects_overlapping_neutral_and_relevant_rules() -> None:
         rpp.parse_policy(json.dumps(raw))
 
 
-def test_policy_rejects_non_blocking_unknown_behavior() -> None:
+def test_policy_rejects_release_neutral_unknown_behavior() -> None:
+    """#1037: Unbekannt darf warnen oder blockieren, aber nie neutral sein."""
     raw = json.loads((ROOT / rpp.POLICY_PATH).read_text(encoding="utf-8"))
-    raw["unknown_path_behavior"] = "release-neutral"
-    with pytest.raises(rpp.PolicyFormatError, match="candidate-relevant-blocking"):
-        rpp.parse_policy(json.dumps(raw))
+    for behavior in ("release-neutral", "candidate-relevant", None):
+        raw["unknown_path_behavior"] = behavior
+        with pytest.raises(rpp.PolicyFormatError, match="unknown_path_behavior muss"):
+            rpp.parse_policy(json.dumps(raw))
+
+
+@pytest.mark.parametrize("behavior", rpp.UNKNOWN_PATH_BEHAVIORS)
+def test_policy_accepts_both_candidate_relevant_unknown_behaviors(behavior: str) -> None:
+    """Beide Werte sind gueltig; das Verhalten folgt dem deklarierten Wert."""
+    raw = json.loads((ROOT / rpp.POLICY_PATH).read_text(encoding="utf-8"))
+    raw["unknown_path_behavior"] = behavior
+    policy = rpp.parse_policy(json.dumps(raw))
+    assert policy.unknown_path_behavior == behavior
+    assert policy.unknown_paths_block is (behavior == rpp.UNKNOWN_BLOCKING)
+
+
+def test_repository_policy_warns_on_unknown_paths() -> None:
+    """Die versionierte Policy deklariert seit #1037 die Warnungssemantik."""
+    policy = rpp.load_policy()
+    assert policy.unknown_path_behavior == rpp.UNKNOWN_WARNING
+    assert not policy.unknown_paths_block
+    assert policy.version >= 18
 
 
 @pytest.mark.parametrize("path", ["docs//notes.md", "docs/./notes.md"])
@@ -361,12 +381,12 @@ def test_rename_from_relevant_into_neutral_stays_relevant(tiny_repo: Path) -> No
     assert vrf.candidate_relevant_paths(paths, rpp.load_policy()) == ("bgremover/x.py",)
 
 
-def _minimal_policy(freeze_path: str) -> str:
+def _minimal_policy(freeze_path: str, unknown_behavior: str = rpp.UNKNOWN_BLOCKING) -> str:
     return json.dumps(
         {
             "schema": 1,
             "policy_version": 1,
-            "unknown_path_behavior": "candidate-relevant-blocking",
+            "unknown_path_behavior": unknown_behavior,
             "release_neutral": [
                 {
                     "id": "notes",
@@ -406,12 +426,14 @@ def _minimal_policy(freeze_path: str) -> str:
     )
 
 
-def _seed_release_repo(repo: Path) -> tuple[str, str]:
+def _seed_release_repo(
+    repo: Path, unknown_behavior: str = rpp.UNKNOWN_BLOCKING
+) -> tuple[str, str]:
     _write(repo, "pyproject.toml", '[project]\nversion = "9.9.9"\n')
     base = _commit_all(repo, "release base")
     _run(repo, "tag", "v9.9.8", base)
     freeze_path = vrf.FREEZE_DOC_TEMPLATE.format(version="9.9.9")
-    _write(repo, rpp.POLICY_PATH, _minimal_policy(freeze_path))
+    _write(repo, rpp.POLICY_PATH, _minimal_policy(freeze_path, unknown_behavior))
     _write(
         repo,
         freeze_path,
@@ -464,17 +486,75 @@ def test_candidate_merge_passes_without_follow_up_commit(
     assert provenance["commit_count"] == 2
 
 
-def test_unknown_path_blocks_freeze_gate(
+def test_unknown_path_blocks_freeze_gate_under_blocking_policy(
     tiny_repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """``candidate-relevant-blocking`` bleibt gueltig und verhaelt sich wie bisher."""
     _disable_content_checks(monkeypatch)
-    _seed_release_repo(tiny_repo)
+    _seed_release_repo(tiny_repo, rpp.UNKNOWN_BLOCKING)
     _write(tiny_repo, "unknown/new.txt", "x\n")
     _commit_all(tiny_repo, "unknown input")
     findings = vrf.verify(tiny_repo, "HEAD")
-    assert "unclassified-path" in {finding.code for finding in findings}
+    unknown = [finding for finding in findings if finding.code == "unclassified-path"]
+    assert unknown and unknown[0].severity == "error"
+    assert "classification" not in {finding.code for finding in findings}
     with pytest.raises(vrf.DocFormatError, match="fehlerhaftem Gate"):
         vrf.build_provenance(tiny_repo, "HEAD")
+
+
+def test_unknown_path_warns_but_does_not_block_under_warning_policy(
+    tiny_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1037: Eine neue Akte unter ``docs/history/`` laesst das Gate gruen.
+
+    Der Pfad bleibt kandidatenrelevant (verschiebt den Inhaltskandidaten auf
+    diesen Commit), erscheint als ``WARNUNG [unclassified-path]`` mit Pfad und
+    steht in der Provenienz mit ``explicit=false``.
+    """
+    _disable_content_checks(monkeypatch)
+    _base, candidate = _seed_release_repo(tiny_repo, rpp.UNKNOWN_WARNING)
+    _write(tiny_repo, "docs/history/ISSUE-1037-neue-akte.md", "# Akte\n")
+    unknown_commit = _commit_all(tiny_repo, "neue Akte ohne Policy-Eintrag")
+
+    findings = vrf.verify(tiny_repo, "HEAD")
+    assert not [finding for finding in findings if finding.severity == "error"]
+    unknown = [finding for finding in findings if finding.code == "unclassified-path"]
+    assert len(unknown) == 1 and unknown[0].severity == "warning"
+    assert "docs/history/ISSUE-1037-neue-akte.md" in unknown[0].message
+    classification = next(f for f in findings if f.code == "classification")
+    assert "1 unklassifizierte Pfad(e) als Warnung" in classification.message
+    rendered = vrf.format_findings(findings)
+    assert "WARNUNG [unclassified-path]" in rendered
+    assert "FEHLER " not in rendered
+
+    provenance = vrf.build_provenance(tiny_repo, "HEAD")
+    assert provenance["content_candidate_sha"] == unknown_commit != candidate
+    record = next(c for c in provenance["commits"] if c["sha"] == unknown_commit)
+    assert record["classification"] == rpp.CANDIDATE_RELEVANT
+    assert record["paths"] == [
+        {
+            "path": "docs/history/ISSUE-1037-neue-akte.md",
+            "classification": rpp.CANDIDATE_RELEVANT,
+            "rule_id": record["paths"][0]["rule_id"],
+            "explicit": False,
+        }
+    ]
+
+
+def test_unknown_path_moves_the_content_candidate(
+    tiny_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ein unbekannter Pfad rueckt den Inhaltskandidaten nach hinten – nie nach vorn."""
+    _disable_content_checks(monkeypatch)
+    base, candidate = _seed_release_repo(tiny_repo, rpp.UNKNOWN_WARNING)
+    _write(tiny_repo, "NOTES.md", "neutral\n")
+    neutral = _commit_all(tiny_repo, "neutral only")
+    policy = vrf.load_policy_at_rev(tiny_repo, "HEAD")
+    assert vrf.derive_candidate(tiny_repo, base, "HEAD", policy=policy) == candidate
+    _write(tiny_repo, "unknown/new.txt", "x\n")
+    unknown_commit = _commit_all(tiny_repo, "unknown input")
+    assert vrf.derive_candidate(tiny_repo, base, "HEAD", policy=policy) == unknown_commit
+    assert neutral not in {candidate, unknown_commit}
 
 
 @pytest.mark.parametrize(

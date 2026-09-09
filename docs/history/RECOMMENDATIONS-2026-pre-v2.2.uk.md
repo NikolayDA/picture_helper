@@ -1,11 +1,11 @@
 # Історичний робочий журнал: рекомендації раундів 1-5
 
 Зафіксовано: 2026-05-24, коміт 1cf8461.
-Поточний стан: ../i18n/uk/RECOMMENDATIONS.md.
+Поточний стан: ../../RECOMMENDATIONS.md.
 
 ---
 
-[Deutsch](../../RECOMMENDATIONS.md) · [English](../i18n/en/RECOMMENDATIONS.md) · [Español](../i18n/es/RECOMMENDATIONS.md) · [Français](../i18n/fr/RECOMMENDATIONS.md) · **Українська** · [简体中文](../i18n/zh/RECOMMENDATIONS.md)
+[Deutsch](RECOMMENDATIONS-2026-pre-v2.2.md) · [English](RECOMMENDATIONS-2026-pre-v2.2.en.md) · [Español](RECOMMENDATIONS-2026-pre-v2.2.es.md) · [Français](RECOMMENDATIONS-2026-pre-v2.2.fr.md) · **Українська** · [简体中文](RECOMMENDATIONS-2026-pre-v2.2.zh.md)
 
 # Аналіз коду та оцінені рекомендації: BgRemover
 

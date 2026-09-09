@@ -1,11 +1,11 @@
 # 历史工作日志：第 1-5 轮建议
 
 冻结时间：2026-05-24，提交 1cf8461。
-当前状态：../i18n/zh/RECOMMENDATIONS.md。
+当前状态：../../RECOMMENDATIONS.md。
 
 ---
 
-[Deutsch](../../RECOMMENDATIONS.md) · [English](../i18n/en/RECOMMENDATIONS.md) · [Español](../i18n/es/RECOMMENDATIONS.md) · [Français](../i18n/fr/RECOMMENDATIONS.md) · [Українська](../i18n/uk/RECOMMENDATIONS.md) · **简体中文**
+[Deutsch](RECOMMENDATIONS-2026-pre-v2.2.md) · [English](RECOMMENDATIONS-2026-pre-v2.2.en.md) · [Español](RECOMMENDATIONS-2026-pre-v2.2.es.md) · [Français](RECOMMENDATIONS-2026-pre-v2.2.fr.md) · [Українська](RECOMMENDATIONS-2026-pre-v2.2.uk.md) · **简体中文**
 
 # 代码分析与评级建议：BgRemover
 

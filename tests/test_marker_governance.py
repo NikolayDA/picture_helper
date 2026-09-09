@@ -442,8 +442,7 @@ def test_ui_doc_parsers_detect_synthetic_drift() -> None:
 
 
 def test_doc_parser_detects_synthetic_drift() -> None:
-    """Negativkontrolle für den Doku-Parser (Muster von
-    ``test_recommendations_freeze_consistency``): synthetische Fassungen des
+    """Negativkontrolle für den Doku-Parser: synthetische Fassungen des
     Absatzes müssen erkennbar anders parsen bzw. laut scheitern - sonst wäre
     ein leerer oder zu großzügiger Capture von einem korrekten nicht zu
     unterscheiden."""

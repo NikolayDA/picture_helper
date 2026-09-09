@@ -141,3 +141,34 @@ Regelmenge:
   `historical-freeze-2.7.3`-Eintrag bumpen die Version im Zuge des nächsten
   Freeze-Dokuments, das die neue Nummer ohnehin deklariert (zuletzt `4` → `5`
   beim 2.8.0-Schnitt, #813).
+
+## Nachtrag 2026-09-09: Unbekannte Pfade warnen statt zu blockieren (#1037)
+
+Die Entscheidung oben legte „unbekannt = kandidatenrelevant **und**
+blockierend" fest. Seit Policy-Version `18` gilt
+`unknown_path_behavior: candidate-relevant-warning`: Ein nicht explizit
+klassifizierter Pfad bleibt kandidatenrelevant, wird je Commit als
+`unclassified-path` mit Schweregrad **Warnung** ausgewiesen (Text unverändert,
+Commit-Klassifikation `candidate-relevant`, der `classification`-Befund nennt
+die Zahl) und steht in der Provenienz weiterhin mit `explicit=false` je Pfad
+– er blockiert aber weder PR-CI noch Kandidatenbau.
+
+**Sicherheitsargument.** Die kandidatenrelevante Klasse kann den abgeleiteten
+Inhaltskandidaten nur nach hinten (auf einen jüngeren Commit) verschieben, nie
+nach vorn; der geprüfte Kandidat ist ohnehin der Laufkopf (`GITHUB_SHA`). Die
+Blockade erzwang also nur die Vollständigkeit der Allowlist, keine zusätzliche
+Sicherheit – und kostete im Fenster `85eeea4^..dd6c572` 22 Policy-Änderungen
+(#1001, #1003, #1031, #1036, #1042 trafen Pfade, die seit Monaten bestanden
+oder nie klassifiziert waren). Allein `release-neutral` verschiebt nichts und
+bleibt deshalb eine ausdrückliche, begründete Allowlist: `parse_policy` weist
+ein neutrales Unbekannt-Verhalten weiterhin ab, ein bewusst neutraler Pfad
+(etwa `.claude/commands/`) braucht seinen Eintrag – sonst verschöbe er den
+Inhaltskandidaten trotz grünen Gates. Diese Ergänzung ist eine reine
+Allowlist-Ergänzung ohne Versionssprung (Nachtrag 2026-08-25).
+
+**Unverändert:** Klassifikation bekannter Pfade, `policy-version-not-bumped`,
+die Drift-Guards, der Kandidatenvertrag und der Rollover in
+`scripts/prepare_release.py` (das Umhängen von `current-freeze` bleibt eine
+Semantikänderung und hebt `policy_version` an). `candidate-relevant-blocking`
+bleibt als Wert gültig und verhält sich wie zuvor; das Verhalten folgt immer
+dem deklarierten Wert, es gibt keinen stillen Default.

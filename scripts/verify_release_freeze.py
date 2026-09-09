@@ -8,10 +8,15 @@ Klassifikationen und Zaehler werden aus der First-Parent-Historie abgeleitet und
 als maschinenlesbare Actions-Evidenz ausgegeben. Damit gibt es keinen
 selbstreferenziellen Pin- oder Ledger-Nachtrags-Commit mehr.
 
-Die gemeinsame Policy aus ``release/path-policy.json`` ist fail-closed:
-Unbekannte Pfade sind kandidatenrelevant und blockieren das Release-Gate, bis
-ihre Klasse bewusst dokumentiert wurde. Nur Standardbibliothek + ``git`` sind
-erforderlich. Exit 0 = keine Fehler, 1 = mindestens ein Fehler, 2 = Aufruf-/
+Die gemeinsame Policy aus ``release/path-policy.json`` klassifiziert jeden
+Pfad: Unbekannte Pfade sind kandidatenrelevant (sie koennen den abgeleiteten
+Inhaltskandidaten nur auf einen juengeren Commit verschieben, nie nach vorn)
+und erscheinen als ``unclassified-path`` in Befundliste und Provenienz. Ob sie
+das Gate scheitern lassen, entscheidet ``unknown_path_behavior`` der Policy:
+``candidate-relevant-blocking`` (bis #1037) oder ``candidate-relevant-warning``
+(#1037). ``release-neutral`` bleibt in beiden Faellen nur ueber einen
+expliziten, begruendeten Eintrag erreichbar. Nur Standardbibliothek + ``git``
+sind erforderlich. Exit 0 = keine Fehler, 1 = mindestens ein Fehler, 2 = Aufruf-/
 Git-/Dokumentfehler.
 """
 from __future__ import annotations
@@ -503,12 +508,17 @@ def classify_commits(
 ) -> tuple[tuple[CommitRecord, ...], list[Finding]]:
     """Leitet Commit-Ledger und Pfadklassen vollstaendig aus Git ab.
 
-    Unbekannte Pfade bleiben kandidatenrelevant, blockieren das Gate aber als
-    ``unclassified-path``. So ist die sichere Wirkung definiert und zugleich
-    eine bewusste Build-Input-Pruefung erzwungen.
+    Unbekannte Pfade bleiben kandidatenrelevant und werden je Commit als
+    ``unclassified-path`` ausgewiesen – als Fehler oder, seit #1037 mit
+    ``candidate-relevant-warning``, als Warnung. Die sichere Wirkung (der
+    Inhaltskandidat rueckt hoechstens nach hinten) ist in beiden Faellen
+    dieselbe; die Provenienz fuehrt jeden Pfad mit ``explicit=false`` weiter,
+    damit der Release-Owner in Runbook-Schritt 2 sieht, was ungeklaert blieb.
     """
     findings: list[Finding] = []
     records: list[CommitRecord] = []
+    unknown_severity = _ERROR if policy.unknown_paths_block else _WARNING
+    unknown_total = 0
     window = tuple(reversed(commits_between(repo, base, head, first_parent=True)))
     for sha in window:
         paths = changed_paths(repo, sha)
@@ -522,10 +532,11 @@ def classify_commits(
             )
         classified = tuple(rpp.classify_path(path, policy) for path in paths)
         unknown = tuple(item.path for item in classified if not item.explicit)
+        unknown_total += len(unknown)
         if unknown:
             findings.append(
                 Finding(
-                    _ERROR,
+                    unknown_severity,
                     "unclassified-path",
                     f"{sha} ({subject(repo, sha)}) enthält unbekannte Pfade: "
                     + ", ".join(unknown[:5]),
@@ -548,15 +559,22 @@ def classify_commits(
         findings.append(
             Finding(_ERROR, "empty-release-window", f"Keine Commits in {base}..{head[:12]}")
         )
-    if not any(f.code in {"unclassified-commit", "unclassified-path"} for f in findings):
+    blocked = any(
+        f.code in {"unclassified-commit", "unclassified-path"} and f.severity == _ERROR
+        for f in findings
+    )
+    if not blocked:
         relevant = sum(record.classification == rpp.CANDIDATE_RELEVANT for record in records)
         neutral = len(records) - relevant
+        unknown_note = (
+            f", {unknown_total} unklassifizierte Pfad(e) als Warnung" if unknown_total else ""
+        )
         findings.append(
             Finding(
                 _OK,
                 "classification",
                 f"{len(records)} Commits abgeleitet: {relevant} kandidatenrelevant, "
-                f"{neutral} release-neutral",
+                f"{neutral} release-neutral{unknown_note}",
             )
         )
     return tuple(records), findings

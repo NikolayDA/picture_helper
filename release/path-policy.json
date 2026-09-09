@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "policy_version": 17,
-  "unknown_path_behavior": "candidate-relevant-blocking",
+  "policy_version": 18,
+  "unknown_path_behavior": "candidate-relevant-warning",
   "release_neutral": [
     {
       "id": "user-guide-de",
@@ -554,6 +554,14 @@
       "sample_path": ".claude/hooks/session-start.sh",
       "reason": "Der SessionStart-Hook richtet ausschließlich die Entwicklungsumgebung einer Claude-Code-Web-Session ein (nur bei CLAUDE_CODE_REMOTE=true, #553/#1031); er wird weder ausgeliefert noch von Build-, Release- oder Gate-Schritten gelesen. Die Qt-apt-Paketliste trägt er seit #1036 nicht mehr selbst; er ruft die kandidatenrelevante Quelle scripts/install_qt_apt.sh auf (Klasse release-scripts).",
       "evidence": [".claude/settings.json registriert ihn nur als SessionStart-Hook; kein Workflow unter .github/workflows/ und kein Packaging-Skript ruft ihn auf", "tests/test_ci_qt_packages.py prüft ihn nur als Aufrufer des geteilten Skripts, tests/test_ci_pip_pin.py und tests/test_dependency_constraints.py als Drift-Kopie gegen die Workflows – nie als Build- oder Gate-Eingang"]
+    },
+    {
+      "id": "claude-commands",
+      "kind": "prefix",
+      "path": ".claude/commands/",
+      "sample_path": ".claude/commands/analyze-bugs.md",
+      "reason": "Die Slash-Command-Definitionen der Analyse-Routinen (#1040/#1042) sind reine Agenten-Prompts für interaktive Claude-Code-Sitzungen; sie werden weder ausgeliefert noch von Build-, Release- oder Gate-Schritten gelesen. Ein bekannter neutraler Pfad braucht auch nach #1037 den expliziten Eintrag, sonst verschöbe er als unbekannter Pfad den Inhaltskandidaten.",
+      "evidence": ["Kein Workflow unter .github/workflows/, kein Packaging-Skript und kein Test liest .claude/commands/; tests/test_markdown_links.py prüft dort nur die Link-Auflösung", "Nicht in pyproject.toml als Paket- oder Dateieingang referenziert"]
     },
     {
       "id": "gitignore",

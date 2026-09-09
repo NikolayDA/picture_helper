@@ -1,6 +1,9 @@
-**Deutsch** · [English](docs/i18n/en/RECOMMENDATIONS.md) · [Español](docs/i18n/es/RECOMMENDATIONS.md) · [Français](docs/i18n/fr/RECOMMENDATIONS.md) · [Українська](docs/i18n/uk/RECOMMENDATIONS.md) · [简体中文](docs/i18n/zh/RECOMMENDATIONS.md)
-
 # Codeanalyse & bewertete Empfehlungen: BgRemover
+
+Befunde und ihre Triage leben in den
+[GitHub-Issues](https://github.com/NikolayDA/picture_helper/issues) (#1032,
+#1033, #1040). Diese Datei ist nur noch ein kurzer Index; sie führt keinen
+Kurzstatus und keine Tabelle offener Issues mehr und hat keine Übersetzungen.
 
 ## Bewertungsskala
 
@@ -11,126 +14,19 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-09-09, v2.9.0 veröffentlicht, offener Bestand vollständig geprüft)
+## Offener Bestand
 
-**Tagesaudit 2026-09-09 (Stand `dd6c572`):** Alle 56 offenen Issues geprüft;
-die fünfzehn neuen (#1031–#1045) sind in die Triage-Tabelle aufgenommen. Inhaltlich
-neu ist das Prozess-Epic #1032 mit elf Arbeitspaketen: Im Fenster `85eeea4^..dd6c572`
-liegen 156 Mainline-Commits, 28 davon (18 %) bestehen ausschließlich aus
-Triage-Pflege – also aus derselben Tabelle, die dieser Eintrag gerade fortschreibt
-(#1032 nennt 27; der Unterschied ist ein Commit, der zusätzlich das Archiv berührt).
-#1040 will sie samt Live-Check-Workflow abschaffen; bis dahin bleibt sie der gültige
-Vertrag, und der Live-Check war genau deshalb seit dem 2026-09-08 rot (Lauf
-34282863300), ohne dass sich am Code etwas geändert hätte. Einziger neuer Befund mit
-Auswirkung auf die Beweislage ist #1031 (Priorität 0): Ein veralteter nicht-editable
-`bgremover` lässt per Dateipfad gestartete Subprozess-Tests fremden Code messen – die
-gefährliche Richtung ist ein dadurch **grüner** Test. #1044 (Testlücke zu #1004/#1005,
-Coverage 93 %) und #1045 (fehlende `#1023`-Referenz im CHANGELOG) sind zwei kleine,
-sofort umsetzbare PRs. Kein neuer Produktfehler und kein 🔴-Befund.
+- Jedes offene Issue trägt genau ein Label `prio:now`, `prio:next` oder
+  `prio:later`; interne Blocker sind native Abhängigkeiten („blocked by"),
+  externe tragen `blocked:extern` plus eine Kommentarzeile. Regeln:
+  [`CONTRIBUTING.md`](CONTRIBUTING.md), Abschnitt „Issue-Triage".
+- Neue Befunde entstehen als Issue (Vorlagen im Repository) oder über die
+  Analyse-Routinen unter `.claude/commands/`, die Befunde direkt als
+  Issue-Entwürfe vorschlagen.
+- Der einmalige Cutover der früheren Tabelle in die Issues lief über
+  `scripts/triage_issue_cutover.py` (#1033).
 
-**Release-Einschätzung: v2.10.0 wird empfohlen.** Seit `v2.9.0` (2026-08-29) liegen
-83 First-Parent-Commits vor, zwölf davon mit Produktcode. `[Unreleased]` trägt damit
-einen vollständigen Minor-Umfang: EufyMake-Zielprofil v2 samt Studio-4.3.3-Preflight
-(#681/#691), bestätigtes Flatbed-Maß 335 × 420 mm (#971), Projekt-DPI als PNG-`pHYs`
-(#996), der Qt-Sprung auf 6.11 (#994, rund zehn Advisories, darunter CVE-2025-10728 und
-CVE-2025-10729) sowie vier 3D-Korrekturen (#1002, #1004, #1023, #1024), von denen
-#1024 einen Speicherzugriffsfehler behebt. Zwei Gründe sprechen gegen weiteres Warten:
-Die Sicherheitswirkung des Qt-Sprungs erreicht Anwender:innen erst mit dem Artefakt,
-und die angehobene glibc-Untergrenze (aarch64 2.39, x86_64 2.34) ist eine
-Plattformänderung, die veröffentlicht und angekündigt gehört. Die COLOR-Tonwert-Engine
-(#693 ff.) ist **kein** Grund zu warten – sie ist der Umfang danach. Vor dem
-Kandidatenbau (#1045 Punkt 1, die `#1023`-Referenz im CHANGELOG, ist erledigt):
-Runbook-Schritt 1/2 über `scripts/prepare_release.py 2.10.0` einschließlich der
-redaktionellen `TODO(release)`-Lücken (`NOTES-01`). Derselbe Lauf liefert zugleich die
-noch fehlende End-to-End-Evidenz für #914 und #918.
+## Historische Berichte
 
-**EufyMake #681/#687–#691:** Der reproduzierbare Satz umfasst 42 Einzel-Fixtures und sieben unveränderte echte Exportpakete (Schema 5). Die 29 verpflichtenden druckfreien Importzellen sind sowohl in der historischen Studio-4.2.2-Baseline als auch im vollständigen 4.3.3-Regressionslauf erledigt; I-09 (`.empf`) bleibt nicht blockierend.
-13/13 vorbereitete native Projekte laden, zwölf aktive Projekte erreichen die Vorschau. Das belegt die GUI- und Projektvorbereitung, aber keine physische HEIGHT-, Maß-, Gloss- oder Registrierungswirkung. Offen sind die E1-Messungen zu #688–#690 und die Abschluss-Review von #687.
-
-Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.9.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #943 (PR #944), #692 (PR #947) sowie der ANLEITUNG-Review #963 samt #964–#966, #968 und #969 (PR #972) und #967 (PR #973) sowie das Test-Suite-Audit #949 (PR #977) und der PDF-Wächter #974 (PR #979) sowie die gestufte Heartbeat-Eskalation #958 (PR #981) sowie der Doku-Abgleich #982 (PR #984) sowie der Träger-Nachzug #975 (PR #986) sowie der Triage-Nachzug #995 (PR #997) sowie der Dead-Code-Abbau #992/#993 (PR #998) sowie das Qt-Upgrade #994 (Details: Vorige Runden).
-
-Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noch Zeilen werden seit #821 von Hand gepflegt – `scripts/recommendations_live_check.py --write` schreibt die Tabellen aller sechs Fassungen aus dem GitHub-Live-Stand fort, die Bewertungsspalten bleiben Handarbeit.
-
-## Offene GitHub-Issues – Triage-Stand
-
-| # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
-|---|-------|----------|--------------|-------------------------------|-------------------|
-| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake-Zielprofil – Height/Gloss/mm-DPI validieren | 🟠 Hoch (Korrektheit des wichtigsten Exportziels) | 🔴 Hoch (5 Teil-Issues, physische Hardware nötig) | – (Epic) | Profilintegration und alle 29 druckfreien Pflichtzellen sind erledigt; I-09 ist nicht blockierend. Offen: Hardwaretests #688–#690 und Abschluss-Review |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Annahmeninventar, Herstellerquellen, Testmatrix | 🟠 Hoch (verbindliche Grundlage für #688–#691) | 🔴 Hoch (Repository-Material vollständig; Rest braucht reale Hardware) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – 17/18 Akzeptanzkriterien und alle 29 verpflichtenden Importzellen erledigt. Offen ist nur die Abschluss-Review nach #688–#690 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | HEIGHT-Bittiefe/-Semantik auf realer Hardware validieren | 🟠 Hoch (Reliefhöhe direkt betroffen) | 🔴 Hoch (physischer Drucker, Fixtures, Messprotokoll) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – einschließlich des direkt erzeugten I-14-Filterpaars sind alle Preflights abgeschlossen; offen bleiben physische Präzisions-, Filter-, Relief- und mm-Messungen |
-| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | mm/DPI, Zielgröße, Positionierungsvertrag validieren | 🟠 Hoch (Druckgröße/Registrierung) | 🔴 Hoch (physische Messungen, Kontrollmotive) | – (kein Agent; reale Hardware nötig) | Blocked (extern) – Studio-Teilvertrag einschließlich Crop und HEIGHT-Seitenverhältnis ist belegt. Offen sind nur physische Registrierung, Messungen und Drucktoleranzen |
-| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Gloss-/Klarlack-Semantik validieren | 🟡 Mittel (Gloss ist laut Code bereits „experimental“) | 🔴 Hoch (physische Drucke, Materialverbrauch) | – (kein Agent; reale Hardware nötig) | Blocked (extern) – der native Ink Mode `Gloss Varnish` ist vorgeprüft; offen bleiben zellspezifische Registrierung sowie physische Polarität, Intensität und Materialwirkung |
-| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Versioniertes Zielprofil in Validator/Writer/Dialog/Doku | 🟠 Hoch (härtet den produktiven Exportpfad) | 🟢 Niedrig für den releasekritischen Rest; 🔴 Hardware für Abschluss | Sonnet, mittel + später Hardware | Implementierung releasebereit – Profil v2 ist Default für Studio 4.3.3/Firmware 4.0.9; Profil v1 bleibt eingefroren auswählbar. Nach #688–#690 nur Evidenzstatus prüfen und bei neuer Semantik eine weitere Profilversion anlegen |
-| [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR-Tonwert-/Graustufen-Engine | 🟡 Mittel-Hoch (Roadmap-Fundament für Laser, kein akuter Bug) | 🔴 Hoch (4 verbleibende Teil-Issues: Kern→UI→Integration→Abnahme) | – (Epic) | In Bearbeitung – ADR #692 ist verabschiedet; als Nächstes den Kern #693 |
-| [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Qt-freier Kern: Histogramm/Graustufe/Levels/Gamma | 🟡 Mittel-Hoch | 🟡 Mittel (Erweiterung von `color_ops.py`, gut isoliert testbar) | Sonnet, hoch | Startbereit – ADR #692 (PR #947) liefert den Datenvertrag; Kern gegen dessen Formeln implementieren und testen |
-| [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live-Vorschau + Bedienoberfläche Histogramm/Levels/Gamma | 🟡 Mittel | 🟡 Mittel-Hoch (Qt-UI, Debounce/Generation-Schutz analog Höhen-Vorschau) | Sonnet, hoch | Blocked – wartet auf Kern #693 |
-| [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Ebenen-/Auswahl-/History-/Projektintegration | 🟡 Mittel | 🟠 Hoch (viele Zustandsübergänge: Undo/Redo, Auswahl, Dirty-State) | Opus, hoch | Blocked – wartet auf #693/#694 |
-| [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance-/E2E-/Doku-/Laser-Schnittstellenabnahme | 🟡 Mittel (Abschluss-Gate, kein neues Feature) | 🟠 Hoch (Benchmark-Suite, E2E, Doku, Adapter-Contract) | Opus, hoch | Blocked – Abschluss-Issue nach #695 |
-| [#882](https://github.com/NikolayDA/picture_helper/issues/882) | [Epic] BgRemover im Mac App Store | 🟡 Mittel-Hoch (neuer Distributionskanal, kein aktueller Produktfehler) | 🔴 Hoch (Lizenz, Sandbox, Paketierung, Store und Release-Governance) | – (Epic) | Blocked – zuerst #883 entscheiden; dabei Qt-/Code-Lizenz und die ungeklärte Provenienz/Rechte des Modellartefakts getrennt behandeln |
-| [#883](https://github.com/NikolayDA/picture_helper/issues/883) | [MAS] Lizenzstrategie: PySide6 vs. Riverbank und Relizenzierung | 🟠 Hoch (harter Blocker für jede technische MAS-Arbeit) | 🔴 Hoch (Lizenz-/Owner-Entscheid, möglicher Qt-Port, Restrisiko) | Opus, hoch + Owner/Rechtsprüfung | Startbereit – ADR/Owner-Entscheid erstellen und für das konkrete `u2net.onnx` Herkunft, Lizenz und Weiterverteilungsrecht belegen oder Ersatzmodell wählen |
-| [#884](https://github.com/NikolayDA/picture_helper/issues/884) | [MAS] Apple Developer Program Enrollment | 🟠 Hoch (blockiert Zertifikate und Store-Zugang) | 🟢 Niedrig (manueller Konto-/Zahlungsschritt) | – (kein Agent; Account Holder) | Blocked (extern) – Kontotyp, Enrollment/2FA und Renewal klären; Gratis-App braucht keinen Paid-Apps-Vertrag, Trader können laut Apple dennoch Zahlungskontoangaben brauchen (#904) |
-| [#885](https://github.com/NikolayDA/picture_helper/issues/885) | [MAS] Signing-Identitäten, App-ID und Provisioning-Profil | 🟠 Hoch (Voraussetzung für signierten Store-Build) | 🟡 Mittel (Owner-Secrets plus Bundle-ID-/Packaging-Vertrag) | – (kein Agent; Account Holder/Admin) | Blocked – wartet auf #884; danach Zertifikate, explizite App-ID und Profil erzeugen sowie Bundle-ID fixieren |
-| [#886](https://github.com/NikolayDA/picture_helper/issues/886) | [MAS] App-Sandbox-Entitlements definieren und anwenden | 🟠 Hoch (zwingende Store- und Laufzeitvoraussetzung) | 🟠 Hoch (alle Mach-O-Dateien, Packaging- und Hardware-Nachweis) | Opus, hoch | Blocked – wartet auf Lizenzentscheid #883; danach minimale Entitlements plus Artefakt-/Hardwaretests umsetzen |
-| [#887](https://github.com/NikolayDA/picture_helper/issues/887) | [MAS] Sandbox-tauglicher Inferenz-Kindprozess | 🟠 Hoch (KI-Kernfunktion muss im Store-Build laufen) | 🔴 Hoch (Spawn/Helper-Signierung, Zwei-Key-Regel, echte Sandbox) | Opus, hoch | Blocked – wartet auf #886; Re-Exec/Helper entscheiden und KI-Selfcheck auf Hardware belegen |
-| [#888](https://github.com/NikolayDA/picture_helper/issues/888) | [MAS] Security-scoped Bookmarks für Dateien und Verzeichnisse | 🟠 Hoch (Recent Files und Quick-Save brechen sonst nach Neustart) | 🟠 Hoch (persistente Grants, Bilder/Projekte/Verzeichnisse, Kanal-Gating) | Opus, hoch | Blocked – wartet auf #886; Bookmark-Vertrag implementieren und Neustartfall sandboxed prüfen |
-| [#889](https://github.com/NikolayDA/picture_helper/issues/889) | [MAS] Sandbox-sichere Schreibpfade und EufyMake-Export | 🟠 Hoch (Speicher- und Exportpfade, potenziell Datenintegrität) | 🔴 Hoch (Atomarität über mehrere Pfade und Powerbox-Grants) | Opus, hoch | Blocked – wartet auf #886; grant-konforme Atomarität/Endungen/Zielwahl entwerfen und auf Hardware prüfen |
-| [#890](https://github.com/NikolayDA/picture_helper/issues/890) | [MAS] KI-Modell-Cache im Sandbox-Container | 🟡 Mittel (deterministischer Modellpfad im Store-Kanal) | 🟡 Mittel (isolierter Pfadvertrag plus Migrationsentscheid) | Sonnet, hoch | Blocked – wartet auf #886 und verzahnt mit #893; `U2NET_HOME` explizit setzen und Migration entscheiden |
-| [#891](https://github.com/NikolayDA/picture_helper/issues/891) | [MAS] Distributionskanal-Flag und Update-Check-Gating | 🟠 Hoch (App-Store-Regel 2.4.5, keine Eigenupdates) | 🟠 Mittel-Hoch (zentrales Flag über Menü, Settings, Worker und Hooks) | Sonnet, hoch | Blocked – wartet auf #883; danach Kanalvertrag einführen und MAS-Netz-/UI-Pfade negativ testen |
-| [#892](https://github.com/NikolayDA/picture_helper/issues/892) | [MAS] AiInstallDialog entfernen und KI-Backend bündeln | 🟠 Hoch (kein Nachinstallieren ausführbaren Codes im Store) | 🟡 Mittel (Kanal-Gating plus verbindlicher Packaging-Test) | Sonnet, hoch | Blocked – wartet auf #891; Dialog/Menü gaten und gebündeltes rembg/onnxruntime nachweisen |
-| [#893](https://github.com/NikolayDA/picture_helper/issues/893) | [MAS] u2net-Modell bündeln oder beim Erststart laden | 🟠 Hoch (Review-Risiko und Funktionsfähigkeit der KI) | 🟠 Hoch (Produkt-/Review-Entscheid, Packaging oder neuer i18n-Flow) | Opus, hoch | Blocked – vor Variantenwahl konkrete Modellherkunft/-lizenz/-weiterverteilung über #883 belegen oder Ersatzmodell wählen; danach #890/#891 und Sandbox-Verifikation |
-| [#894](https://github.com/NikolayDA/picture_helper/issues/894) | [MAS] Paketierungsweg Briefcase vs. py2app entscheiden | 🟠 Hoch (bestimmt die technische Machbarkeit des Kanals) | 🟠 Hoch (ergebnisoffener signierter Sandbox-/Upload-Spike) | Opus, hoch | Blocked – wartet auf #883; Briefcase-Spike durchführen, py2app als Fallback prüfen und ADR festhalten |
-| [#895](https://github.com/NikolayDA/picture_helper/issues/895) | [MAS] onedir-App, Inside-out-Signierung und Qt-Store-Bereinigung | 🟠 Hoch (zentraler ausführbarer Store-Build) | 🔴 Hoch (alle Binaries, Qt, Provisioning, Upload-Validierung) | Opus, hoch | Blocked – nach #885/#886/#894 Build umsetzen, `AppTransaction` oder Receipt-Validierung fail-closed festlegen und ohne ITMS-Fehler prüfen |
-| [#896](https://github.com/NikolayDA/picture_helper/issues/896) | [MAS] Info.plist und vollständiger Icon-Satz | 🟡 Mittel-Hoch (Store-Metadaten und Plattformvertrag) | 🟡 Mittel (Pflichtfelder, Architekturziel, deterministische Assets) | Sonnet, hoch | Blocked – wartet auf #895; Minimum-OS/Architektur und Dokumenttypen entscheiden, Plist/Icon-Tests ergänzen |
-| [#897](https://github.com/NikolayDA/picture_helper/issues/897) | [MAS] signiertes productbuild-PKG und Transporter-Upload | 🟠 Hoch (einreichbares Store-Artefakt) | 🟠 Hoch (zweite Signatur, Build-Automation, manueller Erst-Upload) | Opus, hoch + Account Holder | Blocked – wartet auf #885/#895/#896; PKG reproduzierbar bauen und Delivery-Log belegen |
-| [#898](https://github.com/NikolayDA/picture_helper/issues/898) | [MAS] Release-CI, Sechs-Artefakte-Vertrag und PKG-Scan | 🟠 Hoch (fail-closed Release-Integrität) | 🔴 Hoch (CI-Secrets, Vertrag, Entpacker, Malware-/Pfadscan) | Opus, hoch | Blocked – wartet auf #895/#897; MAS-Leg, Vertrag, Payload-Scan und Regressionstests gemeinsam erweitern |
-| [#899](https://github.com/NikolayDA/picture_helper/issues/899) | [MAS] sandboxed Abnahme-Smokes auf echter Hardware | 🟠 Hoch (verbindliche Laufzeitevidenz für Kernpfade) | 🔴 Hoch (PKG, KI-Spawn, Powerbox, 3D und Evidenzschema) | Opus, hoch + macOS-Hardware | Blocked (extern) – nach #898 auf self-hosted ARM64 ausführen; gültigen und soweit reproduzierbar ungültigen App-Downloadnachweis in das Evidenzschema aufnehmen |
-| [#900](https://github.com/NikolayDA/picture_helper/issues/900) | [MAS] TestFlight-Beta für macOS | 🟠 Hoch (frühe Review-/Fremdgeräte-Evidenz) | 🟡 Mittel (manuelle ASC-/Tester-Koordination) | – (kein Agent; Account Holder und Tester) | Blocked (extern) – wartet auf #897/#901; internen Build auf Fremdgerät mit KI, Dateien und 3D prüfen |
-| [#901](https://github.com/NikolayDA/picture_helper/issues/901) | [MAS] App-Store-Connect-Record und Metadaten in sechs Sprachen | 🟠 Hoch (Name, Listing und Einreichungsvoraussetzung) | 🟠 Mittel-Hoch (Owner-Schritte plus sechs lokalisierte Metadatensätze) | Sonnet, hoch + Account Holder | Blocked – wartet auf #884/#885; Namen reservieren, Texte versionieren/einpflegen und Rating/Storefronts setzen |
-| [#902](https://github.com/NikolayDA/picture_helper/issues/902) | [MAS] Store-Screenshot-Satz im 16:10-Format | 🟡 Mittel-Hoch (Pflichtmaterial für das Listing) | 🟡 Mittel (reproduzierbare Formate, Alpha-Check, Sprachentscheidung) | Sonnet, hoch | Blocked – wartet auf repräsentativen Build #895; Automation auf Store-Auflösungen erweitern und Satz prüfen |
-| [#903](https://github.com/NikolayDA/picture_helper/issues/903) | [MAS] Privacy Policy und App-Privacy-Angaben | 🟠 Hoch (zwingende Store-/In-App-Pflicht) | 🟡 Mittel (Policy, Hosting, i18n-Link, Owner-Fragebogen) | Sonnet, hoch + Owner | Blocked – wartet auf Kanal-/Modellentscheid #891/#893; Policy hosten, in App/ASC verlinken und „Data Not Collected" belegen |
-| [#904](https://github.com/NikolayDA/picture_helper/issues/904) | [MAS] EU-DSA-Status, Impressum und GPSR prüfen | 🟠 Hoch (EU-Storefronts und öffentliche Rechtspflichten) | 🟠 Mittel-Hoch (Owner-Selbsteinschätzung, Verifikation, Rechtsrisiko) | – (kein Agent; Owner/Rechtsprüfung) | Blocked (extern) – nach #884 Trader-Status, öffentliche Kontaktdaten, ggf. Zahlungskontoangaben sowie DDG/GPSR mit Owner/Wiedervorlage dokumentieren |
-| [#905](https://github.com/NikolayDA/picture_helper/issues/905) | [MAS] Release-Governance um den Store-Kanal erweitern | 🟠 Hoch (verhindert einen Kanal neben dem fail-closed Vertrag) | 🟠 Hoch (Runbook, Checkliste, Vertrag, Path-Policy, sechs CHANGELOGs) | Opus, hoch | Blocked – begleitet #898/#899; vor Einreichung alle Governance-Verträge und Tests auf sechs Artefakte heben |
-| [#906](https://github.com/NikolayDA/picture_helper/issues/906) | [MAS] Ersteinreichung und Review-Runde | 🟠 Hoch (manuelles Veröffentlichungs-Gate) | 🔴 Hoch (viele Abhängigkeiten, Restrisiken, Apple-Kommunikation) | – (kein Agent; Release-Owner) | Blocked (extern) – nach #896/#897/#899/#901–#905 inklusive App-Downloadvalidierung vorprüfen, einreichen und Ergebnis/Folge-Issues protokollieren |
-| [#907](https://github.com/NikolayDA/picture_helper/issues/907) | [MAS] Betriebskonzept für Renewal, Updates und Kanäle | 🟡 Mittel-Hoch (langfristige Verfügbarkeit und Kanaltrennung) | 🟡 Mittel (Runbook, Verantwortungen, Erinnerungen, Kanalmatrix) | Opus, hoch + Owner | Blocked – Konzept vorab möglich, final nach #906; Renewal-/Update-/Webseiten-Routinen verbindlich verankern |
-| [#914](https://github.com/NikolayDA/picture_helper/issues/914) | [Epic] Release-Prozess: Runner, automatisierte Nachweise, main-Freeze | 🟠 Hoch (Release-Betrieb; Implementierung weitgehend erledigt) | 🟢 Niedrig (ein ereignisgebundener Nachweis) | – (Epic) | Fast fertig – erster regulärer Dry-Run am 2026-09-03 erfolgreich gelaufen (Run 33737226157); offen bleibt nur noch der End-to-End-Beleg beim nächsten echten Release inklusive #918 |
-| [#918](https://github.com/NikolayDA/picture_helper/issues/918) | Release-Ref statt main-Freeze (ADR + fail-closed Absicherung) | 🟠 Hoch (`main` bleibt während eines Releases mergebar) | 🟢 Niedrig (Code, Doku und Ruleset stehen) | – (kein Agent; nächster Release-Lauf) | Blocked (extern) – am 2026-08-31 nach der Abschlussprüfung wiedereröffnet; PR #936 und der aktive Ruleset 21941216 sind belegt, offen ist nur ein Lauf, dessen Post-Release-Abnahme nachweislich auf `release/vX.Y.Z` startete |
-| [#939](https://github.com/NikolayDA/picture_helper/issues/939) | Betrieb: Self-hosted-Runner (Heartbeat-Alarmkanal) | 🟡 Mittel (Betriebskanal, kein Produktcode) | 🟢 Niedrig (reine Beobachtung) | – (kein Agent; Repo-Owner) | Dauerhaft offen – nicht schließen (`RUNNER_HEARTBEAT_ISSUE`); der FAIL vom 2026-08-31 war der geplante Meldeweg-Test, der Aufräumschritt ist erledigt (planmäßiger Lauf 33496675995 grün, x86_64 übersprungen, Mac und Pi bestanden) |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
-| [#1043](https://github.com/NikolayDA/picture_helper/issues/1043) | `docs/PROZESSE_UML.md` auf den Happy Path kürzen | 🟡 Mittel (773 Zeilen und 30 Rauten; dupliziert die Wiederanlaufmatrix des Runbooks) | 🟡 Mittel (vier Diagramme plus Verweise ins Runbook und in die ADRs) | Sonnet, hoch | Blocked – letztes Arbeitspaket; wartet auf #1040, #1035, #1036, #1037 und #1041 |
-| [#1042](https://github.com/NikolayDA/picture_helper/issues/1042) | Analyse-Kommandos (`.claude/commands/analyze-*`) auf GitHub-Issues umstellen | 🟡 Mittel (Analyseergebnisse landen dort, wo der offene Bestand geführt wird) | 🟢 Niedrig (fünf Kommandodateien) | Sonnet, mittel | Blocked – wartet auf #1040; empfohlen im selben PR |
-| [#1041](https://github.com/NikolayDA/picture_helper/issues/1041) | `make pr-ready`: Drift-Pflichten aus dem Diff erkennen | 🟡 Mittel (ersetzt sechs manuelle Entscheidungsrauten durch ein Kommando) | 🟠 Mittel-Hoch (neues streng getyptes Skript, NUL-Pfade, Umbenennungen, Python-3.10-Matrix) | Opus, hoch | Blocked – wartet auf #1040; sinnvoll erst nach #1036 und #1037, weil dann zwei Pflichten ersatzlos entfallen |
-| [#1040](https://github.com/NikolayDA/picture_helper/issues/1040) | Recommendations-Live-Triage entfernen (Tabelle, Kurzstatus, Workflow, Wächter) | 🟠 Hoch (größter Hebel des Epics: 2.123 Zeilen Mechanik und keine roten Läufe mehr durch Issue-Wechsel) | 🟡 Mittel (sechs Fassungen, Skript, Workflow, 42 Testfunktionen in drei Dateien, Restverweise in `TESTING.md` und `docs/PROZESSE_UML.md`) | Opus, hoch | Blocked – wartet auf #1033; empfohlen atomar zusammen mit #1042 |
-| [#1039](https://github.com/NikolayDA/picture_helper/issues/1039) | Owner-Skript für die Release-Dispatches statt Run-IDs von Hand | 🟡 Mittel (Handarbeit im Release-Ablauf, kein Produktrisiko) | 🟡 Mittel (Run-ID-/Artefaktauflösung über die API, streng getypt, netzabhängig testbar) | Sonnet, hoch | Zurückgestellt – laut Epic bewusst erst nach dem nächsten echten Release; bis dahin ist der Handlauf die Referenz für #914/#918 |
-| [#1038](https://github.com/NikolayDA/picture_helper/issues/1038) | Pfadfilter für CodeQL, Dependency-Audit und License-Check auf Pull Requests | 🟢 Niedrig (spart CI-Zeit, kein Qualitäts- oder Risikogewinn) | 🟢 Niedrig (drei `paths-ignore`-Blöcke) | Sonnet, mittel | Ready for PR – unkritisch, weil keiner der drei Läufe Pflichtcheck ist (einziger Pflichtcheck: `Lightweight PR checks`) |
-| [#1037](https://github.com/NikolayDA/picture_helper/issues/1037) | Pfadpolicy: unbekannte Pfade warnen statt zu blockieren | 🟠 Hoch (das Gate läuft auf jedem PR; 22 Policy-Änderungen im Messfenster) | 🟡 Mittel (Policy-Version 17→18, ADR-Nachtrag, `prepare_release.py`, Freeze-Dokument, Tests) | Opus, hoch | Ready for PR – die Release-Gates bleiben unberührt: Die Klassifikation ändert sich nicht, nur die Blockade entfällt. Nachweis über den nächsten Dry-Run |
-| [#1035](https://github.com/NikolayDA/picture_helper/issues/1035) | Repository-Einstellungen: Squash-only, Auto-Löschung, ein automatischer Reviewer | 🟡 Mittel (weniger Merge- und Review-Rauschen, keine Produktwirkung) | 🟢 Niedrig (Einstellungen und Connector-Konfiguration, kein Code) | – (kein Agent; Repo-Owner) | Startbereit (Owner) – der Live-Abgleich vom 2026-09-09 bestätigt alle vier Ist-Werte; die Auto-Review-Einstellung des `chatgpt-codex-connector` ist nur in der Connector-Konfiguration prüfbar |
-| [#1034](https://github.com/NikolayDA/picture_helper/issues/1034) | Issue Forms für die Desktop-App statt GitHub-Standardvorlagen | 🟡 Mittel (Meldequalität; Browser-/Smartphone-Felder passen nicht zu einer PyQt6-App) | 🟢 Niedrig (zwei YAML-Formulare plus `config.yml`) | Sonnet, mittel | Ready for PR – unabhängig von #1033/#1040, jederzeit einschiebbar |
-| [#1033](https://github.com/NikolayDA/picture_helper/issues/1033) | Triage-Inhalte in die Issues übernehmen, Prioritäts-/Blocker-Labels einführen | 🟠 Hoch (harte Voraussetzung für #1040; sonst gehen die kuratierten Texte verloren) | 🟡 Mittel (kein Code, aber alle offenen Issues labeln und 41 Übernahmekommentare setzen) | Sonnet, hoch | Startbereit – reine Issue-Kuratierung über die API, kein PR; Cutover-Bestand am 2026-09-09: 56 offene Issues statt der im Issue notierten 54 |
-| [#1032](https://github.com/NikolayDA/picture_helper/issues/1032) | [Epic] Prozess-Entschlackung: Triage nach GitHub, weniger Drift-Pflichten | 🟠 Hoch (28 von 156 Mainline-Commits im Messfenster sind reine Triage-Pflege) | 🔴 Hoch (elf Arbeitspakete #1033–#1043 mit Reihenfolge und Abhängigkeiten) | – (Epic) | In Bearbeitung – Reihenfolge #1033 → #1040 (+#1042) → #1041/#1043; #1031 hat Priorität 0 davor |
-
-### Als Nächstes empfohlen
-
-1. **#1031** (Priorität 0) – Provenienzprüfung im SessionStart-Hook; ohne sie kann ein
-   grüner Subprozess-Test alten Code geprüft haben.
-2. **#1044** und **#1045** – erledigt: die Testlücke zu #1004/#1005 in
-   `tests/test_preview3d_controller.py` und die fehlende `#1023`-Referenz in sechs
-   CHANGELOG-Fassungen.
-3. **v2.10.0 anstoßen** – der Umfang steht in `[Unreleased]`; Runbook-Schritt
-   1/2 über `scripts/prepare_release.py 2.10.0`. Der Lauf schließt zugleich die offene
-   End-to-End-Evidenz von #914 und #918.
-4. **#1033 → #1040 (+#1042)** – die Prozess-Entschlackung starten; #1034, #1035, #1037 und
-   #1038 sind unabhängig und jederzeit einschiebbar (#1036 ist umgesetzt).
-5. **#693** (Qt-freier Kern) – ADR #692 ist verabschiedet; danach folgen #694, #695 und
-   #696 in dieser Reihenfolge.
-6. **#883** – Qt-/Code-Lizenz entscheiden und die Rechte/Provenienz des konkreten
-   `u2net.onnx` belegen oder ein eindeutig lizenzierbares Ersatzmodell wählen.
-7. Nach Geräte-/Materialfreigabe die offenen physischen Messungen aus **#689** zusammen
-   mit #687 (Rest), #688 und #690 durchführen; danach den Evidenzstatus von Profil v2
-   bewerten. Profil v1 bleibt eingefroren, neue oder widersprechende Semantik erhält eine
-   weitere Profilversion.
-
-## Vorige Runden
-
-Ausführliche Protokolle seit v2.2: [docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.md](docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.md).
-
-Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMENDATIONS-2026-pre-v2.2.md](docs/history/RECOMMENDATIONS-2026-pre-v2.2.md).
+- [Runden seit v2.2 bis v2.9 samt letztem Kurzstatus](docs/history/RECOMMENDATIONS-2026-v2.2-v2.9.md)
+- [Historische Befunde und Arbeitsprotokolle (Runden 1–5)](docs/history/RECOMMENDATIONS-2026-pre-v2.2.md)

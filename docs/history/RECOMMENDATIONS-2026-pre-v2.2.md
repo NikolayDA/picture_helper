@@ -5,7 +5,7 @@ Aktueller Stand siehe ../../RECOMMENDATIONS.md.
 
 ---
 
-**Deutsch** · [English](../i18n/en/RECOMMENDATIONS.md) · [Español](../i18n/es/RECOMMENDATIONS.md) · [Français](../i18n/fr/RECOMMENDATIONS.md) · [Українська](../i18n/uk/RECOMMENDATIONS.md) · [简体中文](../i18n/zh/RECOMMENDATIONS.md)
+**Deutsch** · [English](RECOMMENDATIONS-2026-pre-v2.2.en.md) · [Español](RECOMMENDATIONS-2026-pre-v2.2.es.md) · [Français](RECOMMENDATIONS-2026-pre-v2.2.fr.md) · [Українська](RECOMMENDATIONS-2026-pre-v2.2.uk.md) · [简体中文](RECOMMENDATIONS-2026-pre-v2.2.zh.md)
 
 # Codeanalyse & bewertete Empfehlungen: BgRemover
 

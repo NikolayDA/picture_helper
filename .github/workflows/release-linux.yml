@@ -718,8 +718,8 @@ jobs:
           retention-days: ${{ env.DRY_RUN == '1' && env.DRY_RUN_RETENTION_DAYS || 90 }}
 
   # #922: Ein roter Dry-Run muss handlungsfaehig sein, nicht nur sichtbar -
-  # dasselbe Muster wie recommendations-live-check.yml (Ursache, Owner und
-  # Reaktionsweg dauerhaft in der Job-Zusammenfassung). Der Job buendelt das
+  # Ursache, Owner und Reaktionsweg stehen dauerhaft in der
+  # Job-Zusammenfassung. Der Job buendelt das
   # Ergebnis der drei Stufen an einer Stelle: Wer den Lauf oeffnet, sieht
   # sofort, WELCHE Stufe gefallen ist, statt drei Jobs durchsuchen zu muessen.
   # Er laeuft nur im Dry-Run - beim Kandidatenbau folgt ohnehin das Runbook.

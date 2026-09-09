@@ -22,13 +22,15 @@ Verfügung.
 - **Alle vier nacheinander:** die Befehle hintereinander aufrufen oder einfach
   „lass alle vier Analyse-Routinen laufen" sagen.
 
-## Befunde & RECOMMENDATIONS.md
+## Befunde als Issues
 
-Jede Routine liefert strukturierte Befunde (Schweregrad, `Datei:Zeile`,
-Begründung, Vorschlag) und schlägt Einträge im Format von
-[`RECOMMENDATIONS.md`](../../RECOMMENDATIONS.md) vor (IDs `N#`/`O#`, siehe
-Konvention in [`CLAUDE.md`](../../CLAUDE.md)). Die Datei wird **nur nach
-ausdrücklicher Bestätigung** geändert.
+Jede Routine liefert strukturierte Befunde, die direkt als GitHub-Issue
+verwendbar sind: Titel, Schweregrad, `Datei:Zeile`, Reproduktion/Beleg,
+Vorschlag und Akzeptanzkriterium. Ein Lauf ohne Befund meldet „kein Befund"
+und erzeugt nichts. Es gibt kein Empfehlungs- oder Tabellenformat und keine
+Katalog-IDs mehr (#1040/#1042); Priorität und Blocker stehen im Issue selbst
+(Labels `prio:*`, native Abhängigkeiten, `blocked:extern` – Regeln in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md), Abschnitt „Issue-Triage").
 
 ## GitHub-Issues (optional)
 
@@ -37,11 +39,19 @@ oder kommentieren:
 
 - Auslösen über das Argument `issues` (z. B. `/analyze-bugs issues`) oder auf
   ausdrückliche Bitte.
-- Vorher wird nach bestehenden Issues gesucht, um Duplikate zu vermeiden;
-  passende Befunde werden lieber als Kommentar ergänzt.
-- Verwandte Befunde werden gebündelt; der Issue-Body referenziert die
-  zugehörige `RECOMMENDATIONS.md`-ID.
+- Duplikatsuche ist Pflicht und umfasst offene **und** geschlossene Issues;
+  ein bestehendes Issue wird nur bei materiell neuer Evidenz oder geändertem
+  Befund kommentiert. Ein identischer Wiederholungslauf erzeugt null
+  Schreibvorgänge (Idempotenz).
+- Verwandte Befunde werden gebündelt; der Issue-Body trägt Reproduktion,
+  Vorschlag und Akzeptanzkriterium, die Priorität wird als `prio:*`-Label
+  vorgeschlagen.
 - Vor jedem Schreibvorgang auf GitHub wird kurz rückgefragt.
+- **Sicherheitsausnahme:** Ein plausibler, noch nicht veröffentlichter
+  Schwachstellen-Befund aus `/analyze-security` nimmt nie den öffentlichen
+  Pfad, sondern wird als vertraulicher Bericht für GitHub Private
+  Vulnerability Reporting ausgegeben (Format aus
+  [`SECURITY.md`](../../SECURITY.md)).
 
 ## Wiederkehrende Ausführung
 
@@ -52,8 +62,9 @@ oder kommentieren:
 
 Die `allowed-tools`-Frontmatter jeder Routine beschränkt sie auf das Nötige:
 Lese-/Suchtools, die passenden `make`-Aufrufe und die GitHub-Issue-Tools. Es
-werden keine Quelldateien verändert; Schreibvorgänge (RECOMMENDATIONS.md,
-GitHub-Issues) erfordern Bestätigung.
+werden keine Quelldateien verändert; die einzigen Schreibvorgänge sind
+GitHub-Issues und -Kommentare, sie erfordern Bestätigung, sind idempotent und
+schließen vertrauliche Sicherheitsbefunde aus.
 
 ## Pflege
 

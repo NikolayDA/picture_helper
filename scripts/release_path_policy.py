@@ -55,6 +55,16 @@ class PathClassification:
     explicit: bool
 
 
+#: Unbekannte Pfade sind in beiden Verhalten kandidatenrelevant; der Wert
+#: entscheidet nur, ob das Gate an ihnen scheitert (bis #1037) oder sie als
+#: Warnung in Befundliste und Provenienz ausweist (#1037). Ein neutrales
+#: Verhalten gibt es bewusst nicht: ``release-neutral`` bleibt eine explizite,
+#: begruendete Allowlist.
+UNKNOWN_BLOCKING: Final = "candidate-relevant-blocking"
+UNKNOWN_WARNING: Final = "candidate-relevant-warning"
+UNKNOWN_PATH_BEHAVIORS: Final = (UNKNOWN_BLOCKING, UNKNOWN_WARNING)
+
+
 @dataclass(frozen=True)
 class PathPolicy:
     """Validierte Policy samt Digest der versionierten Quelldatei."""
@@ -65,6 +75,12 @@ class PathPolicy:
     neutral_rules: tuple[PolicyRule, ...]
     relevant_rules: tuple[PolicyRule, ...]
     drift_guards: dict[str, tuple[str, ...]]
+    unknown_path_behavior: str = UNKNOWN_BLOCKING
+
+    @property
+    def unknown_paths_block(self) -> bool:
+        """True, wenn ein unklassifizierter Pfad das Gate scheitern laesst."""
+        return self.unknown_path_behavior == UNKNOWN_BLOCKING
 
 
 def _normalise_path(path: str, *, prefix: bool) -> str:
@@ -147,8 +163,12 @@ def parse_policy(text: str) -> PathPolicy:
     version = data.get("policy_version")
     if not isinstance(version, int) or isinstance(version, bool) or version < 1:
         raise PolicyFormatError("policy_version muss eine positive Ganzzahl sein")
-    if data.get("unknown_path_behavior") != "candidate-relevant-blocking":
-        raise PolicyFormatError("unbekannte Pfade muessen candidate-relevant-blocking sein")
+    behavior = data.get("unknown_path_behavior")
+    if behavior not in UNKNOWN_PATH_BEHAVIORS:
+        raise PolicyFormatError(
+            "unknown_path_behavior muss candidate-relevant-blocking oder "
+            f"candidate-relevant-warning sein, nicht {behavior!r}"
+        )
     neutral_raw = data.get("release_neutral")
     relevant_raw = data.get("candidate_relevant")
     if not isinstance(neutral_raw, list) or not isinstance(relevant_raw, list):
@@ -183,6 +203,7 @@ def parse_policy(text: str) -> PathPolicy:
         neutral_rules=neutral,
         relevant_rules=relevant,
         drift_guards=guards,
+        unknown_path_behavior=str(behavior),
     )
 
 

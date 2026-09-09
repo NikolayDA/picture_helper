@@ -23,7 +23,6 @@ DOC_NAMES = (
     "CHANGELOG.md",
     "INSTALL_MAC.md",
     "RESOURCES.md",
-    "RECOMMENDATIONS.md",
     "ANLEITUNG.md",
 )
 

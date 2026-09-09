@@ -171,9 +171,12 @@ python scripts/verify_release_freeze.py \
 git rev-parse HEAD
 ```
 
-Der Laufkopf ist der Kandidat. Unbekannte oder kandidatenrelevante Änderungen
-nach der abgeleiteten Basis blockieren fail-closed; ein manueller SHA-Ledger
-wird nicht gepflegt.
+Der Laufkopf ist der Kandidat. Kandidatenrelevante Änderungen nach der
+abgeleiteten Basis blockieren fail-closed; unbekannte Pfade gelten als
+kandidatenrelevant und erscheinen seit #1037 als Warnung `unclassified-path`
+in Befundliste und Provenienz (`explicit=false` je Pfad) – prüfe sie hier,
+bevor du den Kandidaten festlegst. Ein manueller SHA-Ledger wird nicht
+gepflegt.
 
 Lege den Kandidaten jetzt auf dem unveränderlichen Release-Ref fest. Ab hier
 laufen **alle** Dispatches auf diesem Ref, und `main` bleibt mergebar (#918,
