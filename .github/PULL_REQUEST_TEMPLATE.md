@@ -24,10 +24,6 @@ Closes #
 - [ ] CHANGELOG (`[Unreleased]`) bei nutzersichtbarer Änderung aktualisiert.
 - [ ] Bei berührten Docs: i18n-Parität (`docs/i18n/`) gewahrt, keine toten
       Markdown-Links.
-- [ ] Falls die Qt-apt-Paketliste geändert wurde: alle sechs Dateien synchron
-      (`.github/workflows/ci.yml`, `pr-ci.yml`, `ui-nightly.yml`,
-      `benchmark.yml`, `coverage.yml`, `.claude/hooks/session-start.sh` —
-      Befund N6).
 - [ ] Kommentare/Docstrings auf Deutsch, Code-Identifier englisch.
 
 ## Tests

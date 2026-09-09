@@ -120,7 +120,7 @@ jobs:
             (`make check`: ruff line-length 100, Regeln E,F,W,I,B,UP,SIM;
             mypy; pytest offscreen; Coverage-Baseline >= 86; Kommentare/
             Docstrings deutsch, Code-Identifier englisch; Qt-apt-Paketliste
-            in sechs Dateien identisch — Befund N6) sowie Sicherheit und
+            nur im geteilten Installationsskript, nie inline — #1036) sowie Sicherheit und
             Performance relevanter Änderungen. Kontext steht in CLAUDE.md.
             Wiederhole nicht, was die CI-Checks ohnehin abfangen; fällt
             nichts Wesentliches auf, sag das klar.
