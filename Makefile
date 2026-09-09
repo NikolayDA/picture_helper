@@ -36,7 +36,8 @@ lint: lint-shell
 # ohne shellcheck sollen nicht hart scheitern (CI installiert es separat).
 lint-shell:
 	@if command -v shellcheck >/dev/null 2>&1; then \
-		shellcheck -x BgRemover.command create_BgRemover_app.sh diagnose_mac.sh; \
+		shellcheck -x BgRemover.command create_BgRemover_app.sh diagnose_mac.sh \
+			scripts/install_qt_apt.sh; \
 	else \
 		echo "shellcheck nicht installiert – ueberspringe Shell-Lint (CI installiert das Paket)."; \
 	fi

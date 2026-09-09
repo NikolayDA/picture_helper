@@ -79,7 +79,6 @@
 | [#1039](https://github.com/NikolayDA/picture_helper/issues/1039) | 用所有者脚本替代手工复制 run-ID 的发布 dispatch | 🟡 中（发布流程中的手工操作，无产品风险） | 🟡 中（通过 API 解析 run-ID/产物，严格类型，测试依赖网络） | Sonnet，高 | 推迟：史诗有意将其安排在下一次真实发布之后；在此之前手工路径是 #914/#918 的参照 |
 | [#1038](https://github.com/NikolayDA/picture_helper/issues/1038) | 为 CodeQL、依赖审计与许可证检查在 PR 上加路径过滤 | 🟢 低（节省 CI 时间，无质量或风险收益） | 🟢 低（三个 `paths-ignore` 块） | Sonnet，中 | Ready for PR：风险很低，因为这三个运行都不是必需检查（唯一必需检查是 `Lightweight PR checks`） |
 | [#1037](https://github.com/NikolayDA/picture_helper/issues/1037) | 路径策略：未知路径改为告警而非阻塞 | 🟠 高（该门禁在每个 PR 上运行；测量窗口内策略改动 22 次） | 🟡 中（策略版本 17→18、ADR 补记、`prepare_release.py`、冻结文档、测试） | Opus，高 | Ready for PR：发布门禁不受影响——分类不变，仅取消阻塞。证据取自下一次 dry-run |
-| [#1036](https://github.com/NikolayDA/picture_helper/issues/1036) | Qt 系统包清单归一到单一来源（取代发现 N6） | 🟡 中（取消六项人工漂移义务之一） | 🟡 中（新 shell 脚本、六处调用、守卫测试改为负向对照） | Sonnet，高 | Ready for PR：独立；需要与 #1031 相同的 `release-neutral` 条目，由先合并的 PR 携带 |
 | [#1035](https://github.com/NikolayDA/picture_helper/issues/1035) | 仓库设置：仅 squash、自动删除分支、恰好一个自动审阅者 | 🟡 中（减少合并与审阅噪声，对产品无影响） | 🟢 低（设置与连接器配置，无代码） | –（无代理；仓库所有者） | 可以开始（所有者）：2026-09-09 的实时比对确认了全部四个当前值；`chatgpt-codex-connector` 的自动审阅设置只能在连接器配置中查看 |
 | [#1034](https://github.com/NikolayDA/picture_helper/issues/1034) | 为桌面应用启用 Issue Forms，替代 GitHub 默认模板 | 🟡 中（报告质量；浏览器/智能手机字段不适用于 PyQt6 应用） | 🟢 低（两个 YAML 表单加 `config.yml`） | Sonnet，中 | Ready for PR：独立于 #1033/#1040，可随时插入 |
 | [#1033](https://github.com/NikolayDA/picture_helper/issues/1033) | 将分诊内容迁入议题并引入优先级/阻塞标签 | 🟠 高（#1040 的硬性前提；否则精心整理的文本会丢失） | 🟡 中（无需改代码，但要为所有未结议题打标签并写 41 条移交评论） | Sonnet，高 | 可以开始：通过 API 做议题整理，不是 PR；2026-09-09 的切换基线是 56 个未结议题，而非议题中记的 54 个 |
@@ -93,7 +92,7 @@
 3. **启动 v2.10.0**：范围已在 `[Unreleased]` 中；通过
    `scripts/prepare_release.py 2.10.0` 走 runbook 第 1/2 步。该次运行同时补齐 #914 与 #918
    尚缺的端到端证据。
-4. **#1033 → #1040（+#1042）**：启动流程瘦身；#1034、#1035、#1036、#1037 和 #1038 相互独立，可随时插入。
+4. **#1033 → #1040（+#1042）**：启动流程瘦身；#1034、#1035、#1037 和 #1038 相互独立，可随时插入（#1036 已完成）。
 5. **#693**（无 Qt 核心）：ADR #692 已批准；随后依次进行 #694、#695、#696。
 6. **#883**：决定 Qt/代码许可，并证明具体 `u2net.onnx` 的权利与来源，或选择许可明确的替代模型。
 7. 在设备/材料获批后，与 #687 的剩余部分、#688 和 #690 一并完成 **#689** 的物理测量；之后复核配置 v2

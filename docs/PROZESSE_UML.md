@@ -108,8 +108,6 @@ flowchart TD
     DA1["CHANGELOG-Abschnitt Unreleased ergänzen<br/>sechs Sprachfassungen synchron"]
     DQ2{"Basis-Doku berührt?"}
     DA2["i18n-Parität unter docs/i18n wahren<br/>keine toten Markdown-Links"]
-    DQ3{"Qt-apt-Paketliste geändert?"}
-    DA3["Befund N6: alle sechs Dateien angleichen<br/>ci.yml, pr-ci.yml, ui-nightly.yml, benchmark.yml, coverage.yml, session-start.sh"]
     DQ4{"ANLEITUNG.md oder scripts/generate_anleitung_pdf.py geändert?"}
     DA4["ANLEITUNG.pdf im selben Commit neu erzeugen<br/>pip install -e '.[docs]' · python scripts/generate_anleitung_pdf.py<br/>Wächter tests/test_anleitung_pdf_sync.py prüft die Git-Mitänderung"]
     DQ6{"Abhängigkeit oder Pin in pyproject.toml bzw. requirements/constraints.txt geändert?"}
@@ -120,7 +118,7 @@ flowchart TD
 
   subgraph GATE["Partition: Standard-Gate · make check"]
     direction TB
-    G1["make lint<br/>ruff check bgremover scripts tests + shellcheck der drei Shell-Skripte"]
+    G1["make lint<br/>ruff check bgremover scripts tests + shellcheck der vier Shell-Skripte"]
     G2["make type<br/>mypy"]
     G3["make test<br/>pytest mit QT_QPA_PLATFORM=offscreen, Filter: nicht ui, aber ui_smoke"]
     GQ{"Gate grün?"}
@@ -138,10 +136,8 @@ flowchart TD
   D4 --> D5 --> DQ1
   DQ1 -->|"ja"| DA1 --> DQ2
   DQ1 -->|"nein"| DQ2
-  DQ2 -->|"ja"| DA2 --> DQ3
-  DQ2 -->|"nein"| DQ3
-  DQ3 -->|"ja"| DA3 --> DQ4
-  DQ3 -->|"nein"| DQ4
+  DQ2 -->|"ja"| DA2 --> DQ4
+  DQ2 -->|"nein"| DQ4
   DQ4 -->|"ja"| DA4 --> DQ6
   DQ4 -->|"nein"| DQ6
   DQ6 -->|"ja"| DA6 --> DQ5

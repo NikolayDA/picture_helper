@@ -21,8 +21,9 @@ headless-Qt-Betrieb:
 
 - `make check` — Lint + Typecheck + Tests. **Die maßgebliche Baseline.**
 - `make lint` — `ruff check bgremover scripts tests` + `lint-shell` (shellcheck
-  für `BgRemover.command`/`create_BgRemover_app.sh`/`diagnose_mac.sh`, wird ohne
-  installiertes shellcheck übersprungen statt zu scheitern)
+  für `BgRemover.command`/`create_BgRemover_app.sh`/`diagnose_mac.sh`/
+  `scripts/install_qt_apt.sh`, wird ohne installiertes shellcheck übersprungen
+  statt zu scheitern)
 - `make type` — `mypy`
 - `make test` — `pytest` (ohne volle UI-Suite, das `ui_smoke`-Subset läuft mit);
   `PYTEST_ARGS` reicht Zusatzargumente durch (`make check PYTEST_ARGS=-rs` zeigt
@@ -1448,17 +1449,23 @@ pausierten x86_64-Kriterien über `verification == "platform:linux-x86_64"`
 getestet. Ablauf: [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md)
 Schritt 1.
 
-## Wichtig: Drift-Disziplin (Befund N6)
+## Wichtig: Drift-Disziplin
 
-Die Qt-apt-Paketliste muss in **sechs** Dateien identisch bleiben:
-`.github/workflows/ci.yml`, `pr-ci.yml`, `ui-nightly.yml`, `benchmark.yml`,
-`coverage.yml` und `.claude/hooks/session-start.sh`.
-`tests/test_ci_qt_packages.py` erzwingt das — beim Ändern einer Liste alle sechs
-anpassen, sonst schlägt der Test fehl (und `import PyQt6` bricht andernorts mit
-`libGL.so.1: cannot open shared object file`).
+Die Qt-apt-Paketliste hat seit #1036 **eine** Quelle: `scripts/install_qt_apt.sh`.
+Die fünf Workflows `ci.yml`, `pr-ci.yml`, `ui-nightly.yml`, `benchmark.yml`,
+`coverage.yml` und der SessionStart-Hook rufen das Skript auf (Zusatzpakete wie
+`zsh shellcheck` als Argumente; `--best-effort-update` und `--quiet` setzt **nur** der Hook,
+in der CI bleibt `apt-get update` fail-closed, `apt-get install` scheitert
+immer hart). Damit ist Befund N6 – sechs handgepflegte Kopien derselben Liste –
+abgelöst. `tests/test_ci_qt_packages.py` prüft die Liste im Skript, dass alle
+sechs Aufrufer es benutzen, als **Negativkontrolle**, dass keiner
+`libxcb-xinerama0` wieder inline führt, und den Update-Modus über simulierte
+`apt-get`/`sudo`-Kommandos auf dem `PATH` (kein Root nötig). Fehlt ein Paket,
+bricht `import PyQt6` andernorts mit `libGL.so.1: cannot open shared object
+file`.
 
-Dasselbe Muster – eine handgepflegte Kopie gegen ihre Quelle, netzfrei und
-fail-closed – tragen inzwischen mehrere Wächter. Wer die Quelle ändert, ändert
+Das Muster – eine handgepflegte Kopie gegen ihre Quelle, netzfrei und
+fail-closed – tragen weiterhin mehrere Wächter. Wer die Quelle ändert, ändert
 die Kopie mit; sonst bleibt `make check` grün und die Doku still falsch:
 
 - `tests/test_marker_governance.py` (#832/#845/#847/#852): die drei

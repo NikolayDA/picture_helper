@@ -126,22 +126,19 @@ if [ "$tools_ready" = 1 ]; then
   printf '%s\n' "$provenance_report"
 fi
 
-# Qt-Systembibliotheken – dieselbe Qt-Lib-Liste wie in den CI-Workflows
-# (.github/workflows/ci.yml, pr-ci.yml, ui-nightly.yml, benchmark.yml), dort auf
-# ubuntu-latest erprobt. Ein Drift-Test (tests/test_ci_qt_packages.py)
-# haelt diese Listen konsistent – fehlt z. B. libgl1 irgendwo, schlaegt
-# beim Import von PyQt6 sonst nur „libGL.so.1: cannot open shared object".
+# Qt-Systembibliotheken – dieselbe Liste wie in den CI-Workflows, seit #1036
+# aus der einen Quelle scripts/install_qt_apt.sh (dort auf ubuntu-latest
+# erprobt; tests/test_ci_qt_packages.py wacht darüber, dass kein Aufrufer
+# die Liste wieder inline führt). Fehlt z. B. libgl1, schlägt der Import von
+# PyQt6 sonst nur mit „libGL.so.1: cannot open shared object" fehl.
 if command -v apt-get >/dev/null 2>&1; then
-  # Best-effort: defekte Fremd-PPAs (z. B. deadsnakes/php in manchen
-  # Containern) dürfen das Setup nicht abbrechen – die benötigten
-  # Qt-Pakete liegen im Haupt-Archiv. Schlägt der eigentliche
-  # install-Schritt fehl, bricht der Hook (set -e) ohnehin laut ab.
-  sudo apt-get update -qq \
-    || echo "Hinweis: apt-get update teilweise fehlgeschlagen (fremde PPAs) – fahre fort."
-  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-    libegl1 libgl1 libfontconfig1 libxkbcommon0 libdbus-1-3 \
-    libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
-    libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
+  # --best-effort-update: defekte Fremd-PPAs (z. B. deadsnakes/php in manchen
+  # Containern) dürfen das Setup nicht abbrechen – die benötigten Qt-Pakete
+  # liegen im Haupt-Archiv. Nur der Hook setzt diese Option; in der CI bleibt
+  # `apt-get update` fail-closed. Scheitert der eigentliche install-Schritt,
+  # bricht das Skript und damit der Hook (set -e) laut ab. --quiet hält das
+  # Sitzungslog wie zuvor knapp (-qq); die CI-Logs bleiben vollständig.
+  bash scripts/install_qt_apt.sh --best-effort-update --quiet
 fi
 
 # Projekt-lokale venv (#1048). Brauchbar heißt: Interpreter läuft UND pip
