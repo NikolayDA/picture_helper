@@ -14,6 +14,8 @@
 #                         setzt das. In der CI bleibt `apt-get update`
 #                         fail-closed – ein Runner mit kaputten Quellen soll
 #                         dort laut auffallen.
+#   --quiet               `-qq` für beide apt-Aufrufe (Hook: knappes
+#                         Sitzungslog); in der CI bleibt das Log vollständig.
 #   --print-packages      gibt die Qt-Liste zeilenweise aus und beendet sich
 #                         (Wächtertest); berührt apt nicht.
 #   ZUSATZPAKET           weitere Pakete derselben Installation (z. B. zsh
@@ -32,10 +34,12 @@ QT_PACKAGES=(
 )
 
 best_effort_update=0
+quiet=()
 extras=()
 for arg in "$@"; do
   case "$arg" in
     --best-effort-update) best_effort_update=1 ;;
+    --quiet) quiet=(-qq) ;;
     --print-packages) printf '%s\n' "${QT_PACKAGES[@]}"; exit 0 ;;
     # Hilfe = der Kommentarkopf bis zur ersten Nicht-Kommentarzeile (kein
     # fester Zeilenbereich, der bei jeder Kopfänderung still driftete).
@@ -56,11 +60,11 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 if [ "$best_effort_update" = 1 ]; then
-  "${sudo_prefix[@]}" apt-get update \
+  "${sudo_prefix[@]}" apt-get update "${quiet[@]}" \
     || echo "Hinweis: apt-get update teilweise fehlgeschlagen (fremde PPAs) – fahre fort."
 else
-  "${sudo_prefix[@]}" apt-get update
+  "${sudo_prefix[@]}" apt-get update "${quiet[@]}"
 fi
 
 "${sudo_prefix[@]}" env DEBIAN_FRONTEND=noninteractive \
-  apt-get install -y "${QT_PACKAGES[@]}" "${extras[@]}"
+  apt-get install -y "${quiet[@]}" "${QT_PACKAGES[@]}" "${extras[@]}"

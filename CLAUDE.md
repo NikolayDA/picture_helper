@@ -1454,7 +1454,7 @@ Schritt 1.
 Die Qt-apt-Paketliste hat seit #1036 **eine** Quelle: `scripts/install_qt_apt.sh`.
 Die fünf Workflows `ci.yml`, `pr-ci.yml`, `ui-nightly.yml`, `benchmark.yml`,
 `coverage.yml` und der SessionStart-Hook rufen das Skript auf (Zusatzpakete wie
-`zsh shellcheck` als Argumente; `--best-effort-update` setzt **nur** der Hook,
+`zsh shellcheck` als Argumente; `--best-effort-update` und `--quiet` setzt **nur** der Hook,
 in der CI bleibt `apt-get update` fail-closed, `apt-get install` scheitert
 immer hart). Damit ist Befund N6 – sechs handgepflegte Kopien derselben Liste –
 abgelöst. `tests/test_ci_qt_packages.py` prüft die Liste im Skript, dass alle

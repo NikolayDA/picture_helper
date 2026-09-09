@@ -136,8 +136,9 @@ if command -v apt-get >/dev/null 2>&1; then
   # Containern) dürfen das Setup nicht abbrechen – die benötigten Qt-Pakete
   # liegen im Haupt-Archiv. Nur der Hook setzt diese Option; in der CI bleibt
   # `apt-get update` fail-closed. Scheitert der eigentliche install-Schritt,
-  # bricht das Skript und damit der Hook (set -e) laut ab.
-  bash scripts/install_qt_apt.sh --best-effort-update
+  # bricht das Skript und damit der Hook (set -e) laut ab. --quiet hält das
+  # Sitzungslog wie zuvor knapp (-qq); die CI-Logs bleiben vollständig.
+  bash scripts/install_qt_apt.sh --best-effort-update --quiet
 fi
 
 # Projekt-lokale venv (#1048). Brauchbar heißt: Interpreter läuft UND pip

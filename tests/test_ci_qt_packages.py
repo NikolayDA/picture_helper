@@ -100,10 +100,27 @@ def test_script_is_executable_bash_with_strict_mode() -> None:
     assert path.stat().st_mode & stat.S_IXUSR
 
 
+def _effective_call_lines(text: str, *, hook: bool) -> list[str]:
+    """Die *wirksamen* Aufrufzeilen: `run:` im Workflow, keine Kommentarzeile im Hook.
+
+    Ein Substring irgendwo in der Datei genügt nicht – ein gelöschter Schritt
+    mit zurückgelassenem Erklärkommentar bliebe sonst grün.
+    """
+    call = f"bash {_SCRIPT.as_posix()}"
+    lines = [line.strip() for line in text.splitlines() if call in line]
+    if hook:
+        return [line for line in lines if not line.startswith("#")]
+    return [line for line in lines if line.startswith("run: ")]
+
+
+def _call_lines(rel_path: str) -> list[str]:
+    text = (_ROOT / rel_path).read_text(encoding="utf-8")
+    return _effective_call_lines(text, hook=rel_path == _HOOK)
+
+
 @pytest.mark.parametrize("rel_path", _CALLERS)
 def test_caller_uses_the_shared_script(rel_path: str) -> None:
-    text = (_ROOT / rel_path).read_text(encoding="utf-8")
-    assert f"bash {_SCRIPT.as_posix()}" in text, f"{rel_path}: ruft {_SCRIPT} nicht auf"
+    assert _call_lines(rel_path), f"{rel_path}: ruft {_SCRIPT} nicht wirksam auf"
 
 
 @pytest.mark.parametrize("rel_path", _CALLERS)
@@ -117,8 +134,7 @@ def test_caller_has_no_inline_qt_package_list(rel_path: str) -> None:
 
 @pytest.mark.parametrize("rel_path", _CALLERS)
 def test_best_effort_update_is_reserved_for_the_hook(rel_path: str) -> None:
-    text = (_ROOT / rel_path).read_text(encoding="utf-8")
-    call_lines = [line for line in text.splitlines() if f"bash {_SCRIPT.as_posix()}" in line]
+    call_lines = _call_lines(rel_path)
     assert call_lines, rel_path
     best_effort = any("--best-effort-update" in line for line in call_lines)
     assert best_effort == (rel_path == _HOOK), (
@@ -126,10 +142,23 @@ def test_best_effort_update_is_reserved_for_the_hook(rel_path: str) -> None:
     )
 
 
+def test_effective_call_lines_ignore_comments_and_non_run_lines() -> None:
+    """Negativkontrolle des Helfers: Kommentar bzw. Nicht-`run:`-Zeile zählen nicht."""
+    call = f"bash {_SCRIPT.as_posix()}"
+    assert _effective_call_lines(f"  {call} --best-effort-update\n", hook=True) == [
+        f"{call} --best-effort-update"
+    ]
+    assert _effective_call_lines(f"  # {call} --best-effort-update\n", hook=True) == []
+    assert _effective_call_lines(f"        run: {call} zsh shellcheck\n", hook=False) == [
+        f"run: {call} zsh shellcheck"
+    ]
+    assert _effective_call_lines(f"        # run: {call}\n", hook=False) == []
+    assert _effective_call_lines(f"      - name: {call}\n", hook=False) == []
+
+
 @pytest.mark.parametrize("rel_path", _LINT_WORKFLOWS)
 def test_lint_workflows_request_zsh_and_shellcheck(rel_path: str) -> None:
-    text = (_ROOT / rel_path).read_text(encoding="utf-8")
-    assert f"bash {_SCRIPT.as_posix()} zsh shellcheck" in text, (
+    assert any(line.endswith(" zsh shellcheck") for line in _call_lines(rel_path)), (
         f"{rel_path}: make lint braucht zsh und shellcheck als Zusatzpakete"
     )
 
@@ -221,6 +250,18 @@ def test_install_is_noninteractive_and_appends_extras(tmp_path: Path) -> None:
     assert tokens[:3] == ["apt-get", "install", "-y"]
     assert tokens[-2:] == ["zsh", "shellcheck"]
     assert set(tokens) >= _REQUIRED_QT_PACKAGES
+
+
+@_needs_bash
+def test_quiet_adds_qq_to_both_apt_calls(tmp_path: Path) -> None:
+    result, calls = _run_with_fakes(tmp_path, "--quiet")
+    assert result.returncode == 0, result.stderr
+    apt_calls = [line.split(" | ")[0].split() for line in calls if line.startswith("apt-get ")]
+    assert len(apt_calls) == 2
+    assert all("-qq" in tokens for tokens in apt_calls)
+    result, calls = _run_with_fakes(tmp_path / "loud")
+    assert result.returncode == 0, result.stderr
+    assert not any("-qq" in line for line in calls)
 
 
 @_needs_bash

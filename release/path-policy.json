@@ -552,8 +552,8 @@
       "kind": "exact",
       "path": ".claude/hooks/session-start.sh",
       "sample_path": ".claude/hooks/session-start.sh",
-      "reason": "Der SessionStart-Hook richtet ausschließlich die Entwicklungsumgebung einer Claude-Code-Web-Session ein (nur bei CLAUDE_CODE_REMOTE=true, #553/#1031); er wird weder ausgeliefert noch von Build-, Release- oder Gate-Schritten gelesen. Die Qt-apt-Paketliste, die er als Drift-Kopie trägt (Befund N6), hat ihre kandidatenrelevante Quelle in den CI-Workflows.",
-      "evidence": [".claude/settings.json registriert ihn nur als SessionStart-Hook; kein Workflow unter .github/workflows/ und kein Packaging-Skript ruft ihn auf", "tests/test_ci_qt_packages.py, tests/test_ci_pip_pin.py und tests/test_dependency_constraints.py lesen ihn nur als Drift-Kopie gegen die Workflows, nicht als Build- oder Gate-Eingang"]
+      "reason": "Der SessionStart-Hook richtet ausschließlich die Entwicklungsumgebung einer Claude-Code-Web-Session ein (nur bei CLAUDE_CODE_REMOTE=true, #553/#1031); er wird weder ausgeliefert noch von Build-, Release- oder Gate-Schritten gelesen. Die Qt-apt-Paketliste trägt er seit #1036 nicht mehr selbst; er ruft die kandidatenrelevante Quelle scripts/install_qt_apt.sh auf (Klasse release-scripts).",
+      "evidence": [".claude/settings.json registriert ihn nur als SessionStart-Hook; kein Workflow unter .github/workflows/ und kein Packaging-Skript ruft ihn auf", "tests/test_ci_qt_packages.py prüft ihn nur als Aufrufer des geteilten Skripts, tests/test_ci_pip_pin.py und tests/test_dependency_constraints.py als Drift-Kopie gegen die Workflows – nie als Build- oder Gate-Eingang"]
     },
     {
       "id": "gitignore",
