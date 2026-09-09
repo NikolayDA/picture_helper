@@ -337,7 +337,13 @@ flowchart TD
   Konvergenzregel (höchstens zwei Bot-Runden, Abschnitt 3) doppelte Arbeit
   mit doppelten Befundlisten. Diese Einstellung liegt in der
   Connector-Konfiguration und ist über die Repository-API **nicht** prüfbar;
-  sie wird dort direkt kontrolliert. Wie alle Review-Kommentare ist auch ein
+  sie wird dort direkt kontrolliert. Wo genau, ist nicht offensichtlich: Die
+  Repository-Zeile („Code überprüfen" → „Repository-Einstellungen") kennt nur
+  „Alle PRs" / „Meine PRs" / „Persönliche Einstellungen verwenden" – ein
+  repo-eigenes „Aus" gibt es dort **nicht**. Abgeschaltet wird über den
+  persönlichen Schalter „Automatische Überprüfung", an den die Repo-Zeile
+  delegiert; er wirkt entsprechend auf alle Repositories, die ebenso
+  delegieren. Wie alle Review-Kommentare ist auch ein
   Codex-Befund laut [GitHub-Rahmen](#aktueller-github-rahmen) keine
   Merge-Sperre.
 
