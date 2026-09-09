@@ -470,6 +470,42 @@ def test_changed_policy_requires_version_bump(tiny_repo: Path) -> None:
     assert finding.code == "policy-version-not-bumped"
 
 
+def test_additive_allowlist_change_after_rollover_bump_passes(tiny_repo: Path) -> None:
+    """Der Hinweis aus ``prepare_release`` (#1037) haelt vor dem Gate (Review #1057).
+
+    Die Regel vergleicht gegen die Policy am **Basis-Tag**: ``digest`` anders
+    UND ``version`` nicht groesser als dort → Fehler. Der Rollover zu Beginn
+    jedes Zyklus hebt die Version ueber die Basis; eine spaetere reine
+    Allowlist-Ergaenzung ohne weiteren Sprung bleibt damit gruen – so wie
+    #857/#858/#861 (ADR-Nachtrag 2026-08-25) und der Hook-Eintrag aus #1031.
+    """
+    freeze_path = vrf.FREEZE_DOC_TEMPLATE.format(version="9.9.9")
+    _write(tiny_repo, rpp.POLICY_PATH, _minimal_policy(freeze_path))
+    base = _commit_all(tiny_repo, "release base, policy 1")
+    rolled = json.loads(_minimal_policy(freeze_path))
+    rolled["policy_version"] = 2  # Rollover des Zyklus (prepare_release)
+    _write(tiny_repo, rpp.POLICY_PATH, json.dumps(rolled, indent=2))
+    _commit_all(tiny_repo, "rollover bumps the policy")
+    rolled["release_neutral"].append(
+        {
+            "id": "notes-extra",
+            "kind": "exact",
+            "path": "NOTES-EXTRA.md",
+            "sample_path": "NOTES-EXTRA.md",
+            "reason": "reine Allowlist-Ergaenzung",
+            "evidence": ["Mini-Repository-Test"],
+        }
+    )
+    _write(tiny_repo, rpp.POLICY_PATH, json.dumps(rolled, indent=2))
+    _commit_all(tiny_repo, "additive allowlist entry without another bump")
+    doc = vrf.FreezeDoc("9.9.9", "v9.9.8", base, "test", 2)
+
+    finding = vrf._check_policy(tiny_repo, doc, vrf.load_policy_at_rev(tiny_repo, "HEAD"))
+
+    assert finding.severity == "ok", finding
+    assert finding.code == "path-policy"
+
+
 def test_candidate_merge_passes_without_follow_up_commit(
     tiny_repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

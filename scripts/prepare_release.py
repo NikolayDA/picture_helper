@@ -1111,7 +1111,9 @@ def main(argv: list[str] | None = None) -> int:
             f"\nHINWEIS: {len(unknown)} Pfad(e) seit {base_tag} ohne explizite Klassifikation. "
             "Sie gelten als kandidatenrelevant und erscheinen im Freeze-Gate als Warnung; "
             "ein bewusst neutraler Pfad braucht einen begründeten release-neutral-Eintrag "
-            "in release/path-policy.json (reine Allowlist-Ergänzung, kein Versionssprung):",
+            "in release/path-policy.json (reine Allowlist-Ergänzung; der Rollover dieses "
+            "Laufs hat policy_version bereits über die Basis gehoben, ein weiterer Sprung "
+            "ist nicht nötig):",
             file=sys.stderr,
         )
         for path in unknown:
