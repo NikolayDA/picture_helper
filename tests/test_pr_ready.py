@@ -438,6 +438,61 @@ def test_path_with_space_and_umlaut_survives_quotepath(pr_repo: Path) -> None:
     assert SPACED_UMLAUT_PATH in output
 
 
+def test_reverted_companion_in_the_worktree_is_not_counted_as_changed(pr_repo: Path) -> None:
+    """Der fertige Baum zählt, nicht die Summe der Zwischenstände.
+
+    Ein Commit ändert `README.md` samt aller Übersetzungen, danach stellt eine
+    Bearbeitung eine Übersetzung auf den Basisstand zurück. Sie steht dann in
+    **beiden** Teillisten (Commit-Diff und Arbeitsbaum-Diff); ihre Vereinigung
+    hielte sie für geändert und der Wächter meldete grün, obwohl der Baum die
+    i18n-Parität verletzt (Review-Befund PR #1065).
+    """
+    _write(pr_repo, "README.md", "neu\n")
+    for language in pr_ready.LANGUAGES:
+        _write(pr_repo, f"docs/i18n/{language}/README.md", "neu\n")
+    _commit_all(pr_repo, "readme in sechs Sprachen")
+    # Rücknahme genau einer Übersetzung im Arbeitsbaum.
+    _write(pr_repo, "docs/i18n/en/README.md", "basis\n")
+
+    changes = pr_ready.collect_changes(pr_repo, "main")
+    assert "docs/i18n/en/README.md" in changes.committed
+    assert "docs/i18n/en/README.md" in changes.worktree
+    assert "docs/i18n/en/README.md" not in changes.paths
+
+    code, output = _check(pr_repo)
+
+    assert code == 1, output
+    assert "i18n" in _codes(output)
+    assert "docs/i18n/en/README.md" in output
+
+
+def test_invalid_path_policy_is_a_note_not_a_traceback(pr_repo: Path) -> None:
+    """Genau diese Datei bearbeitet man wegen der Abhilfe der Regel."""
+    _write(pr_repo, "release/path-policy.json", "{ kaputt")
+    _commit_all(pr_repo, "policy halb editiert")
+
+    code, output = _check(pr_repo)
+
+    assert code == 0, output
+    assert "nicht lesbar" in output
+
+
+def test_blocking_policy_gets_a_recipe_that_matches_its_severity(pr_repo: Path) -> None:
+    """Unter `blocking` blockiert auch der Freeze-Check – „nichts zu tun" wäre falsch."""
+    policy = json.loads(_fixture_policy())
+    policy["unknown_path_behavior"] = "candidate-relevant-blocking"
+    _write(pr_repo, "release/path-policy.json", json.dumps(policy, indent=2))
+    _write(pr_repo, "unbekannt/neu.txt", "inhalt\n")
+    _commit_all(pr_repo, "unbekannter pfad bei blockierender policy")
+
+    code, output = _check(pr_repo)
+
+    assert code == 1, output
+    assert "FEHLER" in output and "pfadpolicy" in _codes(output)
+    assert "blockiert sonst" in output
+    assert "nichts zu tun" not in output
+
+
 def test_leading_space_in_the_first_entry_survives(pr_repo: Path) -> None:
     """``strip`` über die NUL-Liste beschädigt genau den ersten Eintrag.
 

@@ -110,18 +110,29 @@ class Finding:
 
 @dataclass(frozen=True)
 class ChangeSet:
-    """Die geänderten Pfade, getrennt nach Herkunft (für die Ausgabe)."""
+    """Die geänderten Pfade.
+
+    ``effective`` ist der Diff der Merge-Basis gegen den **Arbeitsbaum** und
+    damit die einzige Grundlage der Regeln; ``committed``/``worktree`` dienen
+    nur der Ausgabe. Die Vereinigung der beiden wäre falsch: Ändert ein Commit
+    ein Dokument samt Übersetzungen und stellt eine spätere Bearbeitung eine
+    Übersetzung auf den Basisstand zurück, steht sie in **beiden** Listen – die
+    Vereinigung hielte sie für geändert, obwohl der fertige Baum sie nicht mehr
+    ändert. Der Wächter meldete dann grün, während die Pflicht offen ist
+    (Review-Befund PR #1065, am Ablauf nachgestellt).
+    """
 
     base_ref: str
     base_sha: str
     merge_base: str
+    effective: tuple[str, ...]
     committed: tuple[str, ...]
     worktree: tuple[str, ...]
     untracked: tuple[str, ...]
 
     @property
     def paths(self) -> frozenset[str]:
-        return frozenset(self.committed) | frozenset(self.worktree) | frozenset(self.untracked)
+        return frozenset(self.effective) | frozenset(self.untracked)
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -202,8 +213,10 @@ def collect_changes(repo: Path, base_ref: str) -> ChangeSet:
             base_ref=base_ref,
             base_sha=base_sha,
             merge_base=resolved_base,
+            # Ein Revisionsargument ohne zweites vergleicht gegen den
+            # Arbeitsbaum – staged und unstaged gemeinsam.
+            effective=_diff_paths(repo, resolved_base),
             committed=_diff_paths(repo, resolved_base, "HEAD"),
-            # Ein einzelnes ``git diff HEAD`` deckt staged und unstaged gemeinsam ab.
             worktree=_diff_paths(repo, "HEAD"),
             untracked=_split_nul(_git(repo, "ls-files", "--others", "--exclude-standard", "-z")),
         )
@@ -421,13 +434,26 @@ def _rule_path_policy(repo: Path, paths: frozenset[str]) -> list[Finding]:
                 "unklassifiziert.",
             )
         ]
-    policy = rpp.load_policy(policy_path)
+    try:
+        policy = rpp.load_policy(policy_path)
+    except rpp.PolicyFormatError as error:
+        # Genau diese Datei bearbeitet man wegen der Abhilfe unten – halb
+        # editiert endete der Lauf im Traceback (Review-Befund PR #1065).
+        return [
+            Finding(
+                NOTE,
+                "pfadpolicy",
+                f"{rpp.POLICY_PATH} ist nicht lesbar: {error}",
+                ("Policy-JSON reparieren; release-freeze-check prüft sie ebenfalls",),
+            )
+        ]
     unknown = sorted(
         path for path in paths if not rpp.classify_path(path, policy).explicit
     )
     if not unknown:
         return []
-    level = ERROR if policy.unknown_paths_block else NOTE
+    blocking = policy.unknown_paths_block
+    level = ERROR if blocking else NOTE
     shown = unknown[:_MAX_LISTED]
     rest = len(unknown) - len(shown)
     listed = _join(shown) + (f" (+{rest} weitere)" if rest else "")
@@ -439,7 +465,12 @@ def _rule_path_policy(repo: Path, paths: frozenset[str]) -> list[Finding]:
             "Sie gelten als kandidatenrelevant.",
             (
                 "bewusst release-neutral? Eintrag in release/path-policy.json ergänzen",
-                "sonst nichts zu tun – release-freeze-check meldet sie als Warnung",
+                # Der Freeze-Check leitet seinen Schweregrad aus demselben Flag
+                # ab: Unter `blocking` blockiert er, ein „nichts zu tun" wäre
+                # dort ein falscher Rat (Review-Befund PR #1065).
+                "jeden Pfad klassifizieren – release-freeze-check blockiert sonst"
+                if blocking
+                else "sonst nichts zu tun – release-freeze-check meldet sie als Warnung",
             ),
         )
     ]
@@ -468,9 +499,10 @@ def report(changes: ChangeSet, findings: Sequence[Finding], stream: TextIO) -> N
         file=stream,
     )
     print(
-        f"[pr-ready] {len(changes.committed)} Pfad(e) aus Commits,"
+        f"[pr-ready] {len(changes.paths)} Pfad(e) effektiv geändert"
+        f" ({len(changes.committed)} aus Commits,"
         f" {len(changes.worktree)} im Arbeitsbaum,"
-        f" {len(changes.untracked)} untracked",
+        f" {len(changes.untracked)} untracked)",
         file=stream,
     )
     if not findings:
