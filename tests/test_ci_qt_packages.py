@@ -210,7 +210,9 @@ def test_install_failure_is_always_hard(tmp_path: Path) -> None:
 def test_install_is_noninteractive_and_appends_extras(tmp_path: Path) -> None:
     result, calls = _run_with_fakes(tmp_path, "zsh", "shellcheck")
     assert result.returncode == 0, result.stderr
-    assert calls[0].startswith("apt-get update")
+    # Reihenfolge der echten apt-Aufrufe – als Nicht-root steht davor je eine sudo-Zeile.
+    apt_calls = [line for line in calls if line.startswith("apt-get ")]
+    assert apt_calls[0].startswith("apt-get update")
     installs = _install_calls(calls)
     assert len(installs) == 1
     command, _, frontend = installs[0].partition(" | DEBIAN_FRONTEND=")
