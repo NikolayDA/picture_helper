@@ -135,6 +135,13 @@ make doctor
 
 Pull Requests, die `make check` nicht bestehen, werden nicht gemergt.
 
+Gemergt wird ausschließlich per **Squash** — Merge-Commit und Rebase sind im
+Repository deaktiviert, die `main`-Historie bleibt dadurch linear. Die
+Commit-Nachricht auf `main` entsteht aus **PR-Titel und PR-Beschreibung**;
+beide sind deshalb dauerhafter Text und kein bloßer Review-Kontext. Der
+Head-Branch wird nach dem Merge **automatisch gelöscht** (nur im eigenen
+Repository — einen Fork-Branch kann GitHub nicht löschen).
+
 Das automatische Claude-Review läuft genau einmal je PR (beim Öffnen bzw.
 beim Verlassen des Draft-Status); eine Wiederholung gibt es nur über das
 Label `re-review`. Für Bot-Befunde gilt die **Konvergenzregel**: höchstens
