@@ -1516,12 +1516,19 @@ damit ab, bevor irgendetwas installiert war, und ein verwaistes
 greifen. In der venv ohne System-Site-Packages steht kein Debian-Paket im
 Weg. Der Hook schreibt `PATH` (`.venv/bin` voran) und `VIRTUAL_ENV` in
 `CLAUDE_ENV_FILE`, sodass `python3`/`pytest`/`ruff` in der Session die venv
-treffen; `make` bevorzugt `.venv/bin/python` ohnehin. Vorprüfung,
+treffen; `make` bevorzugt `.venv/bin/python` ohnehin. Geschrieben wird nur
+an den beiden Erfolgsausgängen (Kurzschluss und Skriptende) – ein
+Fehlerpfad stellt kein ungeprüftes `bin/` vor den Session-PATH, die Session
+fällt dann wie zuvor auf den System-Interpreter zurück. Vorprüfung,
 Provenienzprüfung und Postcondition laufen alle mit dem venv-Interpreter.
-Eine unbrauchbare `.venv` (echte venv mit `pyvenv.cfg`, kein Symlink) wird
-neu angelegt, ein fremdes `.venv` ist ein benannter Fehler; ein Rest
-`bgremover.egg-info` wird vor dem Install entfernt und nach einem Fehlschlag
-aufgeräumt.
+Brauchbar ist eine venv nur mit laufendem Interpreter **und** pip; eine
+unbrauchbare `.venv` (echte venv mit `pyvenv.cfg`, kein Symlink) wird neu
+angelegt, ein fremdes `.venv` – auch ein toter Symlink – ist ein benannter
+Fehler; ein `bgremover.egg-info`, das erst ein abgebrochener Install
+angelegt hat, wird wieder entfernt (ein vorher vorhandenes bleibt – für
+eine Legacy-editable-Installation wäre es die Metadatenquelle). Fehlt
+`ensurepip`, wird `python<Minor>-venv` der laufenden Version nachinstalliert,
+das Metapaket `python3-venv` nur als Rückfall.
 
 Sein Kurzschluss für Folge-Sessions im gecachten Container prüft seit #1031
 die **Installationsprovenienz** von `bgremover`, nicht nur die Existenz der

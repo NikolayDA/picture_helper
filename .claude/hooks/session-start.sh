@@ -43,18 +43,24 @@ VENV_PY="$VENV_DIR/bin/python"
 # hier deckt direkte Qt-Aufrufe (z. B. `import bgremover` in einem
 # Ad-hoc-Skript) mit ab. PATH voran, damit `python3`/`pytest`/`ruff` in der
 # Session die venv treffen (#1048) – auch `make` findet sie, weil es
-# `.venv/bin/python` bevorzugt. Muss VOR der Vorprüfung unten stehen
-# (Review-Fund zu #553): sonst bekommt eine Session, die den Kurzschluss
-# nimmt, weder QT_QPA_PLATFORM noch den venv-PATH.
-if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-  {
-    echo 'export QT_QPA_PLATFORM=offscreen'
-    printf 'export VIRTUAL_ENV=%q\n' "$VENV_DIR"
-    # `$PATH` bewusst literal: Es wird erst beim Laden der Env-Datei expandiert.
-    # shellcheck disable=SC2016
-    printf 'export PATH=%q:"$PATH"\n' "$VENV_DIR/bin"
-  } >> "$CLAUDE_ENV_FILE"
-fi
+# `.venv/bin/python` bevorzugt. Aufgerufen an BEIDEN Erfolgsausgängen
+# (Kurzschluss und Skriptende), damit auch eine Session, die den
+# Kurzschluss nimmt, QT_QPA_PLATFORM und den venv-PATH bekommt (Review-Fund
+# zu #553) – und NUR dort (Review PR #1049): Ein Fehlerpfad darf kein
+# ungeprüftes `bin/` (fremdes `.venv`, halbfertige venv nach abgebrochenem
+# Install) an den Anfang des Session-PATH stellen; die Session fällt dann
+# wie zuvor auf den System-Interpreter zurück.
+persist_session_env() {
+  if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+    {
+      echo 'export QT_QPA_PLATFORM=offscreen'
+      printf 'export VIRTUAL_ENV=%q\n' "$VENV_DIR"
+      # `$PATH` bewusst literal: Es wird erst beim Laden der Env-Datei expandiert.
+      # shellcheck disable=SC2016
+      printf 'export PATH=%q:"$PATH"\n' "$VENV_DIR/bin"
+    } >> "$CLAUDE_ENV_FILE"
+  fi
+}
 
 # Provenienzprüfung der bgremover-Installation (#1031). Sie läuft bewusst
 # als Skript über den Dateipfad (sys.path[0] = scripts/), nicht als
@@ -109,6 +115,7 @@ if [ -x "$VENV_PY" ] && provenance_report="$("$VENV_PY" "$PROVENANCE_CHECK" 2>&1
   provenance_ready=1
 fi
 if [ "$tools_ready" = 1 ] && [ "$provenance_ready" = 1 ]; then
+  persist_session_env
   echo "SessionStart-Hook: Umgebung bereits vollständig (.venv mit ruff/mypy/pytest/PyQt6/pytest-qt/pip>=26.1.2, bgremover editable auf diesen Checkout) – überspringe Install."
   exit 0
 fi
@@ -137,14 +144,20 @@ if command -v apt-get >/dev/null 2>&1; then
     libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
 fi
 
-# Projekt-lokale venv (#1048). Eine vorhandene, aber unbrauchbare venv
-# (fremde Python-Version, abgebrochener Bau) wird neu angelegt – aber nur,
-# wenn es wirklich eine venv ist (pyvenv.cfg): Ein fremdes `.venv` (Symlink,
-# Fremdverzeichnis) wird nicht gelöscht, sondern ist ein benannter Fehler.
-# `python3 -m venv` braucht ensurepip; Debian/Ubuntu liefern es getrennt als
-# python3-venv – nur dann nachinstallieren.
-if ! "$VENV_PY" -c "import sys" >/dev/null 2>&1; then
-  if [ -e "$VENV_DIR" ]; then
+# Projekt-lokale venv (#1048). Brauchbar heißt: Interpreter läuft UND pip
+# ist da – eine bei ensurepip abgebrochene oder mit `--without-pip` gebaute
+# venv importiert `sys` noch, scheiterte aber in jeder Folge-Session am
+# `-m pip` (Review PR #1049). Eine unbrauchbare venv wird neu angelegt –
+# aber nur, wenn es wirklich eine venv ist (pyvenv.cfg): Ein fremdes `.venv`
+# (Symlink, Fremdverzeichnis, toter Symlink – `-e` folgt ihm, daher auch
+# `-L`) wird nicht gelöscht, sondern ist ein benannter Fehler.
+# `python3 -m venv` braucht ensurepip; Debian/Ubuntu liefern es getrennt –
+# nur dann nachinstallieren, und zwar für die **laufende** Minor-Version
+# (`python3.11-venv`), nicht das Metapaket `python3-venv`, das auf Ubuntu
+# 24.04 `python3.12-venv` zöge, während `python3` hier 3.11 ist (Review
+# PR #1049); das Metapaket bleibt nur Rückfall.
+if ! "$VENV_PY" -m pip --version >/dev/null 2>&1; then
+  if [ -e "$VENV_DIR" ] || [ -L "$VENV_DIR" ]; then
     if [ -f "$VENV_DIR/pyvenv.cfg" ] && [ ! -L "$VENV_DIR" ]; then
       echo "SessionStart-Hook: $VENV_DIR ist unbrauchbar – lege die venv neu an."
       rm -rf "$VENV_DIR"
@@ -154,7 +167,9 @@ if ! "$VENV_PY" -c "import sys" >/dev/null 2>&1; then
     fi
   fi
   if ! python3 -c "import ensurepip" >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv
+    py_minor="$(python3 -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')"
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "python${py_minor}-venv" \
+      || sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv
   fi
   python3 -m venv "$VENV_DIR"
 fi
@@ -175,14 +190,20 @@ fi
 # Eine vorhandene nicht-editable Kopie (z. B. aus `make pr-check`) wird
 # dabei von pip durch den editierbaren Link ersetzt.
 #
-# `bgremover.egg-info` in der Repo-Wurzel ist das setuptools-Nebenprodukt
-# des editierbaren Baus. Ein Rest aus einem abgebrochenen Lauf wird vorher
-# entfernt und nach einem Fehlschlag wieder aufgeräumt (#1048): Er ist
-# Unrat im Arbeitsbaum, und aus `python -c` in der Repo-Wurzel sähe er wie
-# eine installierte Distribution aus.
-rm -rf "$PROJECT_DIR/bgremover.egg-info"
+# `bgremover.egg-info` in der Repo-Wurzel ist im PEP-660-Pfad (pip 26 +
+# setuptools, Metadaten in site-packages) nur das setuptools-Nebenprodukt
+# des editierbaren Baus; ein erfolgreicher Bau schreibt es ohnehin neu. Was
+# ein **abgebrochener** Lauf davon anlegt, wird wieder aufgeräumt (#1048):
+# Es ist Unrat im Arbeitsbaum, und aus `python -c` in der Repo-Wurzel sähe
+# es wie eine installierte Distribution aus. Aufgeräumt wird aber nur, was
+# vor dem Install noch nicht da war: Für eine Legacy-editable-Installation
+# ist genau dieses Verzeichnis die Metadatenquelle, und die darf ein
+# fehlgeschlagener Neuinstall nicht mitnehmen (Review PR #1049).
+egg_info="$PROJECT_DIR/bgremover.egg-info"
+egg_info_existed=0
+[ -e "$egg_info" ] && egg_info_existed=1
 if ! "$VENV_PY" -m pip install -q --constraint requirements/constraints.txt -e ".[test]"; then
-  rm -rf "$PROJECT_DIR/bgremover.egg-info"
+  [ "$egg_info_existed" = 0 ] && rm -rf "$egg_info"
   echo "SessionStart-Hook: FEHLGESCHLAGEN – pip install -e \".[test]\" in $VENV_DIR ist abgebrochen; siehe pip-Ausgabe oberhalb." >&2
   exit 1
 fi
@@ -194,4 +215,5 @@ fi
 # bricht dann laut ab (set -e + Trap), statt still fortzufahren.
 "$VENV_PY" "$PROVENANCE_CHECK"
 
+persist_session_env
 echo "SessionStart-Hook: Umgebung bereit (.venv mit ruff/mypy/pytest lauffähig, bgremover editable auf diesen Checkout)."

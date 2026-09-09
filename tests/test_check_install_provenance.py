@@ -409,13 +409,30 @@ def test_hook_installs_into_a_project_local_venv_not_the_system_interpreter() ->
     pip_calls = [line for line in hook.splitlines() if "-m pip install" in line]
     assert pip_calls and all('"$VENV_PY" -m pip install' in line for line in pip_calls), pip_calls
     assert "python3 -m pip install" not in hook
-    # Die Session sieht die venv: PATH und VIRTUAL_ENV wandern in CLAUDE_ENV_FILE.
+    # Die Session sieht die venv: PATH und VIRTUAL_ENV wandern in CLAUDE_ENV_FILE –
+    # aber nur an den beiden Erfolgsausgängen (Kurzschluss und Skriptende), nie
+    # aus einem Fehlerpfad heraus (Review PR #1049).
+    assert hook.count("persist_session_env\n") == 2
+    shortcut = hook.index("überspringe Install.")
+    assert hook.rfind("persist_session_env\n", 0, shortcut) > hook.index("tools_ready=0")
+    assert hook.rfind("persist_session_env\n") > hook.index('"$VENV_PY" "$PROVENANCE_CHECK"\n')
     assert r'''printf 'export PATH=%q:"$PATH"\n' "$VENV_DIR/bin"''' in hook
     assert r'''printf 'export VIRTUAL_ENV=%q\n' "$VENV_DIR"''' in hook
-    # Ein abgebrochener Bau hinterlässt kein egg-info in der Repo-Wurzel.
-    assert hook.count('rm -rf "$PROJECT_DIR/bgremover.egg-info"') == 2
-    # Eine fremde .venv (Symlink/kein pyvenv.cfg) wird nie gelöscht.
+    # Ein abgebrochener Bau hinterlässt kein egg-info in der Repo-Wurzel – räumt
+    # aber nur weg, was er selbst angelegt hat (Legacy-editable-Metadaten bleiben).
+    assert '[ "$egg_info_existed" = 0 ] && rm -rf "$egg_info"' in hook
+    assert hook.count("rm -rf ") == 2  # unbrauchbare venv + eigenes egg-info
+    # ensurepip-Nachinstallation für die laufende Minor-Version, Metapaket nur Rückfall.
+    assert (
+        '"python${py_minor}-venv"' in hook
+        and "|| sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv" in hook
+    )
+    # Eine fremde .venv (Symlink/kein pyvenv.cfg) wird nie gelöscht; ein toter
+    # Symlink fällt nicht durch `-e` hindurch.
     assert '[ -f "$VENV_DIR/pyvenv.cfg" ] && [ ! -L "$VENV_DIR" ]' in hook
+    assert '[ -e "$VENV_DIR" ] || [ -L "$VENV_DIR" ]' in hook
+    # Brauchbar heißt Interpreter UND pip – eine venv ohne pip wird neu gebaut.
+    assert 'if ! "$VENV_PY" -m pip --version >/dev/null 2>&1; then' in hook
     # Das Makefile bevorzugt dieselbe venv von selbst.
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     assert "VENV_BIN := $(CURDIR)/.venv/bin" in makefile
