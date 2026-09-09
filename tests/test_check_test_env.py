@@ -18,6 +18,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -143,6 +144,11 @@ def test_classify_stale_copy_next_to_a_link_matches_no_contract(
     assert contract is None
 
 
+def test_classify_empty_findings_match_no_contract() -> None:
+    """``all([])`` ist True – die Regel darf daraus kein OK machen (fail-closed)."""
+    assert cte.classify_install(()) == (None, "keine Befunde")
+
+
 def test_classify_two_non_editable_copies_match_no_contract(
     repo: Path, site: Path, tmp_path: Path
 ) -> None:
@@ -250,18 +256,45 @@ def test_cli_flag_is_parsed() -> None:
 
 def test_makefile_requires_installed_only_for_pr_check() -> None:
     text = MAKEFILE.read_text(encoding="utf-8")
-    assert re.search(r"^pr-check: DOCTOR_ARGS := --require-installed$", text, re.M)
-    assert re.search(r'^\tscripts/check_test_env\.py|check_test_env\.py \$\(DOCTOR_ARGS\)$', text, re.M)
+    # `override`: eine Kommandozeilen-Variable (`make pr-check DOCTOR_ARGS=`)
+    # darf das Gate nicht still abschalten (Review PR #1055).
+    assert re.search(r"^pr-check: override DOCTOR_ARGS := --require-installed$", text, re.M)
     doctor_recipe = re.search(r"^doctor:\n\t(.*)$", text, re.M)
     assert doctor_recipe and "$(DOCTOR_ARGS)" in doctor_recipe.group(1)
     assert "--require-installed" not in doctor_recipe.group(1), "make doctor bleibt der Session-Modus"
 
 
-def test_the_real_environment_satisfies_one_contract() -> None:
-    """Web-Session (editable, Hook) wie PR-CI (nicht-editable, pr-check): ohne
-    Option muss der Doctor die tatsächliche Umgebung akzeptieren."""
+_make = shutil.which("make")
+
+
+@pytest.mark.skipif(_make is None, reason="make nicht verfügbar")
+@pytest.mark.parametrize(
+    ("target", "extra", "expected"),
+    [
+        (["pr-check"], [], True),
+        (["pr-check"], ["DOCTOR_ARGS="], True),  # Kommandozeile kann das Gate nicht abschalten
+        (["doctor"], [], False),
+        (["doctor"], ["DOCTOR_ARGS=--require-installed"], True),  # Doku-Nutzung
+    ],
+)
+def test_make_dry_run_shows_the_effective_doctor_mode(
+    target: list[str], extra: list[str], expected: bool
+) -> None:
+    """Wirksamkeit statt Text: `make -n` zeigt, mit welchen Argumenten der Doctor läuft."""
+    assert _make is not None
     proc = subprocess.run(
-        [sys.executable, str(SCRIPT)], cwd=ROOT, text=True, capture_output=True, timeout=180
+        [_make, "-n", *target, *extra], cwd=ROOT, text=True, capture_output=True, timeout=60
     )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    assert "contract" in proc.stdout
+    assert proc.returncode == 0, proc.stderr
+    doctor_lines = [line for line in proc.stdout.splitlines() if "check_test_env.py" in line]
+    assert len(doctor_lines) == 1, proc.stdout
+    assert ("--require-installed" in doctor_lines[0]) is expected, doctor_lines[0]
+
+
+def test_the_real_environment_matches_one_contract() -> None:
+    """Web-Session (editable, Hook) wie PR-CI (nicht-editable, pr-check) muessen
+    einem der beiden Vertraege entsprechen. Bewusst nur die Vertragsregel
+    in-process (Review PR #1055): kein Skriptlauf, kein Qt, kein PATH – der
+    Test schlaegt bei Vertragsdrift an, nicht bei einer fehlenden Qt-Bibliothek."""
+    contract, details = cte.classify_install(cip.check_metadata_provenance(ROOT))
+    assert contract in {cte.CONTRACT_EDITABLE, cte.CONTRACT_INSTALLED}, details

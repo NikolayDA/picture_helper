@@ -142,6 +142,9 @@ def classify_install(findings: Sequence[object]) -> tuple[str | None, str]:
     entscheidet ``check_install_provenance`` (``Finding.ok``); hier wird nur
     der nicht-editable Fall als zweiter, eigener Vertrag anerkannt.
     """
+    if not findings:
+        # Fail-closed wie ``ProvenanceReport.ok``: ``all([])`` waere True.
+        return None, "keine Befunde"
     details = "; ".join(f"{f.kind}: {f.detail}" for f in findings)  # type: ignore[attr-defined]
     if all(f.ok for f in findings):  # type: ignore[attr-defined]
         return CONTRACT_EDITABLE, details

@@ -14,7 +14,7 @@ PIP_INSTALL := $(RUN_ENV) "$(PYTHON)" -m pip install --constraint "$(PIP_CONSTRA
 # verlangt hier genau diesen Zustand (#1053). Ein blankes `make doctor`
 # akzeptiert auch den editable Link des SessionStart-Hooks (#1031).
 DOCTOR_ARGS ?=
-pr-check: DOCTOR_ARGS := --require-installed
+pr-check: override DOCTOR_ARGS := --require-installed
 pr-check: install-test doctor check release-freeze-check
 
 install-test:
