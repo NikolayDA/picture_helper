@@ -548,6 +548,14 @@
       "evidence": ["Kein Release-Workflow lädt .github/agents als Konfiguration"]
     },
     {
+      "id": "claude-session-start-hook",
+      "kind": "exact",
+      "path": ".claude/hooks/session-start.sh",
+      "sample_path": ".claude/hooks/session-start.sh",
+      "reason": "Der SessionStart-Hook richtet ausschließlich die Entwicklungsumgebung einer Claude-Code-Web-Session ein (nur bei CLAUDE_CODE_REMOTE=true, #553/#1031); er wird weder ausgeliefert noch von Build-, Release- oder Gate-Schritten gelesen. Die Qt-apt-Paketliste, die er als Drift-Kopie trägt (Befund N6), hat ihre kandidatenrelevante Quelle in den CI-Workflows.",
+      "evidence": [".claude/settings.json registriert ihn nur als SessionStart-Hook; kein Workflow unter .github/workflows/ und kein Packaging-Skript ruft ihn auf", "tests/test_ci_qt_packages.py, tests/test_ci_pip_pin.py und tests/test_dependency_constraints.py lesen ihn nur als Drift-Kopie gegen die Workflows, nicht als Build- oder Gate-Eingang"]
+    },
+    {
       "id": "gitignore",
       "kind": "exact",
       "path": ".gitignore",

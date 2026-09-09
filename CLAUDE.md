@@ -738,7 +738,7 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **fünfzehn** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **sechzehn** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
@@ -749,8 +749,9 @@ Ein Paket, `bgremover/`:
   `scripts/qt_gl_probe.py` (#934),
   `scripts/release_update_dispatch.py` (#919),
   `scripts/scan_release_artifacts.py` (#920),
-  `scripts/runner_heartbeat.py` (#921) und
-  `scripts/recommendations_live_check.py` (#752) – als
+  `scripts/runner_heartbeat.py` (#921),
+  `scripts/recommendations_live_check.py` (#752) und
+  `scripts/check_install_provenance.py` (#1031) – als
   eigenständige Dateien ohne `scripts/__init__.py` explizit per Dateipfad in
   `files` sowie per Modul-Override (Modulname = Dateibasisname) erfasst.
   `tests/test_process_documentation.py` hält Zahl und Namensliste gegen
@@ -1504,3 +1505,29 @@ Der `SessionStart`-Hook (`.claude/hooks/session-start.sh`) installiert in
 Web-Sessions die Qt-Systembibliotheken + `.[test]` und setzt
 `QT_QPA_PLATFORM=offscreen`. Er läuft nur, wenn `CLAUDE_CODE_REMOTE=true`; lokal
 richtest du deine venv selbst ein (siehe `INSTALL_MAC.md` / `INSTALL_LINUX.md`).
+
+Sein Kurzschluss für Folge-Sessions im gecachten Container prüft seit #1031
+die **Installationsprovenienz** von `bgremover`, nicht nur die Existenz der
+Distribution: `make pr-check` installiert bewusst nicht-editable, dieser
+Zustand überlebt die Session, und der alte Kurzschluss zementierte ihn – per
+Dateipfad gestartete Subprozess-Tests (`sys.path[0]` = Skriptverzeichnis,
+etwa `tests/test_render_proof_probe.py`) maßen dann eine Kopie aus einem
+fremden Commit, während In-Prozess-Tests über den von pytest eingetragenen
+Checkout unauffällig blieben; die gefährliche Richtung ist der dadurch
+**grüne** Test. `scripts/check_install_provenance.py` (Qt-frei, nur
+Standardbibliothek) wertet dafür ausschließlich Distributions-Metadaten aus:
+gültig ist ein PEP-660-Link (`direct_url.json` mit `dir_info.editable` und
+einer `file:`-URL, die aufgelöst die Repo-Wurzel ist) oder ein Legacy-Link
+(Distributions-Root = Repo-Wurzel); eine Wheel-/nicht-editable Installation,
+ein Link auf einen fremden Checkout und eine veraltete Kopie neben einem
+gültigen Link lassen die Vorprüfung fehlschlagen, dann läuft
+`pip install -e ".[test]"`. Der Paketimport im eigenen Prozess ist bewusst
+kein Beleg – bei `python -c` aus der Repo-Wurzel steht das Arbeitsverzeichnis
+vorn auf `sys.path` und träfe den Checkout auch neben einer veralteten Kopie;
+das Skript wird deshalb über seinen Dateipfad gestartet. Als Postcondition
+(vor dem Kurzschluss und hart nach dem Install) importiert es `bgremover` aus
+einem leeren temporären Arbeitsverzeichnis und verlangt
+`${CLAUDE_PROJECT_DIR}/bgremover/__init__.py` – exakt die Suchpfad-Lage der
+per Dateipfad gestarteten Skripte. Der Grund einer Neuinstallation steht im
+Hook-Log. Der Hook ist in `release/path-policy.json` als `release-neutral`
+klassifiziert (`claude-session-start-hook`).

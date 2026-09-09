@@ -86,7 +86,6 @@
 | [#1034](https://github.com/NikolayDA/picture_helper/issues/1034) | 为桌面应用启用 Issue Forms，替代 GitHub 默认模板 | 🟡 中（报告质量；浏览器/智能手机字段不适用于 PyQt6 应用） | 🟢 低（两个 YAML 表单加 `config.yml`） | Sonnet，中 | Ready for PR：独立于 #1033/#1040，可随时插入 |
 | [#1033](https://github.com/NikolayDA/picture_helper/issues/1033) | 将分诊内容迁入议题并引入优先级/阻塞标签 | 🟠 高（#1040 的硬性前提；否则精心整理的文本会丢失） | 🟡 中（无需改代码，但要为所有未结议题打标签并写 41 条移交评论） | Sonnet，高 | 可以开始：通过 API 做议题整理，不是 PR；2026-09-09 的切换基线是 56 个未结议题，而非议题中记的 54 个 |
 | [#1032](https://github.com/NikolayDA/picture_helper/issues/1032) | [史诗] 流程瘦身：分诊迁至 GitHub，减少漂移义务 | 🟠 高（测量窗口内 156 个主线提交中有 28 个纯属分诊维护） | 🔴 高（十一个工作包 #1033–#1043，含顺序与依赖） | –（史诗） | 进行中：顺序为 #1033 → #1040（+#1042）→ #1041/#1043；#1031 以优先级 0 排在最前 |
-| [#1031](https://github.com/NikolayDA/picture_helper/issues/1031) | SessionStart 钩子无法识别过时的非可编辑 `bgremover` | 🟠 高（子进程测试测量的是外来代码——绿色运行可能检查的是旧快照） | 🟡 中（钩子中的来源校验、PEP 660 与旧式两种情形、路径策略条目） | Sonnet，高 | Ready for PR：优先级 0，排在史诗 #1032 之前；同一 PR 一并补上 `.claude/hooks/session-start.sh` 的 `release-neutral` 条目 |
 
 ### 接下来推荐
 

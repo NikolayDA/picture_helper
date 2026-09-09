@@ -34,6 +34,15 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   echo 'export QT_QPA_PLATFORM=offscreen' >> "$CLAUDE_ENV_FILE"
 fi
 
+# Provenienzprüfung der bgremover-Installation (#1031). Sie läuft bewusst
+# als Skript über den Dateipfad (sys.path[0] = scripts/), nicht als
+# `python3 -c` aus der Repo-Wurzel: Dort steht das Arbeitsverzeichnis vorn
+# auf sys.path, und `import bgremover` träfe den Checkout selbst dann, wenn
+# in site-packages eine veraltete nicht-editable Kopie liegt – der Import
+# wäre kein Beleg. Das Skript wertet nur Distributions-Metadaten aus und
+# prüft den Import zusätzlich aus einem neutralen Arbeitsverzeichnis.
+PROVENANCE_CHECK="scripts/check_install_provenance.py"
+
 # Idempotente Vorprüfung (#553): Läuft der Hook in einer Folge-Session mit
 # gecachtem Container erneut, sind Systemlibs + editable Install oft schon
 # vorhanden. Dann apt/pip-Arbeit überspringen statt sie folgenlos zu
@@ -46,23 +55,43 @@ fi
 #   QtWidgets zieht sie tatsächlich.
 # - pip-Version explizit gegen die Mindestversion prüfen, statt sie beim
 #   Überspringen stillschweigend unterhalb des CVE-Floors zu belassen.
-# - `bgremover`-Paketmetadaten (nicht nur den Quellbaum-Import) und
-#   `pytest-qt` prüfen, sonst kann der Kurzschluss greifen, obwohl
+# - `pytest-qt` prüfen, sonst kann der Kurzschluss greifen, obwohl
 #   `.[test]` nie installiert wurde.
+# - `bgremover` nicht nur als vorhandene Distribution, sondern nach seiner
+#   Installationsprovenienz prüfen (#1031): `make pr-check` installiert
+#   bewusst nicht-editable (Makefile, `install-test`), dieser Zustand
+#   überlebt im gecachten Container, und der Kurzschluss zementierte ihn –
+#   per Dateipfad gestartete Subprozess-Tests maßen dann eine Kopie aus
+#   einem fremden Commit, während In-Prozess-Tests über den von pytest
+#   eingetragenen Checkout unauffällig blieben. Gültig ist nur ein
+#   editierbarer Link (PEP 660 oder Legacy) auf genau diesen Checkout.
+tools_ready=0
 if python3 -m ruff --version >/dev/null 2>&1 \
   && python3 -m mypy --version >/dev/null 2>&1 \
   && python3 -m pytest --version >/dev/null 2>&1 \
   && python3 -c "
 import sys
-from importlib import metadata
 from packaging.version import Version
+from importlib import metadata
 import PyQt6.QtWidgets  # noqa: F401 -- erzwingt libGL/libEGL-Ladeversuch
 import pytestqt  # noqa: F401
-metadata.version('bgremover')
 sys.exit(0 if Version(metadata.version('pip')) >= Version('26.1.2') else 1)
 " >/dev/null 2>&1; then
-  echo "SessionStart-Hook: Umgebung bereits vollständig (ruff/mypy/pytest/PyQt6/pytest-qt/bgremover/pip>=26.1.2) – überspringe Install."
+  tools_ready=1
+fi
+provenance_ready=0
+if provenance_report="$(python3 "$PROVENANCE_CHECK" 2>&1)"; then
+  provenance_ready=1
+fi
+if [ "$tools_ready" = 1 ] && [ "$provenance_ready" = 1 ]; then
+  echo "SessionStart-Hook: Umgebung bereits vollständig (ruff/mypy/pytest/PyQt6/pytest-qt/pip>=26.1.2, bgremover editable auf diesen Checkout) – überspringe Install."
   exit 0
+fi
+if [ "$tools_ready" = 1 ]; then
+  # Der Grund gehört ins Log: Ohne ihn sähe die Neuinstallation wie ein
+  # verfehlter Kurzschluss aus, nicht wie die Korrektur einer fremden Kopie.
+  echo "SessionStart-Hook: Werkzeuge vorhanden, aber die bgremover-Installation ist kein editierbarer Link auf diesen Checkout (#1031) – installiere neu:"
+  printf '%s\n' "$provenance_report"
 fi
 
 # Qt-Systembibliotheken – dieselbe Qt-Lib-Liste wie in den CI-Workflows
@@ -104,6 +133,15 @@ python3 -m pip install -q --upgrade --ignore-installed "pip>=26.1.2"
 # Constraints-Pinning des Projekts wie in Makefile/CI (#205/#206: haelt
 # u. a. urllib3/idna auf den gepatchten Releases) – sonst loest pip im
 # Web-Container frei auf und kann verwundbare Versionen einspielen.
+# Eine vorhandene nicht-editable Kopie (z. B. aus `make pr-check`) wird
+# dabei von pip durch den editierbaren Link ersetzt.
 python3 -m pip install -q --constraint requirements/constraints.txt -e ".[test]"
 
-echo "SessionStart-Hook: Umgebung bereit (ruff/mypy/pytest lauffähig)."
+# Postcondition (#1031), hart: Nach dem Install muss jede Distribution
+# `bgremover` ein editierbarer Link auf diesen Checkout sein und der Import
+# aus einem neutralen Arbeitsverzeichnis `bgremover/` dieses Checkouts
+# treffen. Scheitert das, würde die Session fremden Code messen – der Hook
+# bricht dann laut ab (set -e + Trap), statt still fortzufahren.
+python3 "$PROVENANCE_CHECK"
+
+echo "SessionStart-Hook: Umgebung bereit (ruff/mypy/pytest lauffähig, bgremover editable auf diesen Checkout)."

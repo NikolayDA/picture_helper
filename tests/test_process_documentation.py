@@ -238,7 +238,7 @@ def test_claude_md_lists_exactly_the_strictly_typed_scripts() -> None:
 
     numerals = {
         9: "neun", 10: "zehn", 11: "elf", 12: "zwölf", 13: "dreizehn",
-        14: "vierzehn", 15: "fünfzehn",
+        14: "vierzehn", 15: "fünfzehn", 16: "sechzehn",
     }
     expected = numerals.get(len(declared))
     assert expected is not None, (
