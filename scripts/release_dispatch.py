@@ -24,13 +24,19 @@ Drei Eigenschaften tragen den Aufbau:
    Workflow, Ereignis, Ref, Head-SHA und Erstellungszeit akzeptieren. Null oder
    mehrere Treffer brechen benannt ab, statt zu raten.
 2. **Kein Wiederholungsaufruf erzeugt einen zweiten Lauf.** Zwei Fenster,
-   zwei Sperren: Vor jedem Dispatch wird ein ``pending``-Eintrag atomar
-   geschrieben – beim Wiederanlauf wird zuerst versoehnt (genau ein passender
-   neuer Lauf: uebernehmen; keiner: erneut dispatchen; mehrere: abbrechen).
-   Und steht die Run-ID schon im Zustand, weil erst das Beobachten abbrach,
-   wird sie wieder aufgegriffen statt neu ausgeloest. Ein bewusst neuer Lauf
-   auf demselben SHA bleibt der Handprozedur bzw. einer eigenen Zustandsdatei
-   vorbehalten – er ist eine Entscheidung, kein Nebeneffekt.
+   zwei Sperren. Vor jedem Dispatch wird ein ``pending``-Eintrag atomar
+   geschrieben, und sobald ``gh workflow run`` bestaetigt zurueckkommt, wird
+   er als ``confirmed`` nachgezogen. Beim Wiederanlauf wird zuerst versoehnt:
+   genau ein passender neuer Lauf – uebernehmen; mehrere – abbrechen; keiner –
+   und hier entscheidet ``confirmed``. Unbestaetigt heisst "GitHub hat den
+   Dispatch nie angenommen", da ist ein zweiter Versuch richtig. Bestaetigt
+   heisst, der Lauf existiert, auch wenn ihn die Laufliste im Polling-Fenster
+   noch nicht zeigt – "nicht gefunden" ist dann **nicht** "nicht passiert",
+   und es wird benannt abgebrochen statt erneut ausgeloest. Und steht die
+   Run-ID schon im Zustand, weil erst das Beobachten abbrach, wird sie wieder
+   aufgegriffen statt neu ausgeloest. Ein bewusst neuer Lauf auf demselben SHA
+   bleibt der Handprozedur bzw. einer eigenen Zustandsdatei vorbehalten – er
+   ist eine Entscheidung, kein Nebeneffekt.
 3. **Fremder oder beschaedigter Zustand ist fail-closed.** Die Zustandsdatei
    traegt Schema, Repository, Version, Ref und Kandidaten-SHA; ein Kommando,
    dessen Bindung davon abweicht, bricht ab, statt Run-IDs zweier Releases zu
@@ -115,10 +121,12 @@ _VERSION_RE: Final = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 _TAG_RE: Final = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+(?:[.-][0-9A-Za-z.]+)?$")
 _SHA_RE: Final = re.compile(r"^[0-9a-f]{40}$")
 _ISSUE_RE: Final = re.compile(r"^[1-9][0-9]*$")
-_MANIFEST_ARTIFACT_RE: Final = re.compile(r"^release-approval-manifest-([1-9][0-9]*)$")
-
-#: Artefaktname der finalen Release-Instanz aus dem Update-Abnahmelauf (#919).
-FINAL_INSTANCE_PATTERN: Final = "release-acceptance-instance-final-*"
+#: Artefaktpraefixe, deren Name auf ``-<run_attempt>`` endet. Beide Laeufe
+#: laden ihr Artefakt je Versuch hoch; ein Wiederanlauf desselben Laufs legt
+#: deshalb ein zweites daneben, und nur das des aktuellen Versuchs gehoert zum
+#: soeben beobachteten Ergebnis.
+APPROVAL_MANIFEST_PREFIX: Final = "release-approval-manifest"
+FINAL_INSTANCE_PREFIX: Final = "release-acceptance-instance-final"
 
 #: Operationen mit Dispatch. ``approve`` und ``finalize`` loesen nichts aus und
 #: schreiben deshalb auch keinen ``pending``-Eintrag.
@@ -174,8 +182,12 @@ Runner = Callable[[Sequence[str]], str]
 #: inhaltlicher Checklisten-Drift aus.
 Command = Callable[[Sequence[str]], bytes]
 #: Ein streamendes Kommando – ``gh run watch`` schreibt direkt auf das Terminal
-#: und liefert nur seinen Exit-Code.
-Watcher = Callable[[int], int]
+#: und liefert nur seinen Exit-Code. Das Repository geht **mit**: Jeder andere
+#: Aufruf hier traegt ``--repo``, und ``gh run watch`` loeste es sonst aus dem
+#: Arbeitsverzeichnis auf. Mit ``--repo`` auf einen Fork oder eine Probe (oder
+#: ausserhalb eines Git-Checkouts) waere der Lauf gestartet und im Zustand
+#: notiert, das Beobachten aber mit einem 404 gescheitert.
+Watcher = Callable[[str, int], int]
 
 
 def render_command(argv: Sequence[str]) -> str:
@@ -224,8 +236,8 @@ def _command(argv: Sequence[str]) -> bytes:
     return result.stdout
 
 
-def _watch(run_id: int) -> int:
-    argv = ["gh", "run", "watch", str(run_id), "--exit-status"]
+def _watch(repo: str, run_id: int) -> int:
+    argv = ["gh", "run", "watch", str(run_id), "--repo", repo, "--exit-status"]
     print(f"$ {render_command(argv)}")
     return subprocess.run(argv, check=False).returncode
 
@@ -247,6 +259,15 @@ class PendingDispatch:
     Er existiert genau zwischen ``gh workflow run`` und der uebernommenen
     Run-ID. Faellt das Skript in diesem Fenster aus, ist er beim naechsten Lauf
     die Anweisung, **zuerst zu suchen statt zu dispatchen**.
+
+    ``confirmed`` trennt die beiden Faelle, die sonst gleich aussehen und
+    gegensaetzliche Behandlung brauchen: Es wird erst gesetzt, wenn
+    ``gh workflow run`` **erfolgreich** zurueckkam (HTTP 204). War es das
+    nicht, hat GitHub den Dispatch nie bestaetigt und ein erneuter Versuch ist
+    richtig. War es das doch, existiert der Lauf – auch wenn ihn die Laufliste
+    innerhalb des Polling-Budgets noch nicht zeigt. "Nicht gefunden" heisst
+    dann **nicht** "nicht passiert", und ein zweiter Dispatch erzeugte genau
+    den doppelten Lauf, den dieser Eintrag verhindern soll.
     """
 
     operation: str
@@ -257,6 +278,7 @@ class PendingDispatch:
     not_before: str
     known_run_ids: tuple[int, ...]
     recorded_at: str
+    confirmed: bool = False
 
     def as_json(self) -> dict[str, Any]:
         return {
@@ -268,6 +290,7 @@ class PendingDispatch:
             "not_before": self.not_before,
             "known_run_ids": list(self.known_run_ids),
             "recorded_at": self.recorded_at,
+            "confirmed": self.confirmed,
         }
 
     @staticmethod
@@ -291,6 +314,10 @@ class PendingDispatch:
             not_before=_text(entry.get("not_before"), "pending.not_before"),
             known_run_ids=tuple(sorted(int(i) for i in ids)),
             recorded_at=_text(entry.get("recorded_at"), "pending.recorded_at"),
+            # Fehlt das Feld (aelterer Zustand), gilt der sichere Wert: nicht
+            # bestaetigt heisst "darf erneut dispatchen" – der Zustand stammt
+            # dann aus einer Fassung ohne diese Unterscheidung.
+            confirmed=bool(entry.get("confirmed", False)),
         )
 
 
@@ -529,9 +556,10 @@ def select_new_runs(
     einen fuehrt (``release-abnahme.yml``).
 
     Liefert bewusst eine **Liste**: Der Aufrufer unterscheidet zwischen
-    "keiner" (weiter warten oder erneut dispatchen) und "mehrere" (benannt
-    abbrechen). Ein "nimm den juengsten" waere hier die falsche Grosszuegigkeit
-    – zwei passende Laeufe bedeuten, dass jemand parallel dispatcht hat.
+    "keiner" (weiter warten; erneut dispatchen nur bei unbestaetigtem
+    Dispatch) und "mehrere" (benannt abbrechen). Ein "nimm den juengsten"
+    waere hier die falsche Grosszuegigkeit – zwei passende Laeufe bedeuten,
+    dass jemand parallel dispatcht hat.
     """
     known_ids = set(known)
     pattern = rud.marker_pattern(marker) if marker else None
@@ -708,30 +736,57 @@ def reconcile_or_dispatch(
         if found is not None:
             echo(f"Uebernommen: Lauf {found.run_id} ({found.url}) – kein zweiter Dispatch.")
             return replace(state, pending=None), found
-        echo("Kein passender Lauf – der Dispatch hat GitHub nicht erreicht, er wird wiederholt.")
+        if pending.confirmed:
+            # GitHub hat den Dispatch bestaetigt; der Lauf ist also da, nur
+            # (noch) nicht in der Liste. Erneut zu dispatchen erzeugte einen
+            # zweiten – und zwar unbemerkt, weil der urspruengliche Lauf, wenn
+            # er in der neuen Grundmenge auftaucht, als "bekannt" ausgeschieden
+            # wird. Hier bricht es ab, statt zu raten.
+            raise DispatchError(
+                f"Der bestaetigte {operation}-Dispatch vom {pending.recorded_at} ist in der "
+                f"Laufliste nicht auffindbar. GitHub hat ihn angenommen – 'nicht gefunden' "
+                "heisst hier nicht 'nicht passiert'. Actions-Uebersicht pruefen: Existiert "
+                "der Lauf, spaeter erneut aufrufen (die Korrelation uebernimmt ihn dann); "
+                f"existiert er nachweislich nicht, den 'pending'-Eintrag in {state_path} "
+                "bewusst entfernen. Es wird kein zweiter Lauf ausgeloest."
+            )
+        echo(
+            "Kein passender Lauf, und der Dispatch war nie bestaetigt – er wird wiederholt."
+        )
 
     state, pending = _record_pending(
         runner, state_path, state, operation=operation, workflow=workflow, marker=marker
     )
     runner(dispatch_args)
+    # Ab hier hat GitHub den Dispatch angenommen: festhalten, **bevor** die
+    # Korrelation laeuft. Bricht das Skript jetzt ab, weiss der naechste Aufruf,
+    # dass er nicht erneut ausloesen darf.
+    pending = replace(pending, confirmed=True)
+    state = replace(state, pending=pending)
+    save_state(state_path, state)
     found = await_new_run(runner, repo=state.repo, pending=pending, sleep=sleep)
     if found is None:
         raise DispatchError(
             f"Der ausgeloeste {workflow}-Lauf war nach {POLL_ATTEMPTS} Versuchen nicht "
-            f"auffindbar. Der Dispatch kann trotzdem gelaufen sein: Der offene Eintrag "
-            f"bleibt in {state_path} stehen, ein erneuter Aufruf sucht zuerst weiter und "
-            "dispatcht nur, wenn wirklich kein Lauf existiert. Vorher die "
-            "Actions-Uebersicht ansehen."
+            f"auffindbar. GitHub hat den Dispatch angenommen, der Lauf existiert also: "
+            f"Der offene Eintrag bleibt in {state_path} stehen und ist als bestaetigt "
+            "vermerkt – ein erneuter Aufruf sucht weiter und loest nie einen zweiten "
+            "Lauf aus. Actions-Uebersicht ansehen."
         )
     echo(f"Korreliert: Lauf {found.run_id} ({found.url})")
     return replace(state, pending=None), found
 
 
 def watch(
-    watcher: Watcher, run: RunRef, *, echo: Callable[[str], None] = print, hint: str = ""
+    watcher: Watcher,
+    run: RunRef,
+    *,
+    repo: str,
+    echo: Callable[[str], None] = print,
+    hint: str = "",
 ) -> None:
     """Wartet auf das Ende des Laufs; ein roter Lauf bricht benannt ab."""
-    code = watcher(run.run_id)
+    code = watcher(repo, run.run_id)
     if code != 0:
         raise DispatchError(
             f"Lauf {run.run_id} ist nicht erfolgreich beendet (gh run watch Exit {code}): "
@@ -795,16 +850,20 @@ def validate_run(
         raise DispatchError(f"Lauf {run_id} ist kein gueltiger {workflow}-Lauf: {exc}") from exc
 
 
-def resolve_approval_artifact(
-    runner: Runner, *, repo: str, run_id: int, run_attempt: int
+def resolve_attempt_artifact(
+    runner: Runner, *, repo: str, run_id: int, run_attempt: int, prefix: str
 ) -> str:
-    """Der exakte Manifestname des Laufs – an seinen ``run_attempt`` gebunden.
+    """Der exakte Artefaktname eines Laufs – an seinen ``run_attempt`` gebunden.
 
-    ``release-abnahme.yml`` legt das Manifest als
-    ``release-approval-manifest-<run_attempt>`` ab. Ein Wiederanlauf desselben
-    Laufs erzeugt daher ein zweites Artefakt; nur das des aktuellen Versuchs
-    gehoert zur soeben beobachteten Abnahme. Abgelaufene Artefakte scheiden
-    aus – ihr Name existiert noch, ihr Inhalt nicht mehr.
+    ``release-abnahme.yml`` legt Freigabemanifest und finale Release-Instanz
+    als ``<prefix>-<run_attempt>`` ab. Ein Wiederanlauf desselben Laufs erzeugt
+    daher ein zweites Artefakt – bei der Instanz sogar besonders wahrscheinlich,
+    weil der Workflow die Fehlerinstanz bewusst unter ``if: !cancelled()``
+    hochlaedt und die Wiederanlaufmatrix genau diesen Wiederholungslauf
+    vorsieht. Ein Glob laed dann beide herunter, und beide enthalten dieselbe
+    Nutzdatei. Nur das Artefakt des aktuellen Versuchs gehoert zum soeben
+    beobachteten Ergebnis. Abgelaufene scheiden aus – ihr Name existiert noch,
+    ihr Inhalt nicht mehr.
     """
     payload = _json(
         runner(["api", f"repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100"]),
@@ -815,14 +874,15 @@ def resolve_approval_artifact(
     listing = payload.get("artifacts")
     if not isinstance(listing, list):
         raise DispatchError(f"Artefaktliste {run_id} ohne 'artifacts'-Feld")
-    expected = f"release-approval-manifest-{run_attempt}"
+    family = re.compile(rf"^{re.escape(prefix)}-([1-9][0-9]*)$")
+    expected = f"{prefix}-{run_attempt}"
     found: list[str] = []
     other_attempts: list[str] = []
     for item in listing:
         if not isinstance(item, dict):
             continue
         name = str(item.get("name") or "")
-        if not _MANIFEST_ARTIFACT_RE.fullmatch(name):
+        if not family.fullmatch(name):
             continue
         if bool(item.get("expired")):
             continue
@@ -830,14 +890,14 @@ def resolve_approval_artifact(
     if len(found) == 1:
         return found[0]
     hint = (
-        f" Nicht abgelaufene Manifeste anderer Versuche: {', '.join(sorted(other_attempts))}."
+        f" Nicht abgelaufene Artefakte anderer Versuche: {', '.join(sorted(other_attempts))}."
         if other_attempts
         else ""
     )
     raise DispatchError(
         f"Erwartet ist genau ein nicht abgelaufenes Artefakt {expected!r} in Lauf {run_id} "
         f"(run_attempt {run_attempt}); gefunden: {len(found)}.{hint} Ohne eindeutiges "
-        "Manifest wird nichts abgenommen – Artefaktliste des Laufs pruefen."
+        "Artefakt wird nichts abgenommen – Artefaktliste des Laufs pruefen."
     )
 
 
@@ -1002,6 +1062,7 @@ def cmd_candidate(
     watch(
         ctx.watcher,
         run,
+        repo=repo,
         echo=ctx.echo,
         hint=(
             f"Die Run-ID steht bereits in {ctx.state_path}; ein weiterer 'candidate'-Aufruf "
@@ -1078,7 +1139,7 @@ def cmd_acceptance(ctx: Context, *, repo: str) -> ReleaseState:
     state = replace(state, acceptance_run_id=run.run_id)
     save_state(ctx.state_path, state)
 
-    watch(ctx.watcher, run, echo=ctx.echo)
+    watch(ctx.watcher, run, repo=repo, echo=ctx.echo)
     metadata = validate_run(
         ctx.runner,
         repo=repo,
@@ -1087,8 +1148,12 @@ def cmd_acceptance(ctx: Context, *, repo: str) -> ReleaseState:
         expected_head_sha=state.candidate_sha,
     )
     attempt = int(metadata["run_attempt"])
-    artifact = resolve_approval_artifact(
-        ctx.runner, repo=repo, run_id=run.run_id, run_attempt=attempt
+    artifact = resolve_attempt_artifact(
+        ctx.runner,
+        repo=repo,
+        run_id=run.run_id,
+        run_attempt=attempt,
+        prefix=APPROVAL_MANIFEST_PREFIX,
     )
     state = replace(state, approval_artifact_name=artifact)
     save_state(ctx.state_path, state)
@@ -1146,7 +1211,12 @@ def cmd_approve(ctx: Context, *, repo: str, work_dir: Path | None = None) -> Rel
 def cmd_publish(
     ctx: Context, *, repo: str, predecessor_tag: str, assume_yes: bool = False
 ) -> ReleaseState:
-    """Runbook-Schritt 8: die abgenommenen Bytes veroeffentlichen."""
+    """Runbook-Schritt 8: die abgenommenen Bytes veroeffentlichen.
+
+    ``assume_yes`` ist ein **Test-Einhaengepunkt ohne CLI-Schalter**: Das
+    Eintippen des Tags ist die Go-Handlung des Publish; ein oeffentlicher
+    Schalter umginge sie auf dem produktiven Standard-Repository.
+    """
     state = require_state(ctx.state_path, repo=repo)
     missing = [
         name
@@ -1182,6 +1252,24 @@ def cmd_publish(
             "vergleicht zwei Versionen und braucht den echten Vorgaenger."
         )
 
+    # Sobald ein Publish-Lauf existiert (oder einer in Flug ist), ist der
+    # Vorgaenger **festgeschrieben**: Der Lauf hat ihn als Eingabe bekommen, und
+    # `finalize` liest ihn spaeter aus dem Zustand. Ein Wiederholungsaufruf mit
+    # einem anderen Wert beschriebe den Lauf falsch – von nichtleer auf leer
+    # liesse `finalize` einen ausgeloesten Nachweis still aus, umgekehrt
+    # wartete es auf einen, den es nicht geben kann.
+    publish_started = state.publish_run_id is not None or (
+        state.pending is not None and state.pending.operation == OP_PUBLISH
+    )
+    if publish_started and state.predecessor_tag != predecessor_tag:
+        raise DispatchError(
+            f"Der Publish-Dispatch ist bereits erfolgt und hat "
+            f"predecessor_tag={state.predecessor_tag!r} bekommen; angefragt ist "
+            f"{predecessor_tag!r}. Der Vorgaenger eines laufenden Publish wird nicht "
+            "nachtraeglich umgeschrieben – mit dem urspruenglichen Wert erneut aufrufen. "
+            "Ein anderer Vorgaenger bedeutet einen neuen Release."
+        )
+
     verify_release_ref(ctx.runner, repo=repo, ref=state.ref, expected_sha=state.candidate_sha)
     predecessor_note = predecessor_tag or (
         "keiner – Update-Nachweis wird uebersprungen, beide Kriterien bleiben PENDING"
@@ -1199,7 +1287,17 @@ def cmd_publish(
         f"  Release-Issue         {state.release_issue}"
     )
     if not assume_yes:
-        answer = ctx.confirm(f"Zum Veroeffentlichen den Tag eingeben ({state.tag}): ").strip()
+        try:
+            answer = ctx.confirm(
+                f"Zum Veroeffentlichen den Tag eingeben ({state.tag}): "
+            ).strip()
+        except EOFError as exc:
+            raise DispatchError(
+                "Keine Eingabe moeglich (kein Terminal). 'publish' verlangt die "
+                "ausdrueckliche Bestaetigung durch Eintippen des Tags – das ist die "
+                "Go-Handlung, sie hat bewusst keinen Schalter. Interaktiv aufrufen oder "
+                "den Dispatch nach Runbook-Schritt 8 von Hand absetzen."
+            ) from exc
         if answer != state.tag:
             raise DispatchError(
                 f"Abgebrochen: {answer!r} ist nicht {state.tag}. Es wurde nichts dispatcht."
@@ -1229,7 +1327,7 @@ def cmd_publish(
     )
     state = replace(state, publish_run_id=run.run_id)
     save_state(ctx.state_path, state)
-    watch(ctx.watcher, run, echo=ctx.echo)
+    watch(ctx.watcher, run, repo=repo, echo=ctx.echo)
     ctx.echo(f"PUBLISH_RUN_ID={run.run_id}. Weiter mit 'finalize' (Runbook-Schritt 9).")
     return state
 
@@ -1279,7 +1377,8 @@ def cmd_finalize(ctx: Context, *, repo: str, work_dir: Path | None = None) -> Re
     ctx.echo(f"Update-Abnahmelauf {found.run_id} ({found.url}) ueber den Marker gefunden.")
     watch(
         ctx.watcher,
-        RunRef(
+        repo=repo,
+        run=RunRef(
             run_id=found.run_id,
             url=found.url,
             status=found.status,
@@ -1289,6 +1388,23 @@ def cmd_finalize(ctx: Context, *, repo: str, work_dir: Path | None = None) -> Re
             created_at="",
         ),
         echo=ctx.echo,
+    )
+    # Denselben Vertrag wie fuer Kandidat und Abnahme: Workflow-Pfad, Ereignis,
+    # Erfolg und Kandidaten-SHA – und der ``run_attempt``, an den der
+    # Artefaktname gebunden ist.
+    metadata = validate_run(
+        ctx.runner,
+        repo=repo,
+        run_id=found.run_id,
+        workflow=ACCEPTANCE_WORKFLOW,
+        expected_head_sha=state.candidate_sha,
+    )
+    instance_artifact = resolve_attempt_artifact(
+        ctx.runner,
+        repo=repo,
+        run_id=found.run_id,
+        run_attempt=int(metadata["run_attempt"]),
+        prefix=FINAL_INSTANCE_PREFIX,
     )
     state = replace(state, update_acceptance_run_id=found.run_id)
     save_state(ctx.state_path, state)
@@ -1304,7 +1420,7 @@ def cmd_finalize(ctx: Context, *, repo: str, work_dir: Path | None = None) -> Re
         download.mkdir(parents=True, exist_ok=True)
         ctx.runner([
             "run", "download", str(found.run_id), "--repo", repo,
-            "--pattern", FINAL_INSTANCE_PATTERN, "-D", str(download),
+            "-n", instance_artifact, "-D", str(download),
         ])
         instance = find_payload(download, rc.INSTANCE_PAYLOAD_NAME)
         ctx.command([
@@ -1411,11 +1527,6 @@ def _parser() -> argparse.ArgumentParser:
             "dann PENDING. Pflichtangabe, damit Vergessen und Verzicht sich unterscheiden."
         ),
     )
-    publish.add_argument(
-        "--yes",
-        action="store_true",
-        help="Bestaetigung ueberspringen (nur fuer Proben ohne Terminal).",
-    )
 
     finalize = commands.add_parser("finalize", help="Runbook-Schritt 9: Nachweis abschliessen")
     finalize.add_argument("--work-dir", type=Path, default=None)
@@ -1445,9 +1556,11 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "approve":
             cmd_approve(ctx, repo=args.repo, work_dir=args.work_dir)
         elif args.command == OP_PUBLISH:
-            cmd_publish(
-                ctx, repo=args.repo, predecessor_tag=args.predecessor, assume_yes=args.yes
-            )
+            # ``assume_yes`` bleibt bewusst ein reiner Test-Einhaengepunkt und
+            # hat **keinen** CLI-Schalter: Die Bestaetigung ist laut Modul und
+            # Runbook die Go-Handlung des Publish. Ein oeffentliches ``--yes``
+            # umginge sie auf dem produktiven Standard-Repository.
+            cmd_publish(ctx, repo=args.repo, predecessor_tag=args.predecessor)
         elif args.command == "finalize":
             cmd_finalize(ctx, repo=args.repo, work_dir=args.work_dir)
         else:  # pragma: no cover - argparse laesst nichts anderes durch

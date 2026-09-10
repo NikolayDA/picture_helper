@@ -843,11 +843,34 @@ Vier Eigenschaften tragen den Aufbau:
   Workflow, `event == workflow_dispatch`, Release-Ref, Kandidaten-SHA und
   Erstellungszeit nach dem Dispatch; beim Abnahme-Lauf zusätzlich über den
   `dispatch_marker` im `run-name`. Null Treffer heißt weiter warten, mehrere
-  heißt benannt abbrechen — nie „nimm den jüngsten".
+  heißt benannt abbrechen — nie „nimm den jüngsten". `gh run watch` bekommt
+  dasselbe `--repo` wie jeder andere Aufruf, statt sein Repository aus dem
+  Arbeitsverzeichnis abzuleiten.
 - **Wiederanlauf ohne zweiten Lauf.** Vor jedem Dispatch wird ein
-  `pending`-Eintrag atomar geschrieben. Bricht das Skript zwischen HTTP 204 und
-  Korrelation ab, sucht der nächste Aufruf zuerst nach dem Lauf und dispatcht
-  nur, wenn wirklich keiner existiert.
+  `pending`-Eintrag atomar geschrieben und nach dem bestätigten
+  `gh workflow run` als `confirmed` nachgezogen. Bricht das Skript zwischen
+  HTTP 204 und Korrelation ab, sucht der nächste Aufruf zuerst nach dem Lauf.
+  Findet er keinen, entscheidet `confirmed`: unbestätigt heißt „GitHub hat den
+  Dispatch nie angenommen" und wird wiederholt; bestätigt heißt, der Lauf
+  existiert und wird nur noch nicht gelistet — dann bricht das Kommando
+  benannt ab, statt einen zweiten auszulösen (Codex-Review #1067). Ist die
+  Run-ID bereits korreliert und nur das Beobachten abgebrochen, wird sie
+  wieder aufgegriffen.
+- **Artefakte am `run_attempt`.** Freigabemanifest *und* finale
+  Release-Instanz heißen `<präfix>-<run_attempt>`. Beide werden über den
+  gemessenen Versuch des jeweiligen Laufs exakt benannt geladen, nicht über
+  einen Glob: Ein Wiederholungslauf lässt das Artefakt des ersten Versuchs
+  stehen — bei der Instanz besonders wahrscheinlich, weil der Workflow die
+  Fehlerinstanz bewusst unter `if: !cancelled()` hochlädt.
+- **Der Vorgänger ist ab dem Publish-Dispatch festgeschrieben.** Ein
+  Wiederholungsaufruf mit anderem `--predecessor` bricht ab: Der laufende
+  Publish hat seinen Wert bereits bekommen, und `finalize` liest ihn aus dem
+  Zustand — ein nachträglich geänderter Wert ließe entweder einen ausgelösten
+  Nachweis still aus oder wartete auf einen, den es nicht geben kann.
+- **Die Bestätigung hat keinen Schalter.** Das Eintippen des Tags vor dem
+  Publish-Dispatch ist die Go-Handlung; ein `--yes` gäbe es auf dem
+  produktiven Standard-Repository nur als Umgehung. Ein nicht-interaktiver
+  Aufruf endet mit einem benannten Abbruch statt mit einem `EOFError`.
 - **Manifestname aus der Artefaktliste.** `release-abnahme.yml` legt das
   Manifest als `release-approval-manifest-<run_attempt>` ab. Das Skript liest
   den `run_attempt` des beobachteten Laufs und verlangt genau ein nicht

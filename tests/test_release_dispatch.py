@@ -186,7 +186,7 @@ def make_context(
     return rd.Context(
         runner=gh,
         command=command,
-        watcher=lambda _run_id: watch_code,
+        watcher=lambda _repo, _run_id: watch_code,
         state_path=tmp_path / "state.json",
         repo_dir=ROOT,
         echo=lambda _message: None,
@@ -643,7 +643,7 @@ def test_approve_uses_contract_and_checklist_of_the_candidate_revision(tmp_path:
 
     gh = FakeGh()
     ctx = rd.Context(
-        runner=gh, command=command, watcher=lambda _r: 0,
+        runner=gh, command=command, watcher=lambda _repo, _r: 0,
         state_path=tmp_path / "state.json", repo_dir=ROOT,
         echo=lambda _m: None, sleep=lambda _s: None, confirm=lambda _p: "",
     )
@@ -739,7 +739,9 @@ def test_publish_accepts_the_typed_tag_as_confirmation(tmp_path: Path) -> None:
     assert len(gh.dispatches) == 1
 
 
-@pytest.mark.parametrize("predecessor", ["2.9.0", "v2.9", TAG], ids=["kein-v", "unvollständig", "selbst"])
+@pytest.mark.parametrize(
+    "predecessor", ["2.9.0", "v2.9", TAG], ids=["kein-v", "unvollständig", "selbst"]
+)
 def test_publish_never_guesses_the_predecessor(tmp_path: Path, predecessor: str) -> None:
     _publish_state(tmp_path)
     gh = _publish_gh()
@@ -785,7 +787,15 @@ def test_finalize_finds_the_update_run_by_marker_and_validates_post_release(
         predecessor_tag="v2.9.0",
     )
     marker = f"update-check:{TAG}:{CANDIDATE_RUN}"
-    gh = FakeGh(pre_runs=[run_entry(UPDATE_RUN, title=f"Release-Abnahme alle [{marker}]")])
+    gh = FakeGh(
+        pre_runs=[run_entry(UPDATE_RUN, title=f"Release-Abnahme alle [{marker}]")],
+        api_runs={
+            UPDATE_RUN: api_run(UPDATE_RUN, workflow=".github/workflows/release-abnahme.yml")
+        },
+        artifacts={
+            UPDATE_RUN: [{"name": "release-acceptance-instance-final-1", "expired": False}]
+        },
+    )
     work = tmp_path / "work"
     instance_dir = work / "instance" / "release-acceptance-instance-final-1"
     instance_dir.mkdir(parents=True)
@@ -801,7 +811,9 @@ def test_finalize_finds_the_update_run_by_marker_and_validates_post_release(
     assert state.update_acceptance_run_id == UPDATE_RUN
     validate = next(c for c in commands if "validate-instance" in c)
     assert validate[validate.index("--through-phase") + 1] == "post-release"
-    assert any(c[:2] == ["run", "download"] for c in gh.calls)
+    download = next(c for c in gh.calls if c[:2] == ["run", "download"])
+    assert "--pattern" not in download, "ein Glob laed bei einem Wiederanlauf zwei Instanzen"
+    assert download[download.index("-n") + 1] == "release-acceptance-instance-final-1"
     assert gh.dispatches == [], "finalize löst nichts aus"
 
 
@@ -811,7 +823,7 @@ def test_finalize_reports_the_skipped_proof_instead_of_fabricating_it(tmp_path: 
     messages: list[str] = []
     gh = FakeGh()
     ctx = rd.Context(
-        runner=gh, command=lambda _a: b"", watcher=lambda _r: 0,
+        runner=gh, command=lambda _a: b"", watcher=lambda _repo, _r: 0,
         state_path=tmp_path / "state.json", repo_dir=ROOT,
         echo=messages.append, sleep=lambda _s: None, confirm=lambda _p: "",
     )
@@ -914,7 +926,7 @@ def test_a_correlated_candidate_run_is_reattached_not_dispatched_twice(tmp_path:
     state = rd.cmd_candidate(
         rd.Context(
             runner=gh, command=ctx.command,
-            watcher=lambda run_id: (watched.append(run_id), 0)[1],
+            watcher=lambda _repo, run_id: (watched.append(run_id), 0)[1],
             state_path=ctx.state_path, repo_dir=ctx.repo_dir, echo=ctx.echo,
             sleep=ctx.sleep, confirm=ctx.confirm,
         ),
@@ -945,6 +957,9 @@ def test_a_correlated_publish_run_is_reattached(tmp_path: Path) -> None:
         acceptance_run_id=ACCEPTANCE_RUN,
         approval_artifact_name="release-approval-manifest-1",
         publish_run_id=PUBLISH_RUN,
+        # Derselbe Vorgänger, den der laufende Dispatch bekommen hat – ein
+        # anderer wird seit dem Codex-Review abgewiesen (eigener Test unten).
+        predecessor_tag="v2.9.0",
     )
     gh = _publish_gh()
     state = rd.cmd_publish(
@@ -1105,3 +1120,246 @@ def test_pending_run_ids_reject_booleans_like_the_state_fields(tmp_path: Path) -
             "expected_head_sha": SHA, "marker": "", "not_before": EARLIER,
             "known_run_ids": [True], "recorded_at": EARLIER,
         })
+
+
+# ── Codex-Review #1067: fünf Befunde ───────────────────────────────────
+
+
+def _pending(operation: str, **overrides: Any) -> rd.PendingDispatch:
+    fields: dict[str, Any] = {
+        "operation": operation,
+        "workflow": {
+            rd.OP_CANDIDATE: rd.BUILD_WORKFLOW,
+            rd.OP_ACCEPTANCE: rd.ACCEPTANCE_WORKFLOW,
+            rd.OP_PUBLISH: rd.PUBLISH_WORKFLOW,
+        }[operation],
+        "ref": REF,
+        "expected_head_sha": SHA,
+        "marker": "",
+        "not_before": EARLIER,
+        "known_run_ids": (),
+        "recorded_at": EARLIER,
+    }
+    fields.update(overrides)
+    return rd.PendingDispatch(**fields)
+
+
+def test_a_confirmed_dispatch_is_never_repeated(tmp_path: Path) -> None:
+    """Codex-Befund: „nicht gefunden" heißt nicht „nicht passiert".
+
+    Zeigt GitHub den Lauf erst nach dem letzten Poll, wäre ein zweiter Dispatch
+    unbemerkt doppelt: Der ursprüngliche Lauf taucht dann in der **neuen**
+    Grundmenge auf und gilt als „bekannt", scheidet also aus der Korrelation
+    aus. Genau diese Idempotenz soll der `pending`-Eintrag tragen.
+    """
+    seeded_state(tmp_path, pending=_pending(rd.OP_CANDIDATE, confirmed=True))
+    gh = _candidate_gh(pre_runs=[], post_runs=[run_entry(9999)])
+    with pytest.raises(rd.DispatchError, match="nicht 'nicht passiert'"):
+        rd.cmd_candidate(
+            make_context(tmp_path, gh),
+            repo=REPO, version=VERSION, candidate_sha=SHA, target_issue=ISSUE,
+        )
+    assert gh.dispatches == [], "ein bestätigter Dispatch darf nie wiederholt werden"
+    # Der Eintrag bleibt stehen: Ein späterer Aufruf korreliert ihn.
+    assert rd.load_state(tmp_path / "state.json").pending is not None
+
+
+def test_an_unconfirmed_dispatch_may_be_repeated(tmp_path: Path) -> None:
+    """Die Gegenrichtung: Hat `gh workflow run` nie bestätigt, ist es richtig."""
+    seeded_state(tmp_path, pending=_pending(rd.OP_CANDIDATE, confirmed=False))
+    gh = _candidate_gh()
+    state = rd.cmd_candidate(
+        make_context(tmp_path, gh),
+        repo=REPO, version=VERSION, candidate_sha=SHA, target_issue=ISSUE,
+    )
+    assert len(gh.dispatches) == 1
+    assert state.candidate_run_id == CANDIDATE_RUN
+
+
+def test_the_pending_entry_is_marked_confirmed_right_after_the_dispatch(
+    tmp_path: Path,
+) -> None:
+    """Zwischen HTTP 204 und Korrelation muss die Bestätigung schon auf Platte liegen."""
+    seen: list[bool] = []
+    gh = _candidate_gh()
+    inner = gh.__call__
+
+    def watching(args: Sequence[str]) -> str:
+        if args[:2] == ["run", "list"] and gh.dispatches:
+            payload = json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))
+            seen.append(bool((payload.get("pending") or {}).get("confirmed")))
+        return inner(args)
+
+    ctx = make_context(tmp_path, gh)
+    rd.cmd_candidate(
+        rd.Context(
+            runner=watching, command=ctx.command, watcher=ctx.watcher,
+            state_path=ctx.state_path, repo_dir=ctx.repo_dir, echo=ctx.echo,
+            sleep=ctx.sleep, confirm=ctx.confirm,
+        ),
+        repo=REPO, version=VERSION, candidate_sha=SHA, target_issue=ISSUE,
+    )
+    assert seen and all(seen), "confirmed fehlt beim ersten Poll nach dem Dispatch"
+
+
+def test_an_old_state_without_the_flag_defaults_to_unconfirmed(tmp_path: Path) -> None:
+    """Fehlt das Feld, gilt der sichere Wert – nicht der bequeme."""
+    payload = _pending(rd.OP_CANDIDATE).as_json()
+    del payload["confirmed"]
+    assert rd.PendingDispatch.from_json(payload).confirmed is False
+
+
+def test_publish_refuses_a_changed_predecessor_after_the_dispatch(tmp_path: Path) -> None:
+    """Codex-Befund: Der laufende Publish hat seinen Vorgänger schon bekommen.
+
+    Von nichtleer auf leer ließe `finalize` einen ausgelösten Nachweis still
+    aus; umgekehrt wartete es auf einen, den es nicht geben kann.
+    """
+    for stored, requested in (("v2.9.0", ""), ("", "v2.9.0"), ("v2.9.0", "v2.8.0")):
+        seeded_state(
+            tmp_path,
+            candidate_run_id=CANDIDATE_RUN,
+            acceptance_run_id=ACCEPTANCE_RUN,
+            approval_artifact_name="release-approval-manifest-1",
+            publish_run_id=PUBLISH_RUN,
+            predecessor_tag=stored,
+        )
+        gh = _publish_gh()
+        with pytest.raises(rd.DispatchError, match="nachtraeglich umgeschrieben"):
+            rd.cmd_publish(
+                make_context(tmp_path, gh), repo=REPO,
+                predecessor_tag=requested, assume_yes=True,
+            )
+        assert gh.dispatches == []
+
+
+def test_publish_refuses_a_changed_predecessor_while_a_dispatch_is_pending(
+    tmp_path: Path,
+) -> None:
+    seeded_state(
+        tmp_path,
+        candidate_run_id=CANDIDATE_RUN,
+        acceptance_run_id=ACCEPTANCE_RUN,
+        approval_artifact_name="release-approval-manifest-1",
+        predecessor_tag="v2.9.0",
+        pending=_pending(rd.OP_PUBLISH, confirmed=True),
+    )
+    gh = _publish_gh()
+    with pytest.raises(rd.DispatchError, match="nachtraeglich umgeschrieben"):
+        rd.cmd_publish(
+            make_context(tmp_path, gh), repo=REPO, predecessor_tag="", assume_yes=True
+        )
+    assert gh.dispatches == []
+
+
+def test_the_watcher_gets_the_selected_repository(tmp_path: Path) -> None:
+    """Codex-Befund: `gh run watch` löste sein Repository sonst aus dem cwd auf."""
+    seen: list[str] = []
+    gh = _candidate_gh()
+    ctx = make_context(tmp_path, gh)
+    rd.cmd_candidate(
+        rd.Context(
+            runner=gh, command=ctx.command,
+            watcher=lambda repo, _run_id: (seen.append(repo), 0)[1],
+            state_path=ctx.state_path, repo_dir=ctx.repo_dir, echo=ctx.echo,
+            sleep=ctx.sleep, confirm=ctx.confirm,
+        ),
+        repo=REPO, version=VERSION, candidate_sha=SHA, target_issue=ISSUE,
+    )
+    assert seen == [REPO]
+    # ... und der produktive Watcher setzt --repo tatsächlich ab.
+    source = (ROOT / "scripts" / "release_dispatch.py").read_text(encoding="utf-8")
+    assert '"gh", "run", "watch", str(run_id), "--repo", repo, "--exit-status"' in source
+
+
+@pytest.mark.parametrize("attempt", [1, 2], ids=["attempt-1", "attempt-2"])
+def test_the_final_instance_artifact_follows_the_run_attempt(
+    tmp_path: Path, attempt: int
+) -> None:
+    """Codex-Befund: Ein Glob lädt bei einem Wiederanlauf beide Instanzen.
+
+    Der Abnahme-Workflow lädt die Fehlerinstanz bewusst unter `if: !cancelled()`
+    hoch, und die Wiederanlaufmatrix sieht genau diesen Wiederholungslauf vor —
+    `find_payload` fände danach zwei gleichnamige Nutzdateien und bräche ab.
+    """
+    marker = f"update-check:{TAG}:{CANDIDATE_RUN}"
+    seeded_state(
+        tmp_path,
+        candidate_run_id=CANDIDATE_RUN,
+        publish_run_id=PUBLISH_RUN,
+        predecessor_tag="v2.9.0",
+    )
+    gh = FakeGh(
+        pre_runs=[run_entry(UPDATE_RUN, title=f"Release-Abnahme alle [{marker}]")],
+        api_runs={
+            UPDATE_RUN: api_run(
+                UPDATE_RUN, workflow=".github/workflows/release-abnahme.yml", attempt=attempt
+            )
+        },
+        artifacts={
+            UPDATE_RUN: [
+                {"name": "release-acceptance-instance-final-1", "expired": False},
+                {"name": "release-acceptance-instance-final-2", "expired": False},
+            ]
+        },
+    )
+    work = tmp_path / "work"
+    target = work / "instance" / f"release-acceptance-instance-final-{attempt}"
+    target.mkdir(parents=True)
+    (target / "release-acceptance-instance.json").write_text(
+        json.dumps({"criteria": []}), encoding="utf-8"
+    )
+    rd.cmd_finalize(make_context(tmp_path, gh), repo=REPO, work_dir=work)
+    download = next(c for c in gh.calls if c[:2] == ["run", "download"])
+    assert download[download.index("-n") + 1] == f"release-acceptance-instance-final-{attempt}"
+
+
+def test_finalize_binds_the_update_run_to_the_candidate(tmp_path: Path) -> None:
+    """Der Update-Lauf wird über denselben Vertrag geprüft wie Kandidat und Abnahme."""
+    marker = f"update-check:{TAG}:{CANDIDATE_RUN}"
+    seeded_state(
+        tmp_path,
+        candidate_run_id=CANDIDATE_RUN,
+        publish_run_id=PUBLISH_RUN,
+        predecessor_tag="v2.9.0",
+    )
+    foreign = api_run(
+        UPDATE_RUN, workflow=".github/workflows/release-abnahme.yml", head_sha=OTHER_SHA
+    )
+    gh = FakeGh(
+        pre_runs=[run_entry(UPDATE_RUN, title=f"Release-Abnahme alle [{marker}]")],
+        api_runs={UPDATE_RUN: foreign},
+    )
+    with pytest.raises(rd.DispatchError, match="kein gueltiger release-abnahme.yml-Lauf"):
+        rd.cmd_finalize(make_context(tmp_path, gh), repo=REPO)
+
+
+def test_the_publish_confirmation_has_no_cli_switch() -> None:
+    """Codex-Befund: `--yes` umging die Go-Handlung auf dem Produktiv-Repo."""
+    parser = rd._parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(["publish", "--predecessor", "v2.9.0", "--yes"])
+    source = (ROOT / "scripts" / "release_dispatch.py").read_text(encoding="utf-8")
+    assert '"--yes"' not in source, "der Schalter ist zurück"
+    assert "args.yes" not in source
+
+
+def test_a_missing_terminal_is_a_named_abort_not_a_traceback(tmp_path: Path) -> None:
+    """Ohne `--yes` darf ein nicht-interaktiver Aufruf kein EOFError-Traceback sein."""
+    _publish_state(tmp_path)
+    gh = _publish_gh()
+
+    def no_input(_prompt: str) -> str:
+        raise EOFError
+
+    ctx = make_context(tmp_path, gh)
+    with pytest.raises(rd.DispatchError, match="Keine Eingabe moeglich"):
+        rd.cmd_publish(
+            rd.Context(
+                runner=gh, command=ctx.command, watcher=ctx.watcher,
+                state_path=ctx.state_path, repo_dir=ctx.repo_dir, echo=ctx.echo,
+                sleep=ctx.sleep, confirm=no_input,
+            ),
+            repo=REPO, predecessor_tag="v2.9.0",
+        )
+    assert gh.dispatches == []
