@@ -45,11 +45,18 @@ BgRemover ist ein lokales Desktop-Tool ohne Netzwerkdienst, Nutzerdatenbank oder
 
 | Ebene | Trigger | Rolle |
 |-------|---------|-------|
-| **CodeQL** (`.github/workflows/codeql.yml`) | automatisch: Push/PR auf `main`, wöchentlich, `workflow_dispatch` | Deterministische SAST-Grundabdeckung für Python (Standard-Query-Suite), GitHub-nativ über den *Security*-Tab, unabhängig von externer API-Quota. |
+| **CodeQL** (`.github/workflows/codeql.yml`) | automatisch: Push auf `main`, PR **mit Python-/`pyproject.toml`-Änderung** (Pfadfilter seit #1038), wöchentlich, `workflow_dispatch` | Deterministische SAST-Grundabdeckung für Python (Standard-Query-Suite), GitHub-nativ über den *Security*-Tab, unabhängig von externer API-Quota. |
 | **Codex Security Scan** (`.github/codex/`, `.github/workflows/codex-security-scan.yml`) | **ausschließlich manuell** über `workflow_dispatch` | Repo-spezifische, semantische Prüfung (Bild-/Projektdatei-Grenzen, Pfad-/Temp-Verhalten, Worker-/Prozessgrenzen, Packaging-/Release-/CI-Vertrauensgrenzen). Kein Zeitplan, kein automatischer Lauf bei Push/PR – abhängig von einem gültigen `OPENAI_API_KEY` und dessen Quota (separater Betriebs-Tracker: #245). |
-| **pip-audit** (`dependency-audit.yml`) | PR + wöchentlich | Bekannte CVEs im gepinnten Abhängigkeits-Snapshot (`requirements/constraints.txt`). **Grenze (#994):** Der Abgleich läuft gegen PyPI-Distributionen. Qt-Schwachstellen werden gegen *Qt* gemeldet, nicht gegen die Distribution `PyQt6-Qt6`, die es mitliefert – ein grüner Lauf sagt deshalb nichts über das gebündelte Qt aus. Dessen Stand wird beim Anheben des Pins von Hand geprüft und im Kommentarblock von `requirements/constraints.txt` festgehalten. |
-| **Lizenzprüfung** (`license-check.yml`) | PR | Inventar-/Lizenz-Drift der Abhängigkeiten. |
+| **pip-audit** (`dependency-audit.yml`) | PR **mit Änderung an `pyproject.toml`/`requirements/**`** (Pfadfilter seit #1038) + wöchentlich | Bekannte CVEs im gepinnten Abhängigkeits-Snapshot (`requirements/constraints.txt`). **Grenze (#994):** Der Abgleich läuft gegen PyPI-Distributionen. Qt-Schwachstellen werden gegen *Qt* gemeldet, nicht gegen die Distribution `PyQt6-Qt6`, die es mitliefert – ein grüner Lauf sagt deshalb nichts über das gebündelte Qt aus. Dessen Stand wird beim Anheben des Pins von Hand geprüft und im Kommentarblock von `requirements/constraints.txt` festgehalten. |
+| **Lizenzprüfung** (`license-check.yml`) | Push auf `main`; PR **mit Änderung an Deklaration, Pins, Snapshots oder Generator** (Pfadfilter seit #1038) | Inventar-/Lizenz-Drift der Abhängigkeiten. |
 | **CI-Matrix** (`ci.yml`/`pr-ci.yml`) | PR | Qualität/Funktion (Lint, Typecheck, Tests) – ersetzt keine Quellcode-Sicherheitsanalyse. |
+
+Die drei automatischen Ebenen laufen auf Pull Requests seit #1038 nur noch, wenn ihre
+Eingaben betroffen sind; ihre Push- bzw. Zeitplan-Läufe bleiben ungefiltert und tragen die
+Frische (neue CodeQL-Queries und neue CVEs entstehen ohne jeden Commit). Vorbedingung des
+Filters ist, dass keiner dieser Checks ein erforderlicher Branch-Protection-Status ist – ein
+übersprungener Pflicht-Check meldet gar keinen Status und ließe den PR dauerhaft auf
+`Expected` stehen. `tests/test_ci_workflow_yaml.py` hält diese Vorbedingung fest.
 
 Die Entscheidung für dieses hybride Modell (CodeQL automatisch, Codex manuell) inklusive Begründung
 und Branch-Protection-Abwägung ist dokumentiert in

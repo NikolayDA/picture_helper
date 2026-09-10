@@ -78,3 +78,142 @@ def test_job_level_env_uses_only_available_contexts(path: Path) -> None:
                     "GitHub lehnt den gesamten Lauf mit 'Unrecognized named-value' ab. "
                     "Auf Schritt-Ebene setzen oder im Shell ueber $GITHUB_ENV bilden."
                 )
+
+
+#: Der einzige erforderliche Branch-Protection-Status (Live-Snapshot in
+#: ``docs/PROZESSE_UML.md``, gegen den PR-CI-Jobnamen gehalten von
+#: ``tests/test_process_documentation.py``).
+_REQUIRED_STATUS_JOB_NAME = "Lightweight PR checks"
+
+#: Workflows, deren PR-Lauf seit #1038 an seine Eingaben gebunden ist. Der
+#: Filter ist eine handgepflegte Kopie der Aussage "laeuft nur, wenn seine
+#: Eingaben betroffen sind" in ``docs/PROZESSE_UML.md`` §2, ``SECURITY.md`` und
+#: ``CLAUDE.md``; ohne Waechter faellt ein entfernter Filter nirgends auf.
+_PATH_FILTERED_PR_WORKFLOWS = ("codeql.yml", "dependency-audit.yml", "license-check.yml")
+
+
+def _triggers(path: Path) -> dict[str, object]:
+    """``on:``-Block eines Workflows.
+
+    PyYAML liest ``on`` nach YAML 1.1 als Boolean-Key ``True``; neuere
+    Fassungen koennten den String liefern. Beide Formen werden akzeptiert,
+    damit der Waechter nicht an der Parser-Version haengt.
+    """
+    doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert isinstance(doc, dict), path.name
+    for key in (True, "on"):
+        block = doc.get(key)
+        if isinstance(block, dict):
+            return block
+    raise AssertionError(f"{path.name}: kein auswertbarer on-Block")
+
+
+def _pull_request_is_path_filtered(triggers: dict[str, object]) -> bool:
+    trigger = triggers.get("pull_request")
+    if not isinstance(trigger, dict):
+        return False
+    return "paths" in trigger or "paths-ignore" in trigger
+
+
+def _job_names(path: Path) -> set[str]:
+    doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    jobs = (doc or {}).get("jobs") or {}
+    return {str((job or {}).get("name") or job_id) for job_id, job in jobs.items()}
+
+
+@pytest.mark.parametrize("path", _WORKFLOWS, ids=lambda p: p.name)
+def test_no_path_filtered_workflow_carries_the_required_status_job(path: Path) -> None:
+    """Die Vorbedingung der Pfadfilter aus #1038 darf nicht still brechen.
+
+    GitHub meldet fuer einen wegen Pfadfilter uebersprungenen Workflow **gar
+    keinen** Status. Ist derselbe Check ein *erforderlicher*
+    Branch-Protection-Status, bleibt der PR damit dauerhaft auf ``Expected``
+    stehen und ist nicht mehr mergebar – bei genau den Docs-only-PRs, die der
+    Filter entlasten soll. Solange ``Lightweight PR checks`` der einzige
+    Pflichtstatus ist, ist die Regel einfach: Dieser Jobname und ein
+    PR-Pfadfilter schliessen sich aus.
+
+    Der Waechter greift in beide Richtungen – ein Filter in ``pr-ci.yml`` faellt
+    genauso auf wie ein nach ``codeql.yml`` verschobener Pflicht-Jobname.
+    """
+    if not _pull_request_is_path_filtered(_triggers(path)):
+        return
+    assert _REQUIRED_STATUS_JOB_NAME not in _job_names(path), (
+        f"{path.name} filtert seinen pull_request-Trigger nach Pfaden und traegt "
+        f"zugleich den Pflichtstatus-Jobnamen {_REQUIRED_STATUS_JOB_NAME!r}. Ein "
+        "uebersprungener Pflicht-Check laesst den PR dauerhaft auf 'Expected' "
+        "stehen – entweder den Filter entfernen oder den Pflichtstatus umstellen."
+    )
+
+
+@pytest.mark.parametrize("name", _PATH_FILTERED_PR_WORKFLOWS)
+def test_documented_pr_path_filters_stay_in_place(name: str) -> None:
+    """#1038: Die drei PR-Filter sind dokumentiert und brauchen deshalb einen Wächter."""
+    trigger = _triggers(_WORKFLOW_DIR / name).get("pull_request")
+    assert isinstance(trigger, dict), f"{name}: pull_request ohne Filterblock"
+    paths = trigger.get("paths")
+    assert isinstance(paths, list) and paths, (
+        f"{name}: pull_request.paths fehlt oder ist leer – Doku (PROZESSE_UML §2, "
+        "SECURITY.md, CLAUDE.md) behauptet den Filter weiterhin"
+    )
+    assert f".github/workflows/{name}" in paths, (
+        f"{name}: der Filter muss die eigene Workflow-Datei enthalten, sonst "
+        "startet eine Änderung an ihm selbst keinen Probelauf"
+    )
+
+
+@pytest.mark.parametrize("name", _PATH_FILTERED_PR_WORKFLOWS)
+def test_freshness_triggers_stay_unfiltered(name: str) -> None:
+    """Push- und Zeitplan-Läufe tragen die Frische und bleiben ungefiltert (#1038).
+
+    Ein Pfadfilter dort nähme genau das weg, was den PR-Filter erst vertretbar
+    macht: CodeQL-Queries und CVE-Datenbanken ändern sich ohne jeden Commit,
+    der Lizenz-Snapshot muss auch nach einem Docs-only-Merge geprüft werden.
+    """
+    triggers = _triggers(_WORKFLOW_DIR / name)
+    for event in ("push", "schedule"):
+        trigger = triggers.get(event)
+        if not isinstance(trigger, dict):
+            continue
+        for key in ("paths", "paths-ignore"):
+            assert key not in trigger, f"{name}: {event} darf keinen {key}-Filter tragen"
+
+
+def test_required_status_guard_would_catch_a_real_violation(tmp_path: Path) -> None:
+    """Negativkontrolle: Der Wächter oben prüft echte Dateien und wäre sonst tot.
+
+    Aufgerufen wird der **Wächter selbst**, nicht nur seine Helfer – sonst
+    bliebe die Kontrolle eine Aussage über das Prädikat statt über die Regel
+    (Review #1067).
+    """
+    offender = tmp_path / "offender.yml"
+    offender.write_text(
+        "name: X\n"
+        "on:\n"
+        "  pull_request:\n"
+        "    paths: ['**/*.py']\n"
+        "jobs:\n"
+        "  check:\n"
+        f"    name: {_REQUIRED_STATUS_JOB_NAME}\n"
+        "    runs-on: ubuntu-latest\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(AssertionError, match=_REQUIRED_STATUS_JOB_NAME):
+        test_no_path_filtered_workflow_carries_the_required_status_job(offender)
+
+    clean = tmp_path / "clean.yml"
+    clean.write_text(
+        "name: X\n"
+        "on:\n"
+        "  pull_request:\n"
+        "    branches: [main]\n"
+        "jobs:\n"
+        "  check:\n"
+        f"    name: {_REQUIRED_STATUS_JOB_NAME}\n"
+        "    runs-on: ubuntu-latest\n",
+        encoding="utf-8",
+    )
+    # Derselbe Pflicht-Jobname ohne Filter ist erlaubt – der Wächter kehrt
+    # ohne Befund zurück (das ist die Lage von pr-ci.yml).
+    test_no_path_filtered_workflow_carries_the_required_status_job(clean)
+    assert not _pull_request_is_path_filtered(_triggers(clean))

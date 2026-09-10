@@ -147,9 +147,9 @@ flowchart TD
   end
   subgraph CI["Partition: Automatische Prüfungen"]
     C1["pr-ci.yml · Job Lightweight PR checks<br/>make pr-check auf Ubuntu, Python 3.12"]
-    C2["codeql.yml · SAST für Python"]
-    C3["dependency-audit.yml · Abhängigkeits-Audit, läuft auch bei Docs-only-PRs"]
-    C4["license-check.yml<br/>Lizenzreport mit Python-, AI- und Test-Abhängigkeiten einschließlich PyQt6, ohne Linux-Qt-Systempakete"]
+    C2["codeql.yml · SAST für Python<br/>nur bei Python-/pyproject.toml-Änderung (Pfadfilter)"]
+    C3["dependency-audit.yml · Abhängigkeits-Audit<br/>nur bei Änderung an pyproject.toml oder requirements/ (Pfadfilter)"]
+    C4["license-check.yml · Lizenzreport mit Python-, AI- und Test-Abhängigkeiten<br/>einschließlich PyQt6, ohne Linux-Qt-Systempakete<br/>nur bei Änderung an Deklaration, Pins, Snapshots oder Generator (Pfadfilter)"]
     CQ{"Secret CLAUDE_CODE_OAUTH_TOKEN verfügbar?"}
     C5["claude-code-review.yml<br/>einmal je PR: opened bzw. ready_for_review, Wiederholung nur per Label re-review;<br/>Doku-only-Pfade ausgenommen · Review als Inline-Kommentare plus Zusammenfassung"]
     C6["Review sichtbar übersprungen<br/>Warnung statt rotem Lauf; bei Fork-PRs immer der Fall"]
@@ -176,9 +176,18 @@ flowchart TD
   die Ausnahme: einmal je PR – bei `opened`, bei `ready_for_review` beim
   Verlassen des Draft-Status – und danach nur auf Anforderung über das Label
   `re-review`; reine Doku-PRs sind per `paths-ignore` ausgenommen.
-- `dependency-audit.yml` läuft ohne Pfadfilter auch bei reinen Doku-PRs und ist
-  laut [GitHub-Rahmen](#aktueller-github-rahmen) kein erforderlicher
-  Branch-Protection-Status. Seine Abdeckungsgrenze: Der Abgleich läuft gegen
+- `codeql.yml`, `dependency-audit.yml` und `license-check.yml` tragen seit #1038
+  einen `paths`-Filter auf ihrem `pull_request`-Trigger: Ein reiner Doku-PR
+  startet keinen von ihnen. Ihre Push- bzw. Zeitplan-Läufe bleiben ungefiltert
+  und tragen die Frische — neue CodeQL-Queries und neue CVEs entstehen ohne
+  jeden Commit, und der Lizenz-Snapshot wird auch nach einem Docs-only-Merge
+  geprüft. Der Filter setzt voraus, dass keiner der drei laut
+  [GitHub-Rahmen](#aktueller-github-rahmen) ein erforderlicher
+  Branch-Protection-Status ist: Ein übersprungener Pflicht-Check meldet gar
+  keinen Status und ließe den PR dauerhaft auf `Expected` stehen.
+  `tests/test_ci_workflow_yaml.py` hält fest, dass kein pfadgefilterter
+  Workflow den Jobnamen `Lightweight PR checks` trägt.
+- Abdeckungsgrenze von `dependency-audit.yml`: Der Abgleich läuft gegen
   PyPI-Distributionen, Qt-Advisories werden aber gegen *Qt* geführt und nicht
   gegen `PyQt6-Qt6`; der Qt-Stand wird beim Anheben des Pins von Hand geprüft und
   in `requirements/constraints.txt` festgehalten.

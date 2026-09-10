@@ -763,7 +763,7 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **siebzehn** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **achtzehn** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
@@ -773,6 +773,7 @@ Ein Paket, `bgremover/`:
   `scripts/public_download_check.py` (#916),
   `scripts/qt_gl_probe.py` (#934),
   `scripts/release_update_dispatch.py` (#919),
+  `scripts/release_dispatch.py` (#1039),
   `scripts/scan_release_artifacts.py` (#920),
   `scripts/runner_heartbeat.py` (#921),
   `scripts/check_install_provenance.py` (#1031),
@@ -828,11 +829,13 @@ notiert – sie hätte keinen Wächter, #1040):
   `benchmark.yml` (Baseline seit #546 als Workflow-Artefakt statt per Push
   nach `main`).
 - **Sicherheit/Abhängigkeiten:** `codeql.yml` (automatisierte SAST-Grundabdeckung
-  Python: Push/PR auf `main` + wöchentlich + manuell), `codex-security-scan.yml`
+  Python: Push auf `main` + wöchentlich + manuell + PR, dort seit #1038 nur bei
+  Python-/`pyproject.toml`-Änderung), `codex-security-scan.yml`
   (**nur** `workflow_dispatch`, Parameter `min_severity`; legt Befunde über
   `scripts/create_security_scan_issues.py` als deduplizierte GitHub-Issues an),
   `dependency-audit.yml`
-  (PR + montags), `license-check.yml` (braucht bewusst kein Qt,
+  (montags + PR mit Änderung an `pyproject.toml`/`requirements/**`),
+  `license-check.yml` (braucht bewusst kein Qt,
   `scripts/generate_license_report.py`; regeneriert `LICENSES.md` samt der
   fünf Übersetzungen und vergleicht fail-closed gegen den committeten Stand.
   Der „Stand:"-Stempel kommt seit #879 aus der **committeten Datei selbst**
@@ -842,7 +845,14 @@ notiert – sie hätte keinen Wächter, #1040):
   `fetch-depth: 0` entfällt dadurch),
   `clamav-db-refresh.yml` (wöchentlich montags 03:00 UTC + manuell; füttert den
   rotierenden Signaturcache für den Artefakt-Malware-Scan, siehe
-  *Artefakt-Sicherheitsscan* unten). Modell/Begründung:
+  *Artefakt-Sicherheitsscan* unten). Die drei PR-Pfadfilter (#1038) setzen
+  voraus, dass keiner dieser Checks ein **erforderlicher**
+  Branch-Protection-Status ist: Ein wegen Pfadfilter übersprungener
+  Pflicht-Check meldet gar keinen Status und ließe den PR dauerhaft auf
+  „Expected" stehen. Live trägt nur `Lightweight PR checks` diese Rolle;
+  `tests/test_ci_workflow_yaml.py` hält fest, dass kein pfadgefilterter
+  Workflow diesen Jobnamen trägt, dass die drei Filter stehen und dass die
+  Push-/Zeitplan-Läufe ungefiltert bleiben. Modell/Begründung:
   ADR [`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`](docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md).
 - **Release:** `release-linux.yml` baut den Kandidaten (zwei
   AppImages, zwei `.deb`, ein macOS-`.dmg`) nach `verify-candidate` + Full-CI —

@@ -811,6 +811,102 @@ wird trotzdem geschrieben und hochgeladen, weil sie genau dann die Evidenz des
 Fehlschlags ist. Ein Lauf ohne `publish_run_id` lässt die Instanzpflege
 unverändert aus.
 
+### 4.4 Owner-Skript für die Dispatches (#1039)
+
+`scripts/release_dispatch.py` ist der **Standardweg** für Runbook-Schritt 3, 5,
+6, 8 und 9 — ein Befehl je Schritt statt handkopierter Run-IDs und
+Artefaktnamen (#914 nennt genau dieses Kopieren als fehleranfällig). Es läuft
+lokal beim Release-Owner, nicht in einem Workflow, und braucht nur `gh`.
+
+**Was es nicht ist.** Es ist keine Verkettung: `approve` geht nie von selbst zum
+Publish über, und `publish` dispatcht erst, nachdem der Tag zur Bestätigung
+eingetippt wurde. Es ändert weder `release-linux.yml`, `release-abnahme.yml`,
+`release-publish.yml` noch `scripts/release_contract.py`; der Freigabevertrag
+(genau ein Build-Lauf ↔ genau ein Abnahme-Lauf), die Wiederanlaufmatrix und die
+testfixierte Regel, dass nur zwei Workflows Self-hosted-Runner ansprechen,
+bleiben unberührt. Die Handprozedur im Runbook ist vollständig und gilt bei
+Widerspruch.
+
+| Unterkommando | Runbook | Ergebnis im Zustand |
+|---|---|---|
+| `candidate --version --candidate-sha --target-issue` | Schritt 3 | `candidate_run_id` |
+| `acceptance` | Schritt 5 | `acceptance_run_id`, `approval_artifact_name` |
+| `approve` | Schritt 6 | nichts (zeigt nur) |
+| `publish --predecessor` | Schritt 8 | `publish_run_id`, `predecessor_tag` |
+| `finalize` | Schritt 9 | `update_acceptance_run_id` |
+
+Vier Eigenschaften tragen den Aufbau:
+
+- **Korrelation statt Abschreiben.** `workflow_dispatch` antwortet mit HTTP 204
+  ohne Run-ID. Das Skript erfasst deshalb **vor** dem Dispatch die bekannten
+  Run-IDs und akzeptiert danach genau **einen neuen** Lauf mit passendem
+  Workflow, `event == workflow_dispatch`, Release-Ref, Kandidaten-SHA und
+  Erstellungszeit nach dem Dispatch; beim Abnahme-Lauf zusätzlich über den
+  `dispatch_marker` im `run-name`. Null Treffer heißt weiter warten, mehrere
+  heißt benannt abbrechen — nie „nimm den jüngsten". `gh run watch` bekommt
+  dasselbe `--repo` wie jeder andere Aufruf, statt sein Repository aus dem
+  Arbeitsverzeichnis abzuleiten.
+- **Wiederanlauf ohne zweiten Lauf.** Vor jedem Dispatch wird ein
+  `pending`-Eintrag atomar geschrieben und nach dem bestätigten
+  `gh workflow run` als `confirmed` nachgezogen. Bricht das Skript zwischen
+  HTTP 204 und Korrelation ab, sucht der nächste Aufruf zuerst nach dem Lauf.
+  Findet er keinen, entscheidet `confirmed`: unbestätigt heißt „GitHub hat den
+  Dispatch nie angenommen" und wird wiederholt; bestätigt heißt, der Lauf
+  existiert und wird nur noch nicht gelistet — dann bricht das Kommando
+  benannt ab, statt einen zweiten auszulösen (Codex-Review #1067). Ist die
+  Run-ID bereits korreliert und nur das Beobachten abgebrochen, wird sie
+  wieder aufgegriffen.
+- **Artefakte am `run_attempt`.** Freigabemanifest *und* finale
+  Release-Instanz heißen `<präfix>-<run_attempt>`. Beide werden über den
+  gemessenen Versuch des jeweiligen Laufs exakt benannt geladen, nicht über
+  einen Glob: Ein Wiederholungslauf lässt das Artefakt des ersten Versuchs
+  stehen — bei der Instanz besonders wahrscheinlich, weil der Workflow die
+  Fehlerinstanz bewusst unter `if: !cancelled()` hochlädt.
+- **Der Vorgänger ist ab dem Publish-Dispatch festgeschrieben.** Ein
+  Wiederholungsaufruf mit anderem `--predecessor` bricht ab: Der laufende
+  Publish hat seinen Wert bereits bekommen, und `finalize` liest ihn aus dem
+  Zustand — ein nachträglich geänderter Wert ließe entweder einen ausgelösten
+  Nachweis still aus oder wartete auf einen, den es nicht geben kann.
+- **Die Bestätigung hat keinen Schalter.** Das Eintippen des Tags vor dem
+  Publish-Dispatch ist die Go-Handlung; ein `--yes` gäbe es auf dem
+  produktiven Standard-Repository nur als Umgehung. Ein nicht-interaktiver
+  Aufruf endet mit einem benannten Abbruch statt mit einem `EOFError`.
+- **Manifestname aus der Artefaktliste.** `release-abnahme.yml` legt das
+  Manifest als `release-approval-manifest-<run_attempt>` ab. Das Skript liest
+  den `run_attempt` des beobachteten Laufs und verlangt genau ein nicht
+  abgelaufenes Artefakt dieses Namens.
+- **Kandidatenrevision statt Arbeitsbaum.** `approve` und `finalize` holen
+  `release_contract.py` und die Abnahme-Checkliste per `git show` aus dem
+  Kandidaten-Commit — die Instanz pinnt deren Dateihash, ein
+  weiterentwickelter Vertrag prüfte einen anderen Stand als den abgenommenen.
+  Der Blob wird dabei als **Bytes** durchgereicht und mit `write_bytes`
+  abgelegt: `validate_release_instance` vergleicht den Checklisten-Hash über
+  Bytes, ein Text-Kanal hätte unter `LC_ALL=C` entweder abgebrochen oder eine
+  Datei mit abweichendem Hash erzeugt (Review #1067).
+
+Zwei Werte sind bewusst pflichtig, obwohl sie leer sein dürfen bzw. schon im
+Zustand stehen: `--candidate-sha` (Schritt 2 ist die unabhängige Quelle) und
+`--predecessor`. Letzteres nimmt den leeren Wert ausdrücklich an —
+`--predecessor ''` lässt den Post-Release-Nachweis aus, genau wie ein leeres
+`predecessor_tag` im Workflow, und beide Update-Kriterien bleiben `PENDING`.
+Pflichtig bleibt es, damit Vergessen und Verzicht nicht dasselbe Kommando sind.
+Vor dem Abnahme-Dispatch prüft `acceptance` zusätzlich die gespeicherte
+Kandidaten-Run-ID gegen denselben `validate_workflow_run`-Vertrag, den
+`candidate-source` später ohnehin fährt — ein roter Kandidatenbau hinterlässt
+seine Run-ID im Zustand, und ohne diese Vorprüfung fiele das erst nach einem
+vollständigen Anlauf auf Self-hosted-Hardware auf.
+
+**Zustandsdatei.** Standardmäßig `$XDG_STATE_HOME/bgremover/release-dispatch.json`
+(sonst `~/.local/state/...`), Modus `0600`, atomar geschrieben, mit Schema und
+Art. Bewusst außerhalb des Arbeitsbaums: Im Repository wäre sie ein unbekannter
+Pfad für das Freeze-Gate. Run-IDs sind keine Secrets, aber beschädigter oder
+fremder Zustand ist fail-closed — ein Kommando, dessen Repository, Version, Ref
+oder Kandidaten-SHA vom gespeicherten abweicht, bricht ab, statt Bindungswerte
+zweier Releases zu mischen.
+
+Regressionstests: `tests/test_release_dispatch.py` (gemocktes `gh`),
+Doku-Bindung in `tests/test_release_governance.py`.
+
 ## 5. Pausiert: Linux x86_64 (GPU)
 
 **Entscheidung vom 2026-07-20:** Es besteht bis auf weiteres kein Zugang zu
