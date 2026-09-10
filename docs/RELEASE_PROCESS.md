@@ -36,6 +36,16 @@ bestanden sind.
 - Kandidaten-, Abnahme- und Publish-Run-ID, vollständiger Commit-SHA, Tag und Manifestname werden im Issue notiert.
 - Actions-Artefakte werden 90 Tage aufbewahrt. Ein abgelaufenes Artefakt darf nie durch einen anderen Lauf ersetzt werden.
 
+Seit #1039 gibt es für die Schritte 3, 5, 6, 8 und 9 je einen **Standardweg**
+über `scripts/release_dispatch.py`. Das Skript leitet Run-IDs und Artefaktnamen
+selbst aus der GitHub-API ab und hält die Bindungswerte in einer versionierten
+Zustandsdatei außerhalb des Arbeitsbaums (`--state-file` macht den Ort
+explizit). Es ändert weder Workflows noch Verträge oder Gates: Es ruft dieselben
+`gh`-Kommandos und dieselben Prüfungen aus `release_contract.py` auf und druckt
+jeden `gh`-Aufruf vor der Ausführung. **Die Handprozedur bleibt vollständig,
+gültig und Referenz** — bei Widerspruch gilt sie, nicht das Skript. Betrieb:
+[RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md) §4.4.
+
 Die Beispiele verwenden folgende Shell-Variablen. Werte immer aus der verlinkten
 GitHub-Ansicht übernehmen, nicht erraten:
 
@@ -275,6 +285,23 @@ Ein Release-Ref auf dem verworfenen Kandidaten wird gelöscht, bevor der neue en
 **Owner:** Release-Owner startet; CI baut.
 **Input:** `$RELEASE_REF`, `with_ai=true`.
 
+**Standardweg: `scripts/release_dispatch.py candidate`** (#1039). Ein Befehl
+statt drei: Er führt dieselben zwei Vertragsprüfungen aus, dispatcht, korreliert
+den erzeugten Lauf und schreibt Version, Ref, Kandidaten-SHA, Release-Issue und
+Run-ID in eine Zustandsdatei außerhalb des Arbeitsbaums, aus der die folgenden
+Schritte ihre Bindungswerte nehmen:
+
+```bash
+python scripts/release_dispatch.py candidate \
+  --version "${RELEASE_TAG#v}" --candidate-sha "$CANDIDATE_SHA" \
+  --target-issue "$RELEASE_ISSUE"
+```
+
+Der Kandidaten-SHA kommt aus Schritt 2 und wird nie aus dem Ref abgelesen — erst
+dadurch prüft `verify-release-ref` gegen eine unabhängige, im Release-Issue
+protokollierte Quelle. Jeder `gh`-Aufruf wird vor der Ausführung gedruckt; die
+Handprozedur darunter bleibt unverändert gültig und ist der Rückfallweg.
+
 ```bash
 gh api "repos/NikolayDA/picture_helper/rules/branches/${RELEASE_REF}" > /tmp/release-ref-rules.json
 gh api "repos/NikolayDA/picture_helper/git/ref/heads/${RELEASE_REF}" > /tmp/release-ref.json
@@ -391,6 +418,17 @@ Kandidat ab Schritt 1.
 **Owner:** Hardware-Abnahme; Start durch Release-Owner.
 **Input:** `CANDIDATE_RUN_ID`, Zielplattformen `alle`, Release-Issue.
 
+**Standardweg: `scripts/release_dispatch.py acceptance`** (#1039). Er nimmt
+Kandidaten-Run-ID, Kandidaten-SHA und Release-Issue aus der Zustandsdatei,
+prüft den Ref, dispatcht mit `platforms=alle`, `dry_run=false` und einem
+Korrelationsmarker, wartet den Lauf ab und ermittelt danach den exakten
+Manifestnamen aus der Artefaktliste — gebunden an den aktuellen `run_attempt`
+und nur, wenn genau ein nicht abgelaufenes Artefakt passt:
+
+```bash
+python scripts/release_dispatch.py acceptance
+```
+
 ```bash
 CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
 gh api "repos/NikolayDA/picture_helper/git/ref/heads/${RELEASE_REF}" > /tmp/release-ref.json
@@ -453,6 +491,16 @@ mit derselben Kandidaten-Run-ID erneut laufen; fachliche Fehler erfordern Fix un
 **Trigger:** Schritt 5 ist erfolgreich abgeschlossen.
 **Owner:** Release-Owner.
 **Input:** Abnahme-Run und `release-approval-manifest-<attempt>`.
+
+**Standardweg: `scripts/release_dispatch.py approve`** (#1039). Er lädt das
+Manifest, erzeugt die Instanz und validiert sie bis `pre-release` — mit
+Vertrag und Checkliste aus **genau der Kandidatenrevision**, die die Instanz
+pinnt, nicht aus dem gerade ausgecheckten Arbeitsbaum. Er gibt die
+Kriterienmatrix aus und geht ausdrücklich **nicht** zum Publish über:
+
+```bash
+python scripts/release_dispatch.py approve
+```
 
 ```bash
 mkdir -p /tmp/release-approval
@@ -519,6 +567,16 @@ und neu setzen. Sobald ein Release oder externer Download existiert, Tag nie ver
 **Trigger:** Schritt 7 ist verifiziert.
 **Owner:** Release-Owner startet; CI veröffentlicht.
 **Input:** Tag, Kandidaten-Run-ID, Abnahme-Run-ID, exakter Manifestname und optional das Release-Issue.
+
+**Standardweg: `scripts/release_dispatch.py publish`** (#1039). Alle fünf
+Pflicht-Inputs kommen aus der Zustandsdatei; der Vorgänger bleibt eine bewusste
+Eingabe, weil er nie geraten wird. Das Skript prüft den Ref, zeigt die
+Bindungswerte und dispatcht erst, nachdem der Tag zur Bestätigung eingetippt
+wurde:
+
+```bash
+python scripts/release_dispatch.py publish --predecessor "$PREDECESSOR_TAG"
+```
 
 ```bash
 # Wie in Schritt 5 aus dem Kandidatenlauf abgeleitet: Schritt 8 liegt oft Tage
@@ -592,6 +650,17 @@ Dieser Schritt ist seit #919 im Regelfall **Prüfen und Protokollieren**: Tag,
 Update-Dispatch und Instanzpflege laufen im Publish- bzw. im davon ausgelösten
 Abnahme-Lauf. Die Handprozeduren bleiben als Rückfallwege darunter stehen und
 gelten unverändert, wenn die Automatisierung nicht greifen konnte.
+
+**Standardweg: `scripts/release_dispatch.py finalize`** (#1039). Er findet den
+vom Publish-Lauf ausgelösten Abnahme-Lauf über den Marker
+`update-check:<tag>:<candidate_run_id>`, wartet ihn ab, lädt die finale
+Release-Instanz und validiert sie bis `post-release`. War kein
+`predecessor_tag` gesetzt, meldet er den bewusst übersprungenen Nachweis, statt
+ihn zu fabrizieren — beide Update-Kriterien bleiben dann `PENDING`:
+
+```bash
+python scripts/release_dispatch.py finalize
+```
 
 `PUBLIC-DOWNLOAD-01` wird seit #916 nicht mehr von Hand erbracht: Der
 Nachweis-Job aus Schritt 8 hat alle fünf Assets bereits anonym über ihre
@@ -890,6 +959,7 @@ nur per PR zusammen mit Checklisten-/Workflow-Tests.
 
 | Datum | Änderung | Referenz |
 |---|---|---|
+| 2026-09-10 | Standardweg je Dispatch-Schritt über `scripts/release_dispatch.py` (Run-IDs und Manifestname aus der API statt von Hand kopiert, wiederanlauf-sicherer Dispatch, Zustandsdatei außerhalb des Arbeitsbaums); Handprozedur unverändert als Rückfallweg | #1039 |
 | 2026-09-10 | Wiederanlaufmatrix: eigene Zeile für den HTTP-429-Fall von `actions/checkout` bzw. `codeload.github.com` samt Action-Archiv-Cache; der Fall stand bisher nur in der Prosa der Prozessdiagramme | #1043 |
 | 2026-09-05 | Wiederanlaufmatrix: „auf demselben SHA" nur, solange die Behebung nicht im ausgeführten Kandidatenstand wirksam werden muss; sonst neuer Kandidat ab Schritt 1 (der Lauf führt die Definition des Release-Refs aus, ein gemergter Fix ist dort nicht enthalten); Zeile zu nicht entpackbaren Artefakten (#944) entsprechend geteilt, Schritt 4 verweist darauf | #987 (Codex-Review zu #985) |
 | 2026-08-31 | Tag-Anlage (`create_tag`), Post-Release-Update-Dispatch und Release-Instanz laufen im Publish- bzw. im davon ausgelösten Abnahme-Lauf; Schritt 9 ist Prüfen und Protokollieren, die Handprozeduren bleiben Rückfallwege | #919 |

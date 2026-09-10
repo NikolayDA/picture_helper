@@ -489,3 +489,73 @@ def test_runbook_separates_the_three_meanings_of_dry_run() -> None:
     step_one = RUNBOOK.split("### 1. Release vorbereiten", 1)[1].split("### 2. ", 1)[0]
     assert "release-linux.yml --event schedule" in step_one
     assert "RELEASE_AUTOMATION.md) §8" in step_one
+
+
+# ── #1039: Owner-Skript für die Dispatches ─────────────────────────────
+
+#: Runbook-Schritt → Unterkommando von ``scripts/release_dispatch.py``. Eine
+#: handgepflegte Kopie in zwei Dateien (Runbook und Skript-CLI); ohne Wächter
+#: nennte das Runbook einen Standardweg, den es nicht gibt.
+_DISPATCH_STANDARD_WAY = {
+    "3": "candidate",
+    "5": "acceptance",
+    "6": "approve",
+    "8": "publish",
+    "9": "finalize",
+}
+
+
+def _runbook_step(number: str) -> str:
+    """Text eines ``### <n>.``-Schritts bis zum nächsten Schritt bzw. Abschnitt.
+
+    Die Suche nach der Folgeüberschrift startet hinter der eigenen Zeile: Ein
+    naives ``rest[1:]`` liesse ``^## `` sofort auf dem verkürzten eigenen
+    ``###``-Kopf treffen und lieferte einen leeren Schritt.
+    """
+    head = re.search(rf"(?m)^### {re.escape(number)}\. ", RUNBOOK)
+    assert head, f"Runbook-Schritt {number} fehlt"
+    rest = RUNBOOK[head.start() :]
+    offset = rest.index("\n") + 1
+    following = re.search(r"(?m)^(?:### [1-9]\.|## )", rest[offset:])
+    return rest if following is None else rest[: offset + following.start()]
+
+
+def test_runbook_names_the_standard_way_for_every_dispatch_step() -> None:
+    """#1039: Je Schritt eine Standardweg-Zeile – und das Kommando muss es geben."""
+    script = ROOT / "scripts" / "release_dispatch.py"
+    assert script.is_file(), "das Owner-Skript fehlt, das Runbook nennt es aber"
+    source = script.read_text(encoding="utf-8")
+    for number, subcommand in _DISPATCH_STANDARD_WAY.items():
+        step = _runbook_step(number)
+        assert f"**Standardweg: `scripts/release_dispatch.py {subcommand}`**" in step, (
+            f"Runbook-Schritt {number} nennt den Standardweg {subcommand!r} nicht"
+        )
+        assert f"python scripts/release_dispatch.py {subcommand}" in step, (
+            f"Runbook-Schritt {number} zeigt den Aufruf von {subcommand!r} nicht"
+        )
+        assert f'add_parser("{subcommand}"' in source or f"add_parser(OP_{subcommand.upper()}" in (
+            source
+        ), f"{subcommand!r} ist kein Unterkommando von release_dispatch.py"
+
+
+def test_the_manual_procedure_stays_the_reference_next_to_the_standard_way() -> None:
+    """Der Standardweg ersetzt die Handprozedur nicht, er steht daneben.
+
+    Die vier gekoppelten `gh workflow run`-Dispatches sind bereits einzeln
+    gewächtert; hier zählt, dass sie **in denselben Schritten** stehen wie die
+    neuen Standardweg-Zeilen und dass das Runbook seinen Vorrang ausspricht.
+    """
+    for number in ("3", "5", "8"):
+        step = _runbook_step(number)
+        assert "&& gh workflow run" in step, (
+            f"Runbook-Schritt {number} hat seine Handprozedur verloren"
+        )
+    for number in ("6", "9"):
+        assert "gh run download" in _runbook_step(number), number
+    assert "Die Handprozedur bleibt vollständig" in RUNBOOK
+    assert "bei Widerspruch gilt sie, nicht das Skript" in RUNBOOK
+    # Das Skript darf die drei Release-Workflows und den Vertrag nicht anfassen
+    # (Nicht-Ziel des Issues) – es ruft sie nur auf.
+    automation = (ROOT / "docs" / "RELEASE_AUTOMATION.md").read_text(encoding="utf-8")
+    assert "### 4.4 Owner-Skript für die Dispatches (#1039)" in automation
+    assert "RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md) §4.4" in RUNBOOK

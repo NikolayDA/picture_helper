@@ -763,7 +763,7 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **siebzehn** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **achtzehn** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646),
   `scripts/abnahme_preflight.py`/`scripts/abnahme_watchdog.py` (#915),
   `scripts/verify_release_freeze.py`
@@ -773,6 +773,7 @@ Ein Paket, `bgremover/`:
   `scripts/public_download_check.py` (#916),
   `scripts/qt_gl_probe.py` (#934),
   `scripts/release_update_dispatch.py` (#919),
+  `scripts/release_dispatch.py` (#1039),
   `scripts/scan_release_artifacts.py` (#920),
   `scripts/runner_heartbeat.py` (#921),
   `scripts/check_install_provenance.py` (#1031),

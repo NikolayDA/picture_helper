@@ -811,6 +811,63 @@ wird trotzdem geschrieben und hochgeladen, weil sie genau dann die Evidenz des
 Fehlschlags ist. Ein Lauf ohne `publish_run_id` lässt die Instanzpflege
 unverändert aus.
 
+### 4.4 Owner-Skript für die Dispatches (#1039)
+
+`scripts/release_dispatch.py` ist der **Standardweg** für Runbook-Schritt 3, 5,
+6, 8 und 9 — ein Befehl je Schritt statt handkopierter Run-IDs und
+Artefaktnamen (#914 nennt genau dieses Kopieren als fehleranfällig). Es läuft
+lokal beim Release-Owner, nicht in einem Workflow, und braucht nur `gh`.
+
+**Was es nicht ist.** Es ist keine Verkettung: `approve` geht nie von selbst zum
+Publish über, und `publish` dispatcht erst, nachdem der Tag zur Bestätigung
+eingetippt wurde. Es ändert weder `release-linux.yml`, `release-abnahme.yml`,
+`release-publish.yml` noch `scripts/release_contract.py`; der Freigabevertrag
+(genau ein Build-Lauf ↔ genau ein Abnahme-Lauf), die Wiederanlaufmatrix und die
+testfixierte Regel, dass nur zwei Workflows Self-hosted-Runner ansprechen,
+bleiben unberührt. Die Handprozedur im Runbook ist vollständig und gilt bei
+Widerspruch.
+
+| Unterkommando | Runbook | Ergebnis im Zustand |
+|---|---|---|
+| `candidate --version --candidate-sha --target-issue` | Schritt 3 | `candidate_run_id` |
+| `acceptance` | Schritt 5 | `acceptance_run_id`, `approval_artifact_name` |
+| `approve` | Schritt 6 | nichts (zeigt nur) |
+| `publish --predecessor` | Schritt 8 | `publish_run_id`, `predecessor_tag` |
+| `finalize` | Schritt 9 | `update_acceptance_run_id` |
+
+Vier Eigenschaften tragen den Aufbau:
+
+- **Korrelation statt Abschreiben.** `workflow_dispatch` antwortet mit HTTP 204
+  ohne Run-ID. Das Skript erfasst deshalb **vor** dem Dispatch die bekannten
+  Run-IDs und akzeptiert danach genau **einen neuen** Lauf mit passendem
+  Workflow, `event == workflow_dispatch`, Release-Ref, Kandidaten-SHA und
+  Erstellungszeit nach dem Dispatch; beim Abnahme-Lauf zusätzlich über den
+  `dispatch_marker` im `run-name`. Null Treffer heißt weiter warten, mehrere
+  heißt benannt abbrechen — nie „nimm den jüngsten".
+- **Wiederanlauf ohne zweiten Lauf.** Vor jedem Dispatch wird ein
+  `pending`-Eintrag atomar geschrieben. Bricht das Skript zwischen HTTP 204 und
+  Korrelation ab, sucht der nächste Aufruf zuerst nach dem Lauf und dispatcht
+  nur, wenn wirklich keiner existiert.
+- **Manifestname aus der Artefaktliste.** `release-abnahme.yml` legt das
+  Manifest als `release-approval-manifest-<run_attempt>` ab. Das Skript liest
+  den `run_attempt` des beobachteten Laufs und verlangt genau ein nicht
+  abgelaufenes Artefakt dieses Namens.
+- **Kandidatenrevision statt Arbeitsbaum.** `approve` und `finalize` holen
+  `release_contract.py` und die Abnahme-Checkliste per `git show` aus dem
+  Kandidaten-Commit — die Instanz pinnt deren Dateihash, ein
+  weiterentwickelter Vertrag prüfte einen anderen Stand als den abgenommenen.
+
+**Zustandsdatei.** Standardmäßig `$XDG_STATE_HOME/bgremover/release-dispatch.json`
+(sonst `~/.local/state/...`), Modus `0600`, atomar geschrieben, mit Schema und
+Art. Bewusst außerhalb des Arbeitsbaums: Im Repository wäre sie ein unbekannter
+Pfad für das Freeze-Gate. Run-IDs sind keine Secrets, aber beschädigter oder
+fremder Zustand ist fail-closed — ein Kommando, dessen Repository, Version, Ref
+oder Kandidaten-SHA vom gespeicherten abweicht, bricht ab, statt Bindungswerte
+zweier Releases zu mischen.
+
+Regressionstests: `tests/test_release_dispatch.py` (gemocktes `gh`),
+Doku-Bindung in `tests/test_release_governance.py`.
+
 ## 5. Pausiert: Linux x86_64 (GPU)
 
 **Entscheidung vom 2026-07-20:** Es besteht bis auf weiteres kein Zugang zu

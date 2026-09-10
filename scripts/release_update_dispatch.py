@@ -115,6 +115,16 @@ def dispatch_marker(*, tag: str, candidate_run_id: str) -> str:
     return f"update-check:{tag}:{candidate_run_id}"
 
 
+def marker_pattern(marker: str) -> re.Pattern[str]:
+    """Abgegrenztes Vorkommen eines Markers im ``displayTitle``.
+
+    Oeffentlich, weil ``scripts/release_dispatch.py`` (#1039) genau diese
+    Abgrenzung braucht und eine zweite Kopie der beiden Randregeln der sichere
+    Weg in denselben Fehler waere, den ``_MARKER_END`` verhindert.
+    """
+    return re.compile(rf"{_MARKER_START}{re.escape(marker)}{_MARKER_END}")
+
+
 def select_marked_run(runs: object, *, marker: str) -> RunRef | None:
     """Findet den Lauf, der den Marker in seinem ``displayTitle`` traegt.
 
@@ -130,7 +140,7 @@ def select_marked_run(runs: object, *, marker: str) -> RunRef | None:
     """
     if not isinstance(runs, list):
         raise DispatchError("Laufliste ist keine Liste")
-    pattern = re.compile(rf"{_MARKER_START}{re.escape(marker)}{_MARKER_END}")
+    pattern = marker_pattern(marker)
     for item in runs:
         if not isinstance(item, dict):
             continue

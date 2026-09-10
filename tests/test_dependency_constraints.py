@@ -197,12 +197,20 @@ def test_constraints_pin_patched_idna() -> None:
     assert Version("3.11") not in spec  # die im System vorgefundene Altversion
 
 
-def test_dependency_audit_pr_trigger_is_not_path_filtered() -> None:
-    """Required PR check must start even for docs-only changes.
+def test_dependency_audit_pr_trigger_is_bound_to_its_own_inputs() -> None:
+    """Der PR-Lauf startet seit #1038 nur bei Änderung an seinen Eingaben.
 
-    GitHub leaves required checks in an "Expected" state when a workflow is
-    skipped by a pull_request paths filter, so the dependency audit deliberately
-    runs for every PR.
+    Die Vorgängerfassung dieses Tests verlangte das Gegenteil: keinen
+    Pfadfilter, weil GitHub einen wegen Pfadfilter übersprungenen
+    **erforderlichen** Check dauerhaft auf "Expected" stehen lässt. Diese
+    Vorbedingung gilt weiterhin — sie ist nur nicht mehr hier verankert,
+    sondern in ``tests/test_ci_workflow_yaml.py``, das für *alle* Workflows
+    prüft, dass kein pfadgefilterter den Pflichtstatus-Jobnamen trägt.
+
+    Hier zählt der fachliche Teil: Der Filter muss genau die Eingaben des
+    Audits abdecken (Deklaration und gepinnter Snapshot), und der wöchentliche
+    Frische-Lauf muss ungefiltert bleiben — eine CVE entsteht ohne jede
+    Dateiänderung.
     """
     workflow = (ROOT / ".github/workflows/dependency-audit.yml").read_text(
         encoding="utf-8"
@@ -211,6 +219,10 @@ def test_dependency_audit_pr_trigger_is_not_path_filtered() -> None:
     pull_request_block = trigger_block.split("pull_request:", 1)[1].split(
         "schedule:", 1
     )[0]
+    schedule_block = trigger_block.split("schedule:", 1)[1]
 
-    assert "paths:" not in pull_request_block
+    assert "paths:" in pull_request_block
     assert "paths-ignore:" not in pull_request_block
+    for required in ("pyproject.toml", "requirements/**", ".github/workflows/dependency-audit.yml"):
+        assert required in pull_request_block, required
+    assert "paths" not in schedule_block, "der wöchentliche Frische-Lauf darf nicht filtern"
