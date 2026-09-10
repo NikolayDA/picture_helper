@@ -182,8 +182,9 @@ def test_freshness_triggers_stay_unfiltered(name: str) -> None:
 def test_required_status_guard_would_catch_a_real_violation(tmp_path: Path) -> None:
     """Negativkontrolle: Der Wächter oben prüft echte Dateien und wäre sonst tot.
 
-    Beide Verstöße werden nachgestellt – ein Filter im Pflicht-Workflow und
-    ein in einen gefilterten Workflow gewanderter Pflicht-Jobname.
+    Aufgerufen wird der **Wächter selbst**, nicht nur seine Helfer – sonst
+    bliebe die Kontrolle eine Aussage über das Prädikat statt über die Regel
+    (Review #1067).
     """
     offender = tmp_path / "offender.yml"
     offender.write_text(
@@ -197,8 +198,8 @@ def test_required_status_guard_would_catch_a_real_violation(tmp_path: Path) -> N
         "    runs-on: ubuntu-latest\n",
         encoding="utf-8",
     )
-    assert _pull_request_is_path_filtered(_triggers(offender))
-    assert _REQUIRED_STATUS_JOB_NAME in _job_names(offender)
+    with pytest.raises(AssertionError, match=_REQUIRED_STATUS_JOB_NAME):
+        test_no_path_filtered_workflow_carries_the_required_status_job(offender)
 
     clean = tmp_path / "clean.yml"
     clean.write_text(
@@ -212,4 +213,7 @@ def test_required_status_guard_would_catch_a_real_violation(tmp_path: Path) -> N
         "    runs-on: ubuntu-latest\n",
         encoding="utf-8",
     )
+    # Derselbe Pflicht-Jobname ohne Filter ist erlaubt – der Wächter kehrt
+    # ohne Befund zurück (das ist die Lage von pr-ci.yml).
+    test_no_path_filtered_workflow_carries_the_required_status_job(clean)
     assert not _pull_request_is_path_filtered(_triggers(clean))

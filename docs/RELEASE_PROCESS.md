@@ -578,6 +578,12 @@ wurde:
 python scripts/release_dispatch.py publish --predecessor "$PREDECESSOR_TAG"
 ```
 
+`--predecessor` ist pflichtig, akzeptiert aber ausdrücklich den leeren Wert:
+`--predecessor ''` lässt den Post-Release-Update-Nachweis wie ein leeres
+`predecessor_tag` im Workflow aus, und beide Update-Kriterien bleiben `PENDING`.
+Pflichtig bleibt es, damit Vergessen und bewusster Verzicht nicht dasselbe
+Kommando sind; die Bestätigungsanzeige benennt den Verzicht ausdrücklich.
+
 ```bash
 # Wie in Schritt 5 aus dem Kandidatenlauf abgeleitet: Schritt 8 liegt oft Tage
 # und eine neue Shell spaeter, in der CANDIDATE_SHA nicht mehr gesetzt ist.

@@ -179,9 +179,9 @@ def make_context(
 ) -> rd.Context:
     sink = commands if commands is not None else []
 
-    def command(argv: Sequence[str]) -> str:
+    def command(argv: Sequence[str]) -> bytes:
         sink.append(list(argv))
-        return ""
+        return b""
 
     return rd.Context(
         runner=gh,
@@ -504,7 +504,9 @@ def test_a_pending_dispatch_of_another_operation_blocks(tmp_path: Path) -> None:
             recorded_at=EARLIER,
         ),
     )
-    gh = FakeGh()
+    gh = FakeGh(api_runs={
+        CANDIDATE_RUN: api_run(CANDIDATE_RUN, workflow=".github/workflows/release-linux.yml")
+    })
     with pytest.raises(rd.DispatchError, match="Offener Dispatch der Operation"):
         rd.cmd_acceptance(make_context(tmp_path, gh), repo=REPO)
     assert gh.dispatches == []
@@ -544,9 +546,12 @@ def _acceptance_gh(*, attempt: int = 1, artifacts: list[dict[str, Any]] | None =
     return FakeGh(
         post_runs=[run_entry(ACCEPTANCE_RUN, title=f"Release-Abnahme alle [{marker}]")],
         api_runs={
+            CANDIDATE_RUN: api_run(
+                CANDIDATE_RUN, workflow=".github/workflows/release-linux.yml"
+            ),
             ACCEPTANCE_RUN: api_run(
                 ACCEPTANCE_RUN, workflow=".github/workflows/release-abnahme.yml", attempt=attempt
-            )
+            ),
         },
         artifacts={
             ACCEPTANCE_RUN: artifacts
@@ -624,17 +629,17 @@ def test_approve_uses_contract_and_checklist_of_the_candidate_revision(tmp_path:
     download.mkdir(parents=True)
     (download / "release-approval-manifest.json").write_text("{}", encoding="utf-8")
 
-    def command(argv: Sequence[str]) -> str:
+    def command(argv: Sequence[str]) -> bytes:
         commands.append(list(argv))
         if argv[:2] == ["git", "-C"]:
-            return "# Kandidatenrevision\n"
+            return b"# Kandidatenrevision\n"
         if "extract-instance" in argv:
             Path(argv[argv.index("--output") + 1]).write_text(
                 json.dumps({"criteria": [{"id": "BUILD-01", "phase": "pre-release",
                                           "requirement": "MUST", "status": "PASS"}]}),
                 encoding="utf-8",
             )
-        return ""
+        return b""
 
     gh = FakeGh()
     ctx = rd.Context(
@@ -734,7 +739,7 @@ def test_publish_accepts_the_typed_tag_as_confirmation(tmp_path: Path) -> None:
     assert len(gh.dispatches) == 1
 
 
-@pytest.mark.parametrize("predecessor", ["2.9.0", "", TAG], ids=["kein-v", "leer", "selbst"])
+@pytest.mark.parametrize("predecessor", ["2.9.0", "v2.9", TAG], ids=["kein-v", "unvollständig", "selbst"])
 def test_publish_never_guesses_the_predecessor(tmp_path: Path, predecessor: str) -> None:
     _publish_state(tmp_path)
     gh = _publish_gh()
@@ -806,7 +811,7 @@ def test_finalize_reports_the_skipped_proof_instead_of_fabricating_it(tmp_path: 
     messages: list[str] = []
     gh = FakeGh()
     ctx = rd.Context(
-        runner=gh, command=lambda _a: "", watcher=lambda _r: 0,
+        runner=gh, command=lambda _a: b"", watcher=lambda _r: 0,
         state_path=tmp_path / "state.json", repo_dir=ROOT,
         echo=messages.append, sleep=lambda _s: None, confirm=lambda _p: "",
     )
@@ -947,3 +952,156 @@ def test_a_correlated_publish_run_is_reattached(tmp_path: Path) -> None:
     )
     assert gh.dispatches == []
     assert state.publish_run_id == PUBLISH_RUN
+
+
+# ── Review #1067: die vier Bot-Befunde ─────────────────────────────────
+
+
+def test_the_candidate_revision_lands_byte_identical(tmp_path: Path) -> None:
+    """Befund 1: Die Instanz pinnt den SHA-256 der Checkliste – über **Bytes**.
+
+    Ein Text-Kanal dekodierte den `git show`-Blob mit
+    ``locale.getpreferredencoding`` und übersetzte Zeilenenden; unter
+    ``LC_ALL=C`` wäre das entweder ein `UnicodeDecodeError` oder eine Datei,
+    deren Hash nicht mehr zur Kandidatenrevision passt. Der Fehler fiele erst
+    in Runbook-Schritt 6 auf und sähe wie ein inhaltlicher Drift aus.
+    """
+    #: Umlaute (Mehrbyte-UTF-8) und ein CRLF – beides überlebt einen
+    #: Text-Kanal nicht unverändert.
+    blob = "## Abnahme – Prüfung\r\nZeile\n".encode()
+    delivered: dict[str, bytes] = {}
+
+    def command(argv: Sequence[str]) -> bytes:
+        return blob
+
+    contract, checklist = rd.materialize_candidate_sources(
+        command, repo_dir=ROOT, candidate_sha=SHA, target=tmp_path / "c"
+    )
+    for path in (contract, checklist):
+        delivered[path.name] = path.read_bytes()
+    assert delivered == {"release_contract.py": blob, "RELEASE_ACCEPTANCE_CHECKLIST.md": blob}
+    import hashlib
+    assert hashlib.sha256(checklist.read_bytes()).hexdigest() == hashlib.sha256(blob).hexdigest()
+
+
+def test_the_real_command_channel_returns_raw_bytes(tmp_path: Path) -> None:
+    """Der produktive Kanal selbst – sonst prüfte der Test oben nur sein Mock."""
+    raw = rd._command([sys.executable, "-c", "import sys; sys.stdout.buffer.write(b'\\xc3\\xa4\\r\\n')"])
+    assert raw == b"\xc3\xa4\r\n"
+
+
+def test_a_deliberately_empty_predecessor_is_a_reachable_state(tmp_path: Path) -> None:
+    """Befund 2: ``release-publish.yml`` führt ``predecessor_tag`` als optional.
+
+    Ohne diesen Weg wäre der Überspringen-Zweig in ``finalize`` über die eigenen
+    Kommandos unerreichbar – er stünde nur in der Doku.
+    """
+    _publish_state(tmp_path)
+    gh = _publish_gh()
+    messages: list[str] = []
+    ctx = make_context(tmp_path, gh)
+    state = rd.cmd_publish(
+        rd.Context(
+            runner=gh, command=ctx.command, watcher=ctx.watcher, state_path=ctx.state_path,
+            repo_dir=ctx.repo_dir, echo=messages.append, sleep=ctx.sleep, confirm=ctx.confirm,
+        ),
+        repo=REPO, predecessor_tag="", assume_yes=True,
+    )
+    assert gh.dispatch_input(0, "predecessor_tag") == ""
+    assert state.predecessor_tag == ""
+    # Die Bestätigungsanzeige sagt ausdrücklich, was das bedeutet.
+    joined = " ".join(messages)
+    assert "keiner" in joined and "PENDING" in joined
+
+    # ... und der finalize-Zweig ist damit über die eigenen Kommandos erreichbar.
+    quiet: list[str] = []
+    rd.cmd_finalize(
+        rd.Context(
+            runner=FakeGh(), command=ctx.command, watcher=ctx.watcher,
+            state_path=ctx.state_path, repo_dir=ctx.repo_dir, echo=quiet.append,
+            sleep=ctx.sleep, confirm=ctx.confirm,
+        ),
+        repo=REPO,
+    )
+    assert "nicht auf PASS" in " ".join(quiet)
+
+
+def test_omitting_the_predecessor_is_not_the_same_as_skipping_it() -> None:
+    """Vergessen und Verzichten dürfen nicht dasselbe Kommando sein."""
+    with pytest.raises(SystemExit):
+        rd._parser().parse_args(["publish"])
+    assert rd._parser().parse_args(["publish", "--predecessor", ""]).predecessor == ""
+
+
+def test_a_foreign_dispatch_error_becomes_a_named_abort(tmp_path: Path) -> None:
+    """Befund 3: ``release_update_dispatch`` wirft seine **eigene** Fehlerklasse.
+
+    Sie entkäme dem ``except DispatchError`` in ``main`` und endete als
+    Traceback mit Exit 1 – ausgerechnet in Schritt 9.
+    """
+    seeded_state(
+        tmp_path,
+        candidate_run_id=CANDIDATE_RUN,
+        publish_run_id=PUBLISH_RUN,
+        predecessor_tag="v2.9.0",
+    )
+
+    class BrokenListing(FakeGh):
+        def __call__(self, args: Sequence[str]) -> str:
+            if args[:2] == ["run", "list"]:
+                return '{"kein": "array"}'  # rud.DispatchError: "Laufliste ist keine Liste"
+            return super().__call__(args)
+
+    with pytest.raises(rd.DispatchError, match="Suche nach dem Update-Abnahmelauf"):
+        rd.cmd_finalize(make_context(tmp_path, BrokenListing()), repo=REPO)
+
+    class BrokenJson(FakeGh):
+        def __call__(self, args: Sequence[str]) -> str:
+            if args[:2] == ["run", "list"]:
+                return "{kaputt"
+            return super().__call__(args)
+
+    with pytest.raises(rd.DispatchError, match="Suche nach dem Update-Abnahmelauf"):
+        rd.cmd_finalize(make_context(tmp_path, BrokenJson()), repo=REPO)
+
+
+def test_main_turns_every_named_abort_into_exit_2(tmp_path: Path, capsys) -> None:
+    """Der Vertrag des Moduls: benannter Abbruch, nie ein Traceback."""
+    code = rd.main(["--state-file", str(tmp_path / "fehlt.json"), "acceptance"])
+    assert code == 2
+    assert "FEHLER:" in capsys.readouterr().err
+
+
+def test_acceptance_refuses_a_failed_candidate_run_before_the_hardware(tmp_path: Path) -> None:
+    """Befund 4: Ein roter Kandidatenbau lässt seine Run-ID im Zustand zurück.
+
+    Dispatcht der Owner danach von Hand neu, kennt der Zustand die neue ID
+    nicht. Ohne diese Vorprüfung ginge die alte, gescheiterte in die Abnahme –
+    fail-closed erst nach einem vollständigen Anlauf auf echter Hardware.
+    """
+    seeded_state(tmp_path, candidate_run_id=CANDIDATE_RUN)
+    failed = api_run(CANDIDATE_RUN, workflow=".github/workflows/release-linux.yml")
+    failed["conclusion"] = "failure"
+    gh = FakeGh(api_runs={CANDIDATE_RUN: failed})
+    with pytest.raises(rd.DispatchError, match="kein gueltiger release-linux.yml-Lauf"):
+        rd.cmd_acceptance(make_context(tmp_path, gh), repo=REPO)
+    assert gh.dispatches == []
+
+
+def test_a_red_candidate_run_names_the_state_file_in_its_error(tmp_path: Path) -> None:
+    """Der Fehlertext muss sagen, dass ein neuer Bau die Zustandsdatei betrifft."""
+    gh = _candidate_gh()
+    with pytest.raises(rd.DispatchError, match="--state-file"):
+        rd.cmd_candidate(
+            make_context(tmp_path, gh, watch_code=1),
+            repo=REPO, version=VERSION, candidate_sha=SHA, target_issue=ISSUE,
+        )
+
+
+def test_pending_run_ids_reject_booleans_like_the_state_fields(tmp_path: Path) -> None:
+    with pytest.raises(rd.DispatchError, match="positiver Ganzzahlen"):
+        rd.PendingDispatch.from_json({
+            "operation": "candidate", "workflow": "w", "ref": REF,
+            "expected_head_sha": SHA, "marker": "", "not_before": EARLIER,
+            "known_run_ids": [True], "recorded_at": EARLIER,
+        })

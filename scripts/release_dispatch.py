@@ -163,7 +163,16 @@ def parse_github_timestamp(value: object, *, field: str) -> datetime:
 #: (Muster aus ``scripts/release_update_dispatch.py``).
 Runner = Callable[[Sequence[str]], str]
 #: Ein beliebiges Kommando mit vollstaendiger Argumentliste (``git``/``python``).
-Command = Callable[[Sequence[str]], str]
+#: Liefert **Bytes**, nicht Text: ``git show <rev>:<pfad>`` gibt den Blob roh
+#: heraus, und die Abnahme-Checkliste ist ueber ihren SHA-256 in der
+#: Release-Instanz gepinnt (``release_contract.validate_release_instance``
+#: vergleicht ``_sha256_file``). Ein ``text=True``-Kanal dekodierte mit
+#: ``locale.getpreferredencoding`` und uebersetzte Zeilenenden – unter
+#: ``LC_ALL=C`` ergaebe das entweder einen ``UnicodeDecodeError`` oder eine
+#: Datei, deren Hash nicht mehr zur Kandidatenrevision passt. Der Fehler faende
+#: sich erst am Release-Tag in Schritt 6, und seine Meldung saehe wie ein
+#: inhaltlicher Checklisten-Drift aus.
+Command = Callable[[Sequence[str]], bytes]
 #: Ein streamendes Kommando – ``gh run watch`` schreibt direkt auf das Terminal
 #: und liefert nur seinen Exit-Code.
 Watcher = Callable[[int], int]
@@ -203,12 +212,14 @@ def _gh(args: Sequence[str]) -> str:
     return result.stdout
 
 
-def _command(argv: Sequence[str]) -> str:
-    result = subprocess.run(list(argv), capture_output=True, text=True, check=False)
+def _command(argv: Sequence[str]) -> bytes:
+    # Ohne ``text=True``: siehe Vertrag von ``Command``. Nur die Fehlermeldung
+    # wird dekodiert, und dort verlustfrei-tolerant.
+    result = subprocess.run(list(argv), capture_output=True, check=False)
     if result.returncode != 0:
+        detail = (result.stderr or result.stdout).decode("utf-8", "replace").strip()
         raise DispatchError(
-            f"{render_command(argv)} scheiterte (Exit {result.returncode}): "
-            f"{result.stderr.strip() or result.stdout.strip()}"
+            f"{render_command(argv)} scheiterte (Exit {result.returncode}): {detail}"
         )
     return result.stdout
 
@@ -265,8 +276,12 @@ class PendingDispatch:
             raise DispatchError("pending-Eintrag ist kein Objekt")
         entry: dict[str, Any] = payload
         ids = entry.get("known_run_ids")
-        if not isinstance(ids, list) or any(not isinstance(i, int) for i in ids):
-            raise DispatchError("pending.known_run_ids ist keine Liste von Ganzzahlen")
+        # ``isinstance(True, int)`` ist wahr – ``bool`` deshalb ausdruecklich
+        # abweisen, wie in ``_optional_run_id``.
+        if not isinstance(ids, list) or any(
+            not isinstance(i, int) or isinstance(i, bool) or i <= 0 for i in ids
+        ):
+            raise DispatchError("pending.known_run_ids ist keine Liste positiver Ganzzahlen")
         return PendingDispatch(
             operation=_text(entry.get("operation"), "pending.operation"),
             workflow=_text(entry.get("workflow"), "pending.workflow"),
@@ -712,13 +727,16 @@ def reconcile_or_dispatch(
     return replace(state, pending=None), found
 
 
-def watch(watcher: Watcher, run: RunRef, *, echo: Callable[[str], None] = print) -> None:
+def watch(
+    watcher: Watcher, run: RunRef, *, echo: Callable[[str], None] = print, hint: str = ""
+) -> None:
     """Wartet auf das Ende des Laufs; ein roter Lauf bricht benannt ab."""
     code = watcher(run.run_id)
     if code != 0:
         raise DispatchError(
             f"Lauf {run.run_id} ist nicht erfolgreich beendet (gh run watch Exit {code}): "
             f"{run.url}. Runbook 'Wiederanlaufmatrix' anwenden – nicht blind wiederholen."
+            + (f" {hint}" if hint else "")
         )
     echo(f"Lauf {run.run_id} erfolgreich: {run.url}")
 
@@ -856,7 +874,9 @@ def materialize_candidate_sources(
                 f"({exc}). Revision holen: git fetch origin '+refs/heads/*:refs/remotes/origin/*'"
             ) from exc
         path = target / name
-        path.write_text(blob, encoding="utf-8")
+        # ``write_bytes``: Die Datei muss byteidentisch zur Kandidatenrevision
+        # sein, sonst schlaegt der Checklisten-Hash der Instanz fehl.
+        path.write_bytes(blob)
         written.append(path)
     return written[0], written[1]
 
@@ -979,7 +999,17 @@ def cmd_candidate(
     state = replace(state, candidate_run_id=run.run_id)
     save_state(ctx.state_path, state)
 
-    watch(ctx.watcher, run, echo=ctx.echo)
+    watch(
+        ctx.watcher,
+        run,
+        echo=ctx.echo,
+        hint=(
+            f"Die Run-ID steht bereits in {ctx.state_path}; ein weiterer 'candidate'-Aufruf "
+            "beobachtet genau diesen Lauf erneut, statt einen zweiten zu starten. Soll ein "
+            "neuer Bau auf demselben SHA laufen (Wiederanlaufmatrix), gehoert er in einen "
+            "eigenen Zustand: --state-file setzen oder die Datei bewusst entfernen."
+        ),
+    )
     validate_run(
         ctx.runner,
         repo=repo,
@@ -1008,6 +1038,23 @@ def cmd_acceptance(ctx: Context, *, repo: str) -> ReleaseState:
         )
 
     verify_release_ref(ctx.runner, repo=repo, ref=state.ref, expected_sha=state.candidate_sha)
+    # Die gespeicherte Kandidaten-Run-ID **vor** dem Hardware-Lauf gegen den
+    # Freigabevertrag halten, nicht erst danach. Der Fall dahinter ist real: Ein
+    # roter Kandidatenbau hinterlaesst seine Run-ID im Zustand (sie wird vor dem
+    # Beobachten geschrieben, damit ein Abbruch keinen zweiten Lauf erzeugt).
+    # Dispatcht der Owner danach laut Wiederanlaufmatrix von Hand neu, kennt der
+    # Zustand die neue ID nicht – ``acceptance`` schickte die alte, gescheiterte
+    # in die Abnahme. ``candidate-source`` weist sie dort zwar ab (derselbe
+    # ``validate_workflow_run``-Vertrag), aber erst nach einem vollstaendigen
+    # Anlauf auf Self-hosted-Hardware und mit einem Befund, der nicht nach
+    # "falsche Run-ID" aussieht.
+    validate_run(
+        ctx.runner,
+        repo=repo,
+        run_id=state.candidate_run_id,
+        workflow=BUILD_WORKFLOW,
+        expected_head_sha=state.candidate_sha,
+    )
     marker = acceptance_marker(tag=state.tag, candidate_run_id=state.candidate_run_id)
     state, run = reconcile_or_dispatch(
         ctx.runner,
@@ -1116,10 +1163,18 @@ def cmd_publish(
             "Schritte 3 und 5 ueber dieses Skript fahren oder die Werte von Hand "
             "nach Runbook-Schritt 8 einsetzen."
         )
-    if not _TAG_RE.fullmatch(predecessor_tag):
+    # Leer ist ein **gueltiger, ausdruecklicher** Wert: ``release-publish.yml``
+    # fuehrt ``predecessor_tag`` als optional ("Leer = kein Dispatch;
+    # UPDATE-LINUX-ARM-01/UPDATE-MACOS-ARM-01 bleiben PENDING"), und genau dieser
+    # Zustand tritt auf, wenn der Vorgaenger den In-Prozess-Hook noch nicht
+    # traegt (macOS < 2.7.3) oder keiner existiert. Das Argument bleibt
+    # trotzdem **pflichtig**: Vergessen und bewusst Ueberspringen duerfen nicht
+    # dasselbe Kommando sein – wer den Nachweis auslaesst, tippt ``--predecessor ''``.
+    if predecessor_tag and not _TAG_RE.fullmatch(predecessor_tag):
         raise DispatchError(
             f"--predecessor {predecessor_tag!r} entspricht nicht dem Schema vX.Y.Z. Der "
-            "Vorgaenger wird nie geraten – ohne ihn bleiben beide Update-Kriterien PENDING."
+            "Vorgaenger wird nie geraten – fuer einen bewussten Verzicht --predecessor '' "
+            "angeben; beide Update-Kriterien bleiben dann PENDING."
         )
     if predecessor_tag == state.tag:
         raise DispatchError(
@@ -1128,6 +1183,9 @@ def cmd_publish(
         )
 
     verify_release_ref(ctx.runner, repo=repo, ref=state.ref, expected_sha=state.candidate_sha)
+    predecessor_note = predecessor_tag or (
+        "keiner – Update-Nachweis wird uebersprungen, beide Kriterien bleiben PENDING"
+    )
     ctx.echo(
         "Veroeffentlicht wird:\n"
         f"  Repository            {repo}\n"
@@ -1137,7 +1195,7 @@ def cmd_publish(
         f"  Kandidaten-Lauf       {state.candidate_run_id}\n"
         f"  Abnahme-Lauf          {state.acceptance_run_id}\n"
         f"  Freigabemanifest      {state.approval_artifact_name}\n"
-        f"  Vorgaenger            {predecessor_tag}\n"
+        f"  Vorgaenger            {predecessor_note}\n"
         f"  Release-Issue         {state.release_issue}"
     )
     if not assume_yes:
@@ -1198,7 +1256,19 @@ def cmd_finalize(ctx: Context, *, repo: str, work_dir: Path | None = None) -> Re
     marker = rud.dispatch_marker(
         tag=state.tag, candidate_run_id=str(state.candidate_run_id)
     )
-    found = rud.find_existing_run(ctx.runner, repo=repo, marker=marker)
+    try:
+        found = rud.find_existing_run(ctx.runner, repo=repo, marker=marker)
+    except (rud.DispatchError, json.JSONDecodeError) as exc:
+        # ``release_update_dispatch`` fuehrt eine **eigene** DispatchError-Klasse
+        # und liest die Laufliste ungeschuetzt mit ``json.loads``. Beides
+        # entkaeme dem ``except DispatchError`` in ``main`` und endete als
+        # Traceback – ausgerechnet in Schritt 9, wo dieses Modul benannte
+        # Abbrueche mit naechstem Schritt zusichert.
+        raise DispatchError(
+            f"Suche nach dem Update-Abnahmelauf (Marker {marker}) scheiterte: {exc}. "
+            "Laufliste in der Actions-Uebersicht pruefen; sonst gilt der Rueckfallweg "
+            "aus Runbook-Schritt 9."
+        ) from exc
     if found is None:
         raise DispatchError(
             f"Kein Abnahme-Lauf mit Marker {marker} gefunden. Der Publish-Lauf sollte ihn "
@@ -1288,7 +1358,7 @@ _CLI_EPILOG: Final = """Runbook-Schritte:
   3  candidate --version X.Y.Z --candidate-sha <SHA> --target-issue N
   5  acceptance
   6  approve
-  8  publish --predecessor vA.B.C
+  8  publish --predecessor vA.B.C   (--predecessor '' laesst den Nachweis aus)
   9  finalize
 """
 
@@ -1332,7 +1402,15 @@ def _parser() -> argparse.ArgumentParser:
     approve.add_argument("--work-dir", type=Path, default=None)
 
     publish = commands.add_parser(OP_PUBLISH, help="Runbook-Schritt 8: veroeffentlichen")
-    publish.add_argument("--predecessor", required=True, help="Vorgaenger-Tag vA.B.C.")
+    publish.add_argument(
+        "--predecessor",
+        required=True,
+        help=(
+            "Vorgaenger-Tag vA.B.C fuer den Post-Release-Update-Nachweis. "
+            "Ausdruecklich leer ('') laesst ihn aus; beide Update-Kriterien bleiben "
+            "dann PENDING. Pflichtangabe, damit Vergessen und Verzicht sich unterscheiden."
+        ),
+    )
     publish.add_argument(
         "--yes",
         action="store_true",

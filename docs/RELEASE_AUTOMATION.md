@@ -856,6 +856,22 @@ Vier Eigenschaften tragen den Aufbau:
   `release_contract.py` und die Abnahme-Checkliste per `git show` aus dem
   Kandidaten-Commit — die Instanz pinnt deren Dateihash, ein
   weiterentwickelter Vertrag prüfte einen anderen Stand als den abgenommenen.
+  Der Blob wird dabei als **Bytes** durchgereicht und mit `write_bytes`
+  abgelegt: `validate_release_instance` vergleicht den Checklisten-Hash über
+  Bytes, ein Text-Kanal hätte unter `LC_ALL=C` entweder abgebrochen oder eine
+  Datei mit abweichendem Hash erzeugt (Review #1067).
+
+Zwei Werte sind bewusst pflichtig, obwohl sie leer sein dürfen bzw. schon im
+Zustand stehen: `--candidate-sha` (Schritt 2 ist die unabhängige Quelle) und
+`--predecessor`. Letzteres nimmt den leeren Wert ausdrücklich an —
+`--predecessor ''` lässt den Post-Release-Nachweis aus, genau wie ein leeres
+`predecessor_tag` im Workflow, und beide Update-Kriterien bleiben `PENDING`.
+Pflichtig bleibt es, damit Vergessen und Verzicht nicht dasselbe Kommando sind.
+Vor dem Abnahme-Dispatch prüft `acceptance` zusätzlich die gespeicherte
+Kandidaten-Run-ID gegen denselben `validate_workflow_run`-Vertrag, den
+`candidate-source` später ohnehin fährt — ein roter Kandidatenbau hinterlässt
+seine Run-ID im Zustand, und ohne diese Vorprüfung fiele das erst nach einem
+vollständigen Anlauf auf Self-hosted-Hardware auf.
 
 **Zustandsdatei.** Standardmäßig `$XDG_STATE_HOME/bgremover/release-dispatch.json`
 (sonst `~/.local/state/...`), Modus `0600`, atomar geschrieben, mit Schema und
