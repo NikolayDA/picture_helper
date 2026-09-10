@@ -1,10 +1,27 @@
 name: License Check
 
+# Pfadfilter nur auf Pull Requests (#1038). Vorbedingung: ``Lightweight PR
+# checks`` ist der einzige erforderliche Branch-Protection-Status – ein
+# pfadgefilterter *Pflicht*-Check bliebe bei Docs-only-PRs dauerhaft auf
+# "Expected" stehen, weil ein uebersprungener Workflow gar keinen Status
+# meldet. ``tests/test_ci_workflow_yaml.py`` haelt genau diese Vorbedingung
+# fest. Der Push-Lauf auf ``main`` bleibt bewusst ungefiltert: Er ist der
+# Frische-Lauf und muss den Snapshot auch nach einem Docs-only-Merge pruefen.
 on:
   push:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+    # Eingaben des Lizenzreports: die fuenf ``[project]``-Felder, der
+    # Dependency-Snapshot, die committeten Snapshots selbst, der Generator
+    # und dieser Workflow.
+    paths:
+      - 'pyproject.toml'
+      - 'requirements/**'
+      - 'LICENSES.md'
+      - 'docs/i18n/*/LICENSES.md'
+      - 'scripts/generate_license_report.py'
+      - '.github/workflows/license-check.yml'
 
 permissions:
   contents: read

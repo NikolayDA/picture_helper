@@ -13,6 +13,17 @@ on:
     branches: [main]
   pull_request:
     branches: [main, master]
+    # Pfadfilter nur auf Pull Requests (#1038): Die Analyse liest Python-Code
+    # und dessen Projektmetadaten; ein reiner Doku-PR kann ihr Ergebnis nicht
+    # veraendern. Vorbedingung ist, dass dieser Job kein erforderlicher
+    # Branch-Protection-Status ist – ein pfadgefilterter Pflicht-Check bliebe
+    # bei Docs-only-PRs dauerhaft auf "Expected" stehen
+    # (``tests/test_ci_workflow_yaml.py`` haelt das fest). Push auf ``main``
+    # und der woechentliche Lauf bleiben ungefiltert.
+    paths:
+      - '**/*.py'
+      - 'pyproject.toml'
+      - '.github/workflows/codeql.yml'
   schedule:
     # Frische-Gate unabhaengig von Code-Aenderungen, analog zu
     # dependency-audit.yml (Mo 05:00) und codex-security-scan.yml (Mo 04:23).

@@ -16,14 +16,25 @@ name: Dependency Audit
 # gruen war. Der Qt-Stand wird beim Anheben des Pins von Hand geprueft und im
 # Kommentarblock von requirements/constraints.txt festgehalten (SECURITY.md).
 on:
-  # PR-Audit: laeuft bewusst fuer jeden Pull Request, auch bei Docs-only-
-  # Aenderungen, damit der Abhaengigkeitsstand einheitlich sichtbar bleibt.
-  # Ob der Job technisch erforderlich ist, folgt der Live-Konfiguration; der
-  # manuelle Snapshot steht in docs/PROZESSE_UML.md. Kein paths-Filter: Wird
-  # der Check spaeter erforderlich, startet ein gefilterter Workflow bei
-  # Docs-only-PRs gar nicht und laesst den PR dauerhaft auf "Expected" stehen.
-  # Workflow, Snapshot und Live-Einstellung dann gemeinsam abgleichen.
-  pull_request: {}
+  # PR-Audit auf den Eingaben dieses Jobs (#1038): Deklaration und gepinnter
+  # Snapshot. Ein Doku-PR kann den Abgleich nicht veraendern und startet ihn
+  # deshalb nicht mehr; der woechentliche Lauf unten bleibt ungefiltert und
+  # traegt die Frische.
+  #
+  # VORBEDINGUNG DES FILTERS: Dieser Check darf kein *erforderlicher*
+  # Branch-Protection-Status sein. Ein wegen Pfadfilter uebersprungener
+  # Pflicht-Check meldet gar keinen Status und laesst den PR dauerhaft auf
+  # "Expected" stehen (GitHub-Workflow-Syntax). Live ist ``Lightweight PR
+  # checks`` der einzige Pflichtstatus; der manuelle Snapshot steht in
+  # docs/PROZESSE_UML.md, und ``tests/test_ci_workflow_yaml.py`` haelt fest,
+  # dass kein pfadgefilterter Workflow diesen Jobnamen traegt. Wird der Check
+  # spaeter erforderlich, sind Filter, Snapshot und Live-Einstellung
+  # gemeinsam abzugleichen – zuerst der Filter.
+  pull_request:
+    paths:
+      - 'pyproject.toml'
+      - 'requirements/**'
+      - '.github/workflows/dependency-audit.yml'
   # Frische-Gate: Eine CVE kann ohne jede Dateiaenderung auftauchen. Der
   # woechentliche Lauf (Mo 05:00 UTC) prueft den unveraenderten Snapshot daher
   # eigenstaendig. Bewusst versetzt zu ci.yml (So 06:00) und Codex (Mo 04:23).
