@@ -102,19 +102,18 @@ flowchart TD
 
 **Anmerkungen**
 
-- `make pr-ready` ist der Einstieg vor jedem PR: Es benennt die Drift-Pflichten
-  aus dem eigenen Diff und läuft danach in `pr-check`. Der Nutzen liegt bei den
-  drei Pflichten mit **versetztem** Wächter – `ANLEITUNG.pdf` (greift erst nach
-  dem Commit), Lizenz-Snapshot und `release-freeze-check` (beide erst in der
-  PR-CI). Regeln und Wächter: [`CLAUDE.md`](../CLAUDE.md) §„Standard-Gate“ und
+- `make pr-ready` ist der Einstieg vor jedem PR: Es benennt die Drift-Pflichten aus
+  dem eigenen Diff und läuft danach in `pr-check`. Der Nutzen liegt bei den drei
+  Pflichten mit **versetztem** Wächter – `ANLEITUNG.pdf` (greift erst nach dem
+  Commit), Lizenz-Snapshot und `release-freeze-check` (beide erst in der PR-CI).
+  Regeln und Wächter: [`CLAUDE.md`](../CLAUDE.md) §„Standard-Gate“ und
   §„Drift-Disziplin“; Teststufen: [`TESTING.md`](../TESTING.md).
 - `make check` ist die maßgebliche Baseline; ein rotes Teilziel bricht die Kette
-  `lint` → `type` → `test` ab, deshalb die Rückkante. `make ui` läuft regulär nur
-  nachts, `shellcheck` wird lokal übersprungen statt zu scheitern. `make pr-check`
-  führt dasselbe Gate wie [`pr-ci.yml`](../.github/workflows/pr-ci.yml) aus; die
-  CI holt dafür Basis-Tag und Historie vollständig (`fetch-depth: 0`), legt
-  Python 3.12 fest und installiert Qt und `shellcheck` — lokal gleichwertig ist
-  das Ergebnis nur in einer vergleichbaren Umgebung.
+  `lint` → `type` → `test` ab, deshalb die Rückkante. `make pr-check` führt dasselbe
+  Gate aus wie [`pr-ci.yml`](../.github/workflows/pr-ci.yml) — dort aber mit
+  vollständiger Historie (`fetch-depth: 0`), Python 3.12 und installiertem Qt und
+  `shellcheck`; lokal ist das Ergebnis nur in einer vergleichbaren Umgebung
+  gleichwertig.
 - Ein Pfad, den `release/path-policy.json` nicht kennt, blockiert nicht: Er gilt
   als kandidatenrelevant und erscheint in `release-freeze-check` als Warnung. Ein
   Eintrag ist nur für einen bewusst **neutralen** Pfad nötig; wann
@@ -170,8 +169,8 @@ flowchart TD
 **Anmerkungen**
 
 - Die Schlüsselwort-Entscheidung ist keine Formalie: Ein deutsches „Löst #123“
-  wertet GitHub nicht aus, verknüpfte Issues bleiben dann nach dem Merge offen
-  (im [PR-Template](../.github/PULL_REQUEST_TEMPLATE.md) vermerkt).
+  wertet GitHub nicht aus, verknüpfte Issues bleiben dann offen (im
+  [PR-Template](../.github/PULL_REQUEST_TEMPLATE.md) vermerkt).
 - Das Öffnen des PR startet die gezeichneten Workflows sofort; ein weiterer
   Commit löst `synchronize` aus und wiederholt die Checks. Das Claude-Review ist
   die Ausnahme: einmal je PR – bei `opened`, bei `ready_for_review` beim
@@ -181,26 +180,23 @@ flowchart TD
   laut [GitHub-Rahmen](#aktueller-github-rahmen) kein erforderlicher
   Branch-Protection-Status. Seine Abdeckungsgrenze: Der Abgleich läuft gegen
   PyPI-Distributionen, Qt-Advisories werden aber gegen *Qt* geführt und nicht
-  gegen `PyQt6-Qt6`, das Qt als Binärpaket mitliefert; der Qt-Stand wird beim
-  Anheben des Pins von Hand geprüft und in `requirements/constraints.txt`
-  festgehalten.
+  gegen `PyQt6-Qt6`; der Qt-Stand wird beim Anheben des Pins von Hand geprüft und
+  in `requirements/constraints.txt` festgehalten.
 - Die Raute prüft nur, ob das Secret vorhanden ist. Ein abgelaufenes Token oder
   ein erschöpftes Nutzungslimit macht den Lauf rot statt übersprungen — ein roter
   Lauf ohne Review-Ausgabe heißt weder blockiert noch geprüft. Das Review
-  kommentiert ohnehin nur: keine Schreibrechte, keine Merge-Sperre, auch nicht
-  über seine Inline-Konversationen; für Befunde gilt die Konvergenzregel aus
-  Abschnitt 3.
+  kommentiert ohnehin nur: keine Schreibrechte, keine Merge-Sperre; für Befunde
+  gilt die Konvergenzregel aus Abschnitt 3.
 - Nicht gezeichnet: `claude.yml` reagiert auf `@claude`-Erwähnungen und darf
   schreiben, aber seine mit dem Standard-`GITHUB_TOKEN` erzeugten Commits starten
   keine nachgelagerten Workflows — dafür braucht es einen menschlich
   authentifizierten Folge-Push. Ebenfalls nicht gezeichnet, weil
-  Live-Konfiguration: das Codex-Review der App `chatgpt-codex-connector`. Sein
-  automatisches Review ist abgeschaltet, es läuft nur auf ausdrückliches
+  Live-Konfiguration: das Codex-Review der App `chatgpt-codex-connector`, dessen
+  automatisches Review abgeschaltet ist — es läuft nur auf ausdrückliches
   `@codex review`. Damit gibt es genau **einen** automatisch konfigurierten
-  Review-Dienst – das versionierte Claude-Review, weil es die Doku-Pfad-Ausnahme
-  trägt und über `re-review` wiederholbar ist. Der Aus-Schalter ist der
-  persönliche „Automatische Überprüfung“, an den die Repository-Zeile delegiert;
-  über die Repository-API ist er **nicht** prüfbar.
+  Review-Dienst: das versionierte Claude-Review, weil es die Doku-Pfad-Ausnahme
+  trägt und über `re-review` wiederholbar ist. Aus-Schalter ist der persönliche
+  „Automatische Überprüfung“, über die Repository-API **nicht** prüfbar.
 
 ---
 
@@ -260,34 +256,33 @@ flowchart TD
 **Anmerkungen**
 
 - Die Rückkante `synchronize` taktet nur die Pflicht-Checks: Jeder neue Commit
-  startet `pr-ci.yml` neu. Das Claude-Review läuft nicht erneut mit – nur über
-  das Label `re-review`, wo `concurrency: cancel-in-progress` einen älteren Lauf
-  abbricht. Ein `@claude`-Kommentar ist der optionale Nebenweg für Bot-Fixes;
-  sein Ergebnis braucht wegen des `GITHUB_TOKEN`-Limits ein menschlich
+  startet `pr-ci.yml` neu. Das Claude-Review läuft nicht erneut mit – nur über das
+  Label `re-review`, wo `concurrency: cancel-in-progress` einen älteren Lauf
+  abbricht. Ein `@claude`-Kommentar ist der optionale Nebenweg für Bot-Fixes; sein
+  Ergebnis braucht wegen des `GITHUB_TOKEN`-Limits ein menschlich
   authentifiziertes Folge-Update und mündet ebenfalls in den Push.
 - **Konvergenzregel für Bot-Reviews:** Höchstens zwei Bot-Review-Runden je PR.
   Danach entscheidet ein Mensch gesammelt (ein Kommentar), welche Befunde
   umgesetzt werden; die übrigen werden mit einem Satz Begründung geschlossen.
   Bot-Befunde sind Input der Merge-Entscheidung, keine Merge-Bedingung –
-  konvergieren sie nicht mehr (jeder Fix zieht neue oder umformulierte nach),
-  ist Aufhören die richtige Auflösung, nicht der nächste Fix-Push.
+  konvergieren sie nicht mehr, ist Aufhören die richtige Auflösung, nicht der
+  nächste Fix-Push.
 - Weil Squash die einzige Merge-Methode ist, sind PR-Titel und PR-Beschreibung der
-  dauerhafte Commit-Text, nicht nur Review-Kontext. Technisch erzwungen ist für
-  Nicht-Admins allein der gegenüber `main` aktuelle Branch (siehe
+  dauerhafte Commit-Text. Technisch erzwungen ist für Nicht-Admins allein der
+  gegenüber `main` aktuelle Branch (siehe
   [GitHub-Rahmen](#aktueller-github-rahmen)) – Befunde und Approvals bewerten
-  Maintainer deshalb bewusst.
+  Maintainer bewusst.
 - Nicht gezeichnet sind die reinen Zeitplan-Einstiege neben den Ereignispfaden
   (nächtliche UI-Suite, wöchentliche Vollmatrix, Audit, Benchmark, CodeQL,
   Signaturcache, Runner-Heartbeat, monatlicher Release-Dry-Run). Eine Liste davon
-  wird hier bewusst nicht gepflegt: Quelle ist die `on:`-Sektion der jeweiligen
-  Datei unter [`.github/workflows/`](../.github/workflows).
+  wird bewusst nicht gepflegt: Quelle ist die `on:`-Sektion der jeweiligen Datei
+  unter [`.github/workflows/`](../.github/workflows).
 - Ein Issue-Zustandswechsel löst keinen Workflow aus; Priorität und Blocker stehen
-  im Issue selbst ([`CONTRIBUTING.md`](../CONTRIBUTING.md)). GitHub-verwaltete
-  Funktionen wie der `Dependency Graph` sind ebenfalls nicht als Workflow
-  versioniert, und weil `.github/dependabot.yml` fehlt, gibt es keine
-  regelmäßigen Dependabot-Versionsupdates. Nur aktivierte
-  Dependabot-Sicherheitsupdates (Live-Konfiguration) können eigene Bot-Branches
-  und PRs erzeugen — ein Einstieg, den dieses Diagramm nicht zeigt.
+  im Issue selbst ([`CONTRIBUTING.md`](../CONTRIBUTING.md)). Nicht als Workflow
+  versioniert und deshalb ebenfalls nicht gezeichnet sind GitHub-eigene Funktionen
+  wie der `Dependency Graph`: Ohne `.github/dependabot.yml` gibt es keine
+  regelmäßigen Versionsupdates, nur aktivierte Sicherheitsupdates können eigene
+  Bot-Branches und PRs erzeugen.
 
 ---
 
@@ -332,9 +327,12 @@ flowchart TD
   end
   subgraph HW["Partition: Hardware-Abnahme · release-abnahme.yml"]
     H0["Schritt 5 · Abnahme starten<br/>verify-release-ref, dann gh workflow run release-abnahme.yml --ref RELEASE_REF<br/>run_id des Kandidaten · platforms=alle · dry_run=false · target_issue"]
+    HF0["Fork"]:::bar
     H1["candidate-source<br/>fünf Dateien laden, Hashes prüfen, Kandidatenvertrag erzeugen<br/>und Workflow-SHA hart an den Kandidaten binden"]
-    HP["retirement-status, dann Preflight je Plattform + Runner-Watchdog<br/>runner-retired-Labels fail-closed lesen (ausgetragene Plattform überspringt Preflight und Abnahme-Job);<br/>Runner-Erreichbarkeit und echter Qt-/GL-Probeaufruf, hängende Warteschlangen brechen sichtbar ab"]
-    HF["Fork"]:::bar
+    RS["retirement-status<br/>liest fail-closed die runner-retired-Labels des Heartbeat-Betriebs-Issues"]
+    HP["Preflight je Plattform + Runner-Watchdog<br/>Runner-Erreichbarkeit und echter Qt-/GL-Probeaufruf;<br/>hängende Warteschlangen brechen sichtbar ab statt still zu warten"]
+    H4R["hinweis-ausgetragen<br/>Preflight und Abnahme-Job der Plattform entfallen; die Abschlussmatrix führt sie<br/>als ausgetragen seit Datum — blockierend, kein Abnahmeergebnis"]
+    HF["Join je Plattform-Job: candidate-source und der eigene Preflight"]:::bar
     H2["macOS arm64<br/>DMG-Start, Retina, natives 3D, E2E, GL-Suite"]
     H3["Linux arm64<br/>AppImage- und .deb-Zyklus, GL-Provenance, natives 3D, E2E"]
     H4["Linux x86_64<br/>sichtbar pausiert, erscheint als Hinweis statt als Lücke"]
@@ -348,7 +346,11 @@ flowchart TD
   SQ1 -->|"ja"| S3 --> B1 --> B2 --> B3 --> S4 --> SQ2
   SQ2 -->|"nein · Befund am Kandidaten"| NOGO["No-Go protokollieren<br/>Kandidat verwerfen, Ursache per PR beheben, neu ab Schritt 1"]
   SQ2 -->|"nein · Störung außerhalb des Kandidatenstands"| WA4["Wiederanlauf laut Wiederanlaufmatrix<br/>Ursache außerhalb des ausgeführten Stands beheben,<br/>Kandidatenlauf ab Schritt 3 auf demselben SHA"] --> S3
-  SQ2 -->|"ja"| H0 --> H1 --> HP --> HF
+  SQ2 -->|"ja"| H0 --> HF0
+  HF0 --> H1 --> HF
+  HF0 --> RS
+  RS -->|"Plattform nicht ausgetragen"| HP --> HF
+  RS -->|"Plattform ausgetragen"| H4R --> HJ
   HF --> H2 & H3 & H4 --> HJ
   HJ --> H5 --> HQ
   HQ -->|"nein · fachlicher FAIL oder ausgetragene Plattform"| NOGO
@@ -370,7 +372,8 @@ flowchart TD
     T1["Schritt 7 · Tag setzen<br/>von Hand oder per create_tag im Publish-Lauf<br/>immer auf candidate.head_sha aus dem Manifest, danach verifiziert"]
     T2["Schritt 8 · Veröffentlichung starten<br/>verify-release-ref, dann gh workflow run release-publish.yml --ref RELEASE_REF<br/>mit tag, candidate_run_id, acceptance_run_id, approval_artifact_name<br/>create_tag und predecessor_tag optional; target_issue schaltet die Issue-Kommentare frei"]
     T3["Schritt 9 · öffentliche Prüfung<br/>public-download-report.json lesen: Gesamtverdikt und jedes Asset auf PASS<br/>sichtbare Produktversion auf den aktiven Plattformen prüfen<br/>Handprozedur nur als Rückfallweg, wenn der Nachweis-Job nicht lief"]
-    T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>vom Publish-Lauf ausgelöst (Job update-dispatch, Marker im run-name)<br/>gleiche run_id, platforms=alle, predecessor_tag, target_issue<br/>manueller Start bleibt Rückfallweg"]
+    T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>vom Publish-Lauf nur ausgelöst (Job update-dispatch, Marker im run-name), sein Ergebnis wartet der Lauf nicht ab<br/>gleiche run_id, platforms=alle, predecessor_tag, target_issue; manueller Start bleibt Rückfallweg"]
+    FQ{"Update-Nachweis: beide Kriterien auf PASS?"}
     T5["Instanz prüfen und Release-Issue schließen<br/>Publish-Lauf setzt PUBLISH-01 bis 03 und PUBLIC-DOWNLOAD-01 (bis Phase publish),<br/>der ausgelöste Abnahme-Lauf trägt beide UPDATE-Kriterien nach (bis post-release); set-criterion bleibt Rückfallweg<br/>Kriterienmatrix mit URLs und Hashes ist im Issue verlinkt"]
   end
   subgraph PUB["Partition: CI · release-publish.yml, baut nichts neu"]
@@ -397,8 +400,10 @@ flowchart TD
   P6 --> P7 --> PQ2
   PQ2 -->|"ja"| P8 --> P11 --> T3 --> PQ3
   PQ2 -->|"nein"| P9
-  PQ3 -->|"ja"| T4 --> T5 --> ENDE(("Ende · Release abgeschlossen")):::terminal
-  PQ3 -->|"nein"| INC --> ENDE2(("Ende · Release nicht abgeschlossen")):::terminal
+  PQ3 -->|"ja"| T4 --> FQ
+  PQ3 -->|"nein"| INC
+  FQ -->|"ja"| T5 --> ENDE(("Ende · Release abgeschlossen")):::terminal
+  FQ -->|"nein · CHECK_FAILED oder ein Kriterium bleibt PENDING"| INC --> ENDE2(("Ende · Release nicht abgeschlossen")):::terminal
   classDef terminal fill:#37474f,stroke:#37474f,color:#ffffff;
   classDef bar fill:#37474f,stroke:#37474f,color:#ffffff;
 ```
@@ -406,45 +411,40 @@ flowchart TD
 **Anmerkungen**
 
 - Kandidatenbau, Abnahme und Veröffentlichung starten ausschließlich manuell per
-  `workflow_dispatch`; einen Tag-Trigger oder einen Weg, der am Manifest vorbei
-  veröffentlicht, gibt es nicht. Einzige Zeitplan-Ausnahme ist der monatliche
-  Dry-Run von `release-linux.yml` auf dem `main`-Head: Er probt den
-  Kandidatenpfad, erzeugt aber ausdrücklich keinen Kandidaten.
+  `workflow_dispatch`; einen Tag-Trigger oder einen Weg am Manifest vorbei gibt es
+  nicht. Einzige Zeitplan-Ausnahme ist der monatliche Dry-Run von
+  `release-linux.yml` auf dem `main`-Head: Er probt den Kandidatenpfad, erzeugt
+  aber ausdrücklich keinen Kandidaten.
 - Den Kandidatenvertrag erzeugt nicht `release-linux.yml`, sondern erst
-  `candidate-source` am Anfang von `release-abnahme.yml`. Weil dieser Job
+  `candidate-source` in `release-abnahme.yml` — parallel zu `retirement-status`,
+  weshalb Preflights bereits laufen können, während er noch prüft. Weil er
   `GITHUB_SHA` hart mit dem Kandidaten-SHA vergleicht, laufen alle Dispatches auf
   dem unveränderlichen Release-Ref `release/vX.Y.Z`
-  ([`ADR-2026-release-ref-entkopplung.md`](history/ADR-2026-release-ref-entkopplung.md)),
-  und `main` darf währenddessen weiterlaufen. Ausgeführt wird die Definition aus
-  dem gewählten Ref; welche Voraussetzung `workflow_dispatch` trotzdem an `main`
-  stellt, steht im [Runbook](RELEASE_PROCESS.md).
+  ([`ADR-2026-release-ref-entkopplung.md`](history/ADR-2026-release-ref-entkopplung.md));
+  `main` darf weiterlaufen. Welche Voraussetzung `workflow_dispatch` trotzdem an
+  `main` stellt, steht im [Runbook](RELEASE_PROCESS.md).
 - Der Publish-Lauf baut nichts; seine einzige Dateiquelle ist die im Manifest
-  gebundene Build-Run-ID. Die Raute „Bestehender Release-Zustand“ ist
-  `plan-publish` aus `scripts/release_contract.py`; jeder teilweise oder
-  abweichende Zustand blockiert dort, statt repariert zu werden.
+  gebundene Build-Run-ID. Jeder teilweise oder abweichende Release-Zustand
+  blockiert in `plan-publish`, statt repariert zu werden.
 - Die Go-/No-Go-Entscheidung bleibt an jeder Raute menschlich; die
-  Vision-Vorbewertung der Screenshots ist fail-safe und bewertet nie
-  abschließend. `MALWARE-01` ist `SHOULD`, ein tatsächlicher Fund aber immer
-  No-Go, und ein fehlender Signaturcache wird sichtbar `UNAVAILABLE`.
+  Vision-Vorbewertung der Screenshots bewertet fail-safe nie abschließend.
+  `MALWARE-01` ist `SHOULD`, ein Fund aber immer No-Go, und ein fehlender
+  Signaturcache wird sichtbar `UNAVAILABLE`.
 - `PUBLIC-DOWNLOAD-01` erbringt der Nachweis-Job des Publish-Laufs, nicht der
   Release-Owner: Er kann erst **nach** `--draft=false` laufen, weil Draft-Assets
   anonym nicht erreichbar sind — maßgeblich ist der Bericht, nie die Lauf-URL. Ein
-  rotes Verdikt hält auch die Folgejobs an, ein Update-Nachweis wird dann gar
-  nicht erst ausgelöst.
+  rotes Verdikt hält auch `release-instance` und `update-dispatch` an.
 - `UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` sind erst nach dem Tag prüfbar,
   weil `/releases/latest` die neue Version vorher nicht meldet. Sie blockieren den
-  Tag nicht, aber den Abschluss des Release-Issues; `CHECK_FAILED` gilt nie als
-  „kein Update“ und belegt für sich keinen Release-Fehler. `platforms=alle`
+  Tag nicht, aber den Abschluss des Release-Issues — daher die Raute vor `T5`:
+  Ohne Nachweis bleiben sie `PENDING`, und `CHECK_FAILED` gilt nie als „kein
+  Update“, belegt aber für sich auch keinen Release-Fehler. `platforms=alle`
   erbringt beide in einem Lauf, der macOS-Kanal setzt einen Vorgänger ab v2.7.3
-  voraus. Der automatisierte Abschluss ersetzt keine Prüfung, nur Tipparbeit: Der
-  Tag wird auch bei `create_tag` gegen `candidate.head_sha` verifiziert, und die
-  beiden Update-Kriterien bleiben ohne Nachweis `PENDING`.
+  voraus; der Tag wird auch bei `create_tag` gegen `candidate.head_sha`
+  verifiziert.
 - Ein Hotfix überspringt keinen Schritt: neue Patch-Version, neuer Kandidat, neue
-  Abnahme, neues Manifest, neuer Tag. Umgekehrt kann jede Plattform per
-  Heartbeat-Eskalation automatisch ausgetragen sein; die Abschlussmatrix führt sie
-  dann als „ausgetragen seit <Datum>" — kein Abnahmeergebnis: Die Matrix gilt als
-  blockierend, `create-approval` schreibt kein Freigabemanifest, der Lauf endet
-  als No-Go; reaktiviert wird durch Neuregistrierung und Entfernen des Labels
+  Abnahme, neues Manifest, neuer Tag. Eine per Heartbeat-Eskalation ausgetragene
+  Plattform reaktiviert man durch Neuregistrierung und Entfernen des Labels
   ([`RUNNER_SETUP.md`](RUNNER_SETUP.md) §4). Welcher Weg bei welcher Störung gilt,
   steht ausschließlich in der
   [Wiederanlaufmatrix](RELEASE_PROCESS.md#wiederanlaufmatrix).
