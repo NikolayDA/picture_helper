@@ -1,10 +1,10 @@
 # UML-Ablaufdiagramme der Entwicklungs- und Release-Prozesse
 
-Vier UML-Aktivitätsdiagramme für die tatsächlich gelebten Abläufe dieses
-Repositories: **Commit in einem Branch**, **PR erstellen**, **PR durchführen**
-(Review bis Merge) und **Release veröffentlichen**.
-
-**Nicht normativ.** Die Diagramme *bilden ab*, sie *bestimmen nicht*.
+Vier UML-Aktivitätsdiagramme für die gelebten Abläufe dieses Repositories:
+**Commit in einem Branch**, **PR erstellen**, **PR durchführen** (Review bis
+Merge) und **Release veröffentlichen**. **Nicht normativ:** Sie *bilden ab*,
+sie *bestimmen nicht*, und sie zeichnen den Happy Path — Fehler- und
+Wiederanlaufwege sind ein Verweis auf die Wiederanlaufmatrix des Runbooks.
 Verbindlich bleiben:
 
 | Gegenstand | Verbindliche Quelle |
@@ -13,208 +13,114 @@ Verbindlich bleiben:
 | PR-Pflichten | [`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md) |
 | Automatisierung | die Workflows unter [`.github/workflows/`](../.github/workflows) |
 | Release-Ablauf | [`docs/RELEASE_PROCESS.md`](RELEASE_PROCESS.md) |
+| Wiederanlauf nach einer Störung | [`docs/RELEASE_PROCESS.md` §„Wiederanlaufmatrix“](RELEASE_PROCESS.md#wiederanlaufmatrix) |
 | Release-Kriterien | [`docs/RELEASE_ACCEPTANCE_CHECKLIST.md`](RELEASE_ACCEPTANCE_CHECKLIST.md) |
 | Agenten-/Projektkontext | [`CLAUDE.md`](../CLAUDE.md) |
 
 Weicht ein Diagramm von einer dieser Quellen ab, gilt die Quelle und das
-Diagramm ist der Fehler.
+Diagramm ist der Fehler; ein hier fehlender Störungsfall gehört ins Runbook.
 
 ### Aktueller GitHub-Rahmen
 
 Die folgenden Repository-Einstellungen sind **Live-Konfiguration**, nicht Teil
-des versionierten Codes (manuell und authentifiziert geprüft am 22. August
-2026; vollständig nachgeprüft und auf den Stand der Reviewschleifen-
-Entschärfung umgestellt am 24. August 2026; zuletzt am 9. September 2026 mit
-der Umstellung auf Squash-only und automatische Branch-Löschung, #1035).
-Dieser Snapshot hat noch keinen automatischen Drift-Test und muss bei
-Änderungen in den GitHub-Einstellungen erneut abgeglichen werden.
+des versionierten Codes (authentifiziert geprüft am 22. und 24. August 2026,
+zuletzt am 9. September 2026 mit der Umstellung auf Squash-only und automatische
+Branch-Löschung). Der Snapshot hat keinen Drift-Test und muss bei jeder Änderung
+der GitHub-Einstellungen erneut abgeglichen werden.
 
 | Einstellung | Aktueller Stand | Bedeutung für die Diagramme |
 |---|---|---|
-| Branch Protection für `main` | einziger erforderlicher Status: `Lightweight PR checks`; Branch muss aktuell zu `main` sein (`strict`); Review-Konversationen sind keine Merge-Sperre (Konversationsauflösungs-Pflicht am 24.08.2026 entfernt); kein formales Approval erforderlich; für Admins nicht erzwungen | Weitere Checks, Review-Kommentare und ein `APPROVED`-Review sind keine technischen Merge-Sperren, ein veralteter Branch oder ein roter Pflichtstatus dagegen schon |
+| Branch Protection für `main` | einziger erforderlicher Status: `Lightweight PR checks`; Branch muss aktuell zu `main` sein (`strict`); Review-Konversationen sind keine Merge-Sperre; kein formales Approval erforderlich; für Admins nicht erzwungen | Weitere Checks, Review-Kommentare und ein `APPROVED`-Review sind keine technischen Merge-Sperren, ein veralteter Branch oder ein roter Pflichtstatus dagegen schon |
 | Merge-Methoden | nur Squash-Merge; Merge-Commit und Rebase sind deaktiviert; Squash-Voreinstellung `PR_TITLE`/`PR_BODY` (PR-Titel und -Beschreibung) | Die lineare `main`-Historie ist technisch erzwungen statt nur Konvention; die Squash-Commit-Nachricht entsteht aus PR-Titel und PR-Beschreibung, nicht aus den Branch-Commits |
 | Auto-Merge | deaktiviert | Die Merge-Entscheidung erfolgt manuell |
 | Branch nach Merge automatisch löschen | aktiviert | Der Head-Branch eines gemergten PRs verschwindet ohne manuellen Schritt; Branches aus einem Fork kann GitHub nicht löschen, sie bleiben dort stehen |
 
-Der erforderliche Status samt Durchsetzungsebene ist anonym über die
+Nur der erforderliche Status samt Durchsetzungsebene ist anonym über die
 [`main`-Branch-Metadaten](https://api.github.com/repos/NikolayDA/picture_helper/branches/main)
-prüfbar. Die `strict`-Vorgabe, die Konversationsauflösung, die Zahl der
-erforderlichen Approvals sowie Merge-Methoden, Auto-Merge und automatische
-Branch-Löschung fehlen dagegen in dieser anonymen Antwort; ihre Werte wurden
-über den authentifizierten Branch-Protection-/Repository-Endpunkt geprüft und
-müssen in den
-[Repository-Einstellungen](https://github.com/NikolayDA/picture_helper/settings)
-authentifiziert kontrolliert werden.
-
-Verantwortlich für den Snapshot ist der Repository-Owner. Er wird bei jeder
-Änderung der GitHub-Einstellungen erneut mit der Live-Konfiguration
-verglichen.
+prüfbar; alle übrigen Werte kontrolliert der Repository-Owner authentifiziert in
+den [Repository-Einstellungen](https://github.com/NikolayDA/picture_helper/settings).
 
 ## Notation
 
 Gezeichnet wird in Mermaid (GitHub rendert es direkt) mit
-UML-Aktivitätsdiagramm-Semantik:
-
-| UML-Element | Darstellung hier |
-|---|---|
-| Startknoten (Initial Node) | Kreis „Start“ |
-| Aktion (Action) | Rechteck |
-| Entscheidung/Zusammenführung (Decision/Merge) | Raute, Kanten mit Wächterbedingung |
-| Parallelisierung/Synchronisation (Fork/Join) | dunkler Balken „Fork“ / „Join“ |
-| Partition (Swimlane) | umrahmter Bereich mit Rollen-/Systemnamen |
-| Endknoten (Activity Final) | Kreis „Ende“ |
-| Objektfluss/Artefakt | Rechteck mit Präfix „Artefakt:“ |
+UML-Aktivitätsdiagramm-Semantik: Kreis = Start-/Endknoten (Initial Node,
+Activity Final), Rechteck = Aktion — mit Präfix „Artefakt:“ ein Objektfluss —,
+Raute = Entscheidung mit Wächterbedingung an den Kanten, dunkler Balken =
+Fork/Join, umrahmter Bereich = Partition (Swimlane).
 
 ---
 
 ## 1. Commit in einem Branch
 
 **Auslöser:** Eine Änderung soll umgesetzt werden. Grundlage ist ein
-GitHub-Issue (Priorität und Blocker stehen dort als Labels und
-Abhängigkeiten, siehe [`CONTRIBUTING.md`](../CONTRIBUTING.md)) oder ein klar
-umrissener Beitrag; größere Änderungen werden vorher in einem Issue
-abgestimmt.
+GitHub-Issue (Priorität und Blocker stehen dort als Labels und Abhängigkeiten,
+siehe [`CONTRIBUTING.md`](../CONTRIBUTING.md)) oder ein klar umrissener Beitrag;
+größere Änderungen werden vorher in einem Issue abgestimmt.
 **Ergebnis:** Ein Commit auf einem Feature-Branch liegt auf `origin`, das
 Standard-Gate war lokal grün.
-**Quellen:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) §„Code beitragen“ und
-§„Konventionen“,
-[`Makefile`](../Makefile), [`CLAUDE.md`](../CLAUDE.md) §„Standard-Gate“,
-[`.claude/hooks/session-start.sh`](../.claude/hooks/session-start.sh).
+**Quellen:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) §„Code beitragen“,
+[`Makefile`](../Makefile), [`CLAUDE.md`](../CLAUDE.md) §„Standard-Gate“.
 
 ```mermaid
 flowchart TD
   START(("Start")):::terminal --> D1
-
   subgraph DEV["Partition: Entwickler:in"]
-    direction TB
     D1["Arbeitsgrundlage klären<br/>bei größerer Änderung Issue abstimmen; sonst Issue (prio-Label, keine offenen Blocker) oder klar umrissener Beitrag"]
-    D2["main aktualisieren<br/>git fetch origin main · git pull --ff-only origin main"]
-    D3["Feature-Branch anlegen<br/>git checkout -b feature/kurze-beschreibung"]
+    D2["main aktualisieren und Feature-Branch anlegen<br/>git fetch origin main · git pull --ff-only origin main · git checkout -b feature/kurze-beschreibung"]
     D4["Code ändern<br/>deutsche Kommentare; englische Identifier; kompakter Stil; ruff-Zeilenlänge 100"]
     D5["Tests ergänzen oder anpassen<br/>Marker ui / ui_smoke / gl_smoke"]
-    D7["Befunde beheben"]
+    D7["Befunde und benannte Pflichten abarbeiten"]
     D8["Commit erstellen<br/>git commit, Imperativ, z. B. feat(canvas): ... oder fix(workers): ..."]
     D9["git push -u origin BRANCH"]
   end
-
   subgraph ENV["Partition: Arbeitsumgebung"]
-    direction TB
     EQ{"Umgebung bereit?"}
-    E1["lokal: venv, pip install -e .[test], Qt-Systembibliotheken<br/>Web-Session: SessionStart-Hook, setzt QT_QPA_PLATFORM=offscreen"]
-    E2["make doctor · scripts/check_test_env.py"]
+    E1["lokal: venv, pip install -e .[test], Qt-Systembibliotheken<br/>Web-Session: SessionStart-Hook, setzt QT_QPA_PLATFORM=offscreen<br/>prüfen mit make doctor · scripts/check_test_env.py"]
   end
-
-  subgraph DOC["Partition: Doku- und Drift-Pflichten"]
-    direction TB
-    DQ1{"Nutzersichtbare Änderung?"}
-    DA1["CHANGELOG-Abschnitt Unreleased ergänzen<br/>sechs Sprachfassungen synchron"]
-    DQ2{"Basis-Doku berührt?"}
-    DA2["i18n-Parität unter docs/i18n wahren<br/>keine toten Markdown-Links"]
-    DQ4{"ANLEITUNG.md oder scripts/generate_anleitung_pdf.py geändert?"}
-    DA4["ANLEITUNG.pdf im selben Commit neu erzeugen<br/>pip install -e '.[docs]' · python scripts/generate_anleitung_pdf.py<br/>Wächter tests/test_anleitung_pdf_sync.py prüft die Git-Mitänderung"]
-    DQ6{"Abhängigkeit oder Pin in pyproject.toml bzw. requirements/constraints.txt geändert?"}
-    DA6["Lizenz-Snapshot im selben Commit neu erzeugen<br/>in einem frischen venv wie der Workflow: Python 3.12, pip install --constraint requirements/constraints.txt '.[ai,test]', nichts sonst · python scripts/generate_license_report.py --report LICENSES.md --all-langs<br/>license-check.yml vergleicht LICENSES.md und die fünf Übersetzungen fail-closed; make check prüft nur die Titelversion"]
-    DQ5{"Berührt der Commit einen Pfad, den release/path-policy.json nicht kennt?"}
-    DA5["Pfadpolicy nur bei bewusst neutralem Pfad nachziehen<br/>release-neutral-Eintrag eng begründet ergänzen (reine Allowlist-Ergänzung, kein Versionssprung); policy_version nur bei Semantikänderung anheben, dann Versionszeile im aktiven Freeze-Dokument nachziehen<br/>unbekannte Pfade gelten als kandidatenrelevant und erscheinen in release-freeze-check als Warnung (#1037) — sie blockieren nicht"]
-  end
-
-  subgraph GATE["Partition: Standard-Gate · make check"]
-    direction TB
-    G1["make lint<br/>ruff check bgremover scripts tests + shellcheck der vier Shell-Skripte"]
-    G2["make type<br/>mypy"]
-    G3["make test<br/>pytest mit QT_QPA_PLATFORM=offscreen, Filter: nicht ui, aber ui_smoke"]
-    GQ{"Gate grün?"}
+  subgraph GATE["Partition: Vorabprüfung und Standard-Gate"]
+    P0["make pr-ready<br/>nennt zuerst die Drift-Pflichten, die der eigene Diff gegen origin/main auslöst (CHANGELOG, i18n-Parität, ANLEITUNG.pdf, Lizenz-Snapshot, Pfadpolicy)<br/>Fehler sind nachweisbare Verstöße, Hinweise brauchen eine menschliche Beurteilung; netzfrei, Basis-Ref und SHA werden gedruckt"]
+    P1["make pr-check<br/>nicht-editabler Install · make doctor · make check · fail-closed release-freeze-check"]
+    G1["make check · lint → type → test<br/>ruff check bgremover scripts tests + shellcheck der vier Shell-Skripte · mypy<br/>pytest mit QT_QPA_PLATFORM=offscreen, Filter: nicht ui, aber ui_smoke"]
+    GQ{"Gate grün und Pflichten erledigt?"}
     GQ2{"Vertiefende Prüfung erforderlich?"}
-    G4["Zusätzliche passende Prüfung<br/>make coverage Schwelle 86 · make ui · make pr-check im CI-nahen Umfeld"]
+    G4["Zusätzliche passende Prüfung<br/>make coverage Schwelle 86 · make ui"]
   end
-
   subgraph REM["Partition: Git-Remote"]
     R1["Artefakt: Branch mit Commit auf origin"]
   end
-
-  D1 --> D2 --> D3 --> EQ
-  EQ -->|"nein"| E1 --> E2 --> D4
+  D1 --> D2 --> EQ
+  EQ -->|"nein"| E1 --> D4
   EQ -->|"ja"| D4
-  D4 --> D5 --> DQ1
-  DQ1 -->|"ja"| DA1 --> DQ2
-  DQ1 -->|"nein"| DQ2
-  DQ2 -->|"ja"| DA2 --> DQ4
-  DQ2 -->|"nein"| DQ4
-  DQ4 -->|"ja"| DA4 --> DQ6
-  DQ4 -->|"nein"| DQ6
-  DQ6 -->|"ja"| DA6 --> DQ5
-  DQ6 -->|"nein"| DQ5
-  DQ5 -->|"ja"| DA5 --> G1
-  DQ5 -->|"nein"| G1
-  G1 --> G2 --> G3 --> GQ
-  GQ -->|"nein · Lint, Typ oder Test rot"| D7 --> G1
+  D4 --> D5 --> P0 --> P1 --> G1 --> GQ
+  GQ -->|"nein · Lint, Typ, Test oder eine benannte Pflicht offen"| D7 --> P0
   GQ -->|"ja"| GQ2
   GQ2 -->|"ja"| G4 --> D8
   GQ2 -->|"nein"| D8
   D8 --> D9 --> R1 --> ENDE(("Ende")):::terminal
-
   classDef terminal fill:#37474f,stroke:#37474f,color:#ffffff;
 ```
 
 **Anmerkungen**
 
-- `make check` ist die maßgebliche Baseline und ruft `lint` → `type` → `test`
-  in dieser Reihenfolge; ein rotes Teilziel bricht ab, deshalb die Rückkante
-  auf `make lint`.
-- `make pr-check` führt dasselbe Projekt-Gate wie
-  [`pr-ci.yml`](../.github/workflows/pr-ci.yml) aus: nicht-editabler Install,
-  `doctor`, `check`, dann das fail-closed `release-freeze-check`. Die CI holt
-  dafür Basis-Tag und Git-Historie vollständig (`fetch-depth: 0`), legt
-  zusätzlich Python 3.12 fest, aktualisiert `pip` und installiert
-  Qt-Systembibliotheken sowie `shellcheck`; lokal ist das Ergebnis deshalb nur
-  in einer vergleichbaren Umgebung gleichwertig.
-- Die volle qtbot-UI-Suite (`make ui`) läuft regulär nur nachts
-  ([`ui-nightly.yml`](../.github/workflows/ui-nightly.yml)), nicht im
-  Standard-Gate.
-- `shellcheck` wird übersprungen statt zu scheitern, wenn es lokal fehlt — in
-  der CI ist es installiert.
-- Der ANLEITUNG.pdf-Wächter (#974) prüft Disziplin statt Bytes: Der Commit,
-  der zuletzt `ANLEITUNG.md` oder das Generator-Skript berührt hat, muss auch
-  das PDF berühren (der WeasyPrint-Bau ist nicht deterministisch). Lokal wird
-  ein Verstoß deshalb erst nach dem Commit sichtbar; verlässlich prüft die
-  PR-CI mit `fetch-depth: 0`, ein flacher Klon überspringt sichtbar. Das
-  `docs`-Extra ist bewusst in keinem CI-Pfad installiert — die Regeneration
-  bleibt ein manueller Schritt außerhalb der `make`-Ziele.
-- Die Pfadpolicy (`release/path-policy.json`, #742/#743) kennt seit #1037
-  keine Blockade durch unbekannte Pfade mehr: Ein Pfad, den sie nicht kennt,
-  ist kandidatenrelevant und erscheint in `release-freeze-check` als
-  Warnung `unclassified-path` (Befundliste und Provenienz, `make pr-check`
-  und PR-CI; `make check` sieht ihn nicht). Bis Policy-Version 17 scheiterte
-  das Gate daran, und weil es alle geänderten Pfade eines Commits
-  klassifiziert, nicht nur neu angelegte, traf es zweimal Dateien, die seit
-  August bestanden und erst dann zum ersten Mal geändert wurden (#1001 und
-  #1003, je ein Dokument unter `docs/history/`). Ein Eintrag ist nur noch für
-  einen bewusst **neutralen** Pfad nötig, damit er den Inhaltskandidaten
-  nicht verschiebt. Der Regelfall ist die
-  kandidatenrelevante Klasse; `release-neutral` bleibt eng
-  begründeten Einträgen vorbehalten. `policy_version` bindet die
-  Klassifikations**semantik**, nicht die Regelmenge: Eine reine
-  Allowlist-Ergänzung hebt sie **nicht** an (ADR-Nachtrag 2026-08-25 in
-  [`ADR-2026-release-freeze-provenienz.md`](history/ADR-2026-release-freeze-provenienz.md)),
-  weil der Bump das aktive, selbst kandidatenrelevante Freeze-Dokument
-  mitändern müsste (`policy-version-mismatch` wirft sonst) und die
-  Policy-Pflege damit an den Inhaltskandidaten koppelte; nur
-  Umklassifizierungen, neue Klassen, geänderte Fail-closed-Regeln und die
-  Rollover-Pflege bumpen — im Zuge des nächsten Freeze-Dokuments.
-- Der Lizenz-Snapshot ist die dritte Pflicht mit versetztem Wächter: `make
-  check` prüft über `tests/test_licenses_version.py` nur, dass die Version im
-  Titel zur `pyproject.toml` passt; die Paketliste vergleicht erst
-  `license-check.yml` auf dem PR, indem es den Report neu erzeugt und
-  fail-closed gegen `LICENSES.md` samt der fünf Übersetzungen hält. Weil der
-  Report aus den **installierten** Metadaten entsteht, ist er nur in einem
-  frischen venv wie dem des Workflows reproduzierbar (Python 3.12,
-  `--constraint requirements/constraints.txt`, Extra `[ai,test]`, sonst
-  nichts): Ohne das `ai`-Extra fehlen Pakete, mit einem zusätzlich
-  installierten Extra kommen welche dazu — der Generator läuft über alle
-  Extra-Gruppen und nimmt auf, was tatsächlich installiert ist. Die
-  `.[docs]`-Umgebung aus der Pflicht davor ist deshalb kein geeigneter Ort.
-  Zuletzt fällig mit #1019 (`pyyaml` im `[test]`-Extra, sechs
-  Snapshot-Dateien mitgezogen).
+- `make pr-ready` ist der Einstieg vor jedem PR: Es benennt die Drift-Pflichten
+  aus dem eigenen Diff und läuft danach in `pr-check`. Der Nutzen liegt bei den
+  drei Pflichten mit **versetztem** Wächter – `ANLEITUNG.pdf` (greift erst nach
+  dem Commit), Lizenz-Snapshot und `release-freeze-check` (beide erst in der
+  PR-CI). Regeln und Wächter: [`CLAUDE.md`](../CLAUDE.md) §„Standard-Gate“ und
+  §„Drift-Disziplin“; Teststufen: [`TESTING.md`](../TESTING.md).
+- `make check` ist die maßgebliche Baseline; ein rotes Teilziel bricht die Kette
+  `lint` → `type` → `test` ab, deshalb die Rückkante. `make ui` läuft regulär nur
+  nachts, `shellcheck` wird lokal übersprungen statt zu scheitern. `make pr-check`
+  führt dasselbe Gate wie [`pr-ci.yml`](../.github/workflows/pr-ci.yml) aus; die
+  CI holt dafür Basis-Tag und Historie vollständig (`fetch-depth: 0`), legt
+  Python 3.12 fest und installiert Qt und `shellcheck` — lokal gleichwertig ist
+  das Ergebnis nur in einer vergleichbaren Umgebung.
+- Ein Pfad, den `release/path-policy.json` nicht kennt, blockiert nicht: Er gilt
+  als kandidatenrelevant und erscheint in `release-freeze-check` als Warnung. Ein
+  Eintrag ist nur für einen bewusst **neutralen** Pfad nötig; wann
+  `policy_version` steigt, steht im ADR-Nachtrag in
+  [`ADR-2026-release-freeze-provenienz.md`](history/ADR-2026-release-freeze-provenienz.md).
+
 ---
 
 ## 2. Pull Request erstellen
@@ -223,60 +129,40 @@ flowchart TD
 **Ergebnis:** Ein PR gegen `main` mit ausgefülltem Template; alle
 PR-Automatismen sind angelaufen.
 **Quellen:** [`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md),
-[`pr-ci.yml`](../.github/workflows/pr-ci.yml),
-[`codeql.yml`](../.github/workflows/codeql.yml),
-[`dependency-audit.yml`](../.github/workflows/dependency-audit.yml),
-[`license-check.yml`](../.github/workflows/license-check.yml),
-[`claude-code-review.yml`](../.github/workflows/claude-code-review.yml).
+Workflows unter [`.github/workflows/`](../.github/workflows).
 
 ```mermaid
 flowchart TD
   START(("Start · Branch ist gepusht")):::terminal --> P1
-
   subgraph DEV["Partition: Entwickler:in"]
-    direction TB
     P1["Pull Request gegen main im GitHub-Formular vorbereiten"]
-    P2["Template ausfüllen<br/>Kurzbeschreibung, Standard-Gate-Haken, Testabschnitt"]
+    P2["Template ausfüllen<br/>Kurzbeschreibung, make pr-ready-Haken, Testabschnitt"]
     PQ{"Schließt der PR ein Issue?"}
     P3["Closes #123 eintragen<br/>nur die englischen Schlüsselwörter Closes/Fixes/Resolves schließen automatisch"]
     P4["bei reinem Bezug: Bezug: #123<br/>ohne Issue darf die Referenz entfallen"]
     P5["PR öffnen, gegebenenfalls als Draft<br/>dies löst sofort das Ereignis opened aus"]
   end
-
   subgraph GH["Partition: GitHub · Ereignis pull_request opened bzw. synchronize"]
-    direction TB
     F1["Fork"]:::bar
     J1["Join"]:::bar
   end
-
   subgraph CI["Partition: Automatische Prüfungen"]
-    direction TB
     C1["pr-ci.yml · Job Lightweight PR checks<br/>make pr-check auf Ubuntu, Python 3.12"]
-    C2["codeql.yml<br/>SAST für Python"]
-    C3["dependency-audit.yml<br/>Abhängigkeits-Audit, läuft auch bei Docs-only-PRs"]
-    C4["license-check.yml<br/>Lizenzreport mit Python-, AI- und Test-Abhängigkeiten einschließlich PyQt6,<br/>aber ohne Linux-Qt-Systempakete"]
+    C2["codeql.yml · SAST für Python"]
+    C3["dependency-audit.yml · Abhängigkeits-Audit, läuft auch bei Docs-only-PRs"]
+    C4["license-check.yml<br/>Lizenzreport mit Python-, AI- und Test-Abhängigkeiten einschließlich PyQt6, ohne Linux-Qt-Systempakete"]
     CQ{"Secret CLAUDE_CODE_OAUTH_TOKEN verfügbar?"}
     C5["claude-code-review.yml<br/>einmal je PR: opened bzw. ready_for_review, Wiederholung nur per Label re-review;<br/>Doku-only-Pfade ausgenommen · Review als Inline-Kommentare plus Zusammenfassung"]
     C6["Review sichtbar übersprungen<br/>Warnung statt rotem Lauf; bei Fork-PRs immer der Fall"]
   end
-
   P1 --> P2 --> PQ
   PQ -->|"ja"| P3 --> P5
   PQ -->|"nein"| P4 --> P5
-  P5 --> F1
-  F1 --> C1
-  F1 --> C2
-  F1 --> C3
-  F1 --> C4
-  F1 --> CQ
+  P5 --> F1 --> C1 & C2 & C3 & C4 & CQ
   CQ -->|"ja"| C5 --> J1
   CQ -->|"nein"| C6 --> J1
-  C1 --> J1
-  C2 --> J1
-  C3 --> J1
-  C4 --> J1
+  C1 & C2 & C3 & C4 --> J1
   J1 --> S1["Artefakt: Checkstatus und Review-Kommentar am PR"] --> ENDE(("Ende")):::terminal
-
   classDef terminal fill:#37474f,stroke:#37474f,color:#ffffff;
   classDef bar fill:#37474f,stroke:#37474f,color:#ffffff;
 ```
@@ -284,68 +170,37 @@ flowchart TD
 **Anmerkungen**
 
 - Die Schlüsselwort-Entscheidung ist keine Formalie: Ein deutsches „Löst #123“
-  wertet GitHub nicht aus. Bei PR 812 blieben dadurch sieben umgesetzte Issues
-  nach dem Merge offen und mussten von Hand nachgezogen werden.
-- Das Öffnen des PR startet die gezeichneten PR-Workflows sofort; ein weiterer
-  Commit löst `synchronize` aus und wiederholt die Checks. Das Claude-Review
-  ist seit der Reviewschleifen-Entschärfung die Ausnahme: Es hört nicht auf
-  `synchronize`, sondern läuft einmal je PR – bei `opened` für normal
-  geöffnete PRs, bei `ready_for_review` beim Verlassen des Draft-Status
-  (Drafts überspringt das Job-`if`) – und danach nur noch auf ausdrückliche
-  Anforderung über das Label `re-review`. Reine Doku-PRs (Markdown, `docs/`)
-  sind per `paths-ignore` ausgenommen.
-- `dependency-audit.yml` läuft ohne Pfadfilter auch bei reinen Doku-PRs. Der
-  Audit ist laut dem aktuellen [GitHub-Rahmen](#aktueller-github-rahmen) kein
-  erforderlicher Branch-Protection-Status. Er hat zudem eine
-  Abdeckungsgrenze (#994): Der Abgleich läuft gegen PyPI-Distributionen,
-  Qt-Advisories werden aber gegen *Qt* geführt und nicht gegen die
-  Distribution `PyQt6-Qt6`, die Qt als Binärpaket mitliefert — ein grüner
-  Lauf ist deshalb kein Nachweis, dass das gebündelte Qt frei von bekannten
-  Befunden ist. Der Qt-Stand wird beim Anheben des Pins von Hand geprüft und
-  im Kommentarblock von `requirements/constraints.txt` festgehalten (so im
-  Kopf des Workflows und in `SECURITY.md`).
-- Das Review kommentiert nur; es hat weder Schreibrechte auf den Code noch
-  blockiert es den Merge. Das erledigen die Pflicht-Checks. Auch seine
-  Inline-Konversationen sperren den Merge nicht mehr (siehe
-  [GitHub-Rahmen](#aktueller-github-rahmen)); für den Umgang mit Befunden
-  gilt die Konvergenzregel aus Abschnitt 3.
-- Die Raute prüft nur, ob das Secret vorhanden ist. Der andere Fehlerweg ist
-  seit #828 (PR #853) im Workflow-Kopf festgehalten: Ein vorhandenes, aber
-  abgelaufenes Token (`claude setup-token` erzeugt ein Jahr Gültigkeit; der
-  konkrete Stichtag steht drift-geschützt in beiden Workflow-Köpfen) oder ein
-  erschöpftes Nutzungslimit des Abos macht den Lauf rot, statt ihn zu
-  überspringen. Belegt ist das Fehlerbild nur für den Limitfall (früher
-  Abbruch ohne Modellnutzung); der Ablauffall wäre ein
-  Authentifizierungsfehler. Endet ein roter Lauf ohne Review-Ausgabe, ist
-  der PR weder blockiert noch geprüft — auch der indirekte Sperrweg über
-  aufzulösende Inline-Konversationen existiert seit der
-  Reviewschleifen-Entschärfung ohnehin nicht mehr.
-- `claude.yml` ist ein eigener, hier nicht gezeichneter Pfad: Er reagiert auf
-  `@claude`-Erwähnungen in Issues, PRs und Reviews und darf im Gegensatz zum
-  Review-Workflow schreiben. Seine mit dem Standard-`GITHUB_TOKEN` erzeugten
-  Commits starten keine nachgelagerten Workflows. Für die vollständige
-  PR-Workflow-Kette ist danach ein menschlich authentifizierter Folge-Push
-  nötig; ein manueller Dispatch ist nur bei einzelnen Workflows vorhanden und
-  daher kein gleichwertiger Ersatz.
-- Ebenfalls nicht gezeichnet und kein versionierter Workflow, sondern
-  Live-Konfiguration: das Codex-Review der GitHub-App
-  `chatgpt-codex-connector`. Sein automatisches Review ist seit #1035
-  abgeschaltet; es läuft nur noch auf ausdrückliches `@codex review`. Damit
-  gibt es genau **einen** automatisch konfigurierten Review-Dienst – das
-  versionierte Claude-Review, weil es die Doku-Pfad-Ausnahme trägt und über
-  `re-review` wiederholbar ist. Zwei parallele Erst-Reviews wären unter der
-  Konvergenzregel (höchstens zwei Bot-Runden, Abschnitt 3) doppelte Arbeit
-  mit doppelten Befundlisten. Diese Einstellung liegt in der
-  Connector-Konfiguration und ist über die Repository-API **nicht** prüfbar;
-  sie wird dort direkt kontrolliert. Wo genau, ist nicht offensichtlich: Die
-  Repository-Zeile („Code überprüfen" → „Repository-Einstellungen") kennt nur
-  „Alle PRs" / „Meine PRs" / „Persönliche Einstellungen verwenden" – ein
-  repo-eigenes „Aus" gibt es dort **nicht**. Abgeschaltet wird über den
-  persönlichen Schalter „Automatische Überprüfung", an den die Repo-Zeile
-  delegiert; er wirkt entsprechend auf alle Repositories, die ebenso
-  delegieren. Wie alle Review-Kommentare ist auch ein
-  Codex-Befund laut [GitHub-Rahmen](#aktueller-github-rahmen) keine
-  Merge-Sperre.
+  wertet GitHub nicht aus, verknüpfte Issues bleiben dann nach dem Merge offen
+  (im [PR-Template](../.github/PULL_REQUEST_TEMPLATE.md) vermerkt).
+- Das Öffnen des PR startet die gezeichneten Workflows sofort; ein weiterer
+  Commit löst `synchronize` aus und wiederholt die Checks. Das Claude-Review ist
+  die Ausnahme: einmal je PR – bei `opened`, bei `ready_for_review` beim
+  Verlassen des Draft-Status – und danach nur auf Anforderung über das Label
+  `re-review`; reine Doku-PRs sind per `paths-ignore` ausgenommen.
+- `dependency-audit.yml` läuft ohne Pfadfilter auch bei reinen Doku-PRs und ist
+  laut [GitHub-Rahmen](#aktueller-github-rahmen) kein erforderlicher
+  Branch-Protection-Status. Seine Abdeckungsgrenze: Der Abgleich läuft gegen
+  PyPI-Distributionen, Qt-Advisories werden aber gegen *Qt* geführt und nicht
+  gegen `PyQt6-Qt6`, das Qt als Binärpaket mitliefert; der Qt-Stand wird beim
+  Anheben des Pins von Hand geprüft und in `requirements/constraints.txt`
+  festgehalten.
+- Die Raute prüft nur, ob das Secret vorhanden ist. Ein abgelaufenes Token oder
+  ein erschöpftes Nutzungslimit macht den Lauf rot statt übersprungen — ein roter
+  Lauf ohne Review-Ausgabe heißt weder blockiert noch geprüft. Das Review
+  kommentiert ohnehin nur: keine Schreibrechte, keine Merge-Sperre, auch nicht
+  über seine Inline-Konversationen; für Befunde gilt die Konvergenzregel aus
+  Abschnitt 3.
+- Nicht gezeichnet: `claude.yml` reagiert auf `@claude`-Erwähnungen und darf
+  schreiben, aber seine mit dem Standard-`GITHUB_TOKEN` erzeugten Commits starten
+  keine nachgelagerten Workflows — dafür braucht es einen menschlich
+  authentifizierten Folge-Push. Ebenfalls nicht gezeichnet, weil
+  Live-Konfiguration: das Codex-Review der App `chatgpt-codex-connector`. Sein
+  automatisches Review ist abgeschaltet, es läuft nur auf ausdrückliches
+  `@codex review`. Damit gibt es genau **einen** automatisch konfigurierten
+  Review-Dienst – das versionierte Claude-Review, weil es die Doku-Pfad-Ausnahme
+  trägt und über `re-review` wiederholbar ist. Der Aus-Schalter ist der
+  persönliche „Automatische Überprüfung“, an den die Repository-Zeile delegiert;
+  über die Repository-API ist er **nicht** prüfbar.
 
 ---
 
@@ -353,49 +208,32 @@ flowchart TD
 
 **Auslöser:** Der PR ist offen, die Checks laufen.
 **Ergebnis:** Der PR ist per Squash auf `main` gemergt – der einzigen
-freigeschalteten Merge-Methode; vorhandene Closing-Verknüpfungen und die
-passende Folgeautomatisierung sind verarbeitet.
+freigeschalteten Merge-Methode; Closing-Verknüpfungen und Folgeautomatisierung
+sind verarbeitet.
 **Quellen:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) („PRs, die `make check`
-nicht bestehen, werden nicht gemergt“),
-[`claude-code-review.yml`](../.github/workflows/claude-code-review.yml),
-[`claude.yml`](../.github/workflows/claude.yml),
-[`coverage.yml`](../.github/workflows/coverage.yml),
-[`codeql.yml`](../.github/workflows/codeql.yml),
-[`license-check.yml`](../.github/workflows/license-check.yml),
-[`codex-security-scan.yml`](../.github/workflows/codex-security-scan.yml),
-[`benchmark.yml`](../.github/workflows/benchmark.yml),
-sowie die lineare Commit-Historie von `main` (ein Squash-Commit je PR).
+nicht bestehen, werden nicht gemergt“), die Workflows unter
+[`.github/workflows/`](../.github/workflows) sowie die lineare Commit-Historie
+von `main` (ein Squash-Commit je PR).
 
 ```mermaid
 flowchart TD
   START(("Start · PR ist offen")):::terminal --> R1
-
   subgraph CI["Partition: CI und Bots"]
-    direction TB
     R1["PR-Workflows laufen<br/>actions/checkout prüft beim pull_request standardmäßig GitHubs Merge-Ref refs/pull/N/merge"]
     RQ1{"Erforderlicher Status<br/>Lightweight PR checks grün?"}
     RB["Weitere Check- und Review-Befunde liegen vor<br/>unter anderem Zusammenfassungs- und Inline-Kommentare"]
   end
-
   subgraph DEV["Partition: Entwickler:in"]
-    direction TB
-    F1["Ursache lokal reproduzieren und beheben<br/>make check erneut grün bekommen"]
-    F2["git push in denselben Branch<br/>Ereignis synchronize: Pflicht-Checks laufen neu, das Auto-Review startet nicht erneut"]
-    FQ{"Behebung lokal?"}
-    F3["Optional @claude im PR-Kommentar für Fixes<br/>Bot-Fix prüfen und wegen GITHUB_TOKEN-Limit<br/>ein menschlich authentifiziertes Folge-Update vorbereiten"]
+    F1["Ursache lokal reproduzieren und beheben, make pr-ready erneut grün bekommen<br/>git push in denselben Branch — Ereignis synchronize: Pflicht-Checks laufen neu,<br/>das Auto-Review startet nicht erneut"]
     F4["Technische Merge-Sperre auflösen<br/>Branch auf main aktualisieren"]
   end
-
   subgraph REV["Partition: Reviewer bzw. Maintainer"]
-    direction TB
     RQ2{"Änderungswünsche offen?"}
     A1["Merge-Entscheidung treffen<br/>formales Approval ist möglich, aber aktuell nicht technisch vorgeschrieben"]
     RQ3{"Branch aktuell zu main?"}
     M1["Squash-Merge nach main<br/>einzige freigeschaltete Merge-Methode, Nachricht aus PR-Titel und -Beschreibung"]
   end
-
   subgraph POST["Partition: main und Folgeautomatisierung"]
-    direction TB
     J2["Fork"]:::bar
     J3["Join"]:::bar
     IQ{"Closing-Verknüpfung vorhanden?"}
@@ -403,70 +241,53 @@ flowchart TD
     N2["push auf main<br/>coverage.yml, codeql.yml, license-check.yml"]
     N3["Head-Branch wird automatisch gelöscht<br/>nur im eigenen Repository, nicht im Fork"]
   end
-
   R1 --> RQ1
-  RQ1 -->|"nein"| F1 --> F2 --> R1
+  RQ1 -->|"nein"| F1 --> R1
   RQ1 -->|"ja"| RB --> RQ2
-  RQ2 -->|"ja"| FQ
-  FQ -->|"ja"| F1
-  FQ -->|"nein · @claude"| F3 --> F2
+  RQ2 -->|"ja"| F1
   RQ2 -->|"nein"| A1 --> RQ3
   RQ3 -->|"nein"| F4 --> R1
   RQ3 -->|"ja"| M1 --> J2
-  J2 --> N3 --> J3
+  J2 --> N3 & N2 --> J3
   J2 --> IQ
   IQ -->|"ja"| N1 --> J3
   IQ -->|"nein"| J3
-  J2 --> N2
-  N2 --> J3
   J3 --> ENDE(("Ende")):::terminal
-
   classDef terminal fill:#37474f,stroke:#37474f,color:#ffffff;
   classDef bar fill:#37474f,stroke:#37474f,color:#ffffff;
 ```
 
 **Anmerkungen**
 
-- Die Rückkante `synchronize` taktet nur noch die Pflicht-Checks: Jeder neue
-  Commit startet `pr-ci.yml` neu. Das Claude-Review läuft dabei nicht erneut
-  mit – eine Wiederholung gibt es nur über das Label `re-review`; dort bricht
-  `concurrency: cancel-in-progress` einen noch laufenden älteren Lauf ab.
+- Die Rückkante `synchronize` taktet nur die Pflicht-Checks: Jeder neue Commit
+  startet `pr-ci.yml` neu. Das Claude-Review läuft nicht erneut mit – nur über
+  das Label `re-review`, wo `concurrency: cancel-in-progress` einen älteren Lauf
+  abbricht. Ein `@claude`-Kommentar ist der optionale Nebenweg für Bot-Fixes;
+  sein Ergebnis braucht wegen des `GITHUB_TOKEN`-Limits ein menschlich
+  authentifiziertes Folge-Update und mündet ebenfalls in den Push.
 - **Konvergenzregel für Bot-Reviews:** Höchstens zwei Bot-Review-Runden je PR.
   Danach entscheidet ein Mensch gesammelt (ein Kommentar), welche Befunde
   umgesetzt werden; die übrigen werden mit einem Satz Begründung geschlossen.
   Bot-Befunde sind Input der Merge-Entscheidung, keine Merge-Bedingung –
-  konvergieren Befunde nicht mehr (jeder Fix zieht neue oder umformulierte
-  nach), ist Aufhören die richtige Auflösung, nicht der nächste Fix-Push.
-- Squash ist seit #1035 die einzige freigeschaltete Merge-Methode; die
-  lineare `main`-Historie ist damit erzwungen statt nur belegte Praxis. Die
-  Commit-Nachricht entsteht aus PR-Titel und PR-Beschreibung – beide sind
-  deshalb der dauerhafte Text, nicht nur Review-Kontext.
-- Ein formales `APPROVED`-Review ist derzeit keine Branch-Protection-Pflicht.
-  GitHub erzwingt für Nicht-Admins nur einen gegenüber `main` aktuellen
-  Branch (`strict`); Review-Konversationen sperren den Merge nicht mehr.
-  Maintainer müssen Befunde deshalb bewusst bewerten; die technische
-  Durchsetzung ist im [GitHub-Rahmen](#aktueller-github-rahmen) festgehalten.
-- Nicht gezeichnet sind reine Zeitplan-Einstiege beziehungsweise zusätzliche
-  Zeitplan-Läufe neben den gezeichneten Ereignispfaden:
-  `ui-nightly.yml` (täglich 03:00 UTC), `ci.yml` (sonntags, volle Matrix),
-  `dependency-audit.yml` (montags 05:00 UTC), `benchmark.yml` und `codeql.yml`
-  (montags 05:17 UTC),
-  `clamav-db-refresh.yml` (montags 03:00 UTC),
-  `runner-heartbeat.yml` (täglich 05:30 UTC, Erreichbarkeit der Self-hosted
-  Abnahme-Runner; eskaliert seit #958 gestuft nach 7/12/21 Tagen offline bis
-  zur automatischen Austragung der Plattform, siehe Abschnitt 4) und der
-  monatliche Dry-Run von `release-linux.yml` (am 3. um 04:40 UTC, siehe
-  Abschnitt 4).
-- Ein Issue-Zustandswechsel (öffnen, schließen, wiedereröffnen) löst seit
-  #1040 keinen Workflow mehr aus; Priorität und Blocker stehen im Issue
-  selbst (#1033), eine gespiegelte Triage-Tabelle gibt es nicht mehr.
-- GitHub-verwaltete Funktionen wie der `Dependency Graph` sind nicht als
-  Workflows versioniert. Regelmäßige Dependabot-Versionsupdates sind nicht
-  konfiguriert, weil `.github/dependabot.yml` fehlt. Nur sofern
-  Dependabot-Sicherheitsupdates in den Repository-Einstellungen aktiviert sind
-  (Live-Konfiguration, siehe [GitHub-Rahmen](#aktueller-github-rahmen)), kann
-  Dependabot eigene Bot-Branches und PRs erzeugen; dieser alternative Einstieg
-  ist im manuellen Feature-Branch-Diagramm nicht dargestellt.
+  konvergieren sie nicht mehr (jeder Fix zieht neue oder umformulierte nach),
+  ist Aufhören die richtige Auflösung, nicht der nächste Fix-Push.
+- Weil Squash die einzige Merge-Methode ist, sind PR-Titel und PR-Beschreibung der
+  dauerhafte Commit-Text, nicht nur Review-Kontext. Technisch erzwungen ist für
+  Nicht-Admins allein der gegenüber `main` aktuelle Branch (siehe
+  [GitHub-Rahmen](#aktueller-github-rahmen)) – Befunde und Approvals bewerten
+  Maintainer deshalb bewusst.
+- Nicht gezeichnet sind die reinen Zeitplan-Einstiege neben den Ereignispfaden
+  (nächtliche UI-Suite, wöchentliche Vollmatrix, Audit, Benchmark, CodeQL,
+  Signaturcache, Runner-Heartbeat, monatlicher Release-Dry-Run). Eine Liste davon
+  wird hier bewusst nicht gepflegt: Quelle ist die `on:`-Sektion der jeweiligen
+  Datei unter [`.github/workflows/`](../.github/workflows).
+- Ein Issue-Zustandswechsel löst keinen Workflow aus; Priorität und Blocker stehen
+  im Issue selbst ([`CONTRIBUTING.md`](../CONTRIBUTING.md)). GitHub-verwaltete
+  Funktionen wie der `Dependency Graph` sind ebenfalls nicht als Workflow
+  versioniert, und weil `.github/dependabot.yml` fehlt, gibt es keine
+  regelmäßigen Dependabot-Versionsupdates. Nur aktivierte
+  Dependabot-Sicherheitsupdates (Live-Konfiguration) können eigene Bot-Branches
+  und PRs erzeugen — ein Einstieg, den dieses Diagramm nicht zeigt.
 
 ---
 
@@ -476,95 +297,66 @@ flowchart TD
 ist freigegeben.
 **Ergebnis:** Ein öffentlicher GitHub-Release mit exakt fünf abgenommenen,
 byteidentischen Dateien; Post-Release-Nachweise sind protokolliert.
-**Verbindliche Quelle:** [`docs/RELEASE_PROCESS.md`](RELEASE_PROCESS.md)
-(neun Schritte) und [`docs/RELEASE_ACCEPTANCE_CHECKLIST.md`](RELEASE_ACCEPTANCE_CHECKLIST.md)
-(stabile Kriterien-IDs). Die Diagramme unten sind auf zwei Sichten geteilt,
-beschreiben aber einen Prozess.
+**Verbindliche Quelle:** [`docs/RELEASE_PROCESS.md`](RELEASE_PROCESS.md) (neun
+Schritte) und [`docs/RELEASE_ACCEPTANCE_CHECKLIST.md`](RELEASE_ACCEPTANCE_CHECKLIST.md)
+(stabile Kriterien-IDs). Die zwei Diagramme sind zwei Sichten eines Prozesses.
+**Vertragsumfang:** genau fünf Dateien — Linux x86_64 AppImage und `.deb`, Linux
+arm64 AppImage und `.deb`, macOS arm64 DMG. Kein Windows; Linux x86_64 bleibt in
+der Hardware-Abnahme sichtbar pausiert.
 
-**Vertragsumfang:** genau fünf Dateien — Linux x86_64 AppImage und `.deb`,
-Linux arm64 AppImage und `.deb`, macOS arm64 DMG. Kein Windows. Linux x86_64
-bleibt in der Hardware-Abnahme sichtbar pausiert.
+**Störungen** sind hier nicht einzeln ausgezeichnet: Jede rote Stufe führt auf
+„No-Go“ (Kandidat verwerfen, Ursache per PR beheben, neu ab Schritt 1) oder auf
+einen Wiederanlauf nach der
+[Wiederanlaufmatrix](RELEASE_PROCESS.md#wiederanlaufmatrix) — dort steht je
+Störung, welcher Weg zulässig ist und was unzulässig bleibt.
 
 ### 4a. Kandidat bauen und abnehmen (Schritte 1 bis 6)
 
 ```mermaid
 flowchart TD
   START(("Start")):::terminal --> S1
-
   subgraph OWN["Partition: Release-Owner"]
-    direction TB
     S1["Schritt 1 · Release vorbereiten<br/>main aktuell; Standardweg scripts/prepare_release.py erzeugt das Gerüst mit TODO(release)-Lücken<br/>Lücken von Hand füllen, CHANGELOG und Release-Text prüfen, per PR einreichen<br/>release_contract.py validate-checklist · pytest tests/test_markdown_links.py"]
     S2["Schritt 2 · Kandidatenstand einfrieren<br/>scripts/verify_release_freeze.py, Laufkopf ist der Kandidat<br/>Release-Ref release/vX.Y.Z anlegen, anlege-only, Ruleset prüfen"]
     SQ1{"Freeze konsistent?"}
-    S2F["Pfadklassifikation oder Doku per PR korrigieren<br/>zurück zu Schritt 1, nicht taggen"]
-    S3R["Runner-Umgebung oder Infrastruktur außerhalb des Repos beheben<br/>Kandidatenlauf ab Schritt 3 auf demselben SHA; muss der Fix im ausgeführten Kandidatenstand wirksam werden, entsteht ein neuer Kandidat ab Schritt 1"]
-    HRQ{"Ursache nachweislich außerhalb des Kandidatenstands?<br/>Runner-Umgebung, Infrastruktur, Netz — nicht Workflow, Preflight-Skript oder andere ausgeführte Eingaben"}
-    H5R["Reinen Runnerfehler beheben<br/>Runner offline, Watchdog-Abbruch (#915) oder Action-Download mit 429 hinter der Heim-IP — erster Schritt jedes Self-hosted-Jobs, noch vor dem Preflight (Archiv-Cache, RELEASE_AUTOMATION §2.3)<br/>Behebung liegt außerhalb des Kandidatenstands: Abnahme mit derselben Kandidaten-Run-ID wiederholen, keine Plattform als PASS markieren"]
-    S3["Schritt 3 · Kandidatenbau starten<br/>verify-release-ref, dann gh workflow run release-linux.yml --ref RELEASE_REF -f with_ai=true"]
+    S3["Schritt 3 · Kandidatenbau starten<br/>release_contract.py verify-release-ref, dann gh workflow run release-linux.yml --ref RELEASE_REF -f with_ai=true"]
     S4["Schritt 4 · Kandidatenartefakte und Sicherheitsbefunde vorprüfen<br/>Build-Container, Freeze-Provenienz und Logs; noch kein Kandidatenvertrag"]
     SQ2{"Artefakte plausibel und kein Malware-Fund?"}
-    SQ4{"Zeigt der Release-Ref auf den Kandidaten-SHA?<br/>release_contract.py verify-release-ref"}
     S6["Schritt 6 · Freigabemanifest und Release-Instanz abnehmen<br/>extract-instance · validate-instance --through-phase pre-release"]
     SQ3{"Alle Pre-Release-MUST auf PASS?"}
   end
-
   subgraph BUILD["Partition: CI · release-linux.yml"]
-    direction TB
-    B1["Gate 1 · verify-candidate<br/>Freeze-Gate fail-closed, Provenienz als unveränderliches Artefakt"]
-    B2["Gate 2 · test<br/>volle Matrix ci.yml: Ubuntu und macOS × Python 3.10 bis 3.13"]
-    B3["build-Matrix<br/>Linux x86_64, Linux arm64, macOS arm64"]
-    B4["Smoke-Start je Artefakt<br/>Fork-Bomb- und Hänger-Wächter, neutrales Arbeitsverzeichnis"]
-    B5["Secret-, Pfad- und ClamAV-Scan<br/>Rohdatei und entpackte Nutzlast"]
-    B6["Artefakt: fünf Dateien plus Freeze-Provenienz, 90 Tage Aufbewahrung"]
+    B1["Gate 1 verify-candidate · Gate 2 test<br/>Freeze-Gate fail-closed mit Provenienz als unveränderliches Artefakt;<br/>volle Matrix ci.yml: Ubuntu und macOS × Python 3.10 bis 3.13"]
+    B2["build-Matrix Linux x86_64, Linux arm64, macOS arm64<br/>Smoke-Start je Artefakt mit Fork-Bomb- und Hänger-Wächter im neutralen Arbeitsverzeichnis<br/>Secret-, Pfad- und ClamAV-Scan über Rohdatei und entpackte Nutzlast"]
+    B3["Artefakt: fünf Dateien plus Freeze-Provenienz, 90 Tage"]
   end
-
   subgraph HW["Partition: Hardware-Abnahme · release-abnahme.yml"]
-    direction TB
-    H0["Schritt 5 · Abnahme starten<br/>--ref RELEASE_REF · run_id des Kandidaten · platforms=alle · dry_run=false · target_issue"]
-    H1["candidate-source<br/>fünf Dateien laden, Hashes prüfen, release-candidate-contract-&lt;attempt&gt; erzeugen<br/>und Workflow-SHA hart an den Kandidaten binden"]
-    RS["retirement-status<br/>liest fail-closed die Labels runner-retired:&lt;Plattform&gt;:&lt;Datum&gt; des Heartbeat-Betriebs-Issues;<br/>eine ausgetragene Plattform überspringt Preflight und Abnahme-Job"]
-    HP["Preflight je Plattform + Runner-Watchdog<br/>Runner-Erreichbarkeit und echter Qt-/GL-Probeaufruf;<br/>hängende Warteschlangen brechen sichtbar ab statt still zu warten"]
-    HPQ{"Preflight und Watchdog bestanden?"}
-    HF0["Fork"]:::bar
-    HJ0["Join"]:::bar
+    H0["Schritt 5 · Abnahme starten<br/>verify-release-ref, dann gh workflow run release-abnahme.yml --ref RELEASE_REF<br/>run_id des Kandidaten · platforms=alle · dry_run=false · target_issue"]
+    H1["candidate-source<br/>fünf Dateien laden, Hashes prüfen, Kandidatenvertrag erzeugen<br/>und Workflow-SHA hart an den Kandidaten binden"]
+    HP["retirement-status, dann Preflight je Plattform + Runner-Watchdog<br/>runner-retired-Labels fail-closed lesen (ausgetragene Plattform überspringt Preflight und Abnahme-Job);<br/>Runner-Erreichbarkeit und echter Qt-/GL-Probeaufruf, hängende Warteschlangen brechen sichtbar ab"]
     HF["Fork"]:::bar
     H2["macOS arm64<br/>DMG-Start, Retina, natives 3D, E2E, GL-Suite"]
     H3["Linux arm64<br/>AppImage- und .deb-Zyklus, GL-Provenance, natives 3D, E2E"]
     H4["Linux x86_64<br/>sichtbar pausiert, erscheint als Hinweis statt als Lücke"]
-    H4R["ausgetragene Plattform<br/>per Heartbeat-Eskalation Stufe 3 automatisch ausgetragen; Job hinweis-ausgetragen meldet sichtbar,<br/>Abschlussmatrix führt sie als ausgetragen seit Datum — blockierend, kein Abnahmeergebnis"]
     HJ["Join"]:::bar
     H5["Aggregation<br/>Vision-Vorbewertung fail-safe, Abschlussmatrix, Kommentar ins Release-Issue"]
     HQ{"Abschlussmatrix ohne blockierende Lücken?"}
     H6["Artefakt: release-approval-manifest<br/>nur bei platforms=alle erzeugt"]
   end
-
   S1 --> S2 --> SQ1
-  SQ1 -->|"nein"| S2F --> S1
-  SQ1 -->|"ja"| S3 --> B1 --> B2 --> B3 --> B4 --> B5 --> B6 --> S4 --> SQ2
-  SQ2 -->|"nein · Fund oder inhaltlicher Artefaktfehler"| NOGO["No-Go protokollieren<br/>Kandidat verwerfen, Ursache per PR beheben, neu ab Schritt 1"]
-  SQ2 -->|"nein · Umgebungs- oder Infrastrukturfehler ohne Repo-Änderung, z. B. nicht entpackbar"| S3R --> S3
-  SQ2 -->|"ja"| SQ4
-  SQ4 -->|"nein · Ref bewegt oder verwechselt"| NOGO
-  SQ4 -->|"ja"| H0 --> HF0
-  HF0 --> H1 --> HJ0
-  HF0 --> RS --> HP --> HPQ
-  HPQ -->|"ja"| HJ0
-  HPQ -->|"nein · rot vor oder im Preflight, etwa Checkout mit 429, oder Watchdog-Abbruch"| HRQ
-  HJ0 --> HF
-  HF --> H2 --> HJ
-  HF --> H3 --> HJ
-  HF --> H4 --> HJ
-  HF -->|"nur mit runner-retired-Label; Preflight und Abnahme-Job der Plattform entfallen"| H4R --> HJ
+  SQ1 -->|"nein"| NOGO
+  SQ1 -->|"ja"| S3 --> B1 --> B2 --> B3 --> S4 --> SQ2
+  SQ2 -->|"nein · Befund am Kandidaten"| NOGO["No-Go protokollieren<br/>Kandidat verwerfen, Ursache per PR beheben, neu ab Schritt 1"]
+  SQ2 -->|"nein · Störung außerhalb des Kandidatenstands"| WA4["Wiederanlauf laut Wiederanlaufmatrix<br/>Ursache außerhalb des ausgeführten Stands beheben,<br/>Kandidatenlauf ab Schritt 3 auf demselben SHA"] --> S3
+  SQ2 -->|"ja"| H0 --> H1 --> HP --> HF
+  HF --> H2 & H3 & H4 --> HJ
   HJ --> H5 --> HQ
-  HQ -->|"nein · Plattform ausgetragen oder fachlicher FAIL, create-approval schreibt kein Manifest"| NOGO
-  HQ -->|"nein · Evidenz fehlt oder Lauf abgebrochen"| HRQ
-  HRQ -->|"ja · reiner Runnerfehler"| H5R --> H0
-  HRQ -->|"nein · Fix muss im ausgeführten Stand wirksam werden"| NOGO
+  HQ -->|"nein · fachlicher FAIL oder ausgetragene Plattform"| NOGO
+  HQ -->|"nein · Störung außerhalb des Kandidatenstands"| WA5["Wiederanlauf laut Wiederanlaufmatrix<br/>Abnahme mit derselben Kandidaten-Run-ID;<br/>keine fehlende Plattform als PASS eintragen"] --> H0
   HQ -->|"ja"| H6 --> S6 --> SQ3
   SQ3 -->|"nein"| NOGO
   SQ3 -->|"ja"| WEITER(("weiter in 4b")):::terminal
   NOGO --> ENDE(("Ende · kein Release")):::terminal
-
   classDef terminal fill:#37474f,stroke:#37474f,color:#ffffff;
   classDef bar fill:#37474f,stroke:#37474f,color:#ffffff;
 ```
@@ -574,22 +366,15 @@ flowchart TD
 ```mermaid
 flowchart TD
   START(("Start · Go-Entscheidung ist protokolliert")):::terminal --> T1
-
   subgraph OWN["Partition: Release-Owner"]
-    direction TB
     T1["Schritt 7 · Tag setzen<br/>von Hand oder per create_tag im Publish-Lauf<br/>immer auf candidate.head_sha aus dem Manifest, danach verifiziert"]
     T2["Schritt 8 · Veröffentlichung starten<br/>verify-release-ref, dann gh workflow run release-publish.yml --ref RELEASE_REF<br/>mit tag, candidate_run_id, acceptance_run_id, approval_artifact_name<br/>create_tag und predecessor_tag optional; target_issue schaltet die Issue-Kommentare frei"]
     T3["Schritt 9 · öffentliche Prüfung<br/>public-download-report.json lesen: Gesamtverdikt und jedes Asset auf PASS<br/>sichtbare Produktversion auf den aktiven Plattformen prüfen<br/>Handprozedur nur als Rückfallweg, wenn der Nachweis-Job nicht lief"]
-    T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>vom Publish-Lauf ausgelöst (Job update-dispatch, Marker im run-name)<br/>gleiche run_id, platforms=alle, predecessor_tag, target_issue<br/>ohne target_issue bleiben Matrix und Instanz Artefakt und Job-Summary<br/>manueller Start bleibt Rückfallweg"]
-    T5["Instanz prüfen<br/>Publish-Lauf setzt PUBLISH-01 bis 03 und PUBLIC-DOWNLOAD-01 (bis Phase publish)<br/>ausgelöster Abnahme-Lauf trägt beide UPDATE-Kriterien nach (bis post-release)<br/>set-criterion von Hand bleibt Rückfallweg"]
+    T4["Post-Release-Nachweis UPDATE-LINUX-ARM-01 + UPDATE-MACOS-ARM-01<br/>vom Publish-Lauf ausgelöst (Job update-dispatch, Marker im run-name)<br/>gleiche run_id, platforms=alle, predecessor_tag, target_issue<br/>manueller Start bleibt Rückfallweg"]
+    T5["Instanz prüfen und Release-Issue schließen<br/>Publish-Lauf setzt PUBLISH-01 bis 03 und PUBLIC-DOWNLOAD-01 (bis Phase publish),<br/>der ausgelöste Abnahme-Lauf trägt beide UPDATE-Kriterien nach (bis post-release); set-criterion bleibt Rückfallweg<br/>Kriterienmatrix mit URLs und Hashes ist im Issue verlinkt"]
   end
-
   subgraph PUB["Partition: CI · release-publish.yml, baut nichts neu"]
-    direction TB
-    P1["Freigabemanifest nur aus dem Abnahme-Run laden"]
-    P2["verify-approval<br/>Workflows, Runs, Commit, Checklisten-Pin"]
-    P3["Tag muss auf exakt den abgenommenen Commit zeigen"]
-    P4["Freeze-Provenienz am Kandidaten-Commit rekonstruieren"]
+    P1["Freigabemanifest nur aus dem Abnahme-Run laden<br/>verify-approval: Workflows, Runs, Commit, Checklisten-Pin<br/>Tag muss auf exakt den abgenommenen Commit zeigen, Freeze-Provenienz am Kandidaten-Commit rekonstruieren"]
     P5["Kandidatenbytes aus dem Build-Run laden<br/>verify-artifacts: exakte Dateimenge und alle SHA-256"]
     PQ1{"Bestehender Release-Zustand?<br/>plan-publish"}
     P6["Draft anlegen bzw. bestücken<br/>die fünf Dateien ohne Clobber hochladen"]
@@ -598,161 +383,68 @@ flowchart TD
     P8["Draft veröffentlichen · gh release edit --draft=false --latest"]
     P9["Vertrag stoppt<br/>partieller oder abweichender Zustand, kein Clobber, kein Asset-Tausch"]
     P10["already-complete<br/>Release steht bereits vollständig und byteidentisch, keine Mutation"]
-    P11["public-download · eigener Job nach dem Publish (#916)<br/>lädt alle fünf Assets ohne Authorization über browser_download_url;<br/>Sollwerte aus dem Freigabemanifest, Verdikt aus demselben verify-artifacts<br/>Artefakt public-download-report.json, Job-Summary, Issue-Kommentar — auch im Fehlerfall"]
-  end
-
-  subgraph FIN["Partition: Abschluss"]
-    direction TB
+    P11["public-download · eigener Job nach dem Publish<br/>lädt alle fünf Assets ohne Authorization über browser_download_url;<br/>Sollwerte aus dem Freigabemanifest, Verdikt aus demselben verify-artifacts<br/>Artefakt public-download-report.json, Job-Summary, Issue-Kommentar — auch im Fehlerfall"]
     PQ3{"Download-Nachweis: Gesamtverdikt PASS?"}
-    FQ{"sichtbare Version und Update-Check in Ordnung?"}
-    F1["Release-Issue schließen<br/>Kriterienmatrix mit URLs und Hashes ist verlinkt"]
-    FQ2{"Fehler am Release oder am Prüfpfad?"}
-    F2["Incident<br/>Rollback bzw. Yank-Hinweis oder Hotfix mit neuer Patch-Version ab Schritt 1<br/>Tag nie verschieben, Assets nie ersetzen"]
-    F3["Prüfpfad-Fehler (Netz, Runner, Checkout mit 429)<br/>betroffenen Nachweis von Hand wiederholen und den Fehlversuch mitprotokollieren<br/>Download-Nachweis: Publish-Lauf mit denselben Inputs (idempotent) · Update-Nachweis: release-abnahme.yml mit derselben run_id und predecessor_tag<br/>UPDATE-Kriterien bleiben bis zum bestandenen Lauf PENDING"]
   end
-
-  T1 --> T2 --> P1 --> P2 --> P3 --> P4 --> P5 --> PQ1
-  PQ1 -->|"kein Release · create-draft-upload"| P6
-  PQ1 -->|"Draft ohne Assets · upload-to-draft"| P6
+  subgraph FIN["Partition: Störung"]
+    INC["Fall laut Wiederanlaufmatrix einordnen<br/>Fehler am Prüfpfad: denselben Nachweis mit denselben gebundenen Inputs wiederholen und den Fehlversuch protokollieren<br/>Fehler am Release: Incident, Rollback bzw. Yank-Hinweis oder Hotfix mit neuer Patch-Version ab Schritt 1<br/>Tag nie verschieben, Assets nie ersetzen"]
+  end
+  T1 --> T2 --> P1 --> P5 --> PQ1
+  PQ1 -->|"kein Release oder Draft ohne Assets · create-draft-upload bzw. upload-to-draft"| P6
   PQ1 -->|"vollständiger Draft · publish-existing-draft"| P7
-  PQ1 -->|"teilweise oder abweichend"| P9 --> F2
+  PQ1 -->|"teilweise oder abweichend"| P9 --> INC
   PQ1 -->|"bereits veröffentlicht"| P10 --> P11
   P6 --> P7 --> PQ2
   PQ2 -->|"ja"| P8 --> P11 --> T3 --> PQ3
-  PQ3 -->|"ja"| T4 --> FQ
-  PQ3 -->|"nein · release-instance und update-dispatch entfallen (needs public-download), es wurde kein Update-Nachweis ausgelöst"| FQ2
   PQ2 -->|"nein"| P9
-  FQ -->|"ja"| T5 --> F1 --> ENDE(("Ende · Release abgeschlossen")):::terminal
-  FQ -->|"nein"| FQ2
-  FQ2 -->|"am Release · falscher oder fehlender Tag, privates Release, kaputter Asset-Satz, Vorgänger sieht die neue Version nicht"| F2 --> ENDE2(("Ende · Release nicht abgeschlossen")):::terminal
-  FQ2 -->|"am Prüfpfad · Netz, API-Fehler wie 429 oder 500, Runner; CHECK_FAILED ist erst nach Ursachenklärung ein Release-Befund"| F3 --> T3
-
+  PQ3 -->|"ja"| T4 --> T5 --> ENDE(("Ende · Release abgeschlossen")):::terminal
+  PQ3 -->|"nein"| INC --> ENDE2(("Ende · Release nicht abgeschlossen")):::terminal
   classDef terminal fill:#37474f,stroke:#37474f,color:#ffffff;
   classDef bar fill:#37474f,stroke:#37474f,color:#ffffff;
 ```
 
 **Anmerkungen**
 
-- Kandidatenbau, Abnahme und Veröffentlichung starten ausschließlich manuell
-  per `workflow_dispatch`; einen Tag-Trigger oder einen Weg, der am Manifest
-  vorbei veröffentlicht, gibt es nicht. Einzige Zeitplan-Ausnahme ist der
-  monatliche Dry-Run von `release-linux.yml` (#922, am 3. um 04:40 UTC): Er
-  probt den Kandidatenpfad auf dem `main`-Head, erzeugt aber ausdrücklich
-  keinen Kandidaten und veröffentlicht nichts.
-- `release-linux.yml` erzeugt noch keinen Kandidatenvertrag. Erst
-  `candidate-source` am Anfang von `release-abnahme.yml` lädt die fünf Dateien,
-  prüft ihre Metadaten und Hashes und veröffentlicht
-  `release-candidate-contract-<attempt>`. Weil dieser Job außerdem
-  `GITHUB_SHA` hart mit dem Kandidaten-SHA vergleicht, muss Schritt 5 auf dem
-  unveränderlichen Release-Ref `release/vX.Y.Z` starten (#918). `main` darf
-  seit dieser Entscheidung während des Releases weiterlaufen; ein Dispatch auf
-  `main` bräche in `candidate-source` hart ab.
-- Der Publish-Lauf baut nichts. Seine einzige Dateiquelle ist die im Manifest
-  gebundene Build-Run-ID; veröffentlicht werden genau die Bytes, deren SHA-256
-  im Manifest stehen.
-- Die Raute „Bestehender Release-Zustand“ ist `plan-publish` aus
-  `scripts/release_contract.py`: kein Release → Draft anlegen und laden; Draft
-  ohne Assets → laden; vollständiger Draft → nur veröffentlichen; bereits
-  veröffentlicht und byteidentisch → keine Mutation. Jeder teilweise oder
-  abweichende Zustand blockiert, statt repariert zu werden. Ein veröffentlichtes
-  Release ganz ohne Assets ist ebenfalls ein Blocker und braucht eine
-  Owner-Entscheidung.
-- Die Go-/No-Go-Entscheidung bleibt an jeder Raute menschlich. Die
+- Kandidatenbau, Abnahme und Veröffentlichung starten ausschließlich manuell per
+  `workflow_dispatch`; einen Tag-Trigger oder einen Weg, der am Manifest vorbei
+  veröffentlicht, gibt es nicht. Einzige Zeitplan-Ausnahme ist der monatliche
+  Dry-Run von `release-linux.yml` auf dem `main`-Head: Er probt den
+  Kandidatenpfad, erzeugt aber ausdrücklich keinen Kandidaten.
+- Den Kandidatenvertrag erzeugt nicht `release-linux.yml`, sondern erst
+  `candidate-source` am Anfang von `release-abnahme.yml`. Weil dieser Job
+  `GITHUB_SHA` hart mit dem Kandidaten-SHA vergleicht, laufen alle Dispatches auf
+  dem unveränderlichen Release-Ref `release/vX.Y.Z`
+  ([`ADR-2026-release-ref-entkopplung.md`](history/ADR-2026-release-ref-entkopplung.md)),
+  und `main` darf währenddessen weiterlaufen. Ausgeführt wird die Definition aus
+  dem gewählten Ref; welche Voraussetzung `workflow_dispatch` trotzdem an `main`
+  stellt, steht im [Runbook](RELEASE_PROCESS.md).
+- Der Publish-Lauf baut nichts; seine einzige Dateiquelle ist die im Manifest
+  gebundene Build-Run-ID. Die Raute „Bestehender Release-Zustand“ ist
+  `plan-publish` aus `scripts/release_contract.py`; jeder teilweise oder
+  abweichende Zustand blockiert dort, statt repariert zu werden.
+- Die Go-/No-Go-Entscheidung bleibt an jeder Raute menschlich; die
   Vision-Vorbewertung der Screenshots ist fail-safe und bewertet nie
-  abschließend; ohne API-Key bleibt jedes Kriterium „unbewertet“.
-- `MALWARE-01` ist `SHOULD`, aber ein tatsächlicher Fund ist immer No-Go. Ein
-  fehlender Signaturcache wird sichtbar `UNAVAILABLE` statt still bestanden.
-- `UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` sind erst nach dem Tag
-  prüfbar, weil `/releases/latest` die neue Version vorher nicht meldet. Sie
-  blockieren den Tag nicht, aber den Abschluss des Release-Issues;
-  `CHECK_FAILED` gilt nie als „kein Update“. `platforms=alle` erbringt beide in
-  einem Lauf; der macOS-Kanal setzt einen Vorgänger ab v2.7.3 voraus (#917). Der erneute
-  Abnahme-Lauf muss mit `--ref "$RELEASE_REF"` auf dem Kandidaten-Commit laufen,
-  nicht auf `main`. Bei
-  `workflow_dispatch` ist `GITHUB_SHA` laut
-  [GitHub-Ereignisreferenz](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)
-  der letzte Commit des ausgewählten Branches oder Tags; auch der annotierte
-  Release-Tag bindet den Lauf daher an den Kandidaten-Commit statt an den
-  Tag-Objekt-SHA.
-- Der Dispatch auf einen anderen Ref als `main` enthebt nicht der
-  Grundvoraussetzung: „This event will only trigger a workflow run if the
-  workflow file exists on the default branch"
-  ([GitHub-Ereignisreferenz](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)).
-  Die drei Workflow-Dateien müssen während eines laufenden Releases unter
-  ihren Pfaden auf `main` bestehen bleiben; ausgeführt wird danach die
-  Definition aus dem gewählten Ref.
-- `PUBLIC-DOWNLOAD-01` erbringt seit #916 der Nachweis-Job des Publish-Laufs,
-  nicht der Release-Owner: Er kann erst **nach** `--draft=false` laufen, weil
-  Draft-Assets anonym gar nicht erreichbar sind und der Verifikationsschritt
-  im Publish-Job authentifiziert aus dem Draft lädt. Die URL des Publish-Laufs
-  allein genügt deshalb nie als Nachweis; maßgeblich ist der Bericht. Schritt 9
-  ist damit Prüfen und Protokollieren — die anonyme Handprozedur bleibt
-  Rückfallweg, wenn der Job nicht gelaufen ist. Ein rotes Verdikt hält auch
-  die beiden Folgejobs an: `release-instance` verlangt `needs: [publish,
-  public-download]` und `update-dispatch` zusätzlich `release-instance`, ein
-  Update-Nachweis wird dann also gar nicht erst ausgelöst. Der Bericht selbst
-  entsteht trotzdem (`if: !cancelled()`) und bleibt die Grundlage der
-  Ursachenklärung.
-- Der automatisierte Abschluss (#919) ersetzt keine Prüfung, nur Tipparbeit:
-  Der Tag wird auch bei `create_tag` anschließend gegen `candidate.head_sha`
-  verifiziert, ein abweichender Tag bricht ab statt verschoben zu werden, und
-  die beiden Update-Kriterien bleiben ohne Nachweis `PENDING` statt `PASS`.
-  Ein fehlgeschlagener Update-Nachweis wird nie automatisch wiederholt; von
-  Hand wiederholt wird er nur nach einem Fehler am Prüfpfad (Netz, Runner),
-  ein Fehler am Release ist ein Incident (Runbook Schritt 9).
-- Ein Hotfix überspringt keinen Schritt: neue Patch-Version, neuer Kandidat,
-  neue Abnahme, neues Manifest, neuer Tag.
-- Nicht jeder rote Schritt 4 verwirft den Kandidaten: Scheitert der
-  Security-Scan an Werkzeug oder Runner-Umgebung (Artefakt nicht entpackbar —
-  `dpkg-deb`/`hdiutil` fehlt, AppImage nicht ausführbar, Datei unlesbar;
-  Verdikt `FAIL`, #944), an einem Ausfall der Build-Infrastruktur oder am
-  leeren ClamAV-Signaturcache, sieht die Wiederanlaufmatrix des Runbooks den
-  Kandidatenlauf ab Schritt 3 auf demselben SHA vor. Das trägt nur, solange
-  die Behebung außerhalb des ausgeführten Kandidatenstands liegt (typisch:
-  Runner-Umgebung, Infrastruktur, Signaturcache): Der Lauf führt die
-  Workflow-Definition des Release-Refs aus, ein per PR gemergter Fix wirkt
-  auf demselben SHA also nicht — muss die Behebung in der ausgeführten
-  Definition oder in den Build-Eingaben wirksam werden (Workflow-Logik,
-  Packaging-Skript, Scanner, Policy), entsteht ein neuer Kandidat ab
-  Schritt 1. Ein Repo-Commit, der den ausgeführten Stand nicht berührt
-  (etwa das Wiederherstellen einer Workflow-Datei auf `main`, damit
-  `workflow_dispatch` auslöst), lässt den Kandidaten dagegen gültig.
-  Inhaltliche Befunde am Kandidaten führen immer auf Schritt 1 zurück.
-- Auch ein roter Schritt 5 verwirft den Kandidaten nicht immer: Nach einem
-  reinen Runnerfehler — Runner offline, Watchdog-Abbruch nach zehn Minuten
-  ohne Runner-Zuweisung (#915) oder ein Action-Download, den
-  `codeload.github.com` hinter der Heim-IP der Self-hosted Runner mit
-  HTTP 429 ablehnt — darf die Abnahme mit **derselben** Kandidaten-Run-ID
-  erneut laufen (Runbook Schritt 5 und 6, Wiederanlaufmatrix); der
-  Kandidat und seine Artefakte bleiben gültig, weil die Behebung außerhalb
-  des Kandidatenstands liegt. Die Raute davor ist verbindlich: Fehlt
-  Evidenz, weil Workflow, Preflight-Skript oder eine andere ausgeführte
-  Eingabe des Kandidaten defekt ist, wiederholte derselbe SHA nur den
-  Defekt — dann Fix-PR und neuer Kandidat ab Schritt 1. Der 429-Fall trifft `actions/checkout` als
-  ersten Schritt jedes Self-hosted-Jobs, also vor dem Preflight und
-  außerhalb der Reichweite des Watchdogs; dokumentiert ist er am
-  Post-Release-Update-Nachweis auf dem Pi-Runner (Lauf 32036618118,
-  dreimal identisch), die Abhilfe ist der rein lesende Action-Archiv-Cache
-  des Runners ([`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md) §2.3). Eine
-  fehlende Plattform darf dabei nie als `PASS` eingetragen werden;
-  fachliche Hardware-Befunde (`FAIL`) führen weiterhin auf Schritt 1
-  zurück. In 4b gilt dieselbe Trennung: Ein Fehler am Prüfpfad des
-  Download- oder Update-Nachweises wird von Hand wiederholt, ein Fehler am
-  Release ist ein Incident; `CHECK_FAILED` allein belegt keinen
-  Release-Fehler, weil `check_for_update` auch HTTP 429/500 oder eine
-  ungültige API-Antwort so meldet — erst die im Runbook (Schritt 9)
-  verlangte Ursachenklärung entscheidet.
-- Seit #958 kann jede der drei Plattformen per Heartbeat-Eskalation (Stufe 3
-  nach 21 Tagen offline; Stufen 7/12/21 Tage mit Owner-Erwähnung) automatisch
-  ausgetragen sein — anders als der bewusst pausierte x86_64-Pfad trifft das
-  auch die beiden aktiven Plattformen. Die Abnahme liest diesen Bestand vorab
-  im GitHub-hosted Job `retirement-status` (fail-closed: ohne lesbares
-  Betriebs-Issue startet kein Preflight), überspringt Preflight und
-  Plattform-Job der ausgetragenen Plattform (der Watchdog erwartet sie nicht
-  mehr) und meldet das über `hinweis-ausgetragen` auch im Dry-Run. In der
-  Abschlussmatrix steht sie als „ausgetragen seit <Datum>" — kein
-  Abnahmeergebnis: Die Matrix gilt als blockierend, `create-approval` weist
-  sie ab und schreibt kein Freigabemanifest (der Freigabevertrag verlangt
-  weiterhin `approved`); der Lauf endet als No-Go. Reaktiviert wird durch Neuregistrierung und
-  Entfernen des Labels am Betriebs-Issue
-  ([`RUNNER_SETUP.md`](RUNNER_SETUP.md) §4).
+  abschließend. `MALWARE-01` ist `SHOULD`, ein tatsächlicher Fund aber immer
+  No-Go, und ein fehlender Signaturcache wird sichtbar `UNAVAILABLE`.
+- `PUBLIC-DOWNLOAD-01` erbringt der Nachweis-Job des Publish-Laufs, nicht der
+  Release-Owner: Er kann erst **nach** `--draft=false` laufen, weil Draft-Assets
+  anonym nicht erreichbar sind — maßgeblich ist der Bericht, nie die Lauf-URL. Ein
+  rotes Verdikt hält auch die Folgejobs an, ein Update-Nachweis wird dann gar
+  nicht erst ausgelöst.
+- `UPDATE-LINUX-ARM-01` und `UPDATE-MACOS-ARM-01` sind erst nach dem Tag prüfbar,
+  weil `/releases/latest` die neue Version vorher nicht meldet. Sie blockieren den
+  Tag nicht, aber den Abschluss des Release-Issues; `CHECK_FAILED` gilt nie als
+  „kein Update“ und belegt für sich keinen Release-Fehler. `platforms=alle`
+  erbringt beide in einem Lauf, der macOS-Kanal setzt einen Vorgänger ab v2.7.3
+  voraus. Der automatisierte Abschluss ersetzt keine Prüfung, nur Tipparbeit: Der
+  Tag wird auch bei `create_tag` gegen `candidate.head_sha` verifiziert, und die
+  beiden Update-Kriterien bleiben ohne Nachweis `PENDING`.
+- Ein Hotfix überspringt keinen Schritt: neue Patch-Version, neuer Kandidat, neue
+  Abnahme, neues Manifest, neuer Tag. Umgekehrt kann jede Plattform per
+  Heartbeat-Eskalation automatisch ausgetragen sein; die Abschlussmatrix führt sie
+  dann als „ausgetragen seit <Datum>" — kein Abnahmeergebnis: Die Matrix gilt als
+  blockierend, `create-approval` schreibt kein Freigabemanifest, der Lauf endet
+  als No-Go; reaktiviert wird durch Neuregistrierung und Entfernen des Labels
+  ([`RUNNER_SETUP.md`](RUNNER_SETUP.md) §4). Welcher Weg bei welcher Störung gilt,
+  steht ausschließlich in der
+  [Wiederanlaufmatrix](RELEASE_PROCESS.md#wiederanlaufmatrix).
