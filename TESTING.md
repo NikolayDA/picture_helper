@@ -100,6 +100,7 @@ Im Projektordner (venv aktiv):
 |--------------|---------------------------------------------------------------------------|
 | `make install-test` | Installiert das Paket nicht-editable mit `[test]` und `requirements/constraints.txt` in das Test-venv |
 | `make doctor` | Prüft Python-Version, Test-Abhängigkeiten, Paketinstallation (editable Link auf diesen Checkout **oder** nicht-editable Install, #1053), Console-Script und Qt-`offscreen`; `make pr-check` ruft ihn mit `--require-installed` |
+| `make pr-ready` | Nennt vorab die Drift-Pflichten (i18n-Parität, `ANLEITUNG.pdf`, Lizenz-Snapshot als Fehler; CHANGELOG/unbekannte Pfade als Hinweis), die der eigene Diff gegen `origin/main` auslöst (`scripts/pr_ready.py`, #1041) – netzfrei, kein `git fetch` – und läuft danach in `pr-check` |
 | `make pr-check` | **PR-Prüfung:** `install-test` + `doctor` + `ruff` + `mypy` + `pytest` (volle UI-Suite ausgeschlossen, `ui_smoke` läuft mit) + fail-closed Release-Pfadklassifikation |
 | `make check` | Schnelle Wiederholung ohne Neuinstallation/Doctor: `ruff` + `mypy` + `pytest` |
 | `make ui`    | Volle lokale UI-Interaktionssuite inkl. `ui_smoke`                         |
@@ -113,7 +114,7 @@ Im Projektordner (venv aktiv):
 Empfohlener Ablauf vor einem Pull Request:
 
 ```bash
-make pr-check
+make pr-ready
 ```
 
 Empfohlener Ablauf vor einem Release:
