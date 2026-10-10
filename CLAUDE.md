@@ -864,8 +864,19 @@ notiert – sie hätte keinen Wächter, #1040):
   bindet Hardware-Evidenz und Freeze-Provenienz an genau diesen Build-Run.
   `release-publish.yml` veröffentlicht danach ausschließlich die fünf im
   Freigabemanifest gespeicherten SHA-256, Draft-first und ohne Neubau/Clobber
-  (#744/#747, siehe *Release-Freigabevertrag* unten). Der verbindliche Ablauf
-  steht nur im
+  (#744/#747, siehe *Release-Freigabevertrag* unten). Die Dispatches der
+  Runbook-Schritte 3/5/6/8/9 löst der Release-Owner seit #1039 über
+  `scripts/release_dispatch.py` (`candidate`/`acceptance`/`approve`/
+  `publish`/`finalize`) aus: Das Skript läuft lokal mit `gh`, leitet Run-IDs
+  und Manifestname aus der API ab statt sie kopieren zu lassen, korreliert den
+  erzeugten Lauf (`workflow_dispatch` antwortet ohne Run-ID) und hält die
+  Bindungswerte in einer Zustandsdatei außerhalb des Arbeitsbaums
+  (wiederanlauf-sicher, fail-closed gegen fremden Zustand). Es ändert keinen
+  Workflow und keinen Vertrag; `approve` geht nie von selbst zum Publish über,
+  und die Handprozedur im Runbook bleibt Rückfallweg und Referenz
+  (`tests/test_release_governance.py` hält Schritt ↔ Unterkommando fest;
+  Betrieb: [`RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md) §4.4).
+  Der verbindliche Ablauf steht nur im
   [`Release-Runbook`](docs/RELEASE_PROCESS.md), die stabilen Kriterien nur in
   der [`Abnahme-Checkliste`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md).
 - **Runner-Betrieb:** `runner-heartbeat.yml` (#921) — täglich 05:30 UTC und
