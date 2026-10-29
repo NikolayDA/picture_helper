@@ -74,8 +74,9 @@ def _is_safe_member_name(name: str) -> bool:
     """True, wenn ``name`` ein harmloser Basisname ohne Pfadanteile ist.
 
     Wehrt Zip-Slip ab: keine Verzeichnistrenner, kein ``..``/``.``, nicht
-    absolut, keine Laufwerks-/UNC-Pfade. Erlaubt sind genau die von uns selbst
-    geschriebenen flachen Namen (``manifest.json``, ``layer_NNNN.png``).
+    absolut, keine Laufwerks-/UNC-Pfade. Erlaubt sind flache Basisnamen wie
+    ``manifest.json``, ``layer_NNNN.png`` oder ``layer_NNNN_height16.png``;
+    die exakte Whitelist prüft ``_validate_members``.
     """
     if not name or name in (".", ".."):
         return False

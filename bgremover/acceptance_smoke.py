@@ -90,7 +90,7 @@ _EVIDENCE_SCHEMA = 3
 # weiterlaufen als das 60s-Budget des Hooks aufbrauchen.
 _CHILD_PROVENANCE_TIMEOUT_S = 20
 
-# Vom Fixture-Bau (tests/build_v270_fixture.py, echter v2.7.0-Code)
+# Vom Fixture-Bau (build_v270_fixture.py, echter v2.7.0-Code)
 # protokollierte Werte – identisch zu den Konstanten in
 # tests/test_project_v270_upgrade.py, hier dupliziert, weil dieser Hook aus
 # dem gepackten Artefakt läuft und nicht auf das tests/-Paket zugreifen kann.
